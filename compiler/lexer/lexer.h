@@ -5,12 +5,18 @@
 #ifndef AQ_COMPILER_LEXER_LEXER_H_
 #define AQ_COMPILER_LEXER_LEXER_H_
 
+#include <cstddef>
+
+#include "compiler/lexer/token.h"
+
 namespace Aq {
 namespace Compiler {
 class Lexer {
  public:
-  // Initialize the Lexer class and store |source_code| to |code_buffer_|.
-  Lexer(char* source_code);
+  // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
+  Lexer(char* source_code, size_t length);
+  int LexToken(Token& return_token);
+  bool IsReadEnd();
 
  private:
   char* buffer_ptr_;
@@ -37,8 +43,6 @@ class Lexer {
     char* location;
     int length;
   };
-
-  int LexToken(Token& return_token);
 };
 }  // namespace Compiler
 }  // namespace Aq

@@ -10,7 +10,8 @@ namespace Compiler {
 struct Token {
   enum Type {};
   Type type;
-  char* token;
+  char* location;
+  int length;
 };
 }  // namespace Compiler
 }  // namespace Aq
