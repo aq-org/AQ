@@ -8,9 +8,7 @@
 namespace Aq {
 namespace Compiler {
 struct Token {
-  enum Type {
-
-  };
+  enum Type {};
   Type type;
   char* token;
 };

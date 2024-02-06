@@ -4,7 +4,13 @@
 
 #include "aq/aq.h"
 
+#include <iostream>
+
 namespace Aq {
 
-int main() { return 0; }
+int main(int argc, char *argv) {
+  // TODO
+}
 }  // namespace Aq
+
+int main(int argc, char *argv) { return Aq::main(argc, argv); }

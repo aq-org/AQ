@@ -4,51 +4,36 @@
 
 #include "compiler/lexer/lexer.h"
 
-#include <cstring>
-#include <vector>
-
 #include "compiler/lexer/token.h"
 
 namespace Aq {
 namespace Compiler {
-Lexer::Lexer(char* source_code) {
-LexInit:
-  int read_index = 0;
-  std::vector<Token> token;
-  BaseToken token_buffer;
+int Lexer::LexToken(Token& return_token) {
 LexStart:
-  if (read_index + 1 >= std::strlen(source_code)) {
+  BaseToken token_buffer;
+  token_buffer.type = BaseToken::Type::START;
+
+  char* read_ptr = buffer_ptr_;
+
+  if (read_ptr == buffer_end_) {
     goto LexEnd;
+  } else if (read_ptr > buffer_end_) {
+    // TODO: Handle error
+    return -1;
   }
 LexToken:
-  switch (source_code[read_index]) {
+  switch (*read_ptr) {
     case '!':
-      if (token_buffer.type == BaseToken::Type::OPERATOR ||
-          token_buffer.type == BaseToken::Type::CHARACTER ||
-          token_buffer.type == BaseToken::Type::STRING ||
-          token_buffer.type == BaseToken::Type::COMMENT) {
-        token_buffer.token = strcat(token_buffer.token, "!");
-        read_index++;
-        goto LexStart;
-      } else {
-        goto LexEnd;
-      }
-    case '"':
     case '#':
     case '$':
     case '%':
     case '&':
-    case '\'':
     case '(':
     case ')':
     case '*':
-    case '+':
     case ',':
-    case '-':
-    case '.':
     case '/':
     case ':':
-    case ';':
     case '<':
     case '=':
     case '>':
@@ -63,20 +48,167 @@ LexToken:
     case '|':
     case '}':
     case '~':
-      break;
-    default:
-      break;
-  }
-LexEnd:
-  if (token_buffer.type == BaseToken::Type::OPERATOR) {
-    // LexOperator(token_buffer.token);
-    // Token token;
-    Token token_arr[100];
-    Token* test_tok = token_arr;
-  }
-  if (read_index < std::strlen(source_code)) {
-    goto LexStart;
-  }
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::OPERATOR;
+        read_ptr++;
+      } else if (token_buffer.type == BaseToken::Type::OPERATOR ||
+                 token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else {
+        goto LexEnd;
+      }
+
+    case '"':
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::STRING;
+        read_ptr++;
+      } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::STRING) {
+        if (*(read_ptr - 1) == '\\') {
+          read_ptr++;
+          goto LexToken;
+        } else {
+          read_ptr++;
+          goto LexEnd;
+        }
+      } else {
+        goto LexEnd;
+      }
+
+    case '\'':
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::CHARACTER;
+        read_ptr++;
+      } else if (token_buffer.type == BaseToken::Type::STRING ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::CHARACTER) {
+        if (*(read_ptr - 1) == '\\') {
+          read_ptr++;
+          goto LexToken;
+        } else {
+          read_ptr++;
+          goto LexEnd;
+        }
+      } else {
+        goto LexEnd;
+      }
+
+    case '+':
+    case '-':
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::OPERATOR;
+        read_ptr++;
+      } else if (token_buffer.type == BaseToken::Type::NUMBER) {
+        if (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e') {
+          read_ptr++;
+          goto LexToken;
+        } else {
+          goto LexEnd;
+        }
+      } else if (token_buffer.type == BaseToken::Type::OPERATOR ||
+                 token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else {
+        goto LexEnd;
+      }
+
+    case '.':
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::OPERATOR;
+        read_ptr++;
+      } else if (token_buffer.type == BaseToken::Type::OPERATOR ||
+                 token_buffer.type == BaseToken::Type::NUMBER ||
+                 token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else {
+        goto LexEnd;
+      }
+
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::NUMBER;
+      } else if (token_buffer.type == BaseToken::Type::NUMBER ||
+                 token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else {
+        goto LexEnd;
+      }
+
+    case '\f':
+    case '\n':
+    case '\r':
+    case '\t':
+    case '\v':
+    case ' ':
+      if (token_buffer.type == BaseToken::Type::CHARACTER ||
+          token_buffer.type == BaseToken::Type::STRING ||
+          token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else {
+        read_ptr++;
+        buffer_ptr_++;
+        goto LexToken;
+      }
+
+    case ';':
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::SEPARATOR;
+        read_ptr++;
+      } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else {
+        goto LexEnd;
+      }
+
+  default:
+    if (token_buffer.type == BaseToken::Type::START) {
+      token_buffer.type = BaseToken::Type::IDENTIFIER;
+      read_ptr++;
+    } else if (token_buffer.type == BaseToken::Type::NUMBER ||
+               token_buffer.type == BaseToken::Type::CHARACTER ||
+               token_buffer.type == BaseToken::Type::STRING ||
+               token_buffer.type == BaseToken::Type::COMMENT) {
+      read_ptr++;
+      goto LexToken;
+    } else {
+      goto LexEnd;
+    }
+}
+LexEnd : if (token_buffer.type == BaseToken::Type::OPERATOR) {
+  // TODO: Handle operator
+}
+// TODO: Handle other token types
+return 0;
 }
 }  // namespace Compiler
 }  // namespace Aq

@@ -13,11 +13,13 @@ class Lexer {
   Lexer(char* source_code);
 
  private:
-  char* code_buffer_;
+  char* buffer_ptr_;
+  char* buffer_end_;
 
   // The basic token type used for preliminary lexical analysis.
   struct BaseToken {
     enum Type {
+      START,
       // Including keywords and defined identifiers that come with the
       // programming language, etc.
       IDENTIFIER,
@@ -32,8 +34,11 @@ class Lexer {
     };
 
     Type type;
-    char* token;
+    char* location;
+    int length;
   };
+
+  int LexToken(Token& return_token);
 };
 }  // namespace Compiler
 }  // namespace Aq
