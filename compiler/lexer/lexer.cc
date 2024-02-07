@@ -16,6 +16,9 @@ Lexer::Lexer(char* source_code, size_t length) {
 }
 
 bool Lexer::IsReadEnd() {
+  if (buffer_ptr_ == nullptr || buffer_end_ == nullptr) {
+    return true;
+  }
   if (buffer_ptr_ >= buffer_end_) {
     return true;
   } else {
@@ -125,7 +128,7 @@ LexToken:
       } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
                  token_buffer.type == BaseToken::Type::STRING) {
         // Skip escape characters.
-        read_ptr + 2;
+        read_ptr += 2;
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::OPERATOR ||
                  token_buffer.type == BaseToken::Type::COMMENT) {
@@ -190,7 +193,7 @@ LexToken:
       if (token_buffer.type == BaseToken::Type::START) {
         if (*(buffer_ptr_ + 1) == '/' || *(buffer_ptr_ + 1) == '*') {
           token_buffer.type = BaseToken::Type::COMMENT;
-          read_ptr + 2;
+          read_ptr += 2;
         } else {
           token_buffer.type = BaseToken::Type::OPERATOR;
           read_ptr++;
@@ -202,7 +205,6 @@ LexToken:
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::OPERATOR) {
         if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
-          read_ptr++;
           goto LexEnd;
         } else {
           read_ptr++;
@@ -289,15 +291,15 @@ LexToken:
         read_ptr++;
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::COMMENT) {
-        if (*(buffer_ptr_ + 1) == '/') {
-          // // style comments, skip all comments.
-          buffer_ptr_ = ++read_ptr;
-          token_buffer.type = BaseToken::Type::START;
-          goto LexToken;
-        } else if (*(buffer_ptr_ + 1) == '*') {
+        if (*(buffer_ptr_ + 1) == '*') {
           // /**/ style comments, continue reading until the end mark of the
           // comment.
           read_ptr++;
+          goto LexToken;
+        } else {
+          // // style comments, skip all comments.
+          buffer_ptr_ = ++read_ptr;
+          token_buffer.type = BaseToken::Type::START;
           goto LexToken;
         }
       } else {
