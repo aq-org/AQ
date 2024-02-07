@@ -16,7 +16,7 @@ Lexer::Lexer(char* source_code, size_t length) {
 }
 
 bool Lexer::IsReadEnd() {
-  if (*buffer_ptr_ == '\0') {
+  if (buffer_ptr_ >= buffer_end_) {
     return true;
   } else {
     return false;
@@ -44,17 +44,6 @@ LexToken:
 
   // Start lexical analysis.
   switch (*read_ptr) {
-    // Special case.
-    case '\0':
-      if (token_buffer.type == BaseToken::Type::CHARACTER ||
-          token_buffer.type == BaseToken::Type::STRING ||
-          token_buffer.type == BaseToken::Type::COMMENT) {
-        read_ptr++;
-        goto LexToken;
-      } else {
-        goto LexEnd;
-      }
-
     // General operators.
     case '!':
     case '#':
@@ -100,10 +89,12 @@ LexToken:
         read_ptr++;
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
-                 token_buffer.type == BaseToken::Type::STRING ||
                  token_buffer.type == BaseToken::Type::COMMENT) {
         read_ptr++;
         goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::STRING) {
+        read_ptr++;
+        goto LexEnd;
       } else {
         goto LexEnd;
       }
@@ -114,11 +105,13 @@ LexToken:
         token_buffer.type = BaseToken::Type::CHARACTER;
         read_ptr++;
         goto LexToken;
-      } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
-                 token_buffer.type == BaseToken::Type::STRING ||
+      } else if (token_buffer.type == BaseToken::Type::STRING ||
                  token_buffer.type == BaseToken::Type::COMMENT) {
         read_ptr++;
         goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::CHARACTER) {
+        read_ptr++;
+        goto LexEnd;
       } else {
         goto LexEnd;
       }
@@ -146,7 +139,11 @@ LexToken:
     case '+':
     case '-':
       if (token_buffer.type == BaseToken::Type::START) {
-        if (*(read_ptr + 1) == 0 || 1 || 2 || 3 || 4 || 5 || 6 || 7 || 8 || 9) {
+        if (*(read_ptr + 1) == '0' || *(read_ptr + 1) == '1' ||
+            *(read_ptr + 1) == '2' || *(read_ptr + 1) == '3' ||
+            *(read_ptr + 1) == '4' || *(read_ptr + 1) == '5' ||
+            *(read_ptr + 1) == '6' || *(read_ptr + 1) == '7' ||
+            *(read_ptr + 1) == '8' || *(read_ptr + 1) == '9') {
           token_buffer.type = BaseToken::Type::NUMBER;
         } else {
           token_buffer.type = BaseToken::Type::OPERATOR;
@@ -190,12 +187,7 @@ LexToken:
 
     // The comment flag.
     case '/':
-      if (token_buffer.type == BaseToken::Type::OPERATOR ||
-          token_buffer.type == BaseToken::Type::CHARACTER ||
-          token_buffer.type == BaseToken::Type::STRING) {
-        read_ptr++;
-        goto LexToken;
-      } else if (token_buffer.type == BaseToken::Type::START) {
+      if (token_buffer.type == BaseToken::Type::START) {
         if (*(buffer_ptr_ + 1) == '/' || *(buffer_ptr_ + 1) == '*') {
           token_buffer.type = BaseToken::Type::COMMENT;
           read_ptr + 2;
@@ -204,6 +196,18 @@ LexToken:
           read_ptr++;
         }
         goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING) {
+        read_ptr++;
+        goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::OPERATOR) {
+        if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
+          read_ptr++;
+          goto LexEnd;
+        } else {
+          read_ptr++;
+          goto LexToken;
+        }
       } else if (token_buffer.type == BaseToken::Type::COMMENT) {
         if (*(buffer_ptr_ + 1) == '*') {
           if (*(read_ptr - 1) == '*') {
@@ -274,6 +278,7 @@ LexToken:
 
     // Newlines.
     case '\n':
+    case '\0':
       if (token_buffer.type == BaseToken::Type::START) {
         // Skip newlines.
         read_ptr++;
@@ -289,7 +294,7 @@ LexToken:
           buffer_ptr_ = ++read_ptr;
           token_buffer.type = BaseToken::Type::START;
           goto LexToken;
-        } else {
+        } else if (*(buffer_ptr_ + 1) == '*') {
           // /**/ style comments, continue reading until the end mark of the
           // comment.
           read_ptr++;

@@ -2,9 +2,10 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
+#include "compiler/lexer/lexer.h"
+
 #include <iostream>
 
-#include "compiler/lexer/lexer.h"
 #include "compiler/lexer/token.h"
 
 namespace Aq {
@@ -12,11 +13,10 @@ namespace Compiler {
 Lexer::Lexer(char* source_code, size_t length) {
   buffer_ptr_ = source_code;
   buffer_end_ = source_code + length;
-  // std::cout << buffer_ptr_ << std::endl;
 }
 
 bool Lexer::IsReadEnd() {
-  if (*buffer_ptr_ == '\0') {
+  if (buffer_ptr_ >= buffer_end_) {
     return true;
   } else {
     return false;
@@ -25,29 +25,26 @@ bool Lexer::IsReadEnd() {
 
 int Lexer::LexToken(Token& return_token) {
 LexStart:
+  // Initialize a basic token and store the token for preliminary analysis. Then
+  // set the initial state.
   BaseToken token_buffer;
   token_buffer.type = BaseToken::Type::START;
 
+  // Set the reading position pointer equal to the buffer pointer.
   char* read_ptr = buffer_ptr_;
 
 LexToken:
+  // If the end of the buffer is reached, return.
   if (read_ptr == buffer_end_) {
-    goto LexEnd;
+    return 0;
   } else if (read_ptr > buffer_end_) {
-    // TODO: Handle error
+    // Memory out of bounds occurred. Return an error.
     return -1;
   }
 
+  // Start lexical analysis.
   switch (*read_ptr) {
-    case '\0':
-      if (token_buffer.type == BaseToken::Type::CHARACTER ||
-          token_buffer.type == BaseToken::Type::STRING ||
-          token_buffer.type == BaseToken::Type::COMMENT) {
-        read_ptr++;
-        goto LexToken;
-      } else {
-        goto LexEnd;
-      }
+    // General operators.
     case '!':
     case '#':
     case '$':
@@ -64,7 +61,6 @@ LexToken:
     case '?':
     case '@':
     case '[':
-    case '\\':
     case ']':
     case '^':
     case '`':
@@ -86,56 +82,76 @@ LexToken:
         goto LexEnd;
       }
 
+    // The string flag.
     case '"':
       if (token_buffer.type == BaseToken::Type::START) {
         token_buffer.type = BaseToken::Type::STRING;
         read_ptr++;
+        goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
                  token_buffer.type == BaseToken::Type::COMMENT) {
         read_ptr++;
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::STRING) {
-        if (*(read_ptr - 1) == '\\' && *(read_ptr - 2) != '\\') {
-          read_ptr++;
-          goto LexToken;
-        } else {
-          read_ptr++;
-          goto LexEnd;
-        }
+        read_ptr++;
+        goto LexEnd;
       } else {
         goto LexEnd;
       }
 
+    // The character flag.
     case '\'':
       if (token_buffer.type == BaseToken::Type::START) {
         token_buffer.type = BaseToken::Type::CHARACTER;
         read_ptr++;
+        goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::STRING ||
                  token_buffer.type == BaseToken::Type::COMMENT) {
         read_ptr++;
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::CHARACTER) {
-        if (*(read_ptr - 1) == '\\' && *(read_ptr - 2) != '\\') {
-          read_ptr++;
-          goto LexToken;
-        } else {
-          read_ptr++;
-          goto LexEnd;
-        }
+        read_ptr++;
+        goto LexEnd;
       } else {
         goto LexEnd;
       }
 
+    // Escape character.
+    case '\\':
+      if (token_buffer.type == BaseToken::Type::START) {
+        token_buffer.type = BaseToken::Type::OPERATOR;
+        read_ptr++;
+        goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING) {
+        // Skip escape characters.
+        read_ptr + 2;
+        goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::OPERATOR ||
+                 token_buffer.type == BaseToken::Type::COMMENT) {
+        read_ptr++;
+        goto LexToken;
+      } else {
+        goto LexEnd;
+      }
+
+    // Positive and negative numbers.
     case '+':
     case '-':
       if (token_buffer.type == BaseToken::Type::START) {
-        if (*(read_ptr + 1) == 0 || 1 || 2 || 3 || 4 || 5 || 6 || 7 || 8 || 9) {
+        if (*(read_ptr + 1) == '0' || *(read_ptr + 1) == '1' ||
+            *(read_ptr + 1) == '2' || *(read_ptr + 1) == '3' ||
+            *(read_ptr + 1) == '4' || *(read_ptr + 1) == '5' ||
+            *(read_ptr + 1) == '6' || *(read_ptr + 1) == '7' ||
+            *(read_ptr + 1) == '8' || *(read_ptr + 1) == '9') {
           token_buffer.type = BaseToken::Type::NUMBER;
         } else {
           token_buffer.type = BaseToken::Type::OPERATOR;
         }
         read_ptr++;
+        goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::NUMBER) {
+        // Dealing with scientific notation.
         if (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e') {
           read_ptr++;
           goto LexToken;
@@ -152,10 +168,12 @@ LexToken:
         goto LexEnd;
       }
 
+    // Decimal point.
     case '.':
       if (token_buffer.type == BaseToken::Type::START) {
         token_buffer.type = BaseToken::Type::OPERATOR;
         read_ptr++;
+        goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::OPERATOR ||
                  token_buffer.type == BaseToken::Type::NUMBER ||
                  token_buffer.type == BaseToken::Type::CHARACTER ||
@@ -167,35 +185,52 @@ LexToken:
         goto LexEnd;
       }
 
+    // The comment flag.
     case '/':
-      if (token_buffer.type == BaseToken::Type::OPERATOR ||
-          token_buffer.type == BaseToken::Type::CHARACTER ||
-          token_buffer.type == BaseToken::Type::STRING) {
-        read_ptr++;
-        goto LexToken;
-      } else if (token_buffer.type == BaseToken::Type::START) {
-        if (*(read_ptr + 1) == '/') {
+      if (token_buffer.type == BaseToken::Type::START) {
+        if (*(buffer_ptr_ + 1) == '/' || *(buffer_ptr_ + 1) == '*') {
           token_buffer.type = BaseToken::Type::COMMENT;
-        } else if (*(read_ptr + 1) == '*') {
-          token_buffer.type = BaseToken::Type::COMMENT;
+          read_ptr + 2;
         } else {
           token_buffer.type = BaseToken::Type::OPERATOR;
+          read_ptr++;
         }
+        goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
+                 token_buffer.type == BaseToken::Type::STRING) {
         read_ptr++;
         goto LexToken;
+      } else if (token_buffer.type == BaseToken::Type::OPERATOR) {
+        if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
+          read_ptr++;
+          goto LexEnd;
+        } else {
+          read_ptr++;
+          goto LexToken;
+        }
       } else if (token_buffer.type == BaseToken::Type::COMMENT) {
         if (*(buffer_ptr_ + 1) == '*') {
           if (*(read_ptr - 1) == '*') {
-            buffer_ptr_ == ++read_ptr;
+            // /**/ style comments, skip all comments.
+            buffer_ptr_ = ++read_ptr;
+            token_buffer.type = BaseToken::Type::START;
             goto LexToken;
           } else {
+            // Non-end comment mark, continue reading until the end mark of the
+            // comment.
             read_ptr++;
+            goto LexToken;
           }
+        } else {
+          // // style comments, continue reading until newlines are skipped.
+          read_ptr++;
+          goto LexToken;
         }
       } else {
         goto LexEnd;
       }
 
+    // Numbers.
     case '0':
     case '1':
     case '2':
@@ -207,6 +242,7 @@ LexToken:
     case '8':
     case '9':
       if (token_buffer.type == BaseToken::Type::START) {
+        read_ptr++;
         token_buffer.type = BaseToken::Type::NUMBER;
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::IDENTIFIER ||
@@ -220,12 +256,14 @@ LexToken:
         goto LexEnd;
       }
 
+    // Whitespace characters.
     case '\f':
     case '\r':
     case '\t':
     case '\v':
     case ' ':
       if (token_buffer.type == BaseToken::Type::START) {
+        // Skip whitespace characters.
         read_ptr++;
         buffer_ptr_++;
         goto LexToken;
@@ -238,8 +276,11 @@ LexToken:
         goto LexEnd;
       }
 
+    // Newlines.
     case '\n':
+    case '\0':
       if (token_buffer.type == BaseToken::Type::START) {
+        // Skip newlines.
         read_ptr++;
         buffer_ptr_++;
         goto LexToken;
@@ -248,22 +289,27 @@ LexToken:
         read_ptr++;
         goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::COMMENT) {
-        if (*(buffer_ptr_ + 1) == '*') {
-          if (*(read_ptr - 1) == '*') {
-            read_ptr++;
-          } else {
-            buffer_ptr_ == ++read_ptr;
-            goto LexToken;
-          }
+        if (*(buffer_ptr_ + 1) == '/') {
+          // // style comments, skip all comments.
+          buffer_ptr_ = ++read_ptr;
+          token_buffer.type = BaseToken::Type::START;
+          goto LexToken;
+        } else if (*(buffer_ptr_ + 1) == '*') {
+          // /**/ style comments, continue reading until the end mark of the
+          // comment.
+          read_ptr++;
+          goto LexToken;
         }
       } else {
         goto LexEnd;
       }
 
+    // End of code flag.
     case ';':
       if (token_buffer.type == BaseToken::Type::START) {
         token_buffer.type = BaseToken::Type::SEPARATOR;
         read_ptr++;
+        goto LexToken;
       } else if (token_buffer.type == BaseToken::Type::CHARACTER ||
                  token_buffer.type == BaseToken::Type::STRING ||
                  token_buffer.type == BaseToken::Type::COMMENT) {
