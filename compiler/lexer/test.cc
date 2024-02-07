@@ -2,44 +2,49 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aq/aq.h"
-
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
+#include "aq/aq.h"
 #include "compiler/lexer/lexer.h"
 #include "compiler/lexer/token.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   // Read files
   std::ifstream file;
-  const char* filename =argv[1];
+  const char* filename = argv[1];
   file.open(filename);
   if (!file.is_open()) {
     std::cerr << "Can't open file." << std::endl;
     return 1;
   }
-  std::string str;
-  std::string line;
-  while (std::getline(file, line)) {
-    str += line;
+
+  // Use std::vector for dynamic memory allocation
+  std::vector<char> code;
+  char ch;
+  while (file.get(ch)) {
+    code.push_back(ch);
   }
+  code.push_back('\0');  // Null-terminate the code string
   file.close();
-  char code[str.size() + 1];
-  std::strcpy(code, str.c_str());
-  Aq::Compiler::Lexer lexer(code, sizeof(code));
+
+  Aq::Compiler::Lexer lexer(
+      code.data(), code.size() - 1);  // Pass size excluding null terminator
   Aq::Compiler::Token token;
-  if (code[str.size()] == '\0') {
-    while (1) {
-      int return_value = lexer.LexToken(token);
+
+  while (true) {
+    int return_value = lexer.LexToken(token);
+    if (token.length == 0) {
+      std::cout << "END OF THE CODE. TEST STOP!";
+    } else {
       std::cout << std::string(token.location, token.length) << std::endl;
-      if (lexer.IsReadEnd() == true) {
-        break;
-      }
     }
-  } else {
-    std::cout << "Read file error.";
+    if (lexer.IsReadEnd()) {
+      break;
+    }
   }
+
   return 0;
 }
