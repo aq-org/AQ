@@ -43,6 +43,8 @@ class Lexer {
     char* location;
     int length;
   };
+
+  // TODO: Analyze specific tokens based on hash tables.
 };
 }  // namespace Compiler
 }  // namespace Aq
