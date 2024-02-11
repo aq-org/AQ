@@ -15,7 +15,12 @@ class Lexer {
  public:
   // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
   Lexer(char* source_code, size_t length);
+  ~Lexer();
+
+  // Lexical analysis |buffer_ptr_|, and store the analyzed token into
+  // |return_token|.
   int LexToken(Token& return_token);
+
   bool IsReadEnd();
 
  private:
