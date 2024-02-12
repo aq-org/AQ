@@ -27,28 +27,6 @@ class Lexer {
   char* buffer_ptr_;
   char* buffer_end_;
 
-  // The basic token type used for preliminary lexical analysis.
-  struct BaseToken {
-    enum Type {
-      START,
-      // Including keywords and defined identifiers that come with the
-      // programming language, etc.
-      IDENTIFIER,
-      // Contains all operators and other operators with specific meanings.
-      OPERATOR,
-      // Contains all separators that have no specific meaning.
-      SEPARATOR,
-      NUMBER,
-      CHARACTER,
-      STRING,
-      COMMENT
-    };
-
-    Type type;
-    char* location;
-    int length;
-  };
-
   // TODO: Analyze specific tokens based on hash tables.
 };
 }  // namespace Compiler

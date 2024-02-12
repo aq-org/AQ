@@ -6,13 +6,14 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <cstdint>
 
 #include "aq/aq.h"
+#include "compiler/lexer/lex_map.h"
 #include "compiler/lexer/lexer.h"
 #include "compiler/lexer/token.h"
 
-int main(int argc, char* argv[]) {
-  // Read files
+int LexerTest(int argc, char* argv[]) {
   std::ifstream file;
   const char* filename = argv[1];
   file.open(filename);
@@ -21,23 +22,21 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  // Use std::vector for dynamic memory allocation
   std::vector<char> code;
   char ch;
   while (file.get(ch)) {
     code.push_back(ch);
   }
-  code.push_back('\0');  // Null-terminate the code string
+  code.push_back('\0');
   file.close();
 
-  Aq::Compiler::Lexer lexer(
-      code.data(), code.size() - 1);  // Pass size excluding null terminator
+  Aq::Compiler::Lexer lexer(code.data(), code.size() - 1);
   Aq::Compiler::Token token;
 
   while (true) {
     int return_value = lexer.LexToken(token);
     if (token.length == 0) {
-      std::cout << "END OF THE CODE. TEST STOP!";
+      std::cout << "END OF THE CODE.";
     } else {
       std::cout << std::string(token.location, token.length) << std::endl;
     }
@@ -46,5 +45,16 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  return 0;
+}
+
+int LexMapTest(int argc, char* argv[]) {
+
+  return 0;
+}
+
+int main(int argc, char* argv[]) {
+  LexerTest(argc, argv);
+  LexMapTest(argc, argv);
   return 0;
 }
