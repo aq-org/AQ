@@ -4,8 +4,6 @@
 
 #include "compiler/lexer/lexer.h"
 
-#include <iostream>
-
 #include "compiler/lexer/token.h"
 
 namespace Aq {

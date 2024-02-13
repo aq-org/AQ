@@ -5,13 +5,16 @@
 #ifndef AQ_DEBUG_DEBUG_H_
 #define AQ_DEBUG_DEBUG_H_
 
+#include <string>
+#include <ctime>
+
 namespace Aq {
 class Debug {
  public:
   enum Level { ERROR = 0, WARNING = 1, INFO = 2 };
 
   Debug(Level level, char* location, char* debug_code, char* debug_message,
-        char* other_info);
+        char* other_info = nullptr);
   ~Debug();
 
   Debug(const Debug&) = delete;

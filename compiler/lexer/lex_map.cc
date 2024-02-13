@@ -6,6 +6,8 @@
 
 #include <cstddef>
 
+#include "debug/debug.h"
+
 namespace Aq {
 namespace Compiler {
 template <typename T>
@@ -36,18 +38,36 @@ template <typename T>
 void LexMap<T>::Insert(char* key, T value) {
   unsigned int hash = Hash(key);
   if (hash > capacity_) {
-    Resize();
+    if (Resize() == -1) {
+      Debug error_info(
+          Debug::Level::ERROR, "Aq::Compiler::Lexer::LexMap::Insert",
+          "Insert_MemoryError", "Memory allocation failed.", nullptr);
+      return -1;
+    }
   }
+  Pair pair;
+  pair.key = key;
+  pair.value = value;
+  pair_list_[hash].Append(pair);
 }
 
 template <typename T>
-T LexMap<T>::Find(char* key) {}
+T* LexMap<T>::Find(char* key) {
+  unsigned int hash = Hash(key);
+  if (hash > capacity_) {
+    return nullptr;
+  }
+  // TODO
+}
 
 template <typename T>
 int LexMap<T>::Resize() {
   PairList* temp = pair_list_;
   pair_list_ = new PairList[capacity_ * 1.5];
   if (!pair_list_) {
+    Debug error_info(Debug::Level::ERROR, "Aq::Compiler::Lexer::LexMap::Resize",
+                     "Resize_MemoryError", "Memory allocation failed.",
+                     nullptr);
     return -1;
   }
   for (int i = 0; i < capacity_; i++) {

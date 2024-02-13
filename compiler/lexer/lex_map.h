@@ -16,12 +16,12 @@ class LexMap {
   ~LexMap();
 
   void Insert(char* key, T value);
-  T Find(char* key);
+  T* Find(char* key);
 
  private:
   struct Pair {
     char* key;
-    T value;
+    T* value;
   };
   class PairList {
    public:
