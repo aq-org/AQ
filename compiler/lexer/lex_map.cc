@@ -11,9 +11,28 @@
 namespace Aq {
 namespace Compiler {
 template <typename T>
-LexMap<T>::LexMap(std::size_t init_capacity) {}
+LexMap<T>::LexMap(std::size_t init_capacity = 4294967295) {
+  pair_list_ = new PairList[init_capacity];
+  if (!pair_list_) {
+    Debug error_info(Debug::Level::ERROR, "Aq::Compiler::Lexer::LexMap::LexMap",
+                     "LexMap_MemoryError", "Memory allocation failed.",
+                     nullptr);
+    pair_list_ = new PairList[65535];
+    if (!pair_list_) {
+      Debug error_info(
+          Debug::Level::ERROR, "Aq::Compiler::Lexer::LexMap::LexMap",
+          "LexMap_MemoryError", "Memory allocation failed.", nullptr);
+      capacity_ = 1;
+    }
+    capacity_ = 65535;
+  }
+  capacity_ = init_capacity;
+}
+
 template <typename T>
-LexMap<T>::~LexMap() {}
+LexMap<T>::~LexMap() {
+  delete[] pair_list_;
+}
 
 template <typename T>
 LexMap<T>::PairList::~PairList() {
@@ -37,7 +56,14 @@ unsigned int LexMap<T>::Hash(char* key) {
 template <typename T>
 void LexMap<T>::Insert(char* key, T value) {
   unsigned int hash = Hash(key);
-  if (hash > capacity_) {
+
+  // Handle out-of-memory issues.
+  while (hash > capacity_) {
+    Debug error_info(
+        Debug::Level::WARNING, "Aq::Compiler::Lexer::LexMap::Insert",
+        "Insert_OutOfMemory",
+        "The hash value size exceeds the expected memory size.", nullptr);
+
     if (Resize() == -1) {
       Debug error_info(
           Debug::Level::ERROR, "Aq::Compiler::Lexer::LexMap::Insert",
@@ -45,6 +71,8 @@ void LexMap<T>::Insert(char* key, T value) {
       return -1;
     }
   }
+
+  // Create key-value pairs and insert them into the linked list.
   Pair pair;
   pair.key = key;
   pair.value = value;
@@ -57,23 +85,67 @@ T* LexMap<T>::Find(char* key) {
   if (hash > capacity_) {
     return nullptr;
   }
-  // TODO
+  return pair_list_[hash].Find(key);
 }
 
 template <typename T>
 int LexMap<T>::Resize() {
   PairList* temp = pair_list_;
   pair_list_ = new PairList[capacity_ * 1.5];
+  
+  // Memory allocation failed.
   if (!pair_list_) {
     Debug error_info(Debug::Level::ERROR, "Aq::Compiler::Lexer::LexMap::Resize",
                      "Resize_MemoryError", "Memory allocation failed.",
                      nullptr);
     return -1;
   }
+
+  // Copy the original array data to the new array.
   for (int i = 0; i < capacity_; i++) {
     pair_list_[i] = temp[i];
   }
+
+  delete[] temp;
+  capacity_ = capacity_ * 1.5;
   return 0;
+}
+
+template <typename T>
+void LexMap<T>::PairList::Prepend(Pair value) {
+  Node* new_node = new Node(value);
+  new_node->next = head_ptr_;
+  head_ptr_ = new_node;
+}
+
+template <typename T>
+void LexMap<T>::PairList::Append(Pair value) {
+  if (head_ptr_ == nullptr) {
+    head_ptr_ = new Node(value);
+  } else {
+    // Find the last node and append the new node.
+    Node* temp = head_ptr_;
+    while (temp->next != nullptr) {
+      temp = temp->next;
+    }
+    temp->next = new Node(value);
+  }
+}
+
+template <typename T>
+T* LexMap<T>::PairList::Find(char* key) {
+  Node* temp = head_ptr_;
+
+  // Compare keys one by one to find the corresponding value.
+  while (temp != nullptr) {
+    if (*key == *temp->data->key) {
+      return temp->data->value
+    };
+    temp = temp->next;
+  }
+
+  // Key not found, return nullptr.
+  return nullptr;
 }
 }  // namespace Compiler
 }  // namespace Aq

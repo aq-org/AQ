@@ -27,7 +27,6 @@ class Lexer {
   char* buffer_ptr_;
   char* buffer_end_;
 
-  // TODO: Analyze specific tokens based on hash tables.
 };
 }  // namespace Compiler
 }  // namespace Aq

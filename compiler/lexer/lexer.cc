@@ -5,6 +5,7 @@
 #include "compiler/lexer/lexer.h"
 
 #include "compiler/lexer/token.h"
+#include "debug/debug.h"
 
 namespace Aq {
 namespace Compiler {
@@ -33,6 +34,9 @@ LexToken:
   // Memory out of bounds occurred. Return an error.
   if (read_ptr > buffer_end_) {
     buffer_ptr_ = read_ptr;
+    Debug error_info(Debug::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
+                     "LexToken_ReadError", "Memory out of bounds occurred.",
+                     nullptr);
     return -1;
   }
 
@@ -47,7 +51,6 @@ LexToken:
     case '(':
     case ')':
     case '*':
-
     case ':':
     case '<':
     case '=':
@@ -358,27 +361,24 @@ LexToken:
   }
 
 LexEnd:
+  // Meaningless token.
   if (return_token.type == Token::Type::START ||
       return_token.type == Token::Type::COMMENT) {
     return_token.location = read_ptr;
     return_token.length = 0;
     buffer_ptr_ = read_ptr;
-    return_token.location = return_token.location;
-    return_token.length = return_token.length;
     return 0;
   } else {
+    // Meaningful token. Determine the specific token information.
     return_token.location = buffer_ptr_;
     return_token.length = read_ptr - buffer_ptr_;
     buffer_ptr_ = read_ptr;
+
     if (return_token.type == Token::Type::OPERATOR) {
       // TODO: Handle operator
     }
     // TODO: Handle other token types
 
-    // test
-    return_token.location = return_token.location;
-    return_token.length = return_token.length;
-    // test
     return 0;
   }
 }
