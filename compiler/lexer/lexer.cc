@@ -374,10 +374,52 @@ LexEnd:
     return_token.length = read_ptr - buffer_ptr_;
     buffer_ptr_ = read_ptr;
 
-    if (return_token.type == Token::Type::OPERATOR) {
-      // TODO: Handle operator
+    // Handle the detailed information of tokens.
+    char* value = new char[return_token.length];
+    for (int i = 0; i < return_token.length; i++) {
+      value[i] = *(return_token.location + i);
     }
-    // TODO: Handle other token types
+    switch (return_token.type) {
+      case Token::Type::IDENTIFIER:
+        return_token.value.Keyword = token_map_.GetKeywordValue(value);
+        if (return_token.value.Keyword == Token::KeywordType::NONE) {
+          return_token.value.Identifier = value;
+          break;
+        }
+        delete[] value;
+        break;
+
+      case Token::Type::CHARACTER:
+        return_token.value.Character = value;
+        break;
+
+      case Token::Type::STRING:
+        return_token.value.String = value;
+        break;
+
+      case Token::Type::OPERATOR:
+        return_token.value.Operator = token_map_.GetOperatorValue(value);
+        delete[] value;
+        break;
+
+      case Token::Type::SEPARATOR:
+        return_token.value.Separator = token_map_.GetSeparatorValue(value);
+        delete[] value;
+        break;
+
+      case Token::Type::NUMBER:
+        return_token.value.Number =
+            std::stoi(std::string(return_token.location, return_token.length));
+        break;
+
+      default:
+        Debug error_info(Debug::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
+                         "Lextoken_UnexpectedSituations",
+                         "Encountered a situation where the token value should "
+                         "not exist while processing.",
+                         nullptr);
+        break;
+    }
 
     return 0;
   }

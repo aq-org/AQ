@@ -22,13 +22,72 @@ struct Token {
     COMMENT
   };
   enum KeywordType {
-    // TODO: Add more keywords.
+    Auto,
+    And,
+    Bitand,
+    Bitor,
+    Bool,
+    Break,
+    Case,
+    Catch,
+    Char,
+    Class,
+    Const,
+    Continue,
+    Default,
+    Do,
+    Double,
+    Else,
+    Enum,
+    Export,
+    Extern,
+    False,
+    Float,
+    For,
+    Friend,
+    Goto,
+    Import,
+    Inline,
+    Int,
+    Long,
+    Namespace,
+    New,
+    Not,
+    Operator,
+    Or,
+    Private,
+    Protected,
+    Public,
+    Return,
+    Short,
+    Signed,
+    Sizeof,
+    Static,
+    Struct,
+    Switch,
+    Template,
+    This,
+    Thread,
+    True,
+    Try,
+    Typedef,
+    Typeid,
+    Typename,
+    Union,
+    Unsigned,
+    Using,
+    Virtual,
+    Void,
+    Wchar_t,
+    While,
+    Xor,
+    NONE
   };
   enum OperatorType {
-    // TODO: Add more operators.
+    NONE
   };
   enum SeparatorType {
-    // TODO: Add more separators.
+    NONE
   };
   union Value {
     int Number;
