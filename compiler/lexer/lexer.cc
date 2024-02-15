@@ -4,8 +4,10 @@
 
 #include "compiler/lexer/lexer.h"
 
+#include <string>
+
 #include "compiler/lexer/token.h"
-#include "debug/debug.h"
+#include "debugger/debugger.h"
 
 namespace Aq {
 namespace Compiler {
@@ -34,9 +36,9 @@ LexToken:
   // Memory out of bounds occurred. Return an error.
   if (read_ptr > buffer_end_) {
     buffer_ptr_ = read_ptr;
-    Debug error_info(Debug::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
-                     "LexToken_ReadError", "Memory out of bounds occurred.",
-                     nullptr);
+    Debugger error_info(Debugger::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
+                        "LexToken_ReadError", "Memory out of bounds occurred.",
+                        nullptr);
     return -1;
   }
 
@@ -382,7 +384,7 @@ LexEnd:
     switch (return_token.type) {
       case Token::Type::IDENTIFIER:
         return_token.value.Keyword = token_map_.GetKeywordValue(value);
-        if (return_token.value.Keyword == Token::KeywordType::NONE) {
+        if (return_token.value.Keyword == Token::KeywordType::NONKEYWORD) {
           return_token.value.Identifier = value;
           break;
         }
@@ -413,11 +415,12 @@ LexEnd:
         break;
 
       default:
-        Debug error_info(Debug::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
-                         "Lextoken_UnexpectedSituations",
-                         "Encountered a situation where the token value should "
-                         "not exist while processing.",
-                         nullptr);
+        Debugger error_info(Debugger::Level::ERROR,
+                            "Aq::Compiler::Lexer::LexToken",
+                            "Lextoken_UnexpectedSituations",
+                            "Encountered a situation where the token value "
+                            "should not exist while processing.",
+                            nullptr);
         break;
     }
 

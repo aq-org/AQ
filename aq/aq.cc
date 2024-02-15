@@ -4,10 +4,6 @@
 
 #include "aq/aq.h"
 
-#include <cstring>
-#include <fstream>
-#include <iostream>
-
 #include "compiler/lexer/lexer.h"
 #include "compiler/lexer/token.h"
 

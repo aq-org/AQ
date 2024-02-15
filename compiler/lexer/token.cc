@@ -5,7 +5,7 @@
 #include "compiler/lexer/token.h"
 
 #include "compiler/lexer/lex_map.h"
-#include "debug/debug.h"
+#include "debugger/debugger.h"
 
 namespace Aq {
 namespace Compiler {
@@ -73,28 +73,13 @@ TokenMap::TokenMap() {
 TokenMap::~TokenMap() = default;
 
 Token::KeywordType TokenMap::GetKeywordValue(char* keyword) {
-  Token::KeywordType* value_ptr = keyword_map.Find(keyword);
-  if (value_ptr != nullptr) {
-    return *value_ptr;
-  } else {
-    return Token::KeywordType::NONE;
-  }
+  return keyword_map.Find(keyword);
 }
 Token::OperatorType TokenMap::GetOperatorValue(char* _operator) {
-  Token::OperatorType* value_ptr = operator_map.Find(_operator);
-  if (value_ptr != nullptr) {
-    return *value_ptr;
-  } else {
-    return Token::OperatorType::NONE;
-  }
+  return operator_map.Find(_operator);
 }
 Token::SeparatorType TokenMap::GetSeparatorValue(char* separator) {
-  Token::SeparatorType* value_ptr = separator_map.Find(separator);
-  if (value_ptr != nullptr) {
-    return *value_ptr;
-  } else {
-    return Token::SeparatorType::NONE;
-  }
+  return separator_map.Find(separator);
 }
 }  // namespace Compiler
 }  // namespace Aq

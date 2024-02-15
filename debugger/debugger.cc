@@ -2,7 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "debug/debug.h"
+#include "debugger/debugger.h"
 
 #include <cerrno>
 #include <cstring>
@@ -11,8 +11,8 @@
 #include <sstream>
 
 namespace Aq {
-Debug::Debug(Level level = ERROR, char* location, char* debug_code,
-             char* debug_message, char* other_info = nullptr) {
+Debugger::Debugger(Level level, const char* location, const char* debug_code,
+             const char* debug_message, const char* other_info) {
   errno_ = errno;
   errno_message_ = std::strerror(errno_);
   errno = 0;
@@ -23,10 +23,11 @@ Debug::Debug(Level level = ERROR, char* location, char* debug_code,
   debug_code_ = debug_code;
   debug_message_ = debug_message;
   other_info_ = other_info;
+  OutputMessage();
 }
-Debug::~Debug() = default;
+Debugger::~Debugger() = default;
 
-void Debug::OutputMessage() {
+void Debugger::OutputMessage() {
   std::string time_string = "Time:\"" + GetTimeString() + "\"";
   std::string level_string;
   switch (level_) {
@@ -59,7 +60,7 @@ void Debug::OutputMessage() {
             << "," << errno_string << other_info_string << "}" << std::endl;
 }
 
-std::string Debug::GetTimeString() {
+std::string Debugger::GetTimeString() {
   if (timestamp_ != -1) {
     std::tm local_time_info = *std::localtime(&timestamp_);
     std::tm utc_time_info = *std::gmtime(&timestamp_);
@@ -72,9 +73,9 @@ std::string Debug::GetTimeString() {
     int offset =
         std::difftime(mktime(&local_time_info), mktime(&utc_time_info));
 
-    char time_zone_offset_buffer[7];
+    char time_zone_offset_buffer[12];
     if (offset != 0) {
-      snprintf(time_zone_offset_buffer, 7, "%+03d:%02d",
+      snprintf(time_zone_offset_buffer, 12, "%+03d:%02d",
                std::abs(offset / 3600), std::abs((offset % 3600) / 60));
     } else {
       time_zone_offset_buffer[0] = 'Z';

@@ -22,6 +22,7 @@ struct Token {
     COMMENT
   };
   enum KeywordType {
+    NONKEYWORD = 0,
     Auto,
     And,
     Bitand,
@@ -81,15 +82,14 @@ struct Token {
     Wchar_t,
     While,
     Xor,
-    NONE
   };
   enum OperatorType {
     // TODO: Add more operators.
-    NONE
+    NONOPERATOR = 0
   };
   enum SeparatorType {
     // TODO: Add more separators.
-    NONE
+    NONSEPARATOR = 0
   };
   union Value {
     int Number;
