@@ -84,9 +84,11 @@ struct Token {
     NONE
   };
   enum OperatorType {
+    // TODO: Add more operators.
     NONE
   };
   enum SeparatorType {
+    // TODO: Add more separators.
     NONE
   };
   union Value {
