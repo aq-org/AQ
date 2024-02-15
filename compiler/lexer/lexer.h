@@ -21,12 +21,13 @@ class Lexer {
   // |return_token|.
   int LexToken(Token& return_token);
 
+  // Return true if the lexer is at the end of |buffer_ptr_|.
   bool IsReadEnd();
 
  private:
   char* buffer_ptr_;
   char* buffer_end_;
-
+  TokenMap token_map_;
 };
 }  // namespace Compiler
 }  // namespace Aq

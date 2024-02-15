@@ -5,6 +5,8 @@
 #ifndef AQ_COMPILER_LEXER_TOKEN_H_
 #define AQ_COMPILER_LEXER_TOKEN_H_
 
+#include "compiler/lexer/lex_map.h"
+
 namespace Aq {
 namespace Compiler {
 struct Token {
@@ -43,6 +45,22 @@ struct Token {
   int length;
   Value value;
 };
+
+class TokenMap {
+ public:
+  TokenMap();
+  ~TokenMap();
+
+  Token::KeywordType GetKeywordValue(char* keyword);
+  Token::OperatorType GetOperatorValue(char* _operator);
+  Token::SeparatorType GetSeparatorValue(char* separator);
+
+ private:
+  LexMap<Token::KeywordType> keyword_map;
+  LexMap<Token::OperatorType> operator_map;
+  LexMap<Token::SeparatorType> separator_map;
+};
+
 }  // namespace Compiler
 }  // namespace Aq
 #endif
