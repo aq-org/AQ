@@ -51,6 +51,7 @@ TokenMap::TokenMap() {
   keyword_map.Insert("signed", Token::KeywordType::Signed);
   keyword_map.Insert("sizeof", Token::KeywordType::Sizeof);
   keyword_map.Insert("static", Token::KeywordType::Static);
+  keyword_map.Insert("string", Token::KeywordType::String);
   keyword_map.Insert("struct", Token::KeywordType::Struct);
   keyword_map.Insert("switch", Token::KeywordType::Switch);
   keyword_map.Insert("template", Token::KeywordType::Template);
@@ -69,6 +70,64 @@ TokenMap::TokenMap() {
   keyword_map.Insert("wchar_t", Token::KeywordType::Wchar_t);
   keyword_map.Insert("while", Token::KeywordType::While);
   keyword_map.Insert("xor", Token::KeywordType::Xor);
+
+  operator_map.Insert("[", Token::OperatorType::l_square);
+  operator_map.Insert("]", Token::OperatorType::r_square);
+  operator_map.Insert("(", Token::OperatorType::l_paren);
+  operator_map.Insert(")", Token::OperatorType::r_paren);
+  operator_map.Insert("{", Token::OperatorType::l_brace);
+  operator_map.Insert("}", Token::OperatorType::r_brace);
+  operator_map.Insert(".", Token::OperatorType::period);
+  operator_map.Insert("...", Token::OperatorType::ellipsis);
+  operator_map.Insert("&", Token::OperatorType::amp);
+  operator_map.Insert("&&", Token::OperatorType::ampamp);
+  operator_map.Insert("&=", Token::OperatorType::ampequal);
+  operator_map.Insert("*", Token::OperatorType::star);
+  operator_map.Insert("*=", Token::OperatorType::starequal);
+  operator_map.Insert("+", Token::OperatorType::plus);
+  operator_map.Insert("++", Token::OperatorType::plusplus);
+  operator_map.Insert("+=", Token::OperatorType::plusequal);
+  operator_map.Insert("-", Token::OperatorType::minus);
+  operator_map.Insert("->", Token::OperatorType::arrow);
+  operator_map.Insert("--", Token::OperatorType::minusminus);
+  operator_map.Insert("-=", Token::OperatorType::minusequal);
+  operator_map.Insert("~", Token::OperatorType::tilde);
+  operator_map.Insert("!", Token::OperatorType::exclaim);
+  operator_map.Insert("!=", Token::OperatorType::exclaimequal);
+  operator_map.Insert("/", Token::OperatorType::slash);
+  operator_map.Insert("/=", Token::OperatorType::slashequal);
+  operator_map.Insert("%", Token::OperatorType::percent);
+  operator_map.Insert("%=", Token::OperatorType::percentequal);
+  operator_map.Insert("<", Token::OperatorType::less);
+  operator_map.Insert("<<", Token::OperatorType::lessless);
+  operator_map.Insert("<=", Token::OperatorType::lessequal);
+  operator_map.Insert("<<=", Token::OperatorType::lesslessequal);
+  operator_map.Insert("<=>", Token::OperatorType::spaceship);
+  operator_map.Insert(">", Token::OperatorType::greater);
+  operator_map.Insert(">>", Token::OperatorType::greatergreater);
+  operator_map.Insert(">=", Token::OperatorType::greaterequal);
+  operator_map.Insert(">>=", Token::OperatorType::greatergreaterequal);
+  operator_map.Insert("^", Token::OperatorType::caret);
+  operator_map.Insert("^=", Token::OperatorType::caretequal);
+  operator_map.Insert("|", Token::OperatorType::pipe);
+  operator_map.Insert("||", Token::OperatorType::pipepipe);
+  operator_map.Insert("|=", Token::OperatorType::pipeequal);
+  operator_map.Insert("?", Token::OperatorType::question);
+  operator_map.Insert(":", Token::OperatorType::colon);
+  operator_map.Insert(";", Token::OperatorType::semi);
+  operator_map.Insert("=", Token::OperatorType::equal);
+  operator_map.Insert("==", Token::OperatorType::equalequal);
+  operator_map.Insert(",", Token::OperatorType::comma);
+  operator_map.Insert("#", Token::OperatorType::hash);
+  operator_map.Insert("##", Token::OperatorType::hashhash);
+  operator_map.Insert("#@", Token::OperatorType::hashat);
+  operator_map.Insert(".*", Token::OperatorType::periodstar);
+  operator_map.Insert("->*", Token::OperatorType::arrowstar);
+  operator_map.Insert("::", Token::OperatorType::coloncolon);
+  operator_map.Insert("@", Token::OperatorType::at);
+  operator_map.Insert("<<<", Token::OperatorType::lesslessless);
+  operator_map.Insert(">>>", Token::OperatorType::greatergreatergreater);
+  operator_map.Insert("^^", Token::OperatorType::caretcaret);
 }
 TokenMap::~TokenMap() = default;
 
@@ -77,9 +136,6 @@ Token::KeywordType TokenMap::GetKeywordValue(char* keyword) {
 }
 Token::OperatorType TokenMap::GetOperatorValue(char* _operator) {
   return operator_map.Find(_operator);
-}
-Token::SeparatorType TokenMap::GetSeparatorValue(char* separator) {
-  return separator_map.Find(separator);
 }
 }  // namespace Compiler
 }  // namespace Aq

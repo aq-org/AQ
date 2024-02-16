@@ -33,10 +33,8 @@ int LexerTest(int argc, char* argv[]) {
   }
   code.push_back('\0');
   file.close();
-
   Aq::Compiler::Lexer lexer(code.data(), code.size() - 1);
   Aq::Compiler::Token token;
-
   while (true) {
     int return_value = lexer.LexToken(token);
     if (token.length == 0) {

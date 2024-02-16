@@ -15,7 +15,6 @@ struct Token {
     KEYWORD,
     IDENTIFIER,
     OPERATOR,
-    SEPARATOR,
     NUMBER,
     CHARACTER,
     STRING,
@@ -64,6 +63,7 @@ struct Token {
     Signed,
     Sizeof,
     Static,
+    String,
     Struct,
     Switch,
     Template,
@@ -85,18 +85,70 @@ struct Token {
   };
   enum OperatorType {
     // TODO: Add more operators.
-    NONOPERATOR = 0
-  };
-  enum SeparatorType {
-    // TODO: Add more separators.
-    NONSEPARATOR = 0
+    NONOPERATOR = 0,
+    l_square,
+    r_square,
+    l_paren,
+    r_paren,
+    l_brace,
+    r_brace,
+    period,
+    ellipsis,
+    amp,
+    ampamp,
+    ampequal,
+    star,
+    starequal,
+    plus,
+    plusplus,
+    plusequal,
+    minus,
+    arrow,
+    minusminus,
+    minusequal,
+    tilde,
+    exclaim,
+    exclaimequal,
+    slash,
+    slashequal,
+    percent,
+    percentequal,
+    less,
+    lessless,
+    lessequal,
+    lesslessequal,
+    spaceship,
+    greater,
+    greatergreater,
+    greaterequal,
+    greatergreaterequal,
+    caret,
+    caretequal,
+    pipe,
+    pipepipe,
+    pipeequal,
+    question,
+    colon,
+    semi,
+    equal,
+    equalequal,
+    comma,
+    hash,
+    hashhash,
+    hashat,
+    periodstar,
+    arrowstar,
+    coloncolon,
+    at,
+    lesslessless,
+    greatergreatergreater,
+    caretcaret,
   };
   union Value {
     int Number;
     KeywordType Keyword;
     char* Identifier;
     OperatorType Operator;
-    SeparatorType Separator;
     char* Character;
     char* String;
   };
@@ -114,12 +166,10 @@ class TokenMap {
 
   Token::KeywordType GetKeywordValue(char* keyword);
   Token::OperatorType GetOperatorValue(char* _operator);
-  Token::SeparatorType GetSeparatorValue(char* separator);
 
  private:
   LexMap<Token::KeywordType> keyword_map;
   LexMap<Token::OperatorType> operator_map;
-  LexMap<Token::SeparatorType> separator_map;
 };
 
 }  // namespace Compiler

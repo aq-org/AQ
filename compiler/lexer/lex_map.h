@@ -6,6 +6,7 @@
 #define AQ_COMPILER_LEXER_LEX_MAP_H_
 
 #include <cstddef>
+#include <cstring>
 #include <limits>
 
 #include "debugger/debugger.h"
@@ -17,8 +18,7 @@ namespace Compiler {
 template <typename T>
 class LexMap {
  public:
-  // Construct a LexMap class, and the default hash table memory size is the
-  // upper limit of the std::size_t type. Do not modify it unless necessary.
+  // Construct a LexMap class, and the default hash table memory size is 1024. Do not modify it unless necessary.
   LexMap() {
     std::size_t init_capacity = 1024;
     pair_list_ = new PairList[init_capacity];
@@ -30,6 +30,7 @@ class LexMap {
       capacity_ = 1;
     }
     capacity_ = init_capacity;
+    size_ = 0;
   };
   ~LexMap() {
     for (std::size_t i = 0; i < capacity_; ++i) {
@@ -58,9 +59,6 @@ class LexMap {
   // Find the value of a key.
   T Find(const char* key) {
     unsigned int hash = Hash(key);
-    if (hash > capacity_) {
-      return static_cast<T>(0);
-    }
     return pair_list_[hash].Find(key);
   };
 
@@ -89,6 +87,21 @@ class LexMap {
       head_ptr_ = new_node;
     };
 
+    // Copy all the data in the linked list to |new_list|.
+    void CopyDataToNewList(PairList* new_list, size_t new_capacity) {
+      PairList::Node* temp_node = head_ptr_;
+      while (temp_node != nullptr) {
+        unsigned int hash = 5381;
+        while (*temp_node->data.key) {
+          // hash = hash * 33 + character
+          hash = ((hash << 5) + hash) + (*temp_node->data.key++);
+        }
+        hash = hash % new_capacity;
+        new_list[hash].Append(temp_node->data);
+        temp_node = temp_node->next;
+      }
+    };
+
     // Append a new pair to the list. It is not recommended to use it when
     // dealing with large amounts of data.
     void Append(Pair value) {
@@ -110,7 +123,7 @@ class LexMap {
 
       // Compare keys one by one to find the corresponding value.
       while (temp != nullptr) {
-        if (*key == *temp->data.key) {
+        if (std::strcmp(key, temp->data.key) == 0) {
           return temp->data.value;
         };
         temp = temp->next;
@@ -167,17 +180,15 @@ class LexMap {
       return -1;
     }
 
-    // Initialize the new PairList objects with default constructors.
-    for (int i = 0; i < new_capacity; i++) {
-      new (pair_list_ + i) PairList();
-    }
-
-    // Copy the original linked list data to the new array.
+    // Copy data.
     for (int i = 0; i < capacity_; i++) {
-      pair_list_[i] = temp[i];
+      temp[i].CopyDataToNewList(pair_list_, new_capacity);
     }
 
-    capacity_ = capacity_ * 1.5;
+    // Release the memory of the original linked list.
+    delete[] temp;
+
+    capacity_ = new_capacity;
     return 0;
   };
 };

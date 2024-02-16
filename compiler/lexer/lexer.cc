@@ -172,25 +172,10 @@ LexToken:
         goto LexEnd;
       }
 
-    case ',':
-      if (return_token.type == Token::Type::START) {
-        return_token.type = Token::Type::SEPARATOR;
-        read_ptr++;
-        goto LexToken;
-      } else if (return_token.type == Token::Type::OPERATOR ||
-                 return_token.type == Token::Type::CHARACTER ||
-                 return_token.type == Token::Type::STRING ||
-                 return_token.type == Token::Type::COMMENT) {
-        read_ptr++;
-        goto LexToken;
-      } else {
-        goto LexEnd;
-      }
-
     // Decimal point.
     case '.':
       if (return_token.type == Token::Type::START) {
-        return_token.type = Token::Type::SEPARATOR;
+        return_token.type = Token::Type::OPERATOR;
         read_ptr++;
         goto LexToken;
       } else if (return_token.type == Token::Type::OPERATOR ||
@@ -327,15 +312,17 @@ LexToken:
         goto LexEnd;
       }
 
+    // EOF.
     case '\0':
       goto LexEnd;
 
-    // End of code flag.
+    // Separator flag.
+    case ',':
     case ';':
       if (return_token.type == Token::Type::START) {
-        return_token.type = Token::Type::SEPARATOR;
+        return_token.type = Token::Type::OPERATOR;
         read_ptr++;
-        goto LexToken;
+        goto LexEnd;
       } else if (return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
@@ -401,11 +388,19 @@ LexEnd:
 
       case Token::Type::OPERATOR:
         return_token.value.Operator = token_map_.GetOperatorValue(value);
-        delete[] value;
-        break;
+        while (return_token.value.Operator ==
+                   Token::OperatorType::NONOPERATOR &&
+               return_token.length > 1) {
+          return_token.length--;
+          buffer_ptr_--;
+          delete[] value;
+          value = new char[return_token.length];
+          for (int i = 0; i < return_token.length; i++) {
+            value[i] = *(return_token.location + i);
+            return_token.value.Operator = token_map_.GetOperatorValue(value);
+          }
+        }
 
-      case Token::Type::SEPARATOR:
-        return_token.value.Separator = token_map_.GetSeparatorValue(value);
         delete[] value;
         break;
 
