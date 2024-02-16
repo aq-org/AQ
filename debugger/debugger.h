@@ -13,8 +13,10 @@ class Debugger {
  public:
   enum Level { ERROR = 0, WARNING = 1, INFO = 2 };
 
+  // Output a debug message. If |other_info| has no content, nullptr can be
+  // filled in. Others must be filled in with strings and cannot be nullptr.
   Debugger(Level level, const char* location, const char* debug_code,
-        const char* debug_message, const char* other_info);
+           const char* debug_message, const char* other_info = nullptr);
   ~Debugger();
 
   Debugger(const Debugger&) = delete;
@@ -33,7 +35,10 @@ class Debugger {
   int errno_;
   const char* errno_message_;
 
+  // Output a debug message.
   void OutputMessage();
+
+  // Get the current time string. Based on ISO 8601 standard.
   std::string GetTimeString();
 };
 }  // namespace Aq

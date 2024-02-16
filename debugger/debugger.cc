@@ -12,7 +12,7 @@
 
 namespace Aq {
 Debugger::Debugger(Level level, const char* location, const char* debug_code,
-             const char* debug_message, const char* other_info) {
+                   const char* debug_message, const char* other_info) {
   errno_ = errno;
   errno_message_ = std::strerror(errno_);
   errno = 0;
