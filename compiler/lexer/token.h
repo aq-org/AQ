@@ -167,6 +167,11 @@ class TokenMap {
   Token::KeywordType GetKeywordValue(char* keyword);
   Token::OperatorType GetOperatorValue(char* _operator);
 
+  TokenMap(const TokenMap&) = default;
+  TokenMap(TokenMap&&) noexcept = default;
+  TokenMap& operator=(const TokenMap&) = default;
+  TokenMap& operator=(TokenMap&&) noexcept = default;
+
  private:
   LexMap<Token::KeywordType> keyword_map;
   LexMap<Token::OperatorType> operator_map;

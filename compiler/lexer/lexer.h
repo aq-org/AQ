@@ -17,6 +17,11 @@ class Lexer {
   Lexer(char* source_code, size_t length);
   ~Lexer();
 
+  Lexer(const Lexer&) = default;
+  Lexer(Lexer&&) noexcept = default;
+  Lexer& operator=(const Lexer&) = default;
+  Lexer& operator=(Lexer&&) noexcept = default;
+
   // Lexical analysis |buffer_ptr_|, and store the analyzed token into
   // |return_token|.
   int LexToken(Token& return_token);

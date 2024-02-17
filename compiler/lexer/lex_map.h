@@ -18,7 +18,8 @@ namespace Compiler {
 template <typename T>
 class LexMap {
  public:
-  // Construct a LexMap class, and the default hash table memory size is 1024. Do not modify it unless necessary.
+  // Construct a LexMap class, and the default hash table memory size is 1024.
+  // Do not modify it unless necessary.
   LexMap() {
     std::size_t init_capacity = 1024;
     pair_list_ = new PairList[init_capacity];
@@ -38,6 +39,11 @@ class LexMap {
     }
     delete[] pair_list_;
   };
+
+  LexMap(const LexMap&) = default;
+  LexMap(LexMap&&) noexcept = default;
+  LexMap& operator=(const LexMap&) = default;
+  LexMap& operator=(LexMap&&) noexcept = default;
 
   // Insert a new pair into the hash table.
   void Insert(const char* key, T value) {
@@ -79,6 +85,11 @@ class LexMap {
         delete temp;
       }
     };
+
+    PairList(const PairList&) = default;
+    PairList(PairList&&) noexcept = default;
+    PairList& operator=(const PairList&) = default;
+    PairList& operator=(PairList&&) noexcept = default;
 
     // Prepend a new pair to the list.
     void Prepend(Pair value) {
