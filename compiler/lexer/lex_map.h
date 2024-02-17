@@ -28,17 +28,10 @@ class LexMap {
           Debugger::Level::ERROR, "Aq::Compiler::Lexer::LexMap::LexMap",
           "LexMap_MemoryError", "Memory allocation failed.", nullptr);
       pair_list_ = new PairList[1];
-      capacity_ = 1;
     }
     capacity_ = init_capacity;
-    size_ = 0;
   };
-  ~LexMap() {
-    for (std::size_t i = 0; i < capacity_; ++i) {
-      pair_list_[i].~PairList();
-    }
-    delete[] pair_list_;
-  };
+  ~LexMap() { delete[] pair_list_; };
 
   LexMap(const LexMap&) = default;
   LexMap(LexMap&&) noexcept = default;
@@ -77,7 +70,7 @@ class LexMap {
   class PairList {
    public:
     // Construct a PairList class.
-    PairList() : head_ptr_(nullptr){};
+    PairList() = default;
     ~PairList() {
       while (head_ptr_ != nullptr) {
         Node* temp = head_ptr_;
@@ -148,23 +141,23 @@ class LexMap {
     // A node type of the linked list.
     struct Node {
       Pair data;
-      Node* next;
-      Node(Pair pair) : data(pair), next(nullptr){};
+      Node* next = nullptr;
+      Node(Pair pair) : data(pair){};
     };
 
     // The head pointer of the linked list.
-    Node* head_ptr_;
+    Node* head_ptr_ = nullptr;
   };
 
   // The memory size of the hash table.
-  std::size_t capacity_;
+  std::size_t capacity_ = 1;
 
   // The number of elements in the hash table.
-  std::size_t size_;
+  std::size_t size_ = 0;
 
   // The data collection of the hash table is stored in a linked list of type
   // PairList.
-  PairList* pair_list_;
+  PairList* pair_list_ = nullptr;
 
   // The hash function. Based on DJB2 hashing algorithm.
   unsigned int Hash(const char* key) {

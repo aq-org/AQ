@@ -25,14 +25,14 @@ class Debugger {
   Debugger& operator=(Debugger&&) = delete;
 
  private:
-  time_t timestamp_;
+  time_t timestamp_ = 0;
   Level level_;
   const char* location_;
   const char* debug_code_;
   const char* debug_message_;
-  const char* other_info_;
+  const char* other_info_ = nullptr;
 
-  int errno_;
+  int errno_ = 0;
   const char* errno_message_;
 
   // Output a debug message.
