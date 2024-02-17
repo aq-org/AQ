@@ -6,6 +6,7 @@
 #define AQ_DEBUGGER_DEBUGGER_H_
 
 #include <ctime>
+#include <cstring>
 #include <string>
 
 namespace Aq {
@@ -18,7 +19,7 @@ class Debugger {
   Debugger(Level level, const char* location, const char* debug_code,
            const char* debug_message, const char* other_info = nullptr)
       : errno_(errno),
-        errno_message_(strerror(errno)),
+        errno_message_(std::strerror(errno)),
         timestamp_(time(NULL)),
         level_(level),
         location_(location),
