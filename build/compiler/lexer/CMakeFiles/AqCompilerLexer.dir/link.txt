@@ -1,2 +1,0 @@
-/usr/bin/ar qc libAqCompilerLexer.a CMakeFiles/AqCompilerLexer.dir/lexer.cc.o CMakeFiles/AqCompilerLexer.dir/token.cc.o
-/usr/bin/ranlib libAqCompilerLexer.a

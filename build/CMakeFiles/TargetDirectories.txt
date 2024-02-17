@@ -1,8 +1,0 @@
-/home/ax/aq/build/CMakeFiles/edit_cache.dir
-/home/ax/aq/build/CMakeFiles/rebuild_cache.dir
-/home/ax/aq/build/debugger/CMakeFiles/AqDebugger.dir
-/home/ax/aq/build/debugger/CMakeFiles/edit_cache.dir
-/home/ax/aq/build/debugger/CMakeFiles/rebuild_cache.dir
-/home/ax/aq/build/compiler/lexer/CMakeFiles/AqCompilerLexer.dir
-/home/ax/aq/build/compiler/lexer/CMakeFiles/edit_cache.dir
-/home/ax/aq/build/compiler/lexer/CMakeFiles/rebuild_cache.dir

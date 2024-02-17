@@ -1,2 +1,0 @@
-/usr/bin/ar qc libAqDebugger.a CMakeFiles/AqDebugger.dir/debugger.cc.o
-/usr/bin/ranlib libAqDebugger.a
