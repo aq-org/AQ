@@ -11,7 +11,7 @@
 #include <sstream>
 
 namespace Aq {
-const void Debugger::OutputMessage() {
+void Debugger::OutputMessage() const {
   std::string time_string = "Time:\"" + GetTimeString() + "\"";
   std::string level_string;
   switch (level_) {
@@ -44,7 +44,7 @@ const void Debugger::OutputMessage() {
             << "," << errno_string << other_info_string << "}" << std::endl;
 }
 
-const std::string Debugger::GetTimeString() {
+std::string Debugger::GetTimeString() const {
   if (timestamp_ != -1) {
     std::tm local_time_info = *std::localtime(&timestamp_);
     std::tm utc_time_info = *std::gmtime(&timestamp_);

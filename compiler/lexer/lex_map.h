@@ -160,7 +160,7 @@ class LexMap {
   PairList* pair_list_ = nullptr;
 
   // The hash function. Based on DJB2 hashing algorithm.
-  const unsigned int Hash(const char* key) {
+  unsigned int Hash(const char* key) const {
     unsigned int hash = 5381;
     while (*key) {
       // hash = hash * 33 + character

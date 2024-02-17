@@ -28,7 +28,7 @@ class Lexer {
   int LexToken(Token& return_token);
 
   // Return true if the lexer is at the end of |buffer_ptr_|.
-  const bool IsReadEnd();
+  bool IsReadEnd() const;
 
  private:
   char* buffer_ptr_;

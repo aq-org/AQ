@@ -5,8 +5,8 @@
 #ifndef AQ_DEBUGGER_DEBUGGER_H_
 #define AQ_DEBUGGER_DEBUGGER_H_
 
-#include <ctime>
 #include <cstring>
+#include <ctime>
 #include <string>
 
 namespace Aq {
@@ -47,10 +47,10 @@ class Debugger {
   const char* errno_message_;
 
   // Output a debug message.
-  const void OutputMessage();
+  void OutputMessage() const;
 
   // Get the current time string. Based on ISO 8601 standard.
-  const std::string GetTimeString();
+  std::string GetTimeString() const;
 };
 }  // namespace Aq
 

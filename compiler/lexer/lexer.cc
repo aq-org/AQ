@@ -11,7 +11,7 @@
 
 namespace Aq {
 namespace Compiler {
-const bool Lexer::IsReadEnd() {
+bool Lexer::IsReadEnd() const {
   if (buffer_ptr_ >= buffer_end_) {
     return true;
   } else {
