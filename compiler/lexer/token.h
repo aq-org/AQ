@@ -158,6 +158,7 @@ struct Token {
   int length = 0;
   Value value;
 
+  Token();
   ~Token();
 
   Token(const Token&) = default;

@@ -138,6 +138,7 @@ Token::OperatorType TokenMap::GetOperatorValue(const char* _operator) {
   return operator_map.Find(_operator);
 }
 
+Token::Token() = default;
 Token::~Token() {
   if (type == Type::IDENTIFIER) {
     delete[] value.Identifier;
