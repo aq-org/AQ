@@ -11,33 +11,17 @@
 #include <sstream>
 
 namespace Aq {
-Debugger::Debugger(Level level, const char* location, const char* debug_code,
-                   const char* debug_message, const char* other_info) {
-  errno_ = errno;
-  errno_message_ = std::strerror(errno_);
-  errno = 0;
-
-  timestamp_ = std::time(nullptr);
-  level_ = level;
-  location_ = location;
-  debug_code_ = debug_code;
-  debug_message_ = debug_message;
-  other_info_ = other_info;
-  OutputMessage();
-}
-Debugger::~Debugger() = default;
-
-void Debugger::OutputMessage() {
+const void Debugger::OutputMessage() {
   std::string time_string = "Time:\"" + GetTimeString() + "\"";
   std::string level_string;
   switch (level_) {
-    case ERROR:
+    case Level::ERROR:
       level_string = "Level:\"ERROR\"";
       break;
-    case WARNING:
+    case Level::WARNING:
       level_string = "Level:\"WARNING\"";
       break;
-    case INFO:
+    case Level::INFO:
       level_string = "Level:\"INFO\"";
       break;
     default:
@@ -60,7 +44,7 @@ void Debugger::OutputMessage() {
             << "," << errno_string << other_info_string << "}" << std::endl;
 }
 
-std::string Debugger::GetTimeString() {
+const std::string Debugger::GetTimeString() {
   if (timestamp_ != -1) {
     std::tm local_time_info = *std::localtime(&timestamp_);
     std::tm utc_time_info = *std::gmtime(&timestamp_);

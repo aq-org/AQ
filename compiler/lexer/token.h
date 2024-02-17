@@ -10,7 +10,7 @@
 namespace Aq {
 namespace Compiler {
 struct Token {
-  enum Type {
+  enum class Type {
     START,
     KEYWORD,
     IDENTIFIER,
@@ -20,7 +20,7 @@ struct Token {
     STRING,
     COMMENT
   };
-  enum KeywordType {
+  enum class KeywordType {
     NONKEYWORD = 0,
     Auto,
     And,
@@ -83,7 +83,7 @@ struct Token {
     While,
     Xor,
   };
-  enum OperatorType {
+  enum class OperatorType {
     // TODO: Add more operators.
     NONOPERATOR = 0,
     l_square,
@@ -153,10 +153,12 @@ struct Token {
     char* String;
   };
 
-  Type type;
-  char* location;
-  int length;
+  Type type = Type::START;
+  char* location = nullptr;
+  int length = 0;
   Value value;
+
+  ~Token();
 };
 
 class TokenMap {
@@ -164,8 +166,8 @@ class TokenMap {
   TokenMap();
   ~TokenMap();
 
-  Token::KeywordType GetKeywordValue(char* keyword);
-  Token::OperatorType GetOperatorValue(char* _operator);
+  Token::KeywordType GetKeywordValue(const char* keyword);
+  Token::OperatorType GetOperatorValue(const char* _operator);
 
   TokenMap(const TokenMap&) = default;
   TokenMap(TokenMap&&) noexcept = default;

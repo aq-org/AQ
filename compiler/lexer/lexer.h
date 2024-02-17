@@ -14,8 +14,9 @@ namespace Compiler {
 class Lexer {
  public:
   // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
-  Lexer(char* source_code, size_t length);
-  ~Lexer();
+  Lexer(char* source_code, size_t length)
+      : buffer_ptr_(source_code), buffer_end_(source_code + length){};
+  ~Lexer() = default;
 
   Lexer(const Lexer&) = default;
   Lexer(Lexer&&) noexcept = default;
@@ -27,7 +28,7 @@ class Lexer {
   int LexToken(Token& return_token);
 
   // Return true if the lexer is at the end of |buffer_ptr_|.
-  bool IsReadEnd();
+  const bool IsReadEnd();
 
  private:
   char* buffer_ptr_;

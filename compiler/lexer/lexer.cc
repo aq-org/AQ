@@ -11,13 +11,7 @@
 
 namespace Aq {
 namespace Compiler {
-Lexer::Lexer(char* source_code, std::size_t length) {
-  buffer_ptr_ = source_code;
-  buffer_end_ = source_code + length;
-}
-Lexer::~Lexer() = default;
-
-bool Lexer::IsReadEnd() {
+const bool Lexer::IsReadEnd() {
   if (buffer_ptr_ >= buffer_end_) {
     return true;
   } else {
@@ -26,13 +20,13 @@ bool Lexer::IsReadEnd() {
 }
 
 int Lexer::LexToken(Token& return_token) {
-LexStart:
+  // Set the return token type to start.
   return_token.type = Token::Type::START;
 
   // Set the reading position pointer equal to the buffer pointer.
   char* read_ptr = buffer_ptr_;
 
-LexToken:
+LexStart:
   // Memory out of bounds occurred. Return an error.
   if (read_ptr > buffer_end_) {
     buffer_ptr_ = read_ptr;
@@ -70,13 +64,13 @@ LexToken:
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::OPERATOR;
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::OPERATOR ||
                  return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -86,11 +80,11 @@ LexToken:
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::STRING;
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::STRING) {
         read_ptr++;
         goto LexEnd;
@@ -103,11 +97,11 @@ LexToken:
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::CHARACTER;
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER) {
         read_ptr++;
         goto LexEnd;
@@ -120,21 +114,21 @@ LexToken:
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::OPERATOR;
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING) {
         // Skip escape characters.
         if (read_ptr + 2 <= buffer_end_) {
           read_ptr += 2;
-          goto LexToken;
+          goto LexStart;
         } else {
           read_ptr++;
-          goto LexToken;
+          goto LexStart;
         }
       } else if (return_token.type == Token::Type::OPERATOR ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -153,12 +147,12 @@ LexToken:
           return_token.type = Token::Type::OPERATOR;
         }
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::NUMBER) {
         // Dealing with scientific notation.
         if (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e') {
           read_ptr++;
-          goto LexToken;
+          goto LexStart;
         } else {
           goto LexEnd;
         }
@@ -167,7 +161,7 @@ LexToken:
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -177,14 +171,14 @@ LexToken:
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::OPERATOR;
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::OPERATOR ||
                  return_token.type == Token::Type::NUMBER ||
                  return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -196,26 +190,26 @@ LexToken:
           return_token.type = Token::Type::COMMENT;
           if (read_ptr + 2 <= buffer_end_) {
             read_ptr += 2;
-            goto LexToken;
+            goto LexStart;
           } else {
             read_ptr++;
-            goto LexToken;
+            goto LexStart;
           }
         } else {
           return_token.type = Token::Type::OPERATOR;
           read_ptr++;
         }
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::OPERATOR) {
         if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
           goto LexEnd;
         } else {
           read_ptr++;
-          goto LexToken;
+          goto LexStart;
         }
       } else if (return_token.type == Token::Type::COMMENT) {
         if (*(buffer_ptr_ + 1) == '*') {
@@ -223,17 +217,17 @@ LexToken:
             // /**/ style comments, skip all comments.
             buffer_ptr_ = ++read_ptr;
             return_token.type = Token::Type::START;
-            goto LexToken;
+            goto LexStart;
           } else {
             // Non-end comment mark, continue reading until the end mark of the
             // comment.
             read_ptr++;
-            goto LexToken;
+            goto LexStart;
           }
         } else {
           // // style comments, continue reading until newlines are skipped.
           read_ptr++;
-          goto LexToken;
+          goto LexStart;
         }
       } else {
         goto LexEnd;
@@ -253,14 +247,14 @@ LexToken:
       if (return_token.type == Token::Type::START) {
         read_ptr++;
         return_token.type = Token::Type::NUMBER;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::IDENTIFIER ||
                  return_token.type == Token::Type::NUMBER ||
                  return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -275,12 +269,12 @@ LexToken:
         // Skip whitespace characters.
         read_ptr++;
         buffer_ptr_++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -291,22 +285,22 @@ LexToken:
         // Skip newlines.
         read_ptr++;
         buffer_ptr_++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::COMMENT) {
         if (*(buffer_ptr_ + 1) == '*') {
           // /**/ style comments, continue reading until the end mark of the
           // comment.
           read_ptr++;
-          goto LexToken;
+          goto LexStart;
         } else {
           // // style comments, skip all comments.
           buffer_ptr_ = ++read_ptr;
           return_token.type = Token::Type::START;
-          goto LexToken;
+          goto LexStart;
         }
       } else {
         goto LexEnd;
@@ -327,7 +321,7 @@ LexToken:
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -336,14 +330,14 @@ LexToken:
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::IDENTIFIER;
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else if (return_token.type == Token::Type::IDENTIFIER ||
                  return_token.type == Token::Type::NUMBER ||
                  return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING ||
                  return_token.type == Token::Type::COMMENT) {
         read_ptr++;
-        goto LexToken;
+        goto LexStart;
       } else {
         goto LexEnd;
       }
@@ -405,8 +399,8 @@ LexEnd:
         break;
 
       case Token::Type::NUMBER:
-        return_token.value.Number =
-            std::stoi(std::string(return_token.location, return_token.length));
+        return_token.value.Number = std::stoi(std::string(value));
+        delete[] value;
         break;
 
       default:

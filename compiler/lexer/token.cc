@@ -131,11 +131,21 @@ TokenMap::TokenMap() {
 }
 TokenMap::~TokenMap() = default;
 
-Token::KeywordType TokenMap::GetKeywordValue(char* keyword) {
+Token::KeywordType TokenMap::GetKeywordValue(const char* keyword) {
   return keyword_map.Find(keyword);
 }
-Token::OperatorType TokenMap::GetOperatorValue(char* _operator) {
+Token::OperatorType TokenMap::GetOperatorValue(const char* _operator) {
   return operator_map.Find(_operator);
+}
+
+Token::~Token() {
+  if (type == Type::IDENTIFIER) {
+    delete[] value.Identifier;
+  } else if (type == Type::CHARACTER) {
+    delete[] value.Character;
+  } else if (type == Type::STRING) {
+    delete[] value.String;
+  }
 }
 }  // namespace Compiler
 }  // namespace Aq
