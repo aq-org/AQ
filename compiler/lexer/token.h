@@ -159,6 +159,11 @@ struct Token {
   Value value;
 
   ~Token();
+
+  Token(const Token&) = default;
+  Token(Token&&) noexcept = default;
+  Token& operator=(const Token&) = default;
+  Token& operator=(Token&&) noexcept = default;
 };
 
 class TokenMap {
