@@ -9,6 +9,19 @@
 
 namespace Aq {
 namespace Compiler {
+Token::Token() = default;
+Token::~Token() {
+  if (type == Type::NUMBER) {
+    delete[] value.Number;
+  } else if (type == Type::IDENTIFIER) {
+    delete[] value.Identifier;
+  } else if (type == Type::CHARACTER) {
+    delete[] value.Character;
+  } else if (type == Type::STRING) {
+    delete[] value.String;
+  }
+}
+
 TokenMap::TokenMap() {
   keyword_map.Insert("auto", Token::KeywordType::Auto);
   keyword_map.Insert("and", Token::KeywordType::And);
@@ -41,6 +54,7 @@ TokenMap::TokenMap() {
   keyword_map.Insert("namespace", Token::KeywordType::Namespace);
   keyword_map.Insert("new", Token::KeywordType::New);
   keyword_map.Insert("not", Token::KeywordType::Not);
+  keyword_map.Insert("number", Token::KeywordType::Number);
   keyword_map.Insert("operator", Token::KeywordType::Operator);
   keyword_map.Insert("or", Token::KeywordType::Or);
   keyword_map.Insert("private", Token::KeywordType::Private);
@@ -136,17 +150,6 @@ Token::KeywordType TokenMap::GetKeywordValue(const char* keyword) {
 }
 Token::OperatorType TokenMap::GetOperatorValue(const char* _operator) {
   return operator_map.Find(_operator);
-}
-
-Token::Token() = default;
-Token::~Token() {
-  if (type == Type::IDENTIFIER) {
-    delete[] value.Identifier;
-  } else if (type == Type::CHARACTER) {
-    delete[] value.Character;
-  } else if (type == Type::STRING) {
-    delete[] value.String;
-  }
 }
 }  // namespace Compiler
 }  // namespace Aq

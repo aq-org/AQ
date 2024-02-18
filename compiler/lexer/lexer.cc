@@ -399,8 +399,7 @@ LexEnd:
         break;
 
       case Token::Type::NUMBER:
-        return_token.value.Number = std::stoi(std::string(value));
-        delete[] value;
+        return_token.value.Number = value;
         break;
 
       default:

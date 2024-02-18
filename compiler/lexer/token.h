@@ -53,6 +53,7 @@ struct Token {
     Namespace,
     New,
     Not,
+    Number,
     Operator,
     Or,
     Private,
@@ -145,7 +146,7 @@ struct Token {
     caretcaret,
   };
   union Value {
-    int Number;
+    char* Number;
     KeywordType Keyword;
     char* Identifier;
     OperatorType Operator;
