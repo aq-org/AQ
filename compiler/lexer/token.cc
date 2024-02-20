@@ -10,17 +10,7 @@
 
 namespace Aq {
 Compiler::Token::Token() = default;
-Compiler::Token::~Token() {
-  if (type == Type::NUMBER) {
-    delete[] value.Number;
-  } else if (type == Type::IDENTIFIER) {
-    delete[] value.Identifier;
-  } else if (type == Type::CHARACTER) {
-    delete[] value.Character;
-  } else if (type == Type::STRING) {
-    delete[] value.String;
-  }
-}
+Compiler::Token::~Token() = default;
 
 Compiler::TokenMap::TokenMap() {
   keyword_map.Insert("auto", Token::KeywordType::Auto);
@@ -145,10 +135,12 @@ Compiler::TokenMap::TokenMap() {
 }
 Compiler::TokenMap::~TokenMap() = default;
 
-Compiler::Token::KeywordType Compiler::TokenMap::GetKeywordValue(const char* keyword) {
+Compiler::Token::KeywordType Compiler::TokenMap::GetKeywordValue(
+    std::string keyword) {
   return keyword_map.Find(keyword);
 }
-Compiler::Token::OperatorType Compiler::TokenMap::GetOperatorValue(const char* _operator) {
+Compiler::Token::OperatorType Compiler::TokenMap::GetOperatorValue(
+    std::string _operator) {
   return operator_map.Find(_operator);
 }
 }  // namespace Aq

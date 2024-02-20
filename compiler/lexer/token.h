@@ -11,6 +11,7 @@
 namespace Aq {
 struct Compiler::Token {
   enum class Type {
+    NONE,
     START,
     KEYWORD,
     IDENTIFIER,
@@ -21,7 +22,7 @@ struct Compiler::Token {
     COMMENT
   };
   enum class KeywordType {
-    NONKEYWORD = 0,
+    NONE = 0,
     Auto,
     And,
     Bitand,
@@ -86,7 +87,7 @@ struct Compiler::Token {
   };
   enum class OperatorType {
     // TODO: Add more operators.
-    NONOPERATOR = 0,
+    NONE = 0,
     l_square,
     r_square,
     l_paren,
@@ -145,18 +146,20 @@ struct Compiler::Token {
     greatergreatergreater,
     caretcaret,
   };
+  struct ValueStr{
+    char* location;
+    size_t length;
+  };
   union Value {
-    char* Number;
-    KeywordType Keyword;
-    char* Identifier;
-    OperatorType Operator;
-    char* Character;
-    char* String;
+    ValueStr number;
+    KeywordType keyword;
+    ValueStr identifier;
+    OperatorType _operator;
+    ValueStr character;
+    ValueStr string;
   };
 
   Type type = Type::START;
-  char* location = nullptr;
-  int length = 0;
   Value value;
 
   Token();
@@ -173,8 +176,8 @@ class Compiler::TokenMap {
   TokenMap();
   ~TokenMap();
 
-  Token::KeywordType GetKeywordValue(const char* keyword);
-  Token::OperatorType GetOperatorValue(const char* _operator);
+  Token::KeywordType GetKeywordValue(std::string keyword);
+  Token::OperatorType GetOperatorValue(std::string _operator);
 
   TokenMap(const TokenMap&) = default;
   TokenMap(TokenMap&&) noexcept = default;

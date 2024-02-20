@@ -16,10 +16,7 @@
 #include "compiler/lexer/token.h"
 
 namespace Aq {
-Compiler::Compiler() = default;
-Compiler::~Compiler() = default;
-
-int Compiler::CompileFile(const char* filename) {
+Compiler::Compiler(const char* filename) {
   // TODO: Waiting for improvements.
   auto start = std::chrono::high_resolution_clock::now();
   std::ifstream file;
@@ -27,7 +24,7 @@ int Compiler::CompileFile(const char* filename) {
   if (!file.is_open()) {
     Aq::Debugger error_info(Aq::Debugger::Level::ERROR, "Aq::Main",
                             "Main_ReadFileError", "Can't open file.", nullptr);
-    return -1;
+    return;
   }
 
   std::vector<char> code;
@@ -37,14 +34,15 @@ int Compiler::CompileFile(const char* filename) {
   }
   code.push_back('\0');
   file.close();
-  Lexer lexer(code.data(), code.size() - 1);
+  buffer_ptr_ = code.data();
+  Lexer lexer(buffer_ptr_, code.size());
   Token token;
   while (true) {
-    int return_value = lexer.LexToken(token);
-    if (token.length == 0) {
+    lexer.LexToken(token);
+    if (token.type == Token::Type::NONE) {
       std::cout << "END OF THE CODE.";
     } else {
-      std::cout << std::string(token.location, token.length) << std::endl;
+      std::cout << "" << std::endl;
     }
     if (lexer.IsReadEnd()) {
       break;
@@ -56,6 +54,6 @@ int Compiler::CompileFile(const char* filename) {
   double duration_in_seconds =
       static_cast<double>(duration_in_milliseconds.count()) / 1000.0;
   std::cout << "Execution time: " << duration_in_seconds << " seconds.\n";
-  return 0;
 }
+Compiler::~Compiler() = default;
 }  // namespace Aq

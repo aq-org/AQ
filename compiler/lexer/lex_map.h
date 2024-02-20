@@ -39,7 +39,7 @@ class Compiler::LexMap {
   LexMap& operator=(LexMap&&) noexcept = default;
 
   // Insert a new pair into the hash table.
-  void Insert(const char* key, T value) {
+  void Insert(std::string key, T value) {
     unsigned int hash = Hash(key);
 
     // Increase the size of the hash table.
@@ -56,16 +56,17 @@ class Compiler::LexMap {
   };
 
   // Find the value of a key.
-  T Find(const char* key) {
+  T Find(std::string key) {
     unsigned int hash = Hash(key);
     return pair_list_[hash].Find(key);
   };
 
  private:
   struct Pair {
-    const char* key;
+    std::string key;
     T value;
   };
+
   // A linked list of Pair type, used to resolve hash conflicts.
   class PairList {
    public:
@@ -96,9 +97,9 @@ class Compiler::LexMap {
       PairList::Node* temp_node = head_ptr_;
       while (temp_node != nullptr) {
         unsigned int hash = 5381;
-        while (*temp_node->data.key) {
-          // hash = hash * 33 + character
-          hash = ((hash << 5) + hash) + (*temp_node->data.key++);
+        for (char character : temp_node->data.key) {
+          // hash = hash * 33 + static_cast<unsigned int>(character)
+          hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
         }
         hash = hash % new_capacity;
         new_list[hash].Append(temp_node->data);
@@ -122,12 +123,12 @@ class Compiler::LexMap {
     };
 
     // Find the value of a key.
-    T Find(const char* key) {
+    T Find(std::string key) {
       Node* temp = head_ptr_;
 
       // Compare keys one by one to find the corresponding value.
       while (temp != nullptr) {
-        if (std::strcmp(key, temp->data.key) == 0) {
+        if (key == temp->data.key) {
           return temp->data.value;
         };
         temp = temp->next;
@@ -160,11 +161,11 @@ class Compiler::LexMap {
   PairList* pair_list_ = nullptr;
 
   // The hash function. Based on DJB2 hashing algorithm.
-  unsigned int Hash(const char* key) const {
+  unsigned int Hash(std::string key) const {
     unsigned int hash = 5381;
-    while (*key) {
-      // hash = hash * 33 + character
-      hash = ((hash << 5) + hash) + (*key++);
+    for (char character : key) {
+      // hash = hash * 33 + static_cast<unsigned int>(character)
+      hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
     }
     hash = hash % capacity_;
     return hash;

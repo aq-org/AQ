@@ -347,72 +347,65 @@ LexEnd:
   // Meaningless token.
   if (return_token.type == Token::Type::START ||
       return_token.type == Token::Type::COMMENT) {
-    return_token.location = read_ptr;
-    return_token.length = 0;
+    return_token.type = Token::Type::NONE;
     buffer_ptr_ = read_ptr;
     return 0;
   } else {
     // Meaningful token. Determine the specific token information.
-    return_token.location = buffer_ptr_;
-    return_token.length = read_ptr - buffer_ptr_;
+    char* location = buffer_ptr_;
+    size_t length = read_ptr - buffer_ptr_;
     buffer_ptr_ = read_ptr;
 
     // Handle the detailed information of tokens.
-    char* value = new char[return_token.length];
-    for (int i = 0; i < return_token.length; i++) {
-      value[i] = *(return_token.location + i);
-    }
     switch (return_token.type) {
       case Token::Type::IDENTIFIER:
-        return_token.value.Keyword = token_map_.GetKeywordValue(value);
-        if (return_token.value.Keyword == Token::KeywordType::NONKEYWORD) {
-          return_token.value.Identifier = value;
+        return_token.type = Token::Type::KEYWORD;
+        return_token.value.keyword =
+            token_map_.GetKeywordValue(std::string(location, length));
+        if (return_token.value.keyword == Token::KeywordType::NONE) {
+          return_token.value.identifier.location = location;
+          return_token.value.identifier.length = length;
           break;
         }
-        delete[] value;
         break;
 
       case Token::Type::CHARACTER:
-        return_token.value.Character = value;
+        return_token.value.character.location = location;
+        return_token.value.character.length = length;
         break;
 
       case Token::Type::STRING:
-        return_token.value.String = value;
+        return_token.value.string.location = location;
+        return_token.value.string.length = length;
         break;
 
       case Token::Type::OPERATOR:
-        return_token.value.Operator = token_map_.GetOperatorValue(value);
-        while (return_token.value.Operator ==
-                   Token::OperatorType::NONOPERATOR &&
-               return_token.length > 1) {
-          return_token.length--;
+        return_token.value._operator =
+            token_map_.GetOperatorValue(std::string(location, length));
+        while (return_token.value._operator == Token::OperatorType::NONE &&
+               length > 1) {
+          length--;
           buffer_ptr_--;
-          delete[] value;
-          value = new char[return_token.length];
-          for (int i = 0; i < return_token.length; i++) {
-            value[i] = *(return_token.location + i);
-            return_token.value.Operator = token_map_.GetOperatorValue(value);
-          }
+          return_token.value._operator =
+              token_map_.GetOperatorValue(std::string(location, length));
+          break;
+
+          case Token::Type::NUMBER:
+            return_token.value.number.location = location;
+            return_token.value.number.length = length;
+            break;
+
+          default:
+            Debugger error_info(Debugger::Level::ERROR,
+                                "Aq::Compiler::Lexer::LexToken",
+                                "Lextoken_UnexpectedSituations",
+                                "Encountered a situation where the token value "
+                                "should not exist while processing.",
+                                nullptr);
+            return -1;
         }
-
-        delete[] value;
-        break;
-
-      case Token::Type::NUMBER:
-        return_token.value.Number = value;
-        break;
-
-      default:
-        Debugger error_info(Debugger::Level::ERROR,
-                            "Aq::Compiler::Lexer::LexToken",
-                            "Lextoken_UnexpectedSituations",
-                            "Encountered a situation where the token value "
-                            "should not exist while processing.",
-                            nullptr);
-        break;
     }
-
-    return 0;
   }
+  return 0;
 }
 }  // namespace Aq

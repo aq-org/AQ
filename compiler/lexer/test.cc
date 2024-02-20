@@ -5,7 +5,6 @@
 #include "compiler/compiler.h"
 
 int main(int argc, char* argv[]) {
-  Aq::Compiler compiler;
-  compiler.CompileFile(argv[1]);
+  Aq::Compiler compiler(argv[1]);
   return 0;
 }

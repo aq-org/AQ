@@ -15,7 +15,7 @@ class Compiler::Lexer {
  public:
   // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
   Lexer(char* source_code, size_t length)
-      : buffer_ptr_(source_code), buffer_end_(source_code + length){};
+      : buffer_ptr_(source_code), buffer_end_(source_code + length - 1){};
   ~Lexer() = default;
 
   Lexer(const Lexer&) = default;

@@ -8,12 +8,12 @@
 namespace Aq {
 class Compiler {
  public:
-  Compiler();
+  Compiler(const char* filename);
   ~Compiler();
 
-  int CompileFile(const char* filename);
-
  private:
+  char* buffer_ptr_;
+
   class Lexer;
   struct Token;
   template <typename T>
