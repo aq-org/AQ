@@ -1,10 +1,26 @@
+// Copyright 2024 AQ authors, All Rights Reserved.
+// This program is licensed under the AQ License. You can find the AQ license in
+// the root directory.
+
 #ifndef AQ_COMPILE_COMPILE_H_
 #define AQ_COMPILE_COMPILE_H_
 
 namespace Aq {
-namespace Compiler {
-extern int CompileFile(const char* filename);
-}
+class Compiler {
+ public:
+  Compiler();
+  ~Compiler();
+
+  int CompileFile(const char* filename);
+
+ private:
+  class Lexer;
+  struct Token;
+  template <typename T>
+  class LexMap;
+  class TokenMap;
+  class Parser;
+};
 }  // namespace Aq
 
 #endif  // AQ_COMPILE_H_

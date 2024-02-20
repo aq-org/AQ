@@ -9,14 +9,14 @@
 #include <cstring>
 #include <limits>
 
+#include "compiler/compiler.h"
 #include "debugger/debugger.h"
 
 namespace Aq {
-namespace Compiler {
 // A hash table for the lexer. Used to find special definitions such as compiler
 // keywords.
 template <typename T>
-class LexMap {
+class Compiler::LexMap {
  public:
   // Construct a LexMap class, and the default hash table memory size is 1024.
   // Do not modify it unless necessary.
@@ -196,7 +196,5 @@ class LexMap {
     return 0;
   };
 };
-}  // namespace Compiler
 }  // namespace Aq
-
 #endif

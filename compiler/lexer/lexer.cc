@@ -6,12 +6,12 @@
 
 #include <string>
 
+#include "compiler/compiler.h"
 #include "compiler/lexer/token.h"
 #include "debugger/debugger.h"
 
 namespace Aq {
-namespace Compiler {
-bool Lexer::IsReadEnd() const {
+bool Compiler::Lexer::IsReadEnd() const {
   if (buffer_ptr_ >= buffer_end_) {
     return true;
   } else {
@@ -19,7 +19,7 @@ bool Lexer::IsReadEnd() const {
   }
 }
 
-int Lexer::LexToken(Token& return_token) {
+int Compiler::Lexer::LexToken(Token& return_token) {
   // Set the return token type to start.
   return_token.type = Token::Type::START;
 
@@ -415,5 +415,4 @@ LexEnd:
     return 0;
   }
 }
-}  // namespace Compiler
 }  // namespace Aq

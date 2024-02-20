@@ -4,13 +4,13 @@
 
 #include "compiler/lexer/token.h"
 
+#include "compiler/compiler.h"
 #include "compiler/lexer/lex_map.h"
 #include "debugger/debugger.h"
 
 namespace Aq {
-namespace Compiler {
-Token::Token() = default;
-Token::~Token() {
+Compiler::Token::Token() = default;
+Compiler::Token::~Token() {
   if (type == Type::NUMBER) {
     delete[] value.Number;
   } else if (type == Type::IDENTIFIER) {
@@ -22,7 +22,7 @@ Token::~Token() {
   }
 }
 
-TokenMap::TokenMap() {
+Compiler::TokenMap::TokenMap() {
   keyword_map.Insert("auto", Token::KeywordType::Auto);
   keyword_map.Insert("and", Token::KeywordType::And);
   keyword_map.Insert("bitand", Token::KeywordType::Bitand);
@@ -143,13 +143,12 @@ TokenMap::TokenMap() {
   operator_map.Insert(">>>", Token::OperatorType::greatergreatergreater);
   operator_map.Insert("^^", Token::OperatorType::caretcaret);
 }
-TokenMap::~TokenMap() = default;
+Compiler::TokenMap::~TokenMap() = default;
 
-Token::KeywordType TokenMap::GetKeywordValue(const char* keyword) {
+Compiler::Token::KeywordType Compiler::TokenMap::GetKeywordValue(const char* keyword) {
   return keyword_map.Find(keyword);
 }
-Token::OperatorType TokenMap::GetOperatorValue(const char* _operator) {
+Compiler::Token::OperatorType Compiler::TokenMap::GetOperatorValue(const char* _operator) {
   return operator_map.Find(_operator);
 }
-}  // namespace Compiler
 }  // namespace Aq

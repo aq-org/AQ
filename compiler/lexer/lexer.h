@@ -7,11 +7,11 @@
 
 #include <cstddef>
 
+#include "compiler/compiler.h"
 #include "compiler/lexer/token.h"
 
 namespace Aq {
-namespace Compiler {
-class Lexer {
+class Compiler::Lexer {
  public:
   // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
   Lexer(char* source_code, size_t length)
@@ -35,7 +35,6 @@ class Lexer {
   char* buffer_end_;
   TokenMap token_map_;
 };
-}  // namespace Compiler
 }  // namespace Aq
 
 #endif

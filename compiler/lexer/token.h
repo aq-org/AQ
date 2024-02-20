@@ -5,11 +5,11 @@
 #ifndef AQ_COMPILER_LEXER_TOKEN_H_
 #define AQ_COMPILER_LEXER_TOKEN_H_
 
+#include "compiler/compiler.h"
 #include "compiler/lexer/lex_map.h"
 
 namespace Aq {
-namespace Compiler {
-struct Token {
+struct Compiler::Token {
   enum class Type {
     START,
     KEYWORD,
@@ -168,7 +168,7 @@ struct Token {
   Token& operator=(Token&&) noexcept = default;
 };
 
-class TokenMap {
+class Compiler::TokenMap {
  public:
   TokenMap();
   ~TokenMap();
@@ -185,7 +185,5 @@ class TokenMap {
   LexMap<Token::KeywordType> keyword_map;
   LexMap<Token::OperatorType> operator_map;
 };
-
-}  // namespace Compiler
 }  // namespace Aq
 #endif
