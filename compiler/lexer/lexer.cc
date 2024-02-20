@@ -357,26 +357,26 @@ LexEnd:
     buffer_ptr_ = read_ptr;
 
     // Handle the detailed information of tokens.
+    Token::ValueStr value;
+    value.location = location;
+    value.length = length;
     switch (return_token.type) {
       case Token::Type::IDENTIFIER:
-        return_token.type = Token::Type::KEYWORD;
         return_token.value.keyword =
             token_map_.GetKeywordValue(std::string(location, length));
         if (return_token.value.keyword == Token::KeywordType::NONE) {
-          return_token.value.identifier.location = location;
-          return_token.value.identifier.length = length;
+          return_token.value.identifier = value;
           break;
         }
+        return_token.type = Token::Type::KEYWORD;
         break;
 
       case Token::Type::CHARACTER:
-        return_token.value.character.location = location;
-        return_token.value.character.length = length;
+        return_token.value.character = value;
         break;
 
       case Token::Type::STRING:
-        return_token.value.string.location = location;
-        return_token.value.string.length = length;
+        return_token.value.string = value;
         break;
 
       case Token::Type::OPERATOR:
@@ -388,22 +388,21 @@ LexEnd:
           buffer_ptr_--;
           return_token.value._operator =
               token_map_.GetOperatorValue(std::string(location, length));
-          break;
-
-          case Token::Type::NUMBER:
-            return_token.value.number.location = location;
-            return_token.value.number.length = length;
-            break;
-
-          default:
-            Debugger error_info(Debugger::Level::ERROR,
-                                "Aq::Compiler::Lexer::LexToken",
-                                "Lextoken_UnexpectedSituations",
-                                "Encountered a situation where the token value "
-                                "should not exist while processing.",
-                                nullptr);
-            return -1;
         }
+        break;
+
+      case Token::Type::NUMBER:
+        return_token.value.number = value;
+        break;
+
+      default:
+        Debugger error_info(Debugger::Level::ERROR,
+                            "Aq::Compiler::Lexer::LexToken",
+                            "Lextoken_UnexpectedSituations",
+                            "Encountered a situation where the token value "
+                            "should not exist while processing.",
+                            nullptr);
+        return -1;
     }
   }
   return 0;
