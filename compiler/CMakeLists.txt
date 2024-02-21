@@ -12,5 +12,6 @@ add_subdirectory(lexer)
 
 add_library(AqCompiler STATIC ${SOURCES})
 
+target_link_libraries(AqCompiler PRIVATE AqCompilerToken)
 target_link_libraries(AqCompiler PRIVATE AqCompilerLexer)
 target_link_libraries(AqCompiler PRIVATE AqDebugger)

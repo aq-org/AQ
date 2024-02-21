@@ -8,7 +8,7 @@
 #include <cstddef>
 
 #include "compiler/compiler.h"
-#include "compiler/lexer/token.h"
+#include "compiler/token/token.h"
 
 namespace Aq {
 class Compiler::Lexer {

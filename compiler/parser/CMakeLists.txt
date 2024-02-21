@@ -6,9 +6,9 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/lexer.cc)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/parser.cc)
 
-add_library(AqCompilerLexer STATIC ${SOURCES})
+add_library(AqCompilerParser STATIC ${SOURCES})
 
-target_link_libraries(AqCompilerLexer PRIVATE AqCompilerToken)
-target_link_libraries(AqCompilerLexer PRIVATE AqDebugger)
+target_link_libraries(AqCompilerParser PRIVATE AqCompilerToken)
+target_link_libraries(AqCompilerParser PRIVATE AqDebugger)

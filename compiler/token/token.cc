@@ -2,7 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "compiler/lexer/token.h"
+#include "compiler/token/token.h"
 
 #include "compiler/compiler.h"
 #include "compiler/lexer/lex_map.h"

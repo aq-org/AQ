@@ -2,8 +2,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_COMPILER_LEXER_TOKEN_H_
-#define AQ_COMPILER_LEXER_TOKEN_H_
+#ifndef AQ_COMPILER_TOKEN_TOKEN_H_
+#define AQ_COMPILER_TOKEN_TOKEN_H_
 
 #include "compiler/compiler.h"
 #include "compiler/lexer/lex_map.h"

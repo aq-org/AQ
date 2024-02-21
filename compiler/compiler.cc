@@ -13,7 +13,7 @@
 
 #include "debugger/debugger.h"
 #include "compiler/lexer/lexer.h"
-#include "compiler/lexer/token.h"
+#include "compiler/token/token.h"
 
 namespace Aq {
 Compiler::Compiler(const char* filename) {

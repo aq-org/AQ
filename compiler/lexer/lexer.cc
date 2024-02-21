@@ -7,7 +7,7 @@
 #include <string>
 
 #include "compiler/compiler.h"
-#include "compiler/lexer/token.h"
+#include "compiler/token/token.h"
 #include "debugger/debugger.h"
 
 namespace Aq {
