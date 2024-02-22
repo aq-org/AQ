@@ -15,11 +15,18 @@ class Compiler {
   char* buffer_ptr_;
 
   class Lexer;
-  struct Token;
   template <typename T>
   class LexMap;
+
+  struct Token;
   class TokenMap;
+
   class Parser;
+
+  class Decl;
+  class Expr;
+  class Stmt;
+  class Type;
 };
 }  // namespace Aq
 

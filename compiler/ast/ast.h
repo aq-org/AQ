@@ -5,6 +5,9 @@
 #ifndef AQ_COMPILER_AST_AST_H_
 #define AQ_COMPILER_AST_AST_H_
 
-// TODO: AST
+#include "compiler/ast/decl.h"
+#include "compiler/ast/expr.h"
+#include "compiler/ast/stmt.h"
+#include "compiler/ast/type.h"
 
 #endif

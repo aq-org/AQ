@@ -5,6 +5,10 @@
 #ifndef AQ_COMPILER_AST_STMT_H_
 #define AQ_COMPILER_AST_STMT_H_
 
-// TODO: AST
+#include "compiler/compiler.h"
+
+namespace Aq {
+// TODO: Stmt AST
+}
 
 #endif

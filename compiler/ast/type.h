@@ -2,6 +2,13 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "compiler/ast/ast.h"
+#ifndef AQ_COMPILER_AST_TYPE_H_
+#define AQ_COMPILER_AST_TYPE_H_
 
-// TODO: AST
+#include "compiler/compiler.h"
+
+namespace Aq {
+// TODO: Type AST
+}
+
+#endif

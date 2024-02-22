@@ -5,6 +5,10 @@
 #ifndef AQ_COMPILER_AST_EXPR_H_
 #define AQ_COMPILER_AST_EXPR_H_
 
-// TODO: AST
+#include "compiler/compiler.h"
+
+namespace Aq {
+// TODO: Expr AST
+}
 
 #endif
