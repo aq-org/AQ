@@ -4,15 +4,16 @@
 
 #include "aq/aq.h"
 
-#include "compiler/lexer/lexer.h"
-#include "compiler/lexer/token.h"
+#include "compiler/compiler.h"
 
 namespace Aq {
+int Start(int argc, char *argv[]) {
+  // TODO(Aq::Start): For testing purposes only, modifications will be made after other
+  // components have been developed.
+  Compiler compiler(argv[1]);
 
-int main(int argc, char *argv[]) {
-  // TODO
   return 0;
 }
 }  // namespace Aq
 
-int main(int argc, char *argv[]) { return Aq::main(argc, argv); }
+int main(int argc, char *argv[]) { return Aq::Start(argc, argv); }

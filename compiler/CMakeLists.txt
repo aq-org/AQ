@@ -8,10 +8,15 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/compiler.cc)
 
+add_subdirectory(token)
 add_subdirectory(lexer)
+add_subdirectory(ast)
+add_subdirectory(parser)
 
 add_library(AqCompiler STATIC ${SOURCES})
 
 target_link_libraries(AqCompiler PRIVATE AqCompilerToken)
 target_link_libraries(AqCompiler PRIVATE AqCompilerLexer)
+target_link_libraries(AqCompiler PRIVATE AqCompilerAst)
+target_link_libraries(AqCompiler PRIVATE AqCompilerParser)
 target_link_libraries(AqCompiler PRIVATE AqDebugger)

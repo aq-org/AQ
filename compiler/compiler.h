@@ -23,7 +23,7 @@ class Compiler {
 
   class Parser;
 
-  class Decl;
+  class FuncDecl;
   class Expr;
   class Stmt;
   class Type;

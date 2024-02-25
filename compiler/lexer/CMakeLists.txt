@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/lexer.cc)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/lexer.cc ${CMAKE_CURRENT_SOURCE_DIR}/token_map.cc)
 
 add_library(AqCompilerLexer STATIC ${SOURCES})
 

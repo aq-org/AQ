@@ -11,13 +11,14 @@
 #include <iostream>
 #include <vector>
 
-#include "debugger/debugger.h"
 #include "compiler/lexer/lexer.h"
 #include "compiler/token/token.h"
+#include "debugger/debugger.h"
 
 namespace Aq {
 Compiler::Compiler(const char* filename) {
-  // TODO: Waiting for improvements.
+  // TODO(Aq::Compiler): For testing purposes only, modifications will be made
+  // after other components have been developed.
   auto start = std::chrono::high_resolution_clock::now();
   std::ifstream file;
   file.open(filename);

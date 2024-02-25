@@ -9,6 +9,23 @@
 
 namespace Aq {
 // TODO: Decl AST
-}
+class Compiler::FuncDecl {
+ public:
+  FuncDecl();
+  ~FuncDecl();
+
+  FuncDecl(const FuncDecl&) = default;
+  FuncDecl(FuncDecl&&) noexcept = default;
+  FuncDecl& operator=(const FuncDecl&) = default;
+  FuncDecl& operator=(FuncDecl&&) noexcept = default;
+
+ private:
+  // Type* type;
+  // std::string name;
+  // std::vector<Expr*> args;
+  // Stmt* body;
+  // TODO: Add more.
+};
+}  // namespace Aq
 
 #endif

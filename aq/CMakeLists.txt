@@ -3,10 +3,11 @@
 # the root directory.
 
 cmake_minimum_required(VERSION 3.10)
-project(AQ CXX)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-add_subdirectory(debugger)
-add_subdirectory(compiler)
-add_subdirectory(aq)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/aq.cc)
+
+add_executable(aq_test ${SOURCES})
+
+target_link_libraries(aq_test PRIVATE AqCompiler)

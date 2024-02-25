@@ -9,6 +9,7 @@
 
 #include "compiler/compiler.h"
 #include "compiler/token/token.h"
+#include "compiler/lexer/token_map.h"
 
 namespace Aq {
 class Compiler::Lexer {

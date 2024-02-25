@@ -8,6 +8,8 @@
 
 #include "compiler/compiler.h"
 #include "compiler/token/token.h"
+#include "compiler/token/keyword.h"
+#include "compiler/token/operator.h"
 #include "debugger/debugger.h"
 
 namespace Aq {
@@ -364,7 +366,7 @@ LexEnd:
       case Token::Type::IDENTIFIER:
         return_token.value.keyword =
             token_map_.GetKeywordValue(std::string(location, length));
-        if (return_token.value.keyword == Token::KeywordType::NONE) {
+        if (return_token.value.keyword == Token::Keyword::NONE) {
           return_token.value.identifier = value;
           break;
         }
@@ -382,7 +384,7 @@ LexEnd:
       case Token::Type::OPERATOR:
         return_token.value._operator =
             token_map_.GetOperatorValue(std::string(location, length));
-        while (return_token.value._operator == Token::OperatorType::NONE &&
+        while (return_token.value._operator == Token::Operator::NONE &&
                length > 1) {
           length--;
           buffer_ptr_--;
