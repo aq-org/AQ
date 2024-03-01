@@ -23,10 +23,7 @@ class Compiler {
 
   class Parser;
 
-  class FuncDecl;
-  class Expr;
-  class Stmt;
-  class Type;
+  class Ast;
 };
 }  // namespace Aq
 

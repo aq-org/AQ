@@ -5,9 +5,22 @@
 #ifndef AQ_COMPILER_AST_AST_H_
 #define AQ_COMPILER_AST_AST_H_
 
-#include "compiler/ast/decl.h"
-#include "compiler/ast/expr.h"
-#include "compiler/ast/stmt.h"
-#include "compiler/ast/type.h"
+#include "compiler/compiler.h"
+
+namespace Aq {
+class Compiler::Ast {
+ public:
+  Ast();
+  ~Ast();
+
+  class FuncDecl;
+  class Expr;
+  class Stmt;
+  class Type;
+
+ private:
+  // TODO: Waiting for development.
+};
+}  // namespace Aq
 
 #endif

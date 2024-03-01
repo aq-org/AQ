@@ -5,11 +5,12 @@
 #ifndef AQ_COMPILER_AST_DECL_H_
 #define AQ_COMPILER_AST_DECL_H_
 
+#include "compiler/ast/ast.h"
 #include "compiler/compiler.h"
 
 namespace Aq {
 // TODO: Decl AST
-class Compiler::FuncDecl {
+class Compiler::Ast::FuncDecl {
  public:
   FuncDecl();
   ~FuncDecl();
@@ -20,7 +21,6 @@ class Compiler::FuncDecl {
   FuncDecl& operator=(FuncDecl&&) noexcept = default;
 
  private:
-  // Type* type;
   // std::string name;
   // std::vector<Expr*> args;
   // Stmt* body;

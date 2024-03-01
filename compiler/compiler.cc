@@ -40,12 +40,7 @@ Compiler::Compiler(const char* filename) {
   Token token;
   while (true) {
     lexer.LexToken(token);
-    if (token.type == Token::Type::NONE) {
-      std::cout << "END OF THE CODE.";
-    } else {
-      std::cout << "" << std::endl;
-    }
-    if (lexer.IsReadEnd()) {
+    if (token.type == Token::Type::NONE || lexer.IsReadEnd()) {
       break;
     }
   }

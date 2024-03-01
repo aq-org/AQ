@@ -5,6 +5,7 @@
 #ifndef AQ_COMPILER_AST_TYPE_H_
 #define AQ_COMPILER_AST_TYPE_H_
 
+#include "compiler/ast/ast.h"
 #include "compiler/compiler.h"
 
 namespace Aq {

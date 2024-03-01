@@ -3,6 +3,5 @@
 // the root directory.
 
 #include "compiler/ast/ast.h"
-#include "compiler/ast/type.h"
 
 // TODO: AST
