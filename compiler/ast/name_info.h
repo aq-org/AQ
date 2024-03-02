@@ -2,25 +2,19 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_COMPILER_AST_AST_H_
-#define AQ_COMPILER_AST_AST_H_
+#ifndef AQ_COMPILER_AST_NAME_INFO_H_
+#define AQ_COMPILER_AST_NAME_INFO_H_
 
+#include "compiler/ast/ast.h"
 #include "compiler/compiler.h"
 
 namespace Aq {
-class Compiler::Ast {
+class Compiler::Ast::NameInfo {
  public:
-  Ast();
-  ~Ast();
-
-  class NameInfo;
-  class FuncDecl;
-  class Expr;
-  class Stmt;
-  class Type;
+  NameInfo();
+  ~NameInfo();
 
  private:
-  // TODO: Waiting for development.
 };
 }  // namespace Aq
 
