@@ -14,10 +14,35 @@ class Compiler::Ast {
   ~Ast();
 
   class NameInfo;
-  class FuncDecl;
+  class Decl;
   class Expr;
   class Stmt;
   class Type;
+
+  class DeclStmt;
+  class NullStmt;
+  class CompoundStmt;
+  class SwitchCase;
+  class CaseStmt;
+  class DefaultStmt;
+  class LabelStmt;
+  class AttributedStmt;
+  class IfStmt;
+  class SwitchStmt;
+  class WhileStmt;
+  class DoStmt;
+  class ForStmt;
+  class GotoStmt;
+  class IndirectGotoStmt;
+  class ContinueStmt;
+  class BreakStmt;
+  class ReturnStmt;
+  class AsmStmt;
+  class SEHExceptStmt;
+  class SEHFinallyStmt;
+  class SEHTryStmt;
+  class SEHLeaveStmt;
+  class CapturedStmt;
 
  private:
   // TODO: Waiting for development.
