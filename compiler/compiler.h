@@ -15,15 +15,18 @@ class Compiler {
   char* buffer_ptr_;
 
   class Lexer;
-  template <typename T>
-  class LexMap;
-
-  struct Token;
-  class TokenMap;
-
   class Parser;
 
+  template <typename T>
+  class HashMap;
+  class DynArray;
+  class TokenMap;
+  class Token;
   class Ast;
+
+  // Will be replaced by HashMap.
+  template <typename T>
+  class LexMap;
 };
 }  // namespace Aq
 
