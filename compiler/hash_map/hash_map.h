@@ -8,7 +8,20 @@
 #include "compiler/compiler.h"
 
 namespace Aq {
-// TODO: Hash Map
-}
+template <typename ValueType>
+class Compiler::HashMap {
+ public:
+  HashMap();
+  ~HashMap();
+
+  HashMap(const HashMap&) = default;
+  HashMap(HashMap&&) noexcept = default;
+  HashMap& operator=(const HashMap&) = default;
+  HashMap& operator=(HashMap&&) noexcept = default;
+
+ private:
+  // TODO: Hash Map
+};
+}  // namespace Aq
 
 #endif

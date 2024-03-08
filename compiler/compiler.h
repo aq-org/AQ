@@ -17,8 +17,9 @@ class Compiler {
   class Lexer;
   class Parser;
 
-  template <typename T>
+  template <typename ValueType>
   class HashMap;
+  template <typename ArrayType, std::size_t InitCapacity>
   class DynArray;
   class TokenMap;
   class Token;
