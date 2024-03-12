@@ -61,18 +61,22 @@
     <a href="https://github.com/aq-org/AQ/discussions/new/choose">请求增加功能</a>
   </p>
   <p align="center">
-    <a href="/docs/readme_fr.md">Français</a>
-    ·
-    <a href="/docs/readme_es.md">Lengua española</a>
-    ·
-    <a href="/docs/readme_ru.md">Русский</a>
+    <a href="/docs/readme_ar.md">عربي</a>
     ·
     <a href="/docs/readme_cn.md">简体中文</a>
     ·
-    <a href="/docs/readme_ar.md">عربي</a>
+    <a href="/docs/readme_en.md">English</a>
+    ·
+    <a href="/docs/readme_fr.md">Français</a>
+    ·
+    <a href="/docs/readme_ru.md">Русский</a>
+    ·
+    <a href="/docs/readme_es.md">Española</a>
   </p>
 </p>
-<p align="center">喜欢这个项目？请考虑<a href="https://github.com/aq-org/AQ">赞助</a>，<a href="https://github.com/aq-org/AQ">加入开发</a>或<a href="https://github.com/aq-org/AQ">Stars</a>来帮助它完善！
+<p align="center">喜欢这个项目？请考虑<a href="https://github.com/aq-org/AQ">赞助</a>，<a href="https://github.com/aq-org/AQ">加入开发</a>或<a href="https://github.com/aq-org/AQ">Stars</a>来帮助它完善！</p>
+
+<p align="center">翻译可能不准确或延迟，如果可以，请阅读英文版本。如果你发现任何错误，请向我们<a href="https://github.com/aq-org/AQ/issues/new">报告</a>。</p>
 
 ## 目录
 
@@ -82,9 +86,9 @@
     - [开发进度](#开发进度)
 - [快速入门](#快速入门)
   - [安装](#安装)
-  - [使用](#使用)
+  - [用法](#用法)
 - [文档](#文档)
-- [语法标准](#语法标准)
+- [语言标准](#语言标准)
 - [许可证](#许可证)
 
 ## 介绍
@@ -196,21 +200,23 @@ cd aq
 # 找到类似 aq 或 aq.exe 的可执行文件并运行它
 ```
 
-### 使用
+### 用法
 你可以使用`命令行`或`GUI`来运行 **AQ** 。
 ```shell
 ./aq <file> -other-options
 ```
 
+详细信息请查看 [文档](#文档)
+
 ## 文档
 
-你可以在 <a src="https://github.com/aq-org/AQ/blob/main/docs/README.md"> 中找到有关 **AQ** 的更多信息。
+你可以在 <a href="/docs/index.md">文档</a> 中找到有关 **AQ** 的更多信息。
 
-现阶段的文档可能会有部分的错误或缺失。我们会尽快完善。如果你发现任何错误或需要改进的地方,请随时与我们联系。
+> 现阶段的文档可能会有部分的错误或缺失。我们会尽快完善。如果你发现任何错误或需要改进的地方,请随时<a href="https://github.com/aq-org/AQ/issues/new">与我们联系</a>。
 
-## 语法标准
+## 语言标准
 
-你可以在 [文档](#文档) 中找到有关信息。
+你可以在 <a href="/docs/standard.md">语言标准</a> 中找到有关信息。
 
 ## 贡献者
 
@@ -227,3 +233,6 @@ AQ 是一个开源项目，欢迎大家为它做出贡献！无论是提交 Bug 
 此外,**AQ** 本身可能也采用了其他一些`开源软件`的`部分代码`,这些代码可能受`其他许可证`的约束。我们将在代码中准确标注这些`许可证信息`。
 
 我们相信,`AQL 许可证`可以很好地平衡 **AQ** 的`开源性`与`知识产权保护`,为 **AQ** 的`长期发展`创造有利条件。如果您对许可证有任何`疑问或建议`,欢迎与我们讨论。
+
+> Copyright 2024 AQ authors, All Rights Reserved.
+> This program is licensed under the AQ License. You can find the AQ license in the root directory.
