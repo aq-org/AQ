@@ -146,33 +146,7 @@ As can be seen from the table, the **AQ** language has better performance in ter
 </p>
 
 <p align="center">
-<style>
-.read-button {
-   display: inline-block;
-   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-   font-size: 16px;
-   line-height: 1.5;
-   color: #fff;
-   background-color: #000;
-   border-radius: 12px;
-   padding: 14px 32px;
-   cursor: pointer;
-   text-decoration: none;
-   box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
-   transition: all 0.2s ease-in-out;
-}
-
-.read-button:hover {
-   background-color: #000a12;
-   box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
-}
-
-.read-button:active {
-   transform: translateY(1px);
-   box-shadow: 0 1px 2px rgba(255, 255, 255, 0.2);
-}
-</style>
-<a href="https://github.com/aq-org/AQ/commits" class="read-button">
+<a href="https://github.com/aq-org/AQ/commits">
 Click to view development progress
 </a>
 </p>
