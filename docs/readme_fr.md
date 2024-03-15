@@ -78,18 +78,19 @@
 
 <p align="center">Les traductions peuvent être inexactes ou retardées, veuillez lire la version anglaise si vous le pouvez. Si vous trouvez des erreurs, merci de nous les signaler<a href="https://github.com/aq-org/AQ/issues/new">Rapport</a>。</p>
 
-## 目录
+## Table des matières
 
 - [introduire](#introduire)
-    - [Introduction](#Introduction)
-    - [Caractéristiques](#Caractéristiques)
-    - [Progrès du développement](#Progrès-du-développement)
-- [Démarrage rapide](#Démarrage-rapide)
-  - [Installer](#Installer)
+  - [Introduction](#introduction)
+  - [Caractéristiques](#caract-ristiques)
+  - [Progrès du développement](#progr-s-du-d-veloppement)
+- [Démarrage rapide](#d-marrage-rapide)
+  - [Installer](#installer)
   - [usage](#usage)
 - [document](#document)
 - [normes linguistiques](#normes-linguistiques)
-- [Licence](#Licence)
+- [Contributeurs](#contributeurs)
+- [Licence](#licence)
 
 ## introduire
 
