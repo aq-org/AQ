@@ -54,7 +54,7 @@
     </p>
 
   <p align="center">
-    <a href="#بداية سريعة">بداية سريعة</a>
+    <a href="#بداية-سريعة">بداية سريعة</a>
     ·
     <a href="https://github.com/aq-org/AQ/issues/new">الإبلاغ عن خطأ</a>
     ·
