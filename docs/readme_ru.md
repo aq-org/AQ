@@ -60,19 +60,19 @@
      ·
      <a href="https://github.com/aq-org/AQ/discussions/new/choose">Запросить добавление функций</a>
    </p>
-   <p align="center">
-     <a href="/docs/readme_ar.md">عربي</a>
-     ·
-     <a href="/docs/readme_cn.md">Упрощенный китайский</a>
-     ·
-     <a href="/docs/readme_en.md">английский</a>
-     ·
-     <a href="/docs/readme_fr.md">Французский</a>
-     ·
-     <a href="/docs/readme_ru.md">Русский</a>
-     ·
-     <a href="/docs/readme_es.md">Испания</a>
-   </p>
+  <p align="center">
+    <a href="/docs/readme_ar.md">عربي</a>
+    ·
+    <a href="/docs/readme_cn.md">简体中文</a>
+    ·
+    <a href="/docs/readme_en.md">English</a>
+    ·
+    <a href="/docs/readme_fr.md">Français</a>
+    ·
+    <a href="/docs/readme_ru.md">Русский</a>
+    ·
+    <a href="/docs/readme_es.md">Española</a>
+  </p>
 </p>
 <p align="center">Нравится этот проект? Пожалуйста, рассмотрите возможность <a href="https://github.com/aq-org/AQ">спонсора</a>, <a href="https://github.com/aq-org/AQ">присоединяйтесь к разработке. </a> или <a href="https://github.com/aq-org/AQ">Звезды</a>, чтобы помочь ему улучшиться! </p>
 
