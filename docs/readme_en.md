@@ -89,6 +89,7 @@
    - [usage](#usage)
 - [Documentation](#documentation)
 - [Language Standard](#language-standard)
+- [Contributors](#contributors)
 - [LICENSE](#license)
 
 ## Introduce

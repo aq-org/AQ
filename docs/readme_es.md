@@ -89,6 +89,7 @@
   - [uso](#uso)
 - [documento](#documento)
 - [estándares lingüísticos](#estándares-lingüísticos)
+- [benefactor](#benefactor)
 - [licencia](#licencia)
 
 ## introducir
@@ -192,7 +193,7 @@ puede <a href="/docs/index.md">documento</a> Encuentre más información sobre *
 
 Puedes encontrar información sobre esto en <a href="/docs/standard.md">estándares lingüísticos</a>.
 
-## 贡献者
+## benefactor
 
 ¡AQ es un proyecto de código abierto y todos pueden contribuir a él! Ya sea enviando un informe de error, participando en el desarrollo de código, mejorando el documento o brindando sugerencias, cualquier tipo de contribución es muy apreciada.
 
