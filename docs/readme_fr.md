@@ -82,9 +82,9 @@
 
 - [introduire](#introduire)
   - [Introduction](#introduction)
-  - [Caractéristiques](#caract-ristiques)
-  - [Progrès du développement](#progr-s-du-d-veloppement)
-- [Démarrage rapide](#d-marrage-rapide)
+  - [Caractéristiques](#caractéristiques)
+  - [Progrès du développement](#progrès-du-développement)
+- [Démarrage rapide](#démarrage-rapide)
   - [Installer](#installer)
   - [usage](#usage)
 - [document](#document)
