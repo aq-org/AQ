@@ -61,17 +61,17 @@
     <a href="https://github.com/aq-org/AQ/discussions/new/choose">请求增加功能</a>
   </p>
   <p align="center">
-    <a href="/readme_ar.md">عربي</a>
+    <a href="/docs/readme_ar.md">عربي</a>
     ·
-    <a href="/readme_cn.md">简体中文</a>
+    <a href="/docs/readme_cn.md">简体中文</a>
     ·
-    <a href="/readme_en.md">English</a>
+    <a href="/docs/readme_en.md">English</a>
     ·
-    <a href="/readme_fr.md">Français</a>
+    <a href="/docs/readme_fr.md">Français</a>
     ·
-    <a href="/readme_ru.md">Русский</a>
+    <a href="/docs/readme_ru.md">Русский</a>
     ·
-    <a href="/readme_es.md">Española</a>
+    <a href="/docs/readme_es.md">Española</a>
   </p>
 </p>
 <p align="center">喜欢这个项目？请考虑<a href="https://github.com/aq-org/AQ">赞助</a>，<a href="https://github.com/aq-org/AQ">加入开发</a>或<a href="https://github.com/aq-org/AQ">Stars</a>来帮助它完善！</p>
@@ -155,7 +155,7 @@
 ## 快速入门
 ### 安装
 
-**AQ** 可以通过`多种方式`安装，包括`源码编译`和`预编译二进制文件`。具体的`安装步骤`因`平台`而异，请查看 [安装指南](installation.md) 获取更多信息。
+**AQ** 可以通过`多种方式`安装，包括`源码编译`和`预编译二进制文件`。具体的`安装步骤`因`平台`而异，请查看 [安装指南](docs/installation.md) 获取更多信息。
 
 在`Linux`等平台，你可以这样编译：
 ```shell
@@ -184,13 +184,13 @@ cd aq
 
 ## 文档
 
-你可以在 <a href="/index.md">文档</a> 中找到有关 **AQ** 的更多信息。
+你可以在 <a href="/docs/index.md">文档</a> 中找到有关 **AQ** 的更多信息。
 
 > 现阶段的文档可能会有部分的错误或缺失。我们会尽快完善。如果你发现任何错误或需要改进的地方,请随时<a href="https://github.com/aq-org/AQ/issues/new">与我们联系</a>。
 
 ## 语言标准
 
-你可以在 <a href="/standard.md">语言标准</a> 中找到有关信息。
+你可以在 <a href="/docs/standard.md">语言标准</a> 中找到有关信息。
 
 ## 贡献者
 

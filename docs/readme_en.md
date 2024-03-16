@@ -61,17 +61,17 @@
      <a href="https://github.com/aq-org/AQ/discussions/new/choose">Request to add features</a>
    </p>
    <p align="center">
-     <a href="/readme_ar.md">عربي</a>
+     <a href="/docs/readme_ar.md">عربي</a>
      ·
-     <a href="/readme_cn.md">简体中文</a>
+     <a href="/docs/readme_cn.md">简体中文</a>
      ·
-     <a href="/readme_en.md">English</a>
+     <a href="/docs/readme_en.md">English</a>
      ·
-     <a href="/readme_fr.md">Français</a>
+     <a href="/docs/readme_fr.md">Français</a>
      ·
-     <a href="/readme_ru.md">Русский</a>
+     <a href="/docs/readme_ru.md">Русский</a>
      ·
-     <a href="/readme_es.md">Española</a>
+     <a href="/docs/readme_es.md">Española</a>
    </p>
 </p>
 <p align="center">Like this project? Please consider <a href="https://github.com/aq-org/AQ">Sponsor</a>, <a href="https://github.com/aq-org/AQ">join development </a> or <a href="https://github.com/aq-org/AQ">Stars</a> to help it improve! </p>
@@ -154,7 +154,7 @@ Click to view development progress
 ## Quick Start
 ### Install
 
-**AQ** can be installed in `multiple ways`, including `source code compilation` and `precompiled binaries`. The specific installation steps vary by platform, please check the [Installation Guide](installation.md) for more information.
+**AQ** can be installed in `multiple ways`, including `source code compilation` and `precompiled binaries`. The specific installation steps vary by platform, please check the [Installation Guide](docs/installation.md) for more information.
 
 On platforms such as `Linux`, you can compile like this:
 ```shell
@@ -183,13 +183,13 @@ Please see [documentation](#document) for details
 
 ## Document
 
-You can find more information about **AQ** in the <a href="/index.md">Documentation</a>.
+You can find more information about **AQ** in the <a href="/docs/index.md">Documentation</a>.
 
 > The current document may contain some errors or missing parts. We will improve it as soon as possible. If you find any bugs or areas for improvement, please feel free to <a href="https://github.com/aq-org/AQ/issues/new">contact us</a>.
 
 ## Language Standard
 
-You can find information in <a href="/standard.md">Language standards</a>.
+You can find information in <a href="/docs/standard.md">Language standards</a>.
 
 ## Contributors
 

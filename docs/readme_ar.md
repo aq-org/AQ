@@ -61,17 +61,17 @@
     <a href="https://github.com/aq-org/AQ/discussions/new/choose">طلب وظيفة إضافية</a>
   </p>
   <p align="center">
-    <a href="/readme_ar.md">عربي</a>
+    <a href="/docs/readme_ar.md">عربي</a>
     ·
-    <a href="/readme_cn.md">简体中文</a>
+    <a href="/docs/readme_cn.md">简体中文</a>
     ·
-    <a href="/readme_en.md">English</a>
+    <a href="/docs/readme_en.md">English</a>
     ·
-    <a href="/readme_fr.md">Français</a>
+    <a href="/docs/readme_fr.md">Français</a>
     ·
-    <a href="/readme_ru.md">Русский</a>
+    <a href="/docs/readme_ru.md">Русский</a>
     ·
-    <a href="/readme_es.md">Española</a>
+    <a href="/docs/readme_es.md">Española</a>
   </p>
 </p>
 <p align="center">هل أعجبك هذا المشروع؟ يرجى النظر في<a href="https://github.com/aq-org/AQ">راعي</a>, <a href="https://github.com/aq-org/AQ">انضم إلى التطوير</a>أو<a href="https://github.com/aq-org/AQ">Stars</a>للمساعدة في إتقانها!</p>
@@ -155,7 +155,7 @@
 ## بداية سريعة
 ### ثَبَّتَ
 
-يمكن تثبيت **AQ** بعدة طرق، بما في ذلك تجميع كود المصدر والثنائيات المترجمة مسبقًا. تختلف خطوات التثبيت المحددة حسب النظام الأساسي، يرجى مراجعة [دليل التثبيت](installation.md) لمزيد من المعلومات.
+يمكن تثبيت **AQ** بعدة طرق، بما في ذلك تجميع كود المصدر والثنائيات المترجمة مسبقًا. تختلف خطوات التثبيت المحددة حسب النظام الأساسي، يرجى مراجعة [دليل التثبيت](docs/installation.md) لمزيد من المعلومات.
 
 على منصات مثل `Linux`، يمكنك التجميع على النحو التالي:
 ```shell
@@ -180,17 +180,17 @@ cd aq
 ./aq <file> -other-options
 ```
 
-الرجاء مراجعة [الوثائق](#docs) للحصول على التفاصيل
+الرجاء مراجعة [الوثائق](#الوثائق) للحصول على التفاصيل
 
 ## وثيقة
 
-أنت تستطيع <a href="/index.md">وثيقة</a> عثر عليه في **AQ** للمزيد من المعلومات.
+أنت تستطيع <a href="/docs/index.md">وثيقة</a> عثر عليه في **AQ** للمزيد من المعلومات.
 
 > قد تحتوي الوثائق الحالية على أخطاء أو أجزاء مفقودة. وسوف نقوم بتحسينه في أقرب وقت ممكن. إذا وجدت أي أخطاء أو مجالات للتحسين، فلا تتردد في ذلك<a href="https://github.com/aq-org/AQ/issues/new">اتصل بنا</a>. 
 
 ## معيار اللغة
 
-أنت تستطيع <a href="/standard.md">معايير اللغة</a> ابحث عن المعلومات ذات الصلة.
+أنت تستطيع <a href="/docs/standard.md">معايير اللغة</a> ابحث عن المعلومات ذات الصلة.
 
 ## المساهمين
 
