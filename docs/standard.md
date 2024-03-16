@@ -60,19 +60,6 @@
      ·
      <a href="https://github.com/aq-org/AQ/discussions/new/choose">Request to add features</a>
    </p>
-   <p align="center">
-     <a href="/docs/readme_ar.md">عربي</a>
-     ·
-     <a href="/docs/readme_cn.md">简体中文</a>
-     ·
-     <a href="/docs/readme_en.md">English</a>
-     ·
-     <a href="/docs/readme_fr.md">Français</a>
-     ·
-     <a href="/docs/readme_ru.md">Русский</a>
-     ·
-     <a href="/docs/readme_es.md">Española</a>
-   </p>
 </p>
 <p align="center">Like this project? Please consider <a href="https://github.com/aq-org/AQ">Sponsor</a>, <a href="https://github.com/aq-org/AQ">join development </a> or <a href="https://github.com/aq-org/AQ">Stars</a> to help it improve! </p>
 

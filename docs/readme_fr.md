@@ -61,20 +61,20 @@
     <a href="https://github.com/aq-org/AQ/discussions/new/choose">Demander des fonctionnalités supplémentaires</a>
   </p>
   <p align="center">
-    <a href="/docs/readme_ar.md">عربي</a>
+    <a href="/readme_ar.md">عربي</a>
     ·
-    <a href="/docs/readme_cn.md">简体中文</a>
+    <a href="/readme_cn.md">简体中文</a>
     ·
-    <a href="/docs/readme_en.md">English</a>
+    <a href="/readme_en.md">English</a>
     ·
-    <a href="/docs/readme_fr.md">Français</a>
+    <a href="/readme_fr.md">Français</a>
     ·
-    <a href="/docs/readme_ru.md">Русский</a>
+    <a href="/readme_ru.md">Русский</a>
     ·
-    <a href="/docs/readme_es.md">Española</a>
+    <a href="/readme_es.md">Española</a>
   </p>
 </p>
-<p align="center">Vous aimez ce projet ? s'il vous plaît considérer<a href="https://github.com/aq-org/AQ">parrainer</a>，<a href="https://github.com/aq-org/AQ">Rejoignez le développement</a>或<a href="https://github.com/aq-org/AQ">Stars</a>Venez l'aider à perfectionner !</p>
+<p align="center">Vous aimez ce projet ? s'il vous plaît considérer<a href="https://github.com/aq-org/AQ">parrainer</a>，<a href="https://github.com/aq-org/AQ">Rejoignez le développement</a> ou <a href="https://github.com/aq-org/AQ">Stars</a> Venez l'aider à perfectionner !</p>
 
 <p align="center">Les traductions peuvent être inexactes ou retardées, veuillez lire la version anglaise si vous le pouvez. Si vous trouvez des erreurs, merci de nous les signaler<a href="https://github.com/aq-org/AQ/issues/new">Rapport</a>。</p>
 
@@ -156,7 +156,7 @@ Clique pour voir Progrès du développement
 ## Démarrage rapide
 ### Installer
 
-**AQ** peut être installé via diverses méthodes, notamment la compilation du code source et les binaires précompilés. Les `étapes d'installation` spécifiques varient selon la `plate-forme`, veuillez consulter le [Guide d'installation](docs/installation.md) pour plus d'informations.
+**AQ** peut être installé via diverses méthodes, notamment la compilation du code source et les binaires précompilés. Les `étapes d'installation` spécifiques varient selon la `plate-forme`, veuillez consulter le [Guide d'installation](installation.md) pour plus d'informations.
 
 Sur des plateformes telles que `Linux`, vous pouvez compiler comme ceci :
 ```shell
@@ -185,13 +185,13 @@ Pour plus de détails, veuillez consulter [document](#document)
 
 ## document
 
-Vous pouvez trouver plus d'informations sur **AQ** dans le <a href="/docs/index.md">document</a>.
+Vous pouvez trouver plus d'informations sur **AQ** dans le <a href="/index.md">document</a>.
 
 > Le document actuel peut contenir des erreurs ou des parties manquantes. Nous l'améliorerons dès que possible. Si vous trouvez des bugs ou des points à améliorer, n'hésitez pas à <a href="https://github.com/aq-org/AQ/issues/new">nous contacter</a>.
 
 ## normes linguistiques
 
-Vous pouvez trouver des informations dans les <a href="/docs/standard.md">normes linguistiques</a>.
+Vous pouvez trouver des informations dans les <a href="/standard.md">normes linguistiques</a>.
 
 ## Contributeurs
 
