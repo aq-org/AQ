@@ -5,6 +5,8 @@
 #ifndef AQ_COMPILE_COMPILE_H_
 #define AQ_COMPILE_COMPILE_H_
 
+#include <cstddef>
+
 namespace Aq {
 class Compiler {
  public:
