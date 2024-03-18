@@ -8,8 +8,8 @@
 #include <cstddef>
 
 #include "compiler/compiler.h"
-#include "compiler/token/token.h"
 #include "compiler/lexer/token_map.h"
+#include "compiler/token/token.h"
 
 namespace Aq {
 class Compiler::Lexer {
@@ -25,16 +25,27 @@ class Compiler::Lexer {
   Lexer& operator=(Lexer&&) noexcept = default;
 
   // Lexical analysis |buffer_ptr_|, and store the analyzed token into
-  // |return_token|.
+  // |return_token|. Returns one token at a time. Returns 0 for a normal read,
+  // -1 for a read error.
   int LexToken(Token& return_token);
 
-  // Return true if the lexer is at the end of |buffer_ptr_|.
+  // Returns whether the source code has finished reading.
   bool IsReadEnd() const;
 
  private:
   char* buffer_ptr_;
   char* buffer_end_;
   TokenMap token_map_;
+
+  // Process the token being lexically analyzed.
+  // If |token| belongs to the Token::Type::START type, the type of |token| will
+  // be modified to |start_type| and true will be returned; otherwise, the
+  // return value depends on whether the type of |token| matches |next_type|.
+  // This function only applies to the general case, special cases require
+  // additional judgment logic. In general, returning true means that |token| is
+  // not yet complete, and vice versa.
+  bool ProcessToken(Token& token, Token::Type start_type,
+                    Token::Type next_type[], int next_type_size);
 };
 }  // namespace Aq
 

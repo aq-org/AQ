@@ -7,20 +7,12 @@
 #include <string>
 
 #include "compiler/compiler.h"
-#include "compiler/token/token.h"
 #include "compiler/token/keyword.h"
 #include "compiler/token/operator.h"
+#include "compiler/token/token.h"
 #include "debugger/debugger.h"
 
 namespace Aq {
-bool Compiler::Lexer::IsReadEnd() const {
-  if (buffer_ptr_ >= buffer_end_) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 int Compiler::Lexer::LexToken(Token& return_token) {
   // Set the return token type to start.
   return_token.type = Token::Type::START;
@@ -63,77 +55,54 @@ LexStart:
     case '|':
     case '}':
     case '~':
-      if (return_token.type == Token::Type::START) {
-        return_token.type = Token::Type::OPERATOR;
+      Token::Type gen_op_next_type[4] = {Token::Type::OPERATOR, Token::Type::CHARACTER,
+                                  Token::Type::STRING, Token::Type::COMMENT};
+      if (ProcessToken(return_token, Token::Type::OPERATOR, gen_op_next_type, 4)) {
         read_ptr++;
         goto LexStart;
-      } else if (return_token.type == Token::Type::OPERATOR ||
-                 return_token.type == Token::Type::CHARACTER ||
-                 return_token.type == Token::Type::STRING ||
-                 return_token.type == Token::Type::COMMENT) {
-        read_ptr++;
-        goto LexStart;
-      } else {
-        goto LexEnd;
       }
+      goto LexEnd;
 
     // The string flag.
     case '"':
-      if (return_token.type == Token::Type::START) {
-        return_token.type = Token::Type::STRING;
-        read_ptr++;
-        goto LexStart;
-      } else if (return_token.type == Token::Type::CHARACTER ||
-                 return_token.type == Token::Type::COMMENT) {
+      Token::Type str_next_type[2] = {Token::Type::STRING, Token::Type::COMMENT};
+      if (ProcessToken(return_token, Token::Type::STRING, str_next_type, 2)) {
         read_ptr++;
         goto LexStart;
       } else if (return_token.type == Token::Type::STRING) {
         read_ptr++;
-        goto LexEnd;
-      } else {
-        goto LexEnd;
       }
+      goto LexEnd;
 
     // The character flag.
     case '\'':
-      if (return_token.type == Token::Type::START) {
-        return_token.type = Token::Type::CHARACTER;
-        read_ptr++;
-        goto LexStart;
-      } else if (return_token.type == Token::Type::STRING ||
-                 return_token.type == Token::Type::COMMENT) {
+      Token::Type char_next_type[2] = {Token::Type::STRING, Token::Type::COMMENT};
+      if (ProcessToken(return_token, Token::Type::CHARACTER, char_next_type, 2)) {
         read_ptr++;
         goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER) {
         read_ptr++;
-        goto LexEnd;
-      } else {
-        goto LexEnd;
       }
+      goto LexEnd;
 
     // Escape character.
     case '\\':
-      if (return_token.type == Token::Type::START) {
-        return_token.type = Token::Type::OPERATOR;
-        read_ptr++;
-        goto LexStart;
-      } else if (return_token.type == Token::Type::CHARACTER ||
-                 return_token.type == Token::Type::STRING) {
+      Token::Type escape_next_type[2] = {Token::Type::OPERATOR, Token::Type::COMMENT};
+      if (return_token.type == Token::Type::CHARACTER ||
+          return_token.type == Token::Type::STRING) {
         // Skip escape characters.
         if (read_ptr + 2 <= buffer_end_) {
           read_ptr += 2;
-          goto LexStart;
         } else {
           read_ptr++;
-          goto LexStart;
         }
-      } else if (return_token.type == Token::Type::OPERATOR ||
-                 return_token.type == Token::Type::COMMENT) {
+        goto LexStart;
+      } else if (ProcessToken(return_token, Token::Type::OPERATOR, escape_next_type,
+                              2)) {
         read_ptr++;
         goto LexStart;
-      } else {
-        goto LexEnd;
       }
+      goto LexEnd;
 
     // Positive and negative numbers.
     case '+':
@@ -408,5 +377,27 @@ LexEnd:
     }
   }
   return 0;
+}
+
+bool Compiler::Lexer::IsReadEnd() const {
+  if (buffer_ptr_ >= buffer_end_) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Compiler::Lexer::ProcessToken(Token& token, Token::Type start_type,
+                                   Token::Type next_type[], int next_type_size) {
+  if (token.type == Token::Type::START) {
+    token.type = Token::Type::OPERATOR;
+    return true;
+  }
+  for (int i = 0; i < next_type_size; i++) {
+    if (token.type == next_type[i]) {
+      return true;
+    }
+  }
+  return false;
 }
 }  // namespace Aq
