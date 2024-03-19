@@ -24,9 +24,11 @@ class Compiler::Lexer {
   Lexer& operator=(const Lexer&) = default;
   Lexer& operator=(Lexer&&) noexcept = default;
 
-  // Lexical analysis |buffer_ptr_|, and store the analyzed token into
-  // |return_token|. Returns one token at a time. Returns 0 for a normal read,
-  // -1 for a read error.
+  // Lexically analyze |buffer_ptr_| and store the analyzed token to
+  // |return_token|. Reads one character at a time and analyzes the token for
+  // completeness except for that character, and repeatedly reads the characters
+  // of |buffer_ptr_| until the token is complete, then returns a token. a
+  // normal read returns 0, and a read error returns -1.
   int LexToken(Token& return_token);
 
   // Returns whether the source code has finished reading.
@@ -37,15 +39,19 @@ class Compiler::Lexer {
   char* buffer_end_;
   TokenMap token_map_;
 
-  // Process the token being lexically analyzed.
-  // If |token| belongs to the Token::Type::START type, the type of |token| will
-  // be modified to |start_type| and true will be returned; otherwise, the
-  // return value depends on whether the type of |token| matches |next_type|.
-  // This function only applies to the general case, special cases require
-  // additional judgment logic. In general, returning true means that |token| is
-  // not yet complete, and vice versa.
-  bool ProcessToken(Token& token, Token::Type start_type,
-                    Token::Type next_type[], int next_type_size);
+  // Process the token being lexically analyzed and determine if the token is
+  // complete in the general case.
+  // This function is only applicable to the general case, special cases require
+  // additional judgment logic. In general, if |token| belongs to the
+  // Token::Type::START type, the type of |token| will be modified to
+  // |start_type| and true will be returned. if |token| matches one of the
+  // variable parameters (i.e., |next_type_list|), then true will be returned,
+  // otherwise false will be returned.
+  // In general, returning true means that |token| is incomplete except for that
+  // character, and returning false means that |token| is complete except for
+  // that character.
+  bool ProcessToken(Token& token, Token::Type start_type, int next_type_size,
+                    ...);
 };
 }  // namespace Aq
 
