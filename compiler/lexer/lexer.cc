@@ -144,6 +144,7 @@ LexStart:
 
     // The comment flag.
     case '/':
+      // Comment start.
       if (return_token.type == Tok::START && *(buffer_ptr_ + 1) == '/' ||
           *(buffer_ptr_ + 1) == '*') {
         return_token.type = Tok::COMMENT;
@@ -159,27 +160,23 @@ LexStart:
       }
 
       if (return_token.type == Tok::OPERATOR) {
+        // Comment.
         if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
           goto LexEnd;
         } else {
           goto LexNext;
         }
       }
-      
+
       if (return_token.type == Tok::COMMENT) {
-        if (*(buffer_ptr_ + 1) == '*') {
-          if (*(read_ptr - 1) == '*') {
-            // /**/ style comments, skip all comments.
-            buffer_ptr_ = ++read_ptr;
-            return_token.type = Tok::START;
-            goto LexStart;
-          } else {
-            // Non-end comment mark, continue reading until the end mark of
-            // the comment.
-            goto LexNext;
-          }
+        if (*(buffer_ptr_ + 1) == '*' && *(read_ptr - 1) == '*') {
+          // /**/ style comments, skip all comments.
+          buffer_ptr_ = ++read_ptr;
+          return_token.type = Tok::START;
+          goto LexStart;
         } else {
-          // // style comments, continue reading until newlines are skipped.
+          // // style comments or Non-end comment mark, continue reading until
+          // the end mark of the comment.
           goto LexNext;
         }
       }
@@ -196,20 +193,12 @@ LexStart:
     case '7':
     case '8':
     case '9':
-      if (return_token.type == Tok::START) {
-        read_ptr++;
-        return_token.type = Tok::NUMBER;
-        goto LexStart;
-      } else if (return_token.type == Tok::IDENTIFIER ||
-                 return_token.type == Tok::NUMBER ||
-                 return_token.type == Tok::CHARACTER ||
-                 return_token.type == Tok::STRING ||
-                 return_token.type == Tok::COMMENT) {
-        read_ptr++;
-        goto LexStart;
-      } else {
-        goto LexEnd;
+      if (ProcessToken(return_token, Tok::NUMBER, 5, Tok::IDENTIFIER,
+                       Tok::NUMBER, Tok::CHARACTER, Tok::STRING,
+                       Tok::COMMENT)) {
+        goto LexNext;
       }
+      goto LexEnd;
 
     // Whitespace characters.
     case '\f':
@@ -219,44 +208,36 @@ LexStart:
     case ' ':
       if (return_token.type == Tok::START) {
         // Skip whitespace characters.
-        read_ptr++;
         buffer_ptr_++;
-        goto LexStart;
-      } else if (return_token.type == Tok::CHARACTER ||
-                 return_token.type == Tok::STRING ||
-                 return_token.type == Tok::COMMENT) {
-        read_ptr++;
-        goto LexStart;
-      } else {
-        goto LexEnd;
+        goto LexNext;
       }
+
+      if (ProcessToken(return_token, Tok::START, 3, Tok::CHARACTER, Tok::STRING,
+                       Tok::COMMENT)) {
+        goto LexNext;
+      }
+      goto LexEnd;
 
     // Newlines.
     case '\n':
       if (return_token.type == Tok::START) {
         // Skip newlines.
-        read_ptr++;
         buffer_ptr_++;
-        goto LexStart;
-      } else if (return_token.type == Tok::CHARACTER ||
-                 return_token.type == Tok::STRING) {
-        read_ptr++;
-        goto LexStart;
-      } else if (return_token.type == Tok::COMMENT) {
-        if (*(buffer_ptr_ + 1) == '*') {
-          // /**/ style comments, continue reading until the end mark of the
-          // comment.
-          read_ptr++;
-          goto LexStart;
-        } else {
-          // // style comments, skip all comments.
-          buffer_ptr_ = ++read_ptr;
-          return_token.type = Tok::START;
-          goto LexStart;
-        }
-      } else {
-        goto LexEnd;
+        goto LexNext;
       }
+
+      if (return_token.type == Tok::COMMENT && *(buffer_ptr_ + 1) == '/') {
+        // // style comments, skip all comments.
+        buffer_ptr_ = ++read_ptr;
+        return_token.type = Tok::START;
+        goto LexStart;
+      }
+
+      if (ProcessToken(return_token, Tok::START, 3, Tok::CHARACTER, Tok::STRING,
+                       Tok::COMMENT)) {
+        goto LexNext;
+      }
+      goto LexEnd;
 
     // EOF.
     case '\0':
@@ -269,30 +250,21 @@ LexStart:
         return_token.type = Tok::OPERATOR;
         read_ptr++;
         goto LexEnd;
-      } else if (return_token.type == Tok::CHARACTER ||
-                 return_token.type == Tok::STRING ||
-                 return_token.type == Tok::COMMENT) {
-        read_ptr++;
-        goto LexStart;
-      } else {
-        goto LexEnd;
       }
 
-    default:
-      if (return_token.type == Tok::START) {
-        return_token.type = Tok::IDENTIFIER;
-        read_ptr++;
-        goto LexStart;
-      } else if (return_token.type == Tok::IDENTIFIER ||
-                 return_token.type == Tok::NUMBER ||
-                 return_token.type == Tok::CHARACTER ||
-                 return_token.type == Tok::STRING ||
-                 return_token.type == Tok::COMMENT) {
-        read_ptr++;
-        goto LexStart;
-      } else {
-        goto LexEnd;
+      if (ProcessToken(return_token, Tok::OPERATOR, 3, Tok::CHARACTER,
+                       Tok::STRING, Tok::COMMENT)) {
+        goto LexNext;
       }
+      goto LexEnd;
+
+    default:
+      if (ProcessToken(return_token, Tok::IDENTIFIER, 5, Tok::IDENTIFIER,
+                       Tok::NUMBER, Tok::CHARACTER, Tok::STRING,
+                       Tok::COMMENT)) {
+        goto LexNext;
+      }
+      goto LexEnd;
   }
 
 LexNext:
