@@ -11,6 +11,23 @@
 #include <sstream>
 
 namespace Aq {
+Debugger::Debugger(Level level, const char* location, const char* debug_code,
+                   const char* debug_message, const char* other_info)
+    : errno_(errno),
+      errno_message_(std::strerror(errno)),
+      timestamp_(time(NULL)),
+      level_(level),
+      location_(location),
+      debug_code_(debug_code),
+      debug_message_(debug_message),
+      other_info_(other_info) {
+  OutputMessage();
+  if (level_ == Level::ERROR) {
+    exit(-1);
+  }
+}
+Debugger::~Debugger() = default;
+
 void Debugger::OutputMessage() const {
   std::string time_string = "Time:\"" + GetTimeString() + "\"";
   std::string level_string;

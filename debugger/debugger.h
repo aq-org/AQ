@@ -17,18 +17,8 @@ class Debugger {
   // Output a debug message. If |other_info| has no content, nullptr can be
   // filled in. Others must be filled in with strings and cannot be nullptr.
   Debugger(Level level, const char* location, const char* debug_code,
-           const char* debug_message, const char* other_info = nullptr)
-      : errno_(errno),
-        errno_message_(std::strerror(errno)),
-        timestamp_(time(NULL)),
-        level_(level),
-        location_(location),
-        debug_code_(debug_code),
-        debug_message_(debug_message),
-        other_info_(other_info) {
-    OutputMessage();
-  };
-  ~Debugger() = default;
+           const char* debug_message, const char* other_info = nullptr);
+  ~Debugger();
 
   Debugger(const Debugger&) = delete;
   Debugger(Debugger&&) = delete;

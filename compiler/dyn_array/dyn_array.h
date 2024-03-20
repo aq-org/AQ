@@ -8,9 +8,10 @@
 #include <cstddef>
 
 #include "compiler/compiler.h"
+#include "debugger/debugger.h"
 
 namespace Aq {
-template <typename ArrayType,std::size_t InitCapacity>
+template <typename ArrayType, std::size_t InitCapacity>
 class Compiler::DynArray {
  public:
   DynArray();
@@ -21,10 +22,28 @@ class Compiler::DynArray {
   DynArray& operator=(const DynArray&) = default;
   DynArray& operator=(DynArray&&) noexcept = default;
 
-  // TODO: Waiting for developing.
+  // Returns the data reference of the corresponding index.
+  ArrayType& operator[](std::size_t index) {
+    if (index >= size_) {
+      Debugger error_info(
+          Debugger::Level::ERROR, "Aq::Compiler::DynArray::operator[]",
+          "DynArray_IndexError", "Index out of range occurred.", nullptr);
+    }
+    return data_[index];
+  }
+
+  // Adds an element to the end of the container. No return value.
+  void PushBack(ArrayType data);
+
+  // Increase the container capacity.
+  // If |new_capacity| is 0, it is increased to 2 times |capacity_|. If
+  // greater than 0, the container capacity is increased to |new_capacity|.
+  // A return of 0 indicates a successful allocation, a return of -1 indicates
+  // an error in the allocation.
+  int Resize(std::size_t new_capacity = 0);
 
  private:
-  ArrayType* array_;
+  ArrayType* data_;
   std::size_t capacity_;
   std::size_t size_;
 };
