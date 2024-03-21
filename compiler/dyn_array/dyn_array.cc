@@ -76,4 +76,19 @@ int Compiler::DynArray<ArrayType, InitCapacity>::Resize(
   data_ = new_data;
   return 0;
 }
+
+template <typename ArrayType, std::size_t InitCapacity>
+Compiler::DynArray<ArrayType, InitCapacity>::Iterator::Iterator(
+    DynArray<ArrayType, InitCapacity>* array, std::size_t index)
+    : array_(array), index_(index) {
+  if (index_ >= array_->size_) {
+    Debugger error_info(Debugger::Level::ERROR,
+                        "Aq::Compiler::DynArray::Iterator::Iterator",
+                        "Iterator_IndexError", "Index out of range.", nullptr);
+  }
+}
+
+template <typename ArrayType, std::size_t InitCapacity>
+Compiler::DynArray<ArrayType, InitCapacity>::Iterator::~Iterator() = default;
+
 }  // namespace Aq
