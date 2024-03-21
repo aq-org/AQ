@@ -50,7 +50,7 @@ class Compiler::Lexer {
   // character, and returning false means that |token| is complete except for
   // that character.
   bool ProcessToken(Token& token, Token::Type start_type, int next_type_size,
-                    ...);
+                    ...) const;
 };
 }  // namespace Aq
 

@@ -100,7 +100,6 @@ LexStart:
                        Tok::COMMENT)) {
         goto LexNext;
       }
-      goto LexEnd;
 
       // Skip escape characters.
       if (return_token.type == Tok::CHARACTER ||
@@ -110,6 +109,7 @@ LexStart:
         }
         goto LexNext;
       }
+      goto LexEnd;
 
     // Positive and negative numbers.
     case '+':
@@ -347,7 +347,7 @@ bool Compiler::Lexer::IsReadEnd() const {
 }
 
 bool Compiler::Lexer::ProcessToken(Token& token, Token::Type start_type,
-                                   int next_type_size, ...) {
+                                   int next_type_size, ...) const {
   if (token.type == Token::Type::START) {
     token.type = start_type;
     return true;
