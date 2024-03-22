@@ -9,8 +9,8 @@
 #include "debugger/debugger.h"
 
 namespace Aq {
-template <typename ArrayType, std::size_t InitCapacity>
-Compiler::DynArray<ArrayType, InitCapacity>::DynArray() {
+template <typename ArrayType>
+Compiler::DynArray<ArrayType>::DynArray(std::size_t InitCapacity) {
   data_ = new ArrayType[InitCapacity];
   if (data_ != nullptr) {
     capacity_ = InitCapacity;
@@ -32,13 +32,13 @@ Compiler::DynArray<ArrayType, InitCapacity>::DynArray() {
   size_ = 0;
 }
 
-template <typename ArrayType, std::size_t InitCapacity>
-Compiler::DynArray<ArrayType, InitCapacity>::~DynArray() {
+template <typename ArrayType>
+Compiler::DynArray<ArrayType>::~DynArray() {
   delete[] data_;
 }
 
-template <typename ArrayType, std::size_t InitCapacity>
-void Compiler::DynArray<ArrayType, InitCapacity>::PushBack(ArrayType data) {
+template <typename ArrayType>
+void Compiler::DynArray<ArrayType>::PushBack(ArrayType data) {
   if (capacity_ == 0 && Resize(1) == -1) {
     return;
   }
@@ -54,9 +54,8 @@ void Compiler::DynArray<ArrayType, InitCapacity>::PushBack(ArrayType data) {
   size_++;
 }
 
-template <typename ArrayType, std::size_t InitCapacity>
-int Compiler::DynArray<ArrayType, InitCapacity>::Resize(
-    std::size_t new_capacity) {
+template <typename ArrayType>
+int Compiler::DynArray<ArrayType>::Resize(std::size_t new_capacity) {
   if (new_capacity == 0) {
     capacity_ *= 2;
   } else {
@@ -77,9 +76,14 @@ int Compiler::DynArray<ArrayType, InitCapacity>::Resize(
   return 0;
 }
 
-template <typename ArrayType, std::size_t InitCapacity>
-Compiler::DynArray<ArrayType, InitCapacity>::Iterator::Iterator(
-    DynArray<ArrayType, InitCapacity>* array, std::size_t index)
+template <typename ArrayType>
+std::size_t Compiler::DynArray<ArrayType>::Size() const {
+  return size_;
+}
+
+template <typename ArrayType>
+Compiler::DynArray<ArrayType>::Iterator::Iterator(DynArray<ArrayType>* array,
+                                                  std::size_t index)
     : array_(array), index_(index) {
   if (index_ >= array_->size_) {
     Debugger error_info(Debugger::Level::ERROR,
@@ -88,7 +92,7 @@ Compiler::DynArray<ArrayType, InitCapacity>::Iterator::Iterator(
   }
 }
 
-template <typename ArrayType, std::size_t InitCapacity>
-Compiler::DynArray<ArrayType, InitCapacity>::Iterator::~Iterator() = default;
+template <typename ArrayType>
+Compiler::DynArray<ArrayType>::Iterator::~Iterator() = default;
 
 }  // namespace Aq

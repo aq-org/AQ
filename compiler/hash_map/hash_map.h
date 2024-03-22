@@ -6,23 +6,17 @@
 #define AQ_COMPILER_HASH_MAP_HASH_MAP_H_
 
 #include "compiler/compiler.h"
-/*
+
+#include <cstddef>
+
+#include "compiler/dyn_array/dyn_array.h"
+
 namespace Aq {
 template <typename ValueType>
 class Compiler::HashMap {
  public:
-  HashMap() {
-    std::size_t init_capacity = 1024;
-    pair_list_ = new PairList[init_capacity];
-    if (!pair_list_) {
-      Debugger error_info(
-          Debugger::Level::ERROR, "Aq::Compiler::Lexer::HashMap::HashMap",
-          "HashMap_MemoryError", "Memory allocation failed.", nullptr);
-      pair_list_ = new PairList[1];
-    }
-    capacity_ = init_capacity;
-  };
-  ~HashMap() { delete[] pair_list_; };
+  HashMap(std::size_t init_capacity = 1024);
+  ~HashMap();
 
   HashMap(const HashMap&) = default;
   HashMap(HashMap&&) noexcept = default;
@@ -30,46 +24,23 @@ class Compiler::HashMap {
   HashMap& operator=(HashMap&&) noexcept = default;
 
   // Insert a new pair into the hash table.
-  void Insert(std::string key, T value) {
-    unsigned int hash = Hash(key);
-
-    // Increase the size of the hash table.
-    size_++;
-    if (size_ / capacity_ > 0.8) {
-      Resize();
-    }
-
-    // Create key-value pairs and insert them into the linked list.
-    Pair pair;
-    pair.key = key;
-    pair.value = value;
-    pair_list_[hash].Prepend(pair);
-  };
+  void Insert(std::string key, ValueType value);
 
   // Find the value of a key.
-  T Find(std::string key) {
-    unsigned int hash = Hash(key);
-    return pair_list_[hash].Find(key);
-  };
+  ValueType Find(std::string key);
 
  private:
   struct Pair {
     std::string key;
-    T value;
+    ValueType value;
   };
 
   // A linked list of Pair type, used to resolve hash conflicts.
   class PairList {
    public:
     // Construct a PairList class.
-    PairList() = default;
-    ~PairList() {
-      while (head_ptr_ != nullptr) {
-        Node* temp = head_ptr_;
-        head_ptr_ = head_ptr_->next;
-        delete temp;
-      }
-    };
+    PairList();
+    ~PairList();
 
     PairList(const PairList&) = default;
     PairList(PairList&&) noexcept = default;
@@ -77,57 +48,17 @@ class Compiler::HashMap {
     PairList& operator=(PairList&&) noexcept = default;
 
     // Prepend a new pair to the list.
-    void Prepend(Pair value) {
-      Node* new_node = new Node(value);
-      new_node->next = head_ptr_;
-      head_ptr_ = new_node;
-    };
+    void Prepend(Pair value);
 
     // Copy all the data in the linked list to |new_list|.
-    void CopyDataToNewList(PairList* new_list, size_t new_capacity) {
-      PairList::Node* temp_node = head_ptr_;
-      while (temp_node != nullptr) {
-        unsigned int hash = 5381;
-        for (char character : temp_node->data.key) {
-          // hash = hash * 33 + static_cast<unsigned int>(character)
-          hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
-        }
-        hash = hash % new_capacity;
-        new_list[hash].Append(temp_node->data);
-        temp_node = temp_node->next;
-      }
-    };
+    void CopyDataToNewList(PairList* new_list, size_t new_capacity);
 
     // Append a new pair to the list. It is not recommended to use it when
     // dealing with large amounts of data.
-    void Append(Pair value) {
-      if (head_ptr_ == nullptr) {
-        head_ptr_ = new Node(value);
-      } else {
-        // Find the last node and append the new node.
-        Node* temp = head_ptr_;
-        while (temp->next != nullptr) {
-          temp = temp->next;
-        }
-        temp->next = new Node(value);
-      }
-    };
+    void Append(Pair value);
 
     // Find the value of a key.
-    T Find(std::string key) {
-      Node* temp = head_ptr_;
-
-      // Compare keys one by one to find the corresponding value.
-      while (temp != nullptr) {
-        if (key == temp->data.key) {
-          return temp->data.value;
-        };
-        temp = temp->next;
-      }
-
-      // Key not found, return nullptr.
-      return static_cast<T>(0);
-    };
+    ValueType Find(std::string key);
 
    private:
     // A node type of the linked list.
@@ -149,45 +80,14 @@ class Compiler::HashMap {
 
   // The data collection of the hash table is stored in a linked list of type
   // PairList.
-  PairList* pair_list_ = nullptr;
+  DynArray<ValueType>* pair_list_ = nullptr;
 
   // The hash function. Based on DJB2 hashing algorithm.
-  unsigned int Hash(std::string key) const {
-    unsigned int hash = 5381;
-    for (char character : key) {
-      // hash = hash * 33 + static_cast<unsigned int>(character)
-      hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
-    }
-    hash = hash % capacity_;
-    return hash;
-  };
+  unsigned int Hash(std::string key) const;
 
   // Re-allocate the memory of the hash table.
-  int Resize() {
-    PairList* temp = pair_list_;
-    std::size_t new_capacity = capacity_ * 1.5;
-    pair_list_ = new PairList[new_capacity];
-
-    // Memory allocation failed.
-    if (!pair_list_) {
-      Debugger error_info(
-          Debugger::Level::ERROR, "Aq::Compiler::Lexer::HashMap::Resize",
-          "Resize_MemoryError", "Memory allocation failed.", nullptr);
-      return -1;
-    }
-
-    // Copy data.
-    for (int i = 0; i < capacity_; i++) {
-      temp[i].CopyDataToNewList(pair_list_, new_capacity);
-    }
-
-    // Release the memory of the original linked list.
-    delete[] temp;
-
-    capacity_ = new_capacity;
-    return 0;
-  };
+  int Resize();
 };
 }  // namespace Aq
-*/
+
 #endif

@@ -11,10 +11,10 @@
 #include "debugger/debugger.h"
 
 namespace Aq {
-template <typename ArrayType, std::size_t InitCapacity>
+template <typename ArrayType>
 class Compiler::DynArray {
  public:
-  DynArray();
+  DynArray(std::size_t InitCapacity = 1);
   ~DynArray();
 
   DynArray(const DynArray&) = default;
@@ -42,11 +42,14 @@ class Compiler::DynArray {
   // an error in the allocation.
   int Resize(std::size_t new_capacity = 0);
 
+
+  std::size_t Size() const;
+
   class Iterator {
    public:
     using iterator_category = std::random_access_iterator_tag;
 
-    Iterator(DynArray<ArrayType, InitCapacity>* array, std::size_t index = 0);
+    Iterator(DynArray<ArrayType>* array, std::size_t index = 0);
 
     ~Iterator();
 
@@ -155,7 +158,7 @@ class Compiler::DynArray {
     }
 
    private:
-    DynArray<ArrayType, InitCapacity>* array_;
+    DynArray<ArrayType>* array_;
     std::size_t index_;
   };
 

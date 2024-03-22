@@ -21,7 +21,7 @@ class Compiler {
 
   template <typename ValueType>
   class HashMap;
-  template <typename ArrayType, std::size_t InitCapacity>
+  template <typename ArrayType>
   class DynArray;
   class TokenMap;
   class Token;
