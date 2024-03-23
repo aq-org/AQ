@@ -21,6 +21,8 @@ class Compiler {
 
   template <typename ValueType>
   class HashMap;
+  template <typename ValueType>
+  class LinkedList;
   template <typename ArrayType>
   class DynArray;
   class TokenMap;
