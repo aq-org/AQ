@@ -7,6 +7,14 @@
 
 #include "compiler/compiler.h"
 
-namespace Aq{}
+namespace Aq {
+template <typename T1, typename T2>
+struct Compiler::Pair {
+  T1 first;
+  T2 second;
+
+  Pair(T1 _first, T2 _second);
+};
+}  // namespace Aq
 
 #endif

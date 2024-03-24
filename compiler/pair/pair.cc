@@ -4,4 +4,8 @@
 
 #include "compiler/pair/pair.h"
 
-namespace Aq{}
+namespace Aq {
+template <typename T1, typename T2>
+Compiler::Pair<T1, T2>::Pair(T1 _first, T2 _second)
+    : first(first), second(second) {}
+}  // namespace Aq

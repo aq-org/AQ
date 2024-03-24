@@ -18,7 +18,8 @@ class Compiler {
 
   class Lexer;
   class Parser;
-
+  template <typename T1, typename T2>
+  struct Pair;
   template <typename ValueType>
   class HashMap;
   template <typename ValueType>
