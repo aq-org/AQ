@@ -15,7 +15,7 @@ Debugger::Debugger(Level level, const char* location, const char* debug_code,
                    const char* debug_message, const char* other_info)
     : errno_(errno),
       errno_message_(std::strerror(errno)),
-      timestamp_(time(NULL)),
+      timestamp_(time(nullptr)),
       level_(level),
       location_(location),
       debug_code_(debug_code),
