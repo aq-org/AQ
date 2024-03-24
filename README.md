@@ -73,7 +73,7 @@
      ·
      <a href="/docs/readme_es.md">Española</a>
    </p>
-</p>
+
 <p align="center">Like this project? Please consider <a href="https://github.com/aq-org/AQ">Sponsor</a>, <a href="https://github.com/aq-org/AQ">join development </a> or <a href="https://github.com/aq-org/AQ">Stars</a> to help it improve! </p>
 
 <p align="center">Translations may be inaccurate or delayed, please read the English version if available. If you find any bugs, please <a href="https://github.com/aq-org/AQ/issues/new">report</a> to us. </p>
