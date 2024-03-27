@@ -4,4 +4,11 @@
 
 #include "compiler/linked_list/linked_list.h"
 
-namespace Aq{}
+namespace Aq{
+template <typename ValueType>
+Compiler::LinkedList<ValueType>::LinkedList()=default;
+template <typename ValueType>
+Compiler::LinkedList<ValueType>::~LinkedList(){
+    Clear();
+};
+}
