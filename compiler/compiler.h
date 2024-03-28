@@ -22,7 +22,7 @@ class Compiler {
   struct Pair;
   template <typename ValueType>
   class HashMap;
-  template <typename ValueType>
+  template <typename DataType>
   class LinkedList;
   template <typename ArrayType>
   class DynArray;

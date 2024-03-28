@@ -9,6 +9,6 @@ template <typename ValueType>
 Compiler::LinkedList<ValueType>::LinkedList()=default;
 template <typename ValueType>
 Compiler::LinkedList<ValueType>::~LinkedList(){
-    Clear();
+
 };
 }
