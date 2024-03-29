@@ -9,6 +9,7 @@
 
 #include "compiler/compiler.h"
 #include "compiler/pair/pair.h"
+#include "debugger/debugger.h"
 
 namespace Aq {
 
@@ -23,8 +24,6 @@ class Compiler::LinkedList {
   LinkedList& operator=(const LinkedList&) = delete;
   LinkedList& operator=(LinkedList&&) noexcept = delete;
 
-  LinkedList& operator=(const LinkedList& other);
-
   struct Node {
     Pair<Node*, Node*> location;
     DataType data;
@@ -34,9 +33,13 @@ class Compiler::LinkedList {
 
   void Remove(Node* delete_node);
 
+  Node* GetHead() const;
+
+  Node* GetTail() const;
+
  private:
-  Node* head_;
-  Node* tail_;
+  Node* head_ = nullptr;
+  Node* tail_ = nullptr;
 };
 
 }  // namespace Aq
