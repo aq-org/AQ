@@ -24,25 +24,7 @@ class Compiler::LinkedList {
   LinkedList& operator=(const LinkedList&) = delete;
   LinkedList& operator=(LinkedList&&) noexcept = delete;
 
-  class Node {
-   public:
-    Node(Node* prev, Node* next, DataType data);
-    ~Node();
-
-    Node(const Node&) = default;
-    Node(Node&&) noexcept = default;
-    Node& operator=(const Node&) = default;
-    Node& operator=(Node&&) noexcept = default;
-
-    Node* GetPrev() const;
-    Node* GetNext() const;
-    DataType GetData();
-
-    void SetPrev(Node* prev);
-    void SetNext(Node* next);
-    void SetData(DataType data);
-
-   private:
+  struct Node {
     Pair<Node*, Node*> location;
     DataType data;
   };

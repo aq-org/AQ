@@ -23,40 +23,6 @@ Compiler::LinkedList<DataType>::~LinkedList() {
 }
 
 template <typename DataType>
-Compiler::LinkedList<DataType>::Node::Node(Node* prev, Node* next,
-                                           DataType data)
-    : location(prev, next), data(data) {}
-template <typename DataType>
-Compiler::LinkedList<DataType>::Node::~Node() = default;
-
-template <typename DataType>
-typename Compiler::LinkedList<DataType>::Node*
-Compiler::LinkedList<DataType>::Node::GetPrev() const {
-  return this->location.first;
-}
-template <typename DataType>
-typename Compiler::LinkedList<DataType>::Node*
-Compiler::LinkedList<DataType>::Node::GetNext() const {
-  return this->location.second;
-}
-template <typename DataType>
-DataType Compiler::LinkedList<DataType>::Node::GetData() {
-  return this->data;
-}
-template <typename DataType>
-void Compiler::LinkedList<DataType>::Node::SetPrev(Node* prev) {
-  this->location.first = prev;
-}
-template <typename DataType>
-void Compiler::LinkedList<DataType>::Node::SetNext(Node* next) {
-  this->location.second = next;
-}
-template <typename DataType>
-void Compiler::LinkedList<DataType>::Node::SetData(DataType data) {
-  this->data = data;
-}
-
-template <typename DataType>
 Compiler::LinkedList<DataType>::Iterator::Iterator(Node* node) : node_(node) {}
 template <typename DataType>
 Compiler::LinkedList<DataType>::Iterator::~Iterator() = default;
@@ -73,14 +39,14 @@ Compiler::LinkedList<DataType>::Iterator::operator++() {
 template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator&
 Compiler::LinkedList<DataType>::Iterator::operator--() {
-  node_ = node_->prev;
+  node_ = node_->location.first;
   return *this;
 }
 template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator&
 Compiler::LinkedList<DataType>::Iterator::operator+=(std::size_t n) {
   for (std::size_t i = 0; i < n; ++i) {
-    node_ = node_->next;
+    node_ = node_->location.second;
   }
   return *this;
 }
@@ -88,33 +54,33 @@ template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator&
 Compiler::LinkedList<DataType>::Iterator::operator-=(std::size_t n) {
   for (std::size_t i = 0; i < n; ++i) {
-    node_ = node_->prev;
+    node_ = node_->location.first;
   }
   return *this;
 }
 template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator
 Compiler::LinkedList<DataType>::Iterator::operator+(std::size_t n) const {
-  Iterator newIterator(*this);
-  newIterator += n;
-  return newIterator;
+  Iterator new_iterator(*this);
+  new_iterator += n;
+  return new_iterator;
 }
 template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator
 Compiler::LinkedList<DataType>::Iterator::operator-(std::size_t n) const {
-  Iterator newIterator(*this);
-  newIterator -= n;
-  return newIterator;
+  Iterator new_iterator(*this);
+  new_iterator -= n;
+  return new_iterator;
 }
 template <typename DataType>
 bool Compiler::LinkedList<DataType>::Iterator::operator==(
     const Iterator& other) const {
-  return node_ == other.node_;
+  return *this->node_ == other.node_;
 }
 template <typename DataType>
 bool Compiler::LinkedList<DataType>::Iterator::operator!=(
     const Iterator& other) const {
-  return !(*this == other);
+  return !(*this->node_ == other->node_);
 }
 
 template <typename DataType>
