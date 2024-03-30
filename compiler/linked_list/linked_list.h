@@ -25,17 +25,42 @@ class Compiler::LinkedList {
   LinkedList& operator=(LinkedList&&) noexcept = delete;
 
   struct Node {
+    Node(Node* prev, Node* next, DataType data);
     Pair<Node*, Node*> location;
     DataType data;
   };
 
-  void Insert(Node* prev_node, DataType new_data);
+  class Iterator {
+   public:
+    Iterator(Node* node);
+    ~Iterator();
 
-  void Remove(Node* delete_node);
+    Iterator(const Iterator&) = default;
+    Iterator(Iterator&&) noexcept = default;
+    Iterator& operator=(const Iterator&) = default;
+    Iterator& operator=(Iterator&&) noexcept = default;
 
-  Node* GetHead() const;
+    DataType& operator*() const;
+    Iterator& operator++();
+    Iterator& operator--();
+    Iterator& operator+=(std::size_t n);
+    Iterator& operator-=(std::size_t n);
+    Iterator operator+(std::size_t n) const;
+    Iterator operator-(std::size_t n) const;
+    bool operator==(const Iterator& other) const;
+    bool operator!=(const Iterator& other) const;
 
-  Node* GetTail() const;
+   private:
+    Node* node_ = nullptr;
+  };
+
+  void Insert(Iterator* prev_node, DataType new_data);
+
+  void Remove(Iterator* delete_node);
+
+  Iterator* Begin() const;
+
+  Iterator* End() const;
 
  private:
   Node* head_ = nullptr;

@@ -23,8 +23,8 @@ Compiler::Compiler(const char* filename) {
   std::ifstream file;
   file.open(filename);
   if (!file.is_open()) {
-    Aq::Debugger error_info(Aq::Debugger::Level::ERROR, "Aq::Main",
-                            "Main_ReadFileError", "Can't open file.", nullptr);
+    throw Debugger(Aq::Debugger::Level::ERROR, "Aq::Main", "Main_ReadFileError",
+                   "Can't open file.", nullptr);
     return;
   }
 

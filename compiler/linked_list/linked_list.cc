@@ -8,57 +8,80 @@
 
 namespace Aq {
 template <typename DataType>
-Compiler::LinkedList<DataType>::LinkedList() = default;
+Compiler::LinkedList<DataType>::LinkedList() : head_(nullptr), tail_(nullptr) {}
 template <typename DataType>
 Compiler::LinkedList<DataType>::~LinkedList() {
-  Node* current_node = head_;
-  while (current_node != nullptr) {
-    Node* next_node = current_node->location.second;
-    Remove(current_node);
-    current_node = next_node;
+  while (head_ != nullptr) {
+    Node* temp = head_;
+    head_ = head_->location.second;
+    delete temp;
   }
-  head_ = tail_ = nullptr;
 }
 
 template <typename DataType>
-void Compiler::LinkedList<DataType>::Insert(Node* prev_node,
+Compiler::LinkedList<DataType>::Node::Node(Node* prev, Node* next,
+                                           DataType data)
+    : location(prev, next), data(data) {}
+
+template <typename DataType>
+Compiler::LinkedList<DataType>::Iterator::Iterator(Node* node) : node_(node) {}
+template <typename DataType>
+Compiler::LinkedList<DataType>::Iterator::~Iterator() = default;
+
+template <typename DataType>
+void Compiler::LinkedList<DataType>::Insert(Iterator* prev_node,
                                             DataType new_data) {
-  Node* new_node = new Node;
-  if (new_node == nullptr) {
-    Debugger error_info(
-        Debugger::Level::ERROR, "Aq::Compiler::Lexer::LinkedList::Insert",
-        "Insert_MemoryError", "Memory allocation failed.", nullptr);
-    return;
-  }
-
-  new_node->data = new_data;
-
-  if (prev_node == nullptr) {
-    new_node->location.first = nullptr;
-    if (head_ == nullptr) {
-      new_node->location.second = nullptr;
-      tail_ = new_node;
+  Node* new_node;
+  try {
+    if (prev_node == nullptr) {
+      head_ = new Node(nullptr, head_, new_data);
     } else {
-      new_node->location.second = head_;
+      prev_node->node_->location.second = new Node(
+          prev_node->node_, prev_node->node_->location.second, new_data);
     }
-    head_ = new_node;
-    return;
+  } catch (std::bad_alloc& e) {
+    throw Debugger(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
+                   "Insert_NewNodeError", "New node out of memory occurred.",
+                   nullptr);
   }
-
-  new_node->location.second = prev_node->location.second;
-  new_node->location.first = prev_node;
-  prev_node->location.second = new_node;
 }
 
 template <typename DataType>
-void Compiler::LinkedList<DataType>::Remove(Node* delete_node) {
-  if (delete_node == nullptr) {
-    Debugger error_info(
-        Debugger::Level::ERROR, "Aq::Compiler::Lexer::LinkedList::Remove",
-        "Delete_RemoveError", "Try to remove a nullptr.", nullptr);
+void Compiler::LinkedList<DataType>::Remove(Iterator* delete_node) {
+  if (delete_node->node_ == nullptr) {
     return;
   }
-  delete delete_node;
+  if (delete_node->node_->location.first != nullptr) {
+    delete_node->node_->location.first->location.second =
+        delete_node->node_->location.second;
+  } else {
+    head_ = delete_node->node_->location.second;
+  }
+  if (delete_node->node_->location.second != nullptr) {
+    delete_node->node_->location.second->location.first =
+        delete_node->node_->location.first;
+  } else {
+    tail_ = delete_node->node_->location.first;
+  }
+  delete delete_node->node_;
+}
+
+template <typename DataType>
+typename Compiler::LinkedList<DataType>::Iterator*
+Compiler::LinkedList<DataType>::Begin() const {
+  if (head_ == nullptr) {
+    return nullptr;
+  }
+  return Iterator(head_);
+}
+
+template <typename DataType>
+typename Compiler::LinkedList<DataType>::Iterator*
+Compiler::LinkedList<DataType>::End() const {
+  if (head_ == nullptr) {
+    return nullptr;
+  }
+  return Iterator(tail_);
 }
 
 }  // namespace Aq

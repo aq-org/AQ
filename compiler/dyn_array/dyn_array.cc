@@ -23,9 +23,9 @@ Compiler::DynArray<ArrayType>::DynArray(std::size_t InitCapacity) {
                             "InitCapacity out of memory occurred.", nullptr);
       capacity_ = 1;
     } else {
-      Debugger error_info(
-          Debugger::Level::ERROR, "Aq::Compiler::DynArray::DynArray",
-          "DynArray_InitError", "Size 1 out of memory occurred.", nullptr);
+      throw Debugger(Debugger::Level::ERROR, "Aq::Compiler::DynArray::DynArray",
+                     "DynArray_InitError", "Size 1 out of memory occurred.",
+                     nullptr);
       capacity_ = 0;
     }
   }
@@ -43,9 +43,9 @@ void Compiler::DynArray<ArrayType>::PushBack(ArrayType data) {
     return;
   }
   if (size_ > capacity_) {
-    Debugger error_info(
-        Debugger::Level::ERROR, "Aq::Compiler::DynArray::PushBack",
-        "PushBack_SizeError", "Size out of capacity occurred.", nullptr);
+    throw Debugger(Debugger::Level::ERROR, "Aq::Compiler::DynArray::PushBack",
+                   "PushBack_SizeError", "Size out of capacity occurred.",
+                   nullptr);
   }
   if (size_ == capacity_) {
     Resize(capacity_ * 2);
@@ -63,9 +63,9 @@ int Compiler::DynArray<ArrayType>::Resize(std::size_t new_capacity) {
   }
   ArrayType* new_data = new ArrayType[capacity_];
   if (new_data == nullptr) {
-    Debugger error_info(Debugger::Level::ERROR,
-                        "Aq::Compiler::DynArray::Resize", "Resize_ResizeError",
-                        "New capacity out of memory occurred.", nullptr);
+    throw Debugger(Debugger::Level::ERROR, "Aq::Compiler::DynArray::Resize",
+                   "Resize_ResizeError", "New capacity out of memory occurred.",
+                   nullptr);
     return -1;
   }
   for (std::size_t i = 0; i < size_ && i < capacity_; i++) {
@@ -86,9 +86,9 @@ Compiler::DynArray<ArrayType>::Iterator::Iterator(DynArray<ArrayType>* array,
                                                   std::size_t index)
     : array_(array), index_(index) {
   if (index_ >= array_->size_) {
-    Debugger error_info(Debugger::Level::ERROR,
-                        "Aq::Compiler::DynArray::Iterator::Iterator",
-                        "Iterator_IndexError", "Index out of range.", nullptr);
+    throw Debugger(Debugger::Level::ERROR,
+                   "Aq::Compiler::DynArray::Iterator::Iterator",
+                   "Iterator_IndexError", "Index out of range.", nullptr);
   }
 }
 

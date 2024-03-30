@@ -15,9 +15,9 @@ template <typename ValueType>
 Compiler::HashMap<ValueType>::HashMap(std::size_t init_capacity) {
   pair_list_ = new DynArray<ValueType>(init_capacity);
   if (!pair_list_) {
-    Debugger error_info(
-        Debugger::Level::ERROR, "Aq::Compiler::Lexer::HashMap::HashMap",
-        "HashMap_MemoryError", "Memory allocation failed.", nullptr);
+    throw Debugger(Debugger::Level::ERROR,
+                   "Aq::Compiler::Lexer::HashMap::HashMap",
+                   "HashMap_MemoryError", "Memory allocation failed.", nullptr);
     return;
   }
   capacity_ = init_capacity;
@@ -134,9 +134,9 @@ int Compiler::HashMap<ValueType>::Resize() {
 
   // Memory allocation failed.
   if (!pair_list_) {
-    Debugger error_info(
-        Debugger::Level::ERROR, "Aq::Compiler::Lexer::HashMap::Resize",
-        "Resize_MemoryError", "Memory allocation failed.", nullptr);
+    throw Debugger(Debugger::Level::ERROR,
+                   "Aq::Compiler::Lexer::HashMap::Resize", "Resize_MemoryError",
+                   "Memory allocation failed.", nullptr);
     return -1;
   }
 

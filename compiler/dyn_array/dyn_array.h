@@ -25,7 +25,7 @@ class Compiler::DynArray {
   // Returns the data reference of the corresponding index.
   ArrayType& operator[](std::size_t index) {
     if (index >= size_) {
-      Debugger error_info(
+      throw Debugger(
           Debugger::Level::ERROR, "Aq::Compiler::DynArray::operator[]",
           "DynArray_IndexError", "Index out of range occurred.", nullptr);
     }
@@ -41,7 +41,6 @@ class Compiler::DynArray {
   // A return of 0 indicates a successful allocation, a return of -1 indicates
   // an error in the allocation.
   int Resize(std::size_t new_capacity = 0);
-
 
   std::size_t Size() const;
 
@@ -64,10 +63,9 @@ class Compiler::DynArray {
     Iterator& operator++() {
       ++index_;
       if (index_ >= array_->size_) {
-        Debugger error_info(Debugger::Level::ERROR,
-                            "Aq::Compiler::DynArray::Iterator::operator+=",
-                            "operator++_IndexError", "Index out of range.",
-                            nullptr);
+        throw Debugger(Debugger::Level::ERROR,
+                       "Aq::Compiler::DynArray::Iterator::operator+=",
+                       "operator++_IndexError", "Index out of range.", nullptr);
       }
       return *this;
     }
@@ -90,10 +88,9 @@ class Compiler::DynArray {
     Iterator& operator--() {
       --index_;
       if (index_ < 0) {
-        Debugger error_info(Debugger::Level::ERROR,
-                            "Aq::Compiler::DynArray::Iterator::operator--",
-                            "operator--_IndexError", "Index out of range.",
-                            nullptr);
+        throw Debugger(Debugger::Level::ERROR,
+                       "Aq::Compiler::DynArray::Iterator::operator--",
+                       "operator--_IndexError", "Index out of range.", nullptr);
       }
       return *this;
     }
@@ -107,10 +104,9 @@ class Compiler::DynArray {
     Iterator& operator+=(std::size_t size) {
       index_ += size;
       if (index_ >= array_->size_) {
-        Debugger error_info(Debugger::Level::ERROR,
-                            "Aq::Compiler::DynArray::Iterator::operator+=",
-                            "operator+=_IndexError", "Index out of range.",
-                            nullptr);
+        throw Debugger(Debugger::Level::ERROR,
+                       "Aq::Compiler::DynArray::Iterator::operator+=",
+                       "operator+=_IndexError", "Index out of range.", nullptr);
       }
       return *this;
     }
@@ -118,20 +114,18 @@ class Compiler::DynArray {
     Iterator& operator-=(std::size_t size) {
       index_ -= size;
       if (index_ < 0) {
-        Debugger error_info(Debugger::Level::ERROR,
-                            "Aq::Compiler::DynArray::Iterator::operator-=",
-                            "operator-=_IndexError", "Index out of range.",
-                            nullptr);
+        throw Debugger(Debugger::Level::ERROR,
+                       "Aq::Compiler::DynArray::Iterator::operator-=",
+                       "operator-=_IndexError", "Index out of range.", nullptr);
       }
       return *this;
     }
 
     ArrayType& operator*() const {
       if (index_ >= array_->size_) {
-        Debugger error_info(Debugger::Level::ERROR,
-                            "Aq::Compiler::DynArray::Iterator::operator*",
-                            "operator*_IndexError", "Index out of range.",
-                            nullptr);
+        throw Debugger(Debugger::Level::ERROR,
+                       "Aq::Compiler::DynArray::Iterator::operator*",
+                       "operator*_IndexError", "Index out of range.", nullptr);
       }
       return (*array_)[index_];
     }
