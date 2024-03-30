@@ -20,10 +20,10 @@ class Debugger {
            const char* debug_message, const char* other_info = nullptr);
   ~Debugger();
 
-  Debugger(const Debugger&) = delete;
-  Debugger(Debugger&&) = delete;
-  Debugger& operator=(const Debugger&) = delete;
-  Debugger& operator=(Debugger&&) = delete;
+  Debugger(const Debugger&) = default;
+  Debugger(Debugger&&) = default;
+  Debugger& operator=(const Debugger&) = default;
+  Debugger& operator=(Debugger&&) = default;
 
  private:
   time_t timestamp_ = 0;
