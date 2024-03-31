@@ -10,6 +10,8 @@
 #include <cstddef>
 
 #include "compiler/dyn_array/dyn_array.h"
+#include "compiler/pair/pair.h"
+#include "compiler/linked_list/linked_list.h"
 
 namespace Aq {
 template <typename ValueType>
@@ -30,48 +32,6 @@ class Compiler::HashMap {
   ValueType Find(std::string key);
 
  private:
-  struct Pair {
-    std::string key;
-    ValueType value;
-  };
-
-  // A linked list of Pair type, used to resolve hash conflicts.
-  class PairList {
-   public:
-    // Construct a PairList class.
-    PairList();
-    ~PairList();
-
-    PairList(const PairList&) = default;
-    PairList(PairList&&) noexcept = default;
-    PairList& operator=(const PairList&) = default;
-    PairList& operator=(PairList&&) noexcept = default;
-
-    // Prepend a new pair to the list.
-    void Prepend(Pair value);
-
-    // Copy all the data in the linked list to |new_list|.
-    void CopyDataToNewList(PairList* new_list, size_t new_capacity);
-
-    // Append a new pair to the list. It is not recommended to use it when
-    // dealing with large amounts of data.
-    void Append(Pair value);
-
-    // Find the value of a key.
-    ValueType Find(std::string key);
-
-   private:
-    // A node type of the linked list.
-    struct Node {
-      Pair data;
-      Node* next = nullptr;
-      Node(Pair pair) : data(pair){};
-    };
-
-    // The head pointer of the linked list.
-    Node* head_ptr_ = nullptr;
-  };
-
   // The memory size of the hash table.
   std::size_t capacity_ = 1;
 
@@ -80,7 +40,7 @@ class Compiler::HashMap {
 
   // The data collection of the hash table is stored in a linked list of type
   // PairList.
-  DynArray<ValueType>* pair_list_ = nullptr;
+  DynArray<LinkedList<Pair<std::string,std::string>>>* pair_list_ = nullptr;
 
   // The hash function. Based on DJB2 hashing algorithm.
   unsigned int Hash(std::string key) const;

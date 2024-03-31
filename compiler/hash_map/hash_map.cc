@@ -15,7 +15,7 @@ template <typename ValueType>
 Compiler::HashMap<ValueType>::HashMap(std::size_t init_capacity) {
   pair_list_ = new DynArray<ValueType>(init_capacity);
   if (!pair_list_) {
-    throw Debugger(Debugger::Level::ERROR,
+    Debugger error(Debugger::Level::ERROR,
                    "Aq::Compiler::Lexer::HashMap::HashMap",
                    "HashMap_MemoryError", "Memory allocation failed.", nullptr);
     return;
@@ -38,81 +38,16 @@ void Compiler::HashMap<ValueType>::Insert(std::string key, ValueType value) {
   }
 
   // Create key-value pairs and insert them into the linked list.
-  Pair pair;
-  pair.key = key;
-  pair.value = value;
-  pair_list_[hash].Prepend(pair);
+  Pair<std::string,std::string> pair;
+  pair.first = key;
+  pair.second = value;
+  pair_list_[hash].Insert(pair_list_[hash].End(),pair);
 }
 
 template <typename ValueType>
 ValueType Compiler::HashMap<ValueType>::Find(std::string key) {
   unsigned int hash = Hash(key);
   return pair_list_[hash].Find(key);
-}
-
-template <typename ValueType>
-Compiler::HashMap<ValueType>::PairList::PairList() = default;
-
-template <typename ValueType>
-Compiler::HashMap<ValueType>::PairList::~PairList() {
-  while (head_ptr_ != nullptr) {
-    Node* temp = head_ptr_;
-    head_ptr_ = head_ptr_->next;
-    delete temp;
-  }
-}
-
-template <typename ValueType>
-void Compiler::HashMap<ValueType>::PairList::Prepend(Pair value) {
-  Node* new_node = new Node(value);
-  new_node->next = head_ptr_;
-  head_ptr_ = new_node;
-}
-
-template <typename ValueType>
-void Compiler::HashMap<ValueType>::PairList::CopyDataToNewList(
-    PairList* new_list, size_t new_capacity) {
-  PairList::Node* temp_node = head_ptr_;
-  while (temp_node != nullptr) {
-    unsigned int hash = 5381;
-    for (char character : temp_node->data.key) {
-      // hash = hash * 33 + static_cast<unsigned int>(character)
-      hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
-    }
-    hash = hash % new_capacity;
-    new_list[hash].Append(temp_node->data);
-    temp_node = temp_node->next;
-  }
-}
-
-template <typename ValueType>
-void Compiler::HashMap<ValueType>::PairList::Append(Pair value) {
-  if (head_ptr_ == nullptr) {
-    head_ptr_ = new Node(value);
-  } else {
-    // Find the last node and append the new node.
-    Node* temp = head_ptr_;
-    while (temp->next != nullptr) {
-      temp = temp->next;
-    }
-    temp->next = new Node(value);
-  }
-}
-
-template <typename ValueType>
-ValueType Compiler::HashMap<ValueType>::PairList::Find(std::string key) {
-  Node* temp = head_ptr_;
-
-  // Compare keys one by one to find the corresponding value.
-  while (temp != nullptr) {
-    if (key == temp->data.key) {
-      return temp->data.value;
-    };
-    temp = temp->next;
-  }
-
-  // Key not found, return nullptr.
-  return static_cast<ValueType>(0);
 }
 
 template <typename ValueType>
@@ -134,7 +69,7 @@ int Compiler::HashMap<ValueType>::Resize() {
 
   // Memory allocation failed.
   if (!pair_list_) {
-    throw Debugger(Debugger::Level::ERROR,
+    Debugger error(Debugger::Level::ERROR,
                    "Aq::Compiler::Lexer::HashMap::Resize", "Resize_MemoryError",
                    "Memory allocation failed.", nullptr);
     return -1;

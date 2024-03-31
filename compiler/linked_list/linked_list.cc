@@ -46,6 +46,9 @@ template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator&
 Compiler::LinkedList<DataType>::Iterator::operator+=(std::size_t n) {
   for (std::size_t i = 0; i < n; ++i) {
+    if(node_ == nullptr) {
+      Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Iterator::operator+=", "operator+=_IndexError", "Index out of range.", nullptr);
+    }
     node_ = node_->location.second;
   }
   return *this;
@@ -86,7 +89,6 @@ bool Compiler::LinkedList<DataType>::Iterator::operator!=(
 template <typename DataType>
 void Compiler::LinkedList<DataType>::Insert(Iterator* prev_node,
                                             DataType new_data) {
-  Node* new_node;
   try {
     if (prev_node == nullptr) {
       head_ = new Node(nullptr, head_, new_data);
@@ -94,8 +96,8 @@ void Compiler::LinkedList<DataType>::Insert(Iterator* prev_node,
       prev_node->node_->location.second = new Node(
           prev_node->node_, prev_node->node_->location.second, new_data);
     }
-  } catch (std::bad_alloc& e) {
-    throw Debugger(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
+  } catch (std::bad_alloc& error) {
+    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
                    "Insert_NewNodeError", "New node out of memory occurred.",
                    nullptr);
   }
@@ -106,17 +108,17 @@ void Compiler::LinkedList<DataType>::Remove(Iterator* delete_node) {
   if (delete_node->node_ == nullptr) {
     return;
   }
-  if (delete_node->node_->location.first != nullptr) {
+  if (delete_node->node_->location.first == nullptr) {
+    head_ = delete_node->node_->location.second;
+  } else {
     delete_node->node_->location.first->location.second =
         delete_node->node_->location.second;
-  } else {
-    head_ = delete_node->node_->location.second;
   }
-  if (delete_node->node_->location.second != nullptr) {
+  if (delete_node->node_->location.second == nullptr) {
+    tail_ = delete_node->node_->location.first;
+  } else {
     delete_node->node_->location.second->location.first =
         delete_node->node_->location.first;
-  } else {
-    tail_ = delete_node->node_->location.first;
   }
   delete delete_node->node_;
 }

@@ -31,9 +31,9 @@ LexStart:
   // Memory out of bounds occurred. Return an error.
   if (read_ptr > buffer_end_) {
     buffer_ptr_ = read_ptr;
-    Debugger error_info(Debugger::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
-                        "LexToken_ReadError", "Memory out of bounds occurred.",
-                        nullptr);
+    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
+                   "LexToken_ReadError", "Memory out of bounds occurred.",
+                   nullptr);
     return -1;
   }
 
@@ -66,6 +66,7 @@ LexStart:
                        Tok::CHARACTER, Tok::STRING, Tok::COMMENT)) {
         goto LexNext;
       }
+
       goto LexEnd;
 
     // The string flag.
@@ -79,6 +80,7 @@ LexStart:
       if (return_token.type == Tok::STRING) {
         read_ptr++;
       }
+
       goto LexEnd;
 
     // The character flag.
@@ -92,6 +94,7 @@ LexStart:
       if (return_token.type == Tok::CHARACTER) {
         read_ptr++;
       }
+
       goto LexEnd;
 
     // Escape character.
@@ -109,6 +112,7 @@ LexStart:
         }
         goto LexNext;
       }
+
       goto LexEnd;
 
     // Positive and negative numbers.
@@ -135,6 +139,7 @@ LexStart:
           (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e')) {
         goto LexNext;
       }
+
       goto LexEnd;
 
     // Decimal point.
@@ -144,6 +149,7 @@ LexStart:
                        Tok::COMMENT)) {
         goto LexNext;
       }
+
       goto LexEnd;
 
     // The comment flag.
@@ -184,6 +190,7 @@ LexStart:
           goto LexNext;
         }
       }
+
       goto LexEnd;
 
     // Numbers.
@@ -202,6 +209,7 @@ LexStart:
                        Tok::COMMENT)) {
         goto LexNext;
       }
+
       goto LexEnd;
 
     // Whitespace characters.
@@ -220,6 +228,7 @@ LexStart:
                        Tok::COMMENT)) {
         goto LexNext;
       }
+
       goto LexEnd;
 
     // Newlines.
@@ -241,6 +250,7 @@ LexStart:
                        Tok::COMMENT)) {
         goto LexNext;
       }
+
       goto LexEnd;
 
     // EOF.
@@ -260,6 +270,7 @@ LexStart:
                        Tok::STRING, Tok::COMMENT)) {
         goto LexNext;
       }
+
       goto LexEnd;
 
     default:
@@ -268,6 +279,7 @@ LexStart:
                        Tok::COMMENT)) {
         goto LexNext;
       }
+
       goto LexEnd;
   }
 
@@ -327,13 +339,12 @@ LexEnd:
         break;
 
       default:
-        Debugger error_info(Debugger::Level::ERROR,
-                            "Aq::Compiler::Lexer::LexToken",
-                            "Lextoken_UnexpectedSituations",
-                            "Encountered a situation where the token value "
-                            "should not exist while processing.",
-                            nullptr);
-        return -1;
+        Debugger error(Debugger::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
+                       "Lextoken_UnexpectedSituations",
+                       "Encountered a situation where the token value "
+                       "should not exist while processing.",
+                       nullptr);
+        return -2;
     }
   }
   return 0;
