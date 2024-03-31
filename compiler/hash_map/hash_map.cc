@@ -63,9 +63,9 @@ unsigned int Compiler::HashMap<ValueType>::Hash(std::string key) const {
 
 template <typename ValueType>
 int Compiler::HashMap<ValueType>::Resize() {
-  PairList* temp = pair_list_;
+  DynArray<LinkedList<Pair<std::string,std::string>>>* temp = pair_list_;
   std::size_t new_capacity = capacity_ * 1.5;
-  pair_list_ = new PairList[new_capacity];
+  pair_list_ = new DynArray<LinkedList<Pair<std::string,std::string>>>[new_capacity];
 
   // Memory allocation failed.
   if (!pair_list_) {
@@ -77,7 +77,7 @@ int Compiler::HashMap<ValueType>::Resize() {
 
   // Copy data.
   for (int i = 0; i < capacity_; i++) {
-    temp[i].CopyDataToNewList(pair_list_, new_capacity);
+    // TODO: copy data from temp to pair_list_ (Use Iterator).
   }
 
   // Release the memory of the original linked list.

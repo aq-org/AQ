@@ -33,7 +33,7 @@ class Compiler::DynArray {
   }
 
   // Adds an element to the end of the container. No return value.
-  void PushBack(ArrayType data);
+  void Insert(ArrayType data);
 
   // Increase the container capacity.
   // If |new_capacity| is 0, it is increased to 2 times |capacity_|. If

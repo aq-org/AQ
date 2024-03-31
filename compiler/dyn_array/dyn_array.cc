@@ -29,20 +29,20 @@ Compiler::DynArray<ArrayType>::~DynArray() {
 }
 
 template <typename ArrayType>
-void Compiler::DynArray<ArrayType>::PushBack(ArrayType data) {
+void Compiler::DynArray<ArrayType>::Insert(ArrayType data) {
   if (capacity_ == 0 && Resize(1) == -1) {
     return;
   }
   if (size_ > capacity_) {
-    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::PushBack",
-                   "PushBack_SizeError", "Size out of capacity occurred.",
+    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::Insert",
+                   "Insert_SizeError", "Size out of capacity occurred.",
                    nullptr);
     return;
   }
   if (size_ == capacity_) {
     if (Resize(capacity_ * 2) != 0) {
-      Debugger Error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::PushBack",
-                     "PushBack_ResizeError", "Resize out of memory occurred.",
+      Debugger Error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::Insert",
+                     "Insert_ResizeError", "Resize out of memory occurred.",
                      nullptr);
       return;
     }
