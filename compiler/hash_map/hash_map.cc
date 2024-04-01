@@ -29,7 +29,7 @@ Compiler::HashMap<ValueType>::~HashMap() {
 
 template <typename ValueType>
 void Compiler::HashMap<ValueType>::Insert(std::string key, ValueType value) {
-  unsigned int hash = Hash(key);
+  auto hash = static_cast<std::size_t>(Hash(key));
 
   // Increase the size of the hash table.
   size_++;
@@ -38,15 +38,31 @@ void Compiler::HashMap<ValueType>::Insert(std::string key, ValueType value) {
   }
 
   // Create key-value pairs and insert them into the linked list.
-  Pair<std::string,std::string> pair;
+  Pair<std::string, ValueType> pair;
   pair.first = key;
   pair.second = value;
-  pair_list_[hash].Insert(pair_list_[hash].End(),pair);
+  auto& insert_list =
+      static_cast<LinkedList<Pair<std::string, ValueType>>&>(pair_list_[hash]);
+  insert_list.Insert(insert_list.End(), pair);
 }
 
 template <typename ValueType>
 ValueType Compiler::HashMap<ValueType>::Find(std::string key) {
-  unsigned int hash = Hash(key);
+  auto hash = static_cast<std::size_t>(Hash(key));
+  auto& find_list =
+      static_cast<LinkedList<Pair<std::string, ValueType>>&>(pair_list_[hash]);
+  
+  // TODO: This have many bugs.
+  
+  LinkedList<Pair<std::string, ValueType>>::Iterator* temp_node;
+  // Compare keys one by one to find the corresponding value.
+  while (temp != nullptr) {
+    if (key == temp->data.key) {
+      return temp->data.value;
+    };
+    temp = temp->next;
+  }
+
   return pair_list_[hash].Find(key);
 }
 
@@ -63,9 +79,10 @@ unsigned int Compiler::HashMap<ValueType>::Hash(std::string key) const {
 
 template <typename ValueType>
 int Compiler::HashMap<ValueType>::Resize() {
-  DynArray<LinkedList<Pair<std::string,std::string>>>* temp = pair_list_;
+  DynArray<LinkedList<Pair<std::string, std::string>>>* temp = pair_list_;
   std::size_t new_capacity = capacity_ * 1.5;
-  pair_list_ = new DynArray<LinkedList<Pair<std::string,std::string>>>[new_capacity];
+  pair_list_ =
+      new DynArray<LinkedList<Pair<std::string, std::string>>>[new_capacity];
 
   // Memory allocation failed.
   if (!pair_list_) {
