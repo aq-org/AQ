@@ -46,8 +46,10 @@ template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator&
 Compiler::LinkedList<DataType>::Iterator::operator+=(std::size_t n) {
   for (std::size_t i = 0; i < n; ++i) {
-    if(node_ == nullptr) {
-      Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Iterator::operator+=", "operator+=_IndexError", "Index out of range.", nullptr);
+    if (node_ == nullptr) {
+      Debugger error(Debugger::Level::ERROR,
+                     "Aq::Compiler::LinkedList::Iterator::operator+=",
+                     "operator+=_IndexError", "Index out of range.", nullptr);
     }
     node_ = node_->location.second;
   }
@@ -124,19 +126,25 @@ void Compiler::LinkedList<DataType>::Remove(Iterator* delete_node) {
 }
 
 template <typename DataType>
-typename Compiler::LinkedList<DataType>::Iterator*
+typename Compiler::LinkedList<DataType>::Iterator
 Compiler::LinkedList<DataType>::Begin() const {
   if (head_ == nullptr) {
-    return nullptr;
+    Debugger error(Debugger::Level::ERROR,
+                   "Aq::Compiler::LinkedList<DataType>::Begin",
+                   "Begin_HeadError", "Head out of range occurred.", nullptr);
+    return Iterator(nullptr);
   }
   return Iterator(head_);
 }
 
 template <typename DataType>
-typename Compiler::LinkedList<DataType>::Iterator*
+typename Compiler::LinkedList<DataType>::Iterator
 Compiler::LinkedList<DataType>::End() const {
   if (head_ == nullptr) {
-    return nullptr;
+    Debugger error(Debugger::Level::ERROR,
+                   "Aq::Compiler::LinkedList<DataType>::End", "End_TailError",
+                   "Tail out of range occurred.", nullptr);
+    return Iterator(nullptr);
   }
   return Iterator(tail_);
 }

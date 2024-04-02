@@ -15,7 +15,7 @@ Compiler::DynArray<ArrayType>::DynArray(std::size_t InitCapacity) {
   if (data_ != nullptr) {
     capacity_ = InitCapacity;
   } else {
-    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::DynArray",
+    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray<ArrayType>::DynArray",
                    "DynArray_InitError", "Size out of memory occurred.",
                    nullptr);
     capacity_ = 0;
@@ -29,19 +29,29 @@ Compiler::DynArray<ArrayType>::~DynArray() {
 }
 
 template <typename ArrayType>
+ArrayType& Compiler::DynArray<ArrayType>::operator[](std::size_t index) {
+  if (index >= size_) {
+    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray<ArrayType>::operator[]",
+                   "DynArray_IndexError", "Index out of range occurred.",
+                   nullptr);
+  }
+  return data_[index];
+}
+
+template <typename ArrayType>
 void Compiler::DynArray<ArrayType>::Insert(ArrayType data) {
   if (capacity_ == 0 && Resize(1) == -1) {
     return;
   }
   if (size_ > capacity_) {
-    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::Insert",
+    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray<ArrayType>::Insert",
                    "Insert_SizeError", "Size out of capacity occurred.",
                    nullptr);
     return;
   }
   if (size_ == capacity_) {
     if (Resize(capacity_ * 2) != 0) {
-      Debugger Error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::Insert",
+      Debugger Error(Debugger::Level::ERROR, "Aq::Compiler::DynArray<ArrayType>::Insert",
                      "Insert_ResizeError", "Resize out of memory occurred.",
                      nullptr);
       return;
@@ -60,7 +70,7 @@ int Compiler::DynArray<ArrayType>::Resize(std::size_t new_capacity) {
   }
   ArrayType* new_data = new ArrayType[capacity_];
   if (new_data == nullptr) {
-    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray::Resize",
+    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::DynArray<ArrayType>::Resize",
                    "Resize_ResizeError", "New capacity out of memory occurred.",
                    nullptr);
     return -1;
@@ -84,7 +94,7 @@ Compiler::DynArray<ArrayType>::Iterator::Iterator(DynArray<ArrayType>* array,
     : array_(array), index_(index) {
   if (index_ >= array_->size_) {
     Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::DynArray::Iterator::Iterator",
+                   "Aq::Compiler::DynArray<ArrayType>::Iterator::Iterator",
                    "Iterator_IndexError", "Index out of range.", nullptr);
   }
 }
@@ -101,7 +111,7 @@ Compiler::DynArray<ArrayType>::Iterator::operator++() {
   ++index_;
   if (index_ >= array_->size_) {
     Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::DynArray::Iterator::operator+=",
+                   "Aq::Compiler::DynArray<ArrayType>::Iterator::operator+=",
                    "operator++_IndexError", "Index out of range.", nullptr);
   }
   return *this;
@@ -130,7 +140,7 @@ Compiler::DynArray<ArrayType>::Iterator::operator--() {
   --index_;
   if (index_ < 0) {
     Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::DynArray::Iterator::operator--",
+                   "Aq::Compiler::DynArray<ArrayType>::Iterator::operator--",
                    "operator--_IndexError", "Index out of range.", nullptr);
   }
   return *this;
@@ -148,7 +158,7 @@ Compiler::DynArray<ArrayType>::Iterator::operator+=(std::size_t size) {
   index_ += size;
   if (index_ >= array_->size_) {
     Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::DynArray::Iterator::operator+=",
+                   "Aq::Compiler::DynArray<ArrayType>::Iterator::operator+=",
                    "operator+=_IndexError", "Index out of range.", nullptr);
   }
   return *this;
@@ -159,7 +169,7 @@ Compiler::DynArray<ArrayType>::Iterator::operator-=(std::size_t size) {
   index_ -= size;
   if (index_ < 0) {
     Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::DynArray::Iterator::operator-=",
+                   "Aq::Compiler::DynArray<ArrayType>::Iterator::operator-=",
                    "operator-=_IndexError", "Index out of range.", nullptr);
   }
   return *this;
@@ -168,7 +178,7 @@ template <typename ArrayType>
 ArrayType& Compiler::DynArray<ArrayType>::Iterator::operator*() const {
   if (index_ >= array_->size_) {
     Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::DynArray::Iterator::operator*",
+                   "Aq::Compiler::DynArray<ArrayType>::Iterator::operator*",
                    "operator*_IndexError", "Index out of range.", nullptr);
   }
   return (*array_)[index_];

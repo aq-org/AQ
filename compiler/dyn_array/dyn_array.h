@@ -23,14 +23,7 @@ class Compiler::DynArray {
   DynArray& operator=(DynArray&&) noexcept = default;
 
   // Returns the data reference of the corresponding index.
-  ArrayType& operator[](std::size_t index) {
-    if (index >= size_) {
-      Debugger error(
-          Debugger::Level::ERROR, "Aq::Compiler::DynArray::operator[]",
-          "DynArray_IndexError", "Index out of range occurred.", nullptr);
-    }
-    return data_[index];
-  }
+  ArrayType& operator[](std::size_t index);
 
   // Adds an element to the end of the container. No return value.
   void Insert(ArrayType data);

@@ -29,7 +29,7 @@ class Compiler::HashMap {
   void Insert(std::string key, ValueType value);
 
   // Find the value of a key.
-  ValueType Find(std::string key);
+  ValueType* Find(std::string key);
 
  private:
   // The memory size of the hash table.

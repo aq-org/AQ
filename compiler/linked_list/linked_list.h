@@ -57,9 +57,9 @@ class Compiler::LinkedList {
 
   void Remove(Iterator* delete_node);
 
-  Iterator* Begin() const;
+  Iterator Begin() const;
 
-  Iterator* End() const;
+  Iterator End() const;
 
  private:
   Node* head_ = nullptr;
