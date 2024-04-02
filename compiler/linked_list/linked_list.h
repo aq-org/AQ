@@ -53,7 +53,7 @@ class Compiler::LinkedList {
     Node* node_ = nullptr;
   };
 
-  void Insert(Iterator* prev_node, DataType new_data);
+  void Insert(Iterator prev_node, DataType new_data);
 
   void Remove(Iterator* delete_node);
 

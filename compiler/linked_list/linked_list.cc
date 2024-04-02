@@ -89,20 +89,24 @@ bool Compiler::LinkedList<DataType>::Iterator::operator!=(
 }
 
 template <typename DataType>
-void Compiler::LinkedList<DataType>::Insert(Iterator* prev_node,
+void Compiler::LinkedList<DataType>::Insert(Iterator prev_node,
                                             DataType new_data) {
-  
-    if (prev_node == nullptr) {
-      head_ = new Node(nullptr, head_, new_data);
-    } else {
-      prev_node->node_->location.second = new Node(
-          prev_node->node_, prev_node->node_->location.second, new_data);
+  if (prev_node.node_ == nullptr) {
+    head_ = new Node(nullptr, head_, new_data);
+    if (!head_) {
+      Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
+                     "Insert_NewNodeError", "New node out of memory occurred.",
+                     nullptr)
     }
-  if(!prev_node->node_->location.second)
-    Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
-                   "Insert_NewNodeError", "New node out of memory occurred.",
-                   nullptr);
-  
+  } else {
+    prev_node.node_->location.second =
+        new Node(prev_node.node_, prev_node->node_->location.second, new_data);
+    if (!prev_node.node_->location.second) {
+      Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
+                     "Insert_NewNodeError", "New node out of memory occurred.",
+                     nullptr)
+    }
+  }
 }
 
 template <typename DataType>
