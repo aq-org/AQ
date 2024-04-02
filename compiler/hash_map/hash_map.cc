@@ -37,21 +37,23 @@ void Compiler::HashMap<ValueType>::Insert(std::string key, ValueType value) {
     Resize();
   }
 
+  LinkedList<Pair<std::string, std::string>> insert_list = pair_list_[hash];
+
   // Insert key-value pairs into the linked list.
-  pair_list_[hash].Insert(pair_list_[hash].End(), {key, value});
+  insert_list.Insert(insert_list.End(), {key, value});
 }
 
 template <typename ValueType>
 ValueType* Compiler::HashMap<ValueType>::Find(std::string key) {
   auto hash = static_cast<std::size_t>(Hash(key));
-
+  LinkedList<Pair<std::string, std::string>> find_list = pair_list_[hash];
   typename LinkedList<Pair<std::string, ValueType>>::Iterator temp_node =
-      pair_list_[hash].Begin();
+      find_list.Begin();
 
   // Compare keys one by one to find the corresponding value.
-  while (temp_node != pair_list_[hash].End()) {
-    if (key == *temp_node.data.first) {
-      return *temp_node.data.second;
+  while (temp_node != find_list.End()) {
+    if (key == *temp_node.first) {
+      return *temp_node.second;
     }
     temp_node++;
   }
@@ -85,10 +87,20 @@ int Compiler::HashMap<ValueType>::Resize() {
     return -1;
   }
 
-  // Copy data.
-  for (std::size_t i = 0; i < capacity_; i++) {
-    // TODO: copy data from temp to pair_list_ (Use Iterator).
-  }
+  // TODO: Copy data not complete.
+  /*for (std::size_t i = 0; i < capacity_; i++) {
+    LinkedList<Pair<std::string, std::string>>& origin_list = temp[i];
+    typename LinkedList<Pair<std::string, std::string>>::Iterator* temp_node =
+        origin_list.Begin();
+    while (temp_node != origin_list.End()) {
+      auto hash = static_cast<std::size_t>(Hash((*temp_node).first));
+      LinkedList<Pair<std::string, std::string>>& insert_list =
+          pair_list_[hash];
+      insert_list.Insert(insert_ptr,
+                         {(*temp_node).first, (*temp_node).second});
+      temp_node++;
+    }
+  }*/
 
   // Release the memory of the original linked list.
   delete[] temp;
