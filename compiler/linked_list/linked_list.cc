@@ -110,7 +110,7 @@ void Compiler::LinkedList<DataType>::Insert(Iterator prev_node,
     if (!head_) {
       Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
                      "Insert_NewNodeError", "New node out of memory occurred.",
-                     nullptr)
+                     nullptr);
     }
   } else {
     prev_node.node_->location.second =
@@ -118,7 +118,7 @@ void Compiler::LinkedList<DataType>::Insert(Iterator prev_node,
     if (!prev_node.node_->location.second) {
       Debugger error(Debugger::Level::ERROR, "Aq::Compiler::LinkedList::Insert",
                      "Insert_NewNodeError", "New node out of memory occurred.",
-                     nullptr)
+                     nullptr);
     }
   }
 }
