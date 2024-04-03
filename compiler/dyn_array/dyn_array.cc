@@ -48,13 +48,13 @@ void Compiler::DynArray<ArrayType>::Insert(ArrayType data) {
     }
   }
   data_[size_] = data;
-  size_++;
+  ++size_;
 }
 
 template <typename ArrayType>
 int Compiler::DynArray<ArrayType>::Resize(std::size_t new_capacity) {
   if (new_capacity == 0) {
-    capacity_++;
+    ++capacity_;
   } else {
     capacity_ = new_capacity;
   }
@@ -65,7 +65,7 @@ int Compiler::DynArray<ArrayType>::Resize(std::size_t new_capacity) {
                    nullptr);
     return -1;
   }
-  for (std::size_t i = 0; i < size_ && i < capacity_; i++) {
+  for (std::size_t i = 0; i < size_ && i < capacity_; ++i) {
     new_data[i] = data_[i];
   }
   delete[] data_;

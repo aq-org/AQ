@@ -78,7 +78,7 @@ LexStart:
 
       // End of string.
       if (return_token.type == Tok::STRING) {
-        read_ptr++;
+        ++read_ptr;
       }
 
       goto LexEnd;
@@ -92,7 +92,7 @@ LexStart:
 
       // End of character.
       if (return_token.type == Tok::CHARACTER) {
-        read_ptr++;
+        ++read_ptr;
       }
 
       goto LexEnd;
@@ -108,7 +108,7 @@ LexStart:
       if (return_token.type == Tok::CHARACTER ||
           return_token.type == Tok::STRING) {
         if (read_ptr + 2 <= buffer_end_) {
-          read_ptr++;
+          ++read_ptr;
         }
         goto LexNext;
       }
@@ -159,7 +159,7 @@ LexStart:
           *(buffer_ptr_ + 1) == '*') {
         return_token.type = Tok::COMMENT;
         if (read_ptr + 2 <= buffer_end_) {
-          read_ptr++;
+          ++read_ptr;
         }
         goto LexNext;
       }
@@ -220,7 +220,7 @@ LexStart:
     case ' ':
       if (return_token.type == Tok::START) {
         // Skip whitespace characters.
-        buffer_ptr_++;
+        ++buffer_ptr_;
         goto LexNext;
       }
 
@@ -235,7 +235,7 @@ LexStart:
     case '\n':
       if (return_token.type == Tok::START) {
         // Skip newlines.
-        buffer_ptr_++;
+        ++buffer_ptr_;
         goto LexNext;
       }
 
@@ -262,7 +262,7 @@ LexStart:
     case ';':
       if (return_token.type == Tok::START) {
         return_token.type = Tok::OPERATOR;
-        read_ptr++;
+        ++read_ptr;
         goto LexEnd;
       }
 
@@ -284,7 +284,7 @@ LexStart:
   }
 
 LexNext:
-  read_ptr++;
+  ++read_ptr;
   goto LexStart;
 
 LexEnd:
@@ -365,7 +365,7 @@ bool Compiler::Lexer::ProcessToken(Token& token, Token::Type start_type,
   }
   std::va_list next_type_list;
   va_start(next_type_list, next_type_size);
-  for (int i = 0; i < next_type_size; i++) {
+  for (int i = 0; i < next_type_size; ++i) {
     if (token.type == va_arg(next_type_list, Token::Type)) {
       return true;
     }

@@ -32,7 +32,7 @@ void Compiler::HashMap<ValueType>::Insert(std::string key, ValueType value) {
   auto hash = static_cast<std::size_t>(Hash(key));
 
   // Increase the size of the hash table.
-  size_++;
+  ++size_;
   if (size_ / capacity_ > 0.8) {
     Resize();
   }
@@ -55,7 +55,7 @@ ValueType* Compiler::HashMap<ValueType>::Find(std::string key) {
     if (key == *temp_node.first) {
       return *temp_node.second;
     }
-    temp_node++;
+    ++temp_node;
   }
 
   return nullptr;
@@ -88,7 +88,7 @@ int Compiler::HashMap<ValueType>::Resize() {
   }
 
   // Copy data.
-  for (std::size_t i = 0; i < capacity_; i++) {
+  for (std::size_t i = 0; i < capacity_; ++i) {
     LinkedList<Pair<std::string, ValueType>>& origin_list = temp[i];
     typename LinkedList<Pair<std::string, ValueType>>::Iterator temp_node =
         origin_list.Begin();
@@ -96,7 +96,7 @@ int Compiler::HashMap<ValueType>::Resize() {
       auto hash = static_cast<std::size_t>(Hash(*temp_node.first));
       LinkedList<Pair<std::string, ValueType>>& insert_list = pair_list_[hash];
       insert_list.Insert(insert_list.End(), *temp_node);
-      temp_node++;
+      ++temp_node;
     }
   }
 
