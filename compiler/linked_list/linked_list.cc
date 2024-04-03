@@ -43,6 +43,20 @@ Compiler::LinkedList<DataType>::Iterator::operator--() {
   return *this;
 }
 template <typename DataType>
+typename Compiler::LinkedList<DataType>::Iterator
+Compiler::LinkedList<DataType>::Iterator::operator++(int) {
+  Iterator temp(*this);
+  ++(*this);
+  return temp;
+}
+template <typename DataType>
+typename Compiler::LinkedList<DataType>::Iterator
+Compiler::LinkedList<DataType>::Iterator::operator--(int) {
+  Iterator temp(*this);
+  --(*this);
+  return temp;
+}
+template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator&
 Compiler::LinkedList<DataType>::Iterator::operator+=(std::size_t n) {
   for (std::size_t i = 0; i < n; ++i) {

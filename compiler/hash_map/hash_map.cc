@@ -89,13 +89,12 @@ int Compiler::HashMap<ValueType>::Resize() {
 
   // Copy data.
   for (std::size_t i = 0; i < capacity_; i++) {
-    LinkedList<Pair<std::string, std::string>>& origin_list = temp[i];
-    typename LinkedList<Pair<std::string, std::string>>::Iterator* temp_node =
+    LinkedList<Pair<std::string, ValueType>>& origin_list = temp[i];
+    typename LinkedList<Pair<std::string, ValueType>>::Iterator temp_node =
         origin_list.Begin();
     while (temp_node != origin_list.End()) {
-      auto hash = static_cast<std::size_t>(Hash((*temp_node).first));
-      LinkedList<Pair<std::string, std::string>>& insert_list =
-          pair_list_[hash];
+      auto hash = static_cast<std::size_t>(Hash(*temp_node.first));
+      LinkedList<Pair<std::string, ValueType>>& insert_list = pair_list_[hash];
       insert_list.Insert(insert_list.End(), *temp_node);
       temp_node++;
     }

@@ -42,6 +42,8 @@ class Compiler::LinkedList {
     DataType& operator*() const;
     Iterator& operator++();
     Iterator& operator--();
+    Iterator operator++(int);
+    Iterator operator--(int);
     Iterator& operator+=(std::size_t n);
     Iterator& operator-=(std::size_t n);
     Iterator operator+(std::size_t n) const;
