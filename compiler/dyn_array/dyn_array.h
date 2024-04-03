@@ -35,8 +35,10 @@ class Compiler::DynArray {
   // an error in the allocation.
   int Resize(std::size_t new_capacity = 0);
 
+  // Returns the number of elements in the container.
   std::size_t Size() const;
 
+  // The iterator of the container.
   class Iterator {
    public:
     using iterator_category = std::random_access_iterator_tag;
