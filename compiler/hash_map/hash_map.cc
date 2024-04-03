@@ -44,7 +44,7 @@ void Compiler::HashMap<ValueType>::Insert(std::string key, ValueType value) {
 }
 
 template <typename ValueType>
-ValueType* Compiler::HashMap<ValueType>::Find(std::string key) {
+bool Compiler::HashMap<ValueType>::Find(std::string key, ValueType& value) {
   auto hash = static_cast<std::size_t>(Hash(key));
   LinkedList<Pair<std::string, std::string>> find_list = pair_list_[hash];
   typename LinkedList<Pair<std::string, ValueType>>::Iterator temp_node =
@@ -53,12 +53,13 @@ ValueType* Compiler::HashMap<ValueType>::Find(std::string key) {
   // Compare keys one by one to find the corresponding value.
   while (temp_node != find_list.End()) {
     if (key == *temp_node.first) {
-      return *temp_node.second;
+      value = *temp_node.second;
+      return true;
     }
     ++temp_node;
   }
 
-  return nullptr;
+  return false;
 }
 
 template <typename ValueType>

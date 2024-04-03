@@ -5,13 +5,12 @@
 #ifndef AQ_COMPILER_HASH_MAP_HASH_MAP_H_
 #define AQ_COMPILER_HASH_MAP_HASH_MAP_H_
 
-#include "compiler/compiler.h"
-
 #include <cstddef>
 
+#include "compiler/compiler.h"
 #include "compiler/dyn_array/dyn_array.h"
-#include "compiler/pair/pair.h"
 #include "compiler/linked_list/linked_list.h"
+#include "compiler/pair/pair.h"
 
 namespace Aq {
 template <typename ValueType>
@@ -28,19 +27,20 @@ class Compiler::HashMap {
   // Insert a new pair into the hash table.
   void Insert(std::string key, ValueType value);
 
-  // Find the value of a key.
-  ValueType* Find(std::string key);
+  // Find the key in a hash table and store it in value. Returns true if found,
+  // false otherwise.
+  bool Find(std::string key, ValueType& value);
 
  private:
   // The memory size of the hash table.
-  std::size_t capacity_ = 1;
+  std::size_t capacity_ = 0;
 
   // The number of elements in the hash table.
   std::size_t size_ = 0;
 
   // The data collection of the hash table is stored in a linked list of type
   // PairList.
-  DynArray<LinkedList<Pair<std::string,std::string>>>* pair_list_ = nullptr;
+  DynArray<LinkedList<Pair<std::string, std::string>>>* pair_list_ = nullptr;
 
   // The hash function. Based on DJB2 hashing algorithm.
   unsigned int Hash(std::string key) const;
