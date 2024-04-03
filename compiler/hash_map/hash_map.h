@@ -24,11 +24,11 @@ class Compiler::HashMap {
   HashMap& operator=(const HashMap&) = default;
   HashMap& operator=(HashMap&&) noexcept = default;
 
-  // Insert a new pair into the hash table.
+  // Insert a new value into the hash table.
   void Insert(std::string key, ValueType value);
 
-  // Find the key in a hash table and store it in value. Returns true if found,
-  // false otherwise.
+  // Find the key in a hash table and store the corresponding value in value.
+  // Returns true if found, false otherwise.
   bool Find(std::string key, ValueType& value);
 
  private:
