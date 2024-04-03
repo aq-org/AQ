@@ -132,24 +132,12 @@ void Compiler::LinkedList<DataType>::Remove(Iterator* delete_node) {
 template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator
 Compiler::LinkedList<DataType>::Begin() const {
-  if (head_ == nullptr) {
-    Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::LinkedList<DataType>::Begin",
-                   "Begin_HeadError", "Head out of range occurred.", nullptr);
-    return Iterator(nullptr);
-  }
   return Iterator(head_);
 }
 
 template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator
 Compiler::LinkedList<DataType>::End() const {
-  if (head_ == nullptr) {
-    Debugger error(Debugger::Level::ERROR,
-                   "Aq::Compiler::LinkedList<DataType>::End", "End_TailError",
-                   "Tail out of range occurred.", nullptr);
-    return Iterator(nullptr);
-  }
   return Iterator(tail_);
 }
 
