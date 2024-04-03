@@ -8,6 +8,7 @@
 #include "debugger/debugger.h"
 
 namespace Aq {
+// TODO: Should be improved
 Compiler::Token::Token() = default;
 Compiler::Token::~Token() = default;
 }  // namespace Aq

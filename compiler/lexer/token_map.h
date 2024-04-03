@@ -6,10 +6,11 @@
 #define AQ_COMPILER_LEXER_TOKEN_MAP_H_
 
 #include "compiler/compiler.h"
+#include "compiler/hash_map/hash_map.h"
 #include "compiler/token/token.h"
-#include "compiler/lexer/lex_map.h"
 
 namespace Aq {
+// TODO: Should be improved
 class Compiler::TokenMap {
  public:
   TokenMap();
@@ -24,8 +25,8 @@ class Compiler::TokenMap {
   TokenMap& operator=(TokenMap&&) noexcept = default;
 
  private:
-  LexMap<Token::Keyword> keyword_map_;
-  LexMap<Token::Operator> operator_map_;
+  HashMap<Token::Keyword> keyword_map_;
+  HashMap<Token::Operator> operator_map_;
 };
 }  // namespace Aq
 
