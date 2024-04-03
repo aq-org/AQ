@@ -29,6 +29,11 @@ Compiler::DynArray<ArrayType>::~DynArray() {
 }
 
 template <typename ArrayType>
+ArrayType& Compiler::DynArray<ArrayType>::operator[](std::size_t index) {
+  return data_[index];
+}
+
+template <typename ArrayType>
 void Compiler::DynArray<ArrayType>::Insert(ArrayType data) {
   if (capacity_ == 0 && Resize(1) == -1) {
     return;
