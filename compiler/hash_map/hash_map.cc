@@ -87,8 +87,8 @@ int Compiler::HashMap<ValueType>::Resize() {
     return -1;
   }
 
-  // TODO: Copy data not complete.
-  /*for (std::size_t i = 0; i < capacity_; i++) {
+  // Copy data.
+  for (std::size_t i = 0; i < capacity_; i++) {
     LinkedList<Pair<std::string, std::string>>& origin_list = temp[i];
     typename LinkedList<Pair<std::string, std::string>>::Iterator* temp_node =
         origin_list.Begin();
@@ -96,11 +96,10 @@ int Compiler::HashMap<ValueType>::Resize() {
       auto hash = static_cast<std::size_t>(Hash((*temp_node).first));
       LinkedList<Pair<std::string, std::string>>& insert_list =
           pair_list_[hash];
-      insert_list.Insert(insert_ptr,
-                         {(*temp_node).first, (*temp_node).second});
+      insert_list.Insert(insert_list.End(), *temp_node);
       temp_node++;
     }
-  }*/
+  }
 
   // Release the memory of the original linked list.
   delete[] temp;
