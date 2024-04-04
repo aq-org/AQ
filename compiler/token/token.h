@@ -13,6 +13,7 @@ namespace Aq {
 // TODO: Should be improved
 class Compiler::Token {
  public:
+  enum class Kind;
   enum class Type {
     NONE,
     START,
