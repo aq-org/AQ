@@ -5,8 +5,6 @@
 #include "compiler/lexer/token_map.h"
 
 #include "compiler/compiler.h"
-#include "compiler/token/keyword.h"
-#include "compiler/token/operator.h"
 #include "compiler/token/token.h"
 #include "compiler/token/token_kind.h"
 #include "debugger/debugger.h"
