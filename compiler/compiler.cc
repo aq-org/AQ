@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #include "compiler/compiler.h"
 
@@ -17,8 +17,8 @@
 
 namespace Aq {
 Compiler::Compiler(const char* filename) {
-  // TODO(Aq::Compiler): For testing purposes only, modifications will be made
-  // after other components have been developed.
+  /// TODO(Aq::Compiler): For testing purposes only, modifications will be made
+  /// after other components have been developed.
   auto start = std::chrono::high_resolution_clock::now();
   std::ifstream file;
   file.open(filename);

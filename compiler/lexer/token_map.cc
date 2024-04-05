@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #include "compiler/lexer/token_map.h"
 
@@ -12,7 +12,7 @@
 
 namespace Aq {
 Compiler::TokenMap::TokenMap() {
-  // TODO: Should be improved
+  /// TODO: Should be improved
   keyword_map_.Insert("auto", Token::Keyword::Auto);
   keyword_map_.Insert("and", Token::Keyword::And);
   keyword_map_.Insert("bitand", Token::Keyword::Bitand);
@@ -137,12 +137,12 @@ Compiler::TokenMap::~TokenMap() = default;
 
 Compiler::Token::Keyword Compiler::TokenMap::GetKeywordValue(
     std::string keyword) {
-  // TODO: Should be improved
-  // return keyword_map_.Find(keyword);
+  /// TODO: Should be improved
+  /// return keyword_map_.Find(keyword);
 }
 Compiler::Token::Operator Compiler::TokenMap::GetOperatorValue(
     std::string _operator) {
-  // TODO: Should be improved
-  // return operator_map_.Find(_operator);
+  /// TODO: Should be improved
+  /// return operator_map_.Find(_operator);
 }
 }  // namespace Aq

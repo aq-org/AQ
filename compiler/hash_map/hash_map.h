@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #ifndef AQ_COMPILER_HASH_MAP_HASH_MAP_H_
 #define AQ_COMPILER_HASH_MAP_HASH_MAP_H_
@@ -24,28 +24,28 @@ class Compiler::HashMap {
   HashMap& operator=(const HashMap&) = default;
   HashMap& operator=(HashMap&&) noexcept = default;
 
-  // Insert a new value into the hash table.
+  /// Insert a new value into the hash table.
   void Insert(std::string key, ValueType value);
 
-  // Find the key in a hash table and store the corresponding value in value.
-  // Returns true if found, false otherwise.
+  /// Find the key in a hash table and store the corresponding value in value.
+  /// Returns true if found, false otherwise.
   bool Find(std::string key, ValueType& value);
 
  private:
-  // The memory size of the hash table.
+  /// The memory size of the hash table.
   std::size_t capacity_ = 0;
 
-  // The number of elements in the hash table.
+  /// The number of elements in the hash table.
   std::size_t size_ = 0;
 
-  // The data collection of the hash table is stored in a linked list of type
-  // PairList.
+  /// The data collection of the hash table is stored in a linked list of type
+  /// PairList.
   DynArray<LinkedList<Pair<std::string, std::string>>>* pair_list_ = nullptr;
 
-  // The hash function. Based on DJB2 hashing algorithm.
+  /// The hash function. Based on DJB2 hashing algorithm.
   unsigned int Hash(std::string key) const;
 
-  // Re-allocate the memory of the hash table.
+  /// Re-allocate the memory of the hash table.
   int Resize();
 };
 }  // namespace Aq

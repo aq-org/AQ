@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #ifndef AQ_COMPILER_LEXER_TOKEN_MAP_H_
 #define AQ_COMPILER_LEXER_TOKEN_MAP_H_
@@ -10,7 +10,7 @@
 #include "compiler/token/token.h"
 
 namespace Aq {
-// TODO: Should be improved
+/// TODO: Should be improved
 class Compiler::TokenMap {
  public:
   TokenMap();

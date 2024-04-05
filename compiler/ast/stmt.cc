@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #include "compiler/ast/stmt.h"
 
@@ -82,6 +82,6 @@ Compiler::Ast::SEHLeaveStmt::~SEHLeaveStmt() = default;
 Compiler::Ast::CapturedStmt::CapturedStmt() = default;
 Compiler::Ast::CapturedStmt::~CapturedStmt() = default;
 
-// Wait development.
+/// Wait development.
 
 }  // namespace Aq

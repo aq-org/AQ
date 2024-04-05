@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #ifndef AQ_COMPILER_LINKED_LIST_LINKED_LIST_H_
 #define AQ_COMPILER_LINKED_LIST_LINKED_LIST_H_
@@ -24,13 +24,13 @@ class Compiler::LinkedList {
   LinkedList& operator=(const LinkedList&) = delete;
   LinkedList& operator=(LinkedList&&) noexcept = delete;
 
-  // The node type of the linked list.
+  /// The node type of the linked list.
   struct Node {
     Pair<Node*, Node*> location;
     DataType data;
   };
 
-  // The iterator type of the linked list.
+  /// The iterator type of the linked list.
   class Iterator {
    public:
     Iterator(Node* node);
@@ -57,17 +57,17 @@ class Compiler::LinkedList {
     Node* node_ = nullptr;
   };
 
-  // Inserts |new_data| after |prev_node|. If |prev_node| is |nullptr|,
-  // |new_data| will be inserted at the beginning of the list.
+  /// Inserts |new_data| after |prev_node|. If |prev_node| is |nullptr|,
+  /// |new_data| will be inserted at the beginning of the list.
   void Insert(Iterator prev_node, DataType new_data);
 
-  // Removes |delete_node| from the list.
+  /// Removes |delete_node| from the list.
   void Remove(Iterator* delete_node);
 
-  // Returns the beginning iterator of the linked list.
+  /// Returns the beginning iterator of the linked list.
   Iterator Begin() const;
 
-  // Returns the end iterator of the linked list.
+  /// Returns the end iterator of the linked list.
   Iterator End() const;
 
  private:

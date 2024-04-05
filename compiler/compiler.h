@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #ifndef AQ_COMPILE_COMPILE_H_
 #define AQ_COMPILE_COMPILE_H_
@@ -30,10 +30,10 @@ class Compiler {
   class Token;
   class Ast;
 
-  // Will be replaced by HashMap.
+  /// Will be replaced by HashMap.
   template <typename T>
   class LexMap;
 };
 }  // namespace Aq
 
-#endif  // AQ_COMPILE_H_
+#endif  /// AQ_COMPILE_H_

@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #ifndef AQ_DEBUGGER_DEBUGGER_H_
 #define AQ_DEBUGGER_DEBUGGER_H_
@@ -14,8 +14,8 @@ class Debugger {
  public:
   enum class Level { ERROR = 0, WARNING = 1, INFO = 2 };
 
-  // Output a debug message. If |other_info| has no content, nullptr can be
-  // filled in. Others must be filled in with strings and cannot be nullptr.
+  /// Output a debug message. If |other_info| has no content, nullptr can be
+  /// filled in. Others must be filled in with strings and cannot be nullptr.
   Debugger(Level level, const char* location, const char* debug_code,
            const char* debug_message, const char* other_info = nullptr);
   ~Debugger();
@@ -36,10 +36,10 @@ class Debugger {
   int errno_ = 0;
   const char* errno_message_;
 
-  // Output a debug message.
+  /// Output a debug message.
   void OutputMessage() const;
 
-  // Get the current time string. Based on ISO 8601 standard.
+  /// Get the current time string. Based on ISO 8601 standard.
   std::string GetTimeString() const;
 };
 }  // namespace Aq

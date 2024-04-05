@@ -1,6 +1,6 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
-// This program is licensed under the AQ License. You can find the AQ license in
-// the root directory.
+/// Copyright 2024 AQ authors, All Rights Reserved.
+/// This program is licensed under the AQ License. You can find the AQ license in
+/// the root directory.
 
 #include "compiler/lexer/lexer.h"
 
@@ -21,14 +21,14 @@ Compiler::Lexer::~Lexer() = default;
 int Compiler::Lexer::LexToken(Token& return_token) {
   using Tok = Token::Type;
 
-  // Set the return token type to start.
+  /// Set the return token type to start.
   return_token.type = Tok::START;
 
-  // Set the reading position pointer equal to the buffer pointer.
+  /// Set the reading position pointer equal to the buffer pointer.
   char* read_ptr = buffer_ptr_;
 
 LexStart:
-  // Memory out of bounds occurred. Return an error.
+  /// Memory out of bounds occurred. Return an error.
   if (read_ptr > buffer_end_) {
     buffer_ptr_ = read_ptr;
     Debugger error(Debugger::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
@@ -37,9 +37,9 @@ LexStart:
     return -1;
   }
 
-  // Start lexical analysis.
+  /// Start lexical analysis.
   switch (*read_ptr) {
-    // General operators.
+    /// General operators.
     case '!':
     case '#':
     case '$':
@@ -69,42 +69,42 @@ LexStart:
 
       goto LexEnd;
 
-    // The string flag.
+    /// The string flag.
     case '"':
       if (ProcessToken(return_token, Tok::STRING, 2, Tok::STRING,
                        Tok::COMMENT)) {
         goto LexNext;
       }
 
-      // End of string.
+      /// End of string.
       if (return_token.type == Tok::STRING) {
         ++read_ptr;
       }
 
       goto LexEnd;
 
-    // The character flag.
+    /// The character flag.
     case '\'':
       if (ProcessToken(return_token, Tok::CHARACTER, 2, Tok::STRING,
                        Tok::COMMENT)) {
         goto LexNext;
       }
 
-      // End of character.
+      /// End of character.
       if (return_token.type == Tok::CHARACTER) {
         ++read_ptr;
       }
 
       goto LexEnd;
 
-    // Escape character.
+    /// Escape character.
     case '\\':
       if (ProcessToken(return_token, Tok::OPERATOR, 2, Tok::OPERATOR,
                        Tok::COMMENT)) {
         goto LexNext;
       }
 
-      // Skip escape characters.
+      /// Skip escape characters.
       if (return_token.type == Tok::CHARACTER ||
           return_token.type == Tok::STRING) {
         if (read_ptr + 2 <= buffer_end_) {
@@ -115,10 +115,10 @@ LexStart:
 
       goto LexEnd;
 
-    // Positive and negative numbers.
+    /// Positive and negative numbers.
     case '+':
     case '-':
-      // Signed numbers.
+      /// Signed numbers.
       if (return_token.type == Tok::START && *(read_ptr + 1) == '0' ||
           *(read_ptr + 1) == '1' || *(read_ptr + 1) == '2' ||
           *(read_ptr + 1) == '3' || *(read_ptr + 1) == '4' ||
@@ -134,7 +134,7 @@ LexStart:
         goto LexNext;
       }
 
-      // Dealing with scientific notation.
+      /// Dealing with scientific notation.
       if (return_token.type == Tok::NUMBER &&
           (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e')) {
         goto LexNext;
@@ -142,7 +142,7 @@ LexStart:
 
       goto LexEnd;
 
-    // Decimal point.
+    /// Decimal point.
     case '.':
       if (ProcessToken(return_token, Tok::OPERATOR, 5, Tok::OPERATOR,
                        Tok::NUMBER, Tok::CHARACTER, Tok::STRING,
@@ -152,9 +152,9 @@ LexStart:
 
       goto LexEnd;
 
-    // The comment flag.
+    /// The comment flag.
     case '/':
-      // Comment start.
+      /// Comment start.
       if (return_token.type == Tok::START && *(buffer_ptr_ + 1) == '/' ||
           *(buffer_ptr_ + 1) == '*') {
         return_token.type = Tok::COMMENT;
@@ -170,7 +170,7 @@ LexStart:
       }
 
       if (return_token.type == Tok::OPERATOR) {
-        // Comment.
+        /// Comment.
         if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
           goto LexEnd;
         } else {
@@ -180,20 +180,20 @@ LexStart:
 
       if (return_token.type == Tok::COMMENT) {
         if (*(buffer_ptr_ + 1) == '*' && *(read_ptr - 1) == '*') {
-          // /**/ style comments, skip all comments.
+          /// /**/ style comments, skip all comments.
           buffer_ptr_ = ++read_ptr;
           return_token.type = Tok::START;
           goto LexStart;
         } else {
-          // // style comments or Non-end comment mark, continue reading until
-          // the end mark of the comment.
+          /// /// style comments or Non-end comment mark, continue reading until
+          /// the end mark of the comment.
           goto LexNext;
         }
       }
 
       goto LexEnd;
 
-    // Numbers.
+    /// Numbers.
     case '0':
     case '1':
     case '2':
@@ -212,14 +212,14 @@ LexStart:
 
       goto LexEnd;
 
-    // Whitespace characters.
+    /// Whitespace characters.
     case '\f':
     case '\r':
     case '\t':
     case '\v':
     case ' ':
       if (return_token.type == Tok::START) {
-        // Skip whitespace characters.
+        /// Skip whitespace characters.
         ++buffer_ptr_;
         goto LexNext;
       }
@@ -231,16 +231,16 @@ LexStart:
 
       goto LexEnd;
 
-    // Newlines.
+    /// Newlines.
     case '\n':
       if (return_token.type == Tok::START) {
-        // Skip newlines.
+        /// Skip newlines.
         ++buffer_ptr_;
         goto LexNext;
       }
 
       if (return_token.type == Tok::COMMENT && *(buffer_ptr_ + 1) == '/') {
-        // // style comments, skip all comments.
+        /// /// style comments, skip all comments.
         buffer_ptr_ = ++read_ptr;
         return_token.type = Tok::START;
         goto LexStart;
@@ -253,11 +253,11 @@ LexStart:
 
       goto LexEnd;
 
-    // EOF.
+    /// EOF.
     case '\0':
       goto LexEnd;
 
-    // Separator flag.
+    /// Separator flag.
     case ',':
     case ';':
       if (return_token.type == Tok::START) {
@@ -288,18 +288,18 @@ LexNext:
   goto LexStart;
 
 LexEnd:
-  // Meaningless token.
+  /// Meaningless token.
   if (return_token.type == Tok::START || return_token.type == Tok::COMMENT) {
     return_token.type = Tok::NONE;
     buffer_ptr_ = read_ptr;
     return 0;
   } else {
-    // Meaningful token. Determine the specific token information.
+    /// Meaningful token. Determine the specific token information.
     char* location = buffer_ptr_;
     size_t length = read_ptr - buffer_ptr_;
     buffer_ptr_ = read_ptr;
 
-    // Handle the detailed information of tokens.
+    /// Handle the detailed information of tokens.
     Token::ValueStr value;
     value.location = location;
     value.length = length;
