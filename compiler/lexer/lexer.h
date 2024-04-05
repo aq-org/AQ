@@ -1,6 +1,6 @@
-/// Copyright 2024 AQ authors, All Rights Reserved.
-/// This program is licensed under the AQ License. You can find the AQ license in
-/// the root directory.
+// Copyright 2024 AQ authors, All Rights Reserved.
+// This program is licensed under the AQ License. You can find the AQ license in
+// the root directory.
 
 #ifndef AQ_COMPILER_LEXER_LEXER_H_
 #define AQ_COMPILER_LEXER_LEXER_H_
@@ -40,7 +40,7 @@ class Compiler::Lexer {
 
   /// Process the token being lexically analyzed and determine if the token is
   /// complete in the general case.
-  /// This function is only applicable to the general case, special cases require
+  // This function is only applicable to the general case, special cases require
   /// additional judgment logic. In general, if |token| belongs to the
   /// Token::Type::START type, the type of |token| will be modified to
   /// |start_type| and true will be returned. if |token| matches one of the
