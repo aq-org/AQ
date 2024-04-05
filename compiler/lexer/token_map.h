@@ -10,14 +10,18 @@
 #include "compiler/token/token.h"
 
 namespace Aq {
-/// TODO: Should be improved
+/// \class TokenMap
+/// \brief Maps tokens to kinds.
 class Compiler::TokenMap {
  public:
   TokenMap();
   ~TokenMap();
 
-  Token::Keyword GetKeywordValue(std::string keyword);
-  Token::Operator GetOperatorValue(std::string _operator);
+  /// \fn GetKind
+  /// \brief Gets the kind of a token's key.
+  /// \param key std::string Type
+  /// \return Token::Kind Type of the token's key
+  Token::Kind GetKind(std::string key);
 
   TokenMap(const TokenMap&) = default;
   TokenMap(TokenMap&&) noexcept = default;
@@ -25,8 +29,8 @@ class Compiler::TokenMap {
   TokenMap& operator=(TokenMap&&) noexcept = default;
 
  private:
-  HashMap<Token::Keyword> keyword_map_;
-  HashMap<Token::Operator> operator_map_;
+  /// \brief Maps tokens to kinds.
+  HashMap<Token::Kind> token_map_;
 };
 }  // namespace Aq
 

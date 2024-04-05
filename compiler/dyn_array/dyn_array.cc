@@ -84,6 +84,22 @@ std::size_t Compiler::DynArray<ArrayType>::Size() const {
 }
 
 template <typename ArrayType>
+void Compiler::DynArray<ArrayType>::Remove(std::size_t index) {
+  for (std::size_t i = index; i < size_ - 1; ++i) {
+    data_[i] = data_[i + 1];
+  }
+  --size_;
+}
+
+template <typename ArrayType>
+void Compiler::DynArray<ArrayType>::Clear() {
+  delete[] data_;
+  data_ = nullptr;
+  capacity_ = 0;
+  size_ = 0;
+}
+
+template <typename ArrayType>
 Compiler::DynArray<ArrayType>::Iterator::Iterator(DynArray<ArrayType>* array,
                                                   std::size_t index)
     : array_(array), index_(index) {
@@ -213,4 +229,15 @@ bool Compiler::DynArray<ArrayType>::Iterator::operator>=(
   return index_ >= other.index_;
 }
 
+template <typename ArrayType>
+typename Compiler::DynArray<ArrayType>::Iterator
+Compiler::DynArray<ArrayType>::Begin() {
+  return Iterator(this, 0);
+}
+
+template <typename ArrayType>
+typename Compiler::DynArray<ArrayType>::Iterator
+Compiler::DynArray<ArrayType>::End() {
+  return Iterator(this, size_);
+}
 }  // namespace Aq

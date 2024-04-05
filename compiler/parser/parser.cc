@@ -4,4 +4,4 @@
 
 #include "compiler/parser/parser.h"
 
-/// TODO: Parser
+/// \todo Parser

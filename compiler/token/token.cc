@@ -8,7 +8,22 @@
 #include "debugger/debugger.h"
 
 namespace Aq {
-/// TODO: Should be improved
 Compiler::Token::Token() = default;
 Compiler::Token::~Token() = default;
+
+void Compiler::Token::SetKind(Kind kind) {
+    this->kind_ = kind;
+}
+
+Compiler::Token::Kind Compiler::Token::GetKind() const {
+    return kind_;
+}
+
+void Compiler::Token::SetDataPtr(void* data_ptr) {
+    this->data_ptr_ = data_ptr;
+}
+
+void* Compiler::Token::GetDataPtr() const {
+    return data_ptr_;
+}
 }  // namespace Aq

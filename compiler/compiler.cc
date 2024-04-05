@@ -17,7 +17,7 @@
 
 namespace Aq {
 Compiler::Compiler(const char* filename) {
-  /// TODO(Aq::Compiler): For testing purposes only, modifications will be made
+  /// \todo Aq::Compiler: For testing purposes only, modifications will be made
   /// after other components have been developed.
   auto start = std::chrono::high_resolution_clock::now();
   std::ifstream file;
@@ -40,7 +40,7 @@ Compiler::Compiler(const char* filename) {
   Token token;
   while (true) {
     lexer.LexToken(token);
-    if (token.type == Token::Type::NONE || lexer.IsReadEnd()) {
+    if (lexer.IsReadEnd()) {
       break;
     }
   }

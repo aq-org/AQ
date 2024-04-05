@@ -7,6 +7,6 @@
 
 #include "compiler/ast/ast.h"
 
-/// TODO: Parser
+/// \todo Parser
 
 #endif

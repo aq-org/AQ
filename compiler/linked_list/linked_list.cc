@@ -144,6 +144,15 @@ void Compiler::LinkedList<DataType>::Remove(Iterator* delete_node) {
 }
 
 template <typename DataType>
+void Compiler::LinkedList<DataType>::Clear() {
+  while (head_ != nullptr) {
+    Node* temp = head_;
+    head_ = head_->location.second;
+    delete temp;
+  }
+}
+
+template <typename DataType>
 typename Compiler::LinkedList<DataType>::Iterator
 Compiler::LinkedList<DataType>::Begin() const {
   return Iterator(head_);

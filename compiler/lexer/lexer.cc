@@ -11,6 +11,7 @@
 #include "compiler/token/keyword.h"
 #include "compiler/token/operator.h"
 #include "compiler/token/token.h"
+#include "compiler/token/token_kind.h"
 #include "debugger/debugger.h"
 
 namespace Aq {
@@ -19,16 +20,11 @@ Compiler::Lexer::Lexer(char* source_code, size_t length)
 Compiler::Lexer::~Lexer() = default;
 
 int Compiler::Lexer::LexToken(Token& return_token) {
-  using Tok = Token::Type;
-
-  /// Set the return token type to start.
-  return_token.type = Tok::START;
-
-  /// Set the reading position pointer equal to the buffer pointer.
+  using Tok = Token::Kind;
+  return_token.SetKind(Tok::UNKNOWN);
   char* read_ptr = buffer_ptr_;
 
 LexStart:
-  /// Memory out of bounds occurred. Return an error.
   if (read_ptr > buffer_end_) {
     buffer_ptr_ = read_ptr;
     Debugger error(Debugger::Level::ERROR, "Aq::Compiler::Lexer::LexToken",
@@ -37,9 +33,7 @@ LexStart:
     return -1;
   }
 
-  /// Start lexical analysis.
   switch (*read_ptr) {
-    /// General operators.
     case '!':
     case '#':
     case '$':
@@ -69,44 +63,44 @@ LexStart:
 
       goto LexEnd;
 
-    /// The string flag.
+    // The string flag.
     case '"':
       if (ProcessToken(return_token, Tok::STRING, 2, Tok::STRING,
                        Tok::COMMENT)) {
         goto LexNext;
       }
 
-      /// End of string.
-      if (return_token.type == Tok::STRING) {
+      // End of string.
+      if (return_token.GetKind() == Tok::STRING) {
         ++read_ptr;
       }
 
       goto LexEnd;
 
-    /// The character flag.
+    // The character flag.
     case '\'':
       if (ProcessToken(return_token, Tok::CHARACTER, 2, Tok::STRING,
                        Tok::COMMENT)) {
         goto LexNext;
       }
 
-      /// End of character.
-      if (return_token.type == Tok::CHARACTER) {
+      // End of character.
+      if (return_token.GetKind() == Tok::CHARACTER) {
         ++read_ptr;
       }
 
       goto LexEnd;
 
-    /// Escape character.
+    // Escape character.
     case '\\':
       if (ProcessToken(return_token, Tok::OPERATOR, 2, Tok::OPERATOR,
                        Tok::COMMENT)) {
         goto LexNext;
       }
 
-      /// Skip escape characters.
-      if (return_token.type == Tok::CHARACTER ||
-          return_token.type == Tok::STRING) {
+      // Skip escape characters.
+      if (return_token.GetKind() == Tok::CHARACTER ||
+          return_token.GetKind() == Tok::STRING) {
         if (read_ptr + 2 <= buffer_end_) {
           ++read_ptr;
         }
@@ -115,17 +109,17 @@ LexStart:
 
       goto LexEnd;
 
-    /// Positive and negative numbers.
+    // Positive and negative numbers.
     case '+':
     case '-':
-      /// Signed numbers.
-      if (return_token.type == Tok::START && *(read_ptr + 1) == '0' ||
+      // Signed numbers.
+      if (return_token.GetKind() == Tok::UNKNOWN && *(read_ptr + 1) == '0' ||
           *(read_ptr + 1) == '1' || *(read_ptr + 1) == '2' ||
           *(read_ptr + 1) == '3' || *(read_ptr + 1) == '4' ||
           *(read_ptr + 1) == '5' || *(read_ptr + 1) == '6' ||
           *(read_ptr + 1) == '7' || *(read_ptr + 1) == '8' ||
           *(read_ptr + 1) == '9') {
-        return_token.type = Tok::NUMBER;
+        return_token.SetKind(Tok::NUMBER);
         goto LexNext;
       }
 
@@ -134,15 +128,15 @@ LexStart:
         goto LexNext;
       }
 
-      /// Dealing with scientific notation.
-      if (return_token.type == Tok::NUMBER &&
+      // Dealing with scientific notation.
+      if (return_token.GetKind() == Tok::NUMBER &&
           (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e')) {
         goto LexNext;
       }
 
       goto LexEnd;
 
-    /// Decimal point.
+    // Decimal point.
     case '.':
       if (ProcessToken(return_token, Tok::OPERATOR, 5, Tok::OPERATOR,
                        Tok::NUMBER, Tok::CHARACTER, Tok::STRING,
@@ -152,12 +146,12 @@ LexStart:
 
       goto LexEnd;
 
-    /// The comment flag.
+    // The comment flag.
     case '/':
-      /// Comment start.
-      if (return_token.type == Tok::START && *(buffer_ptr_ + 1) == '/' ||
+      // Comment start.
+      if (return_token.GetKind() == Tok::UNKNOWN && *(buffer_ptr_ + 1) == '/' ||
           *(buffer_ptr_ + 1) == '*') {
-        return_token.type = Tok::COMMENT;
+        return_token.SetKind(Tok::COMMENT);
         if (read_ptr + 2 <= buffer_end_) {
           ++read_ptr;
         }
@@ -169,8 +163,8 @@ LexStart:
         goto LexNext;
       }
 
-      if (return_token.type == Tok::OPERATOR) {
-        /// Comment.
+      if (return_token.GetKind() == Tok::OPERATOR) {
+        // Comment.
         if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
           goto LexEnd;
         } else {
@@ -178,22 +172,22 @@ LexStart:
         }
       }
 
-      if (return_token.type == Tok::COMMENT) {
+      if (return_token.GetKind() == Tok::COMMENT) {
         if (*(buffer_ptr_ + 1) == '*' && *(read_ptr - 1) == '*') {
-          /// /**/ style comments, skip all comments.
+          // /**/ style comments, skip all comments.
           buffer_ptr_ = ++read_ptr;
-          return_token.type = Tok::START;
+          return_token.SetKind(Tok::UNKNOWN);
           goto LexStart;
         } else {
-          /// /// style comments or Non-end comment mark, continue reading until
-          /// the end mark of the comment.
+          // // style comments or Non-end comment mark, continue reading until
+          // the end mark of the comment.
           goto LexNext;
         }
       }
 
       goto LexEnd;
 
-    /// Numbers.
+    // Numbers.
     case '0':
     case '1':
     case '2':
@@ -212,56 +206,56 @@ LexStart:
 
       goto LexEnd;
 
-    /// Whitespace characters.
+    // Whitespace characters.
     case '\f':
     case '\r':
     case '\t':
     case '\v':
     case ' ':
-      if (return_token.type == Tok::START) {
-        /// Skip whitespace characters.
+      if (return_token.GetKind() == Tok::UNKNOWN) {
+        // Skip whitespace characters.
         ++buffer_ptr_;
         goto LexNext;
       }
 
-      if (ProcessToken(return_token, Tok::START, 3, Tok::CHARACTER, Tok::STRING,
-                       Tok::COMMENT)) {
+      if (ProcessToken(return_token, Tok::UNKNOWN, 3, Tok::CHARACTER,
+                       Tok::STRING, Tok::COMMENT)) {
         goto LexNext;
       }
 
       goto LexEnd;
 
-    /// Newlines.
+    // Newlines.
     case '\n':
-      if (return_token.type == Tok::START) {
-        /// Skip newlines.
+      if (return_token.GetKind() == Tok::UNKNOWN) {
+        // Skip newlines.
         ++buffer_ptr_;
         goto LexNext;
       }
 
-      if (return_token.type == Tok::COMMENT && *(buffer_ptr_ + 1) == '/') {
-        /// /// style comments, skip all comments.
+      if (return_token.GetKind() == Tok::COMMENT && *(buffer_ptr_ + 1) == '/') {
+        // // style comments, skip all comments.
         buffer_ptr_ = ++read_ptr;
-        return_token.type = Tok::START;
+        return_token.SetKind(Tok::UNKNOWN);
         goto LexStart;
       }
 
-      if (ProcessToken(return_token, Tok::START, 3, Tok::CHARACTER, Tok::STRING,
-                       Tok::COMMENT)) {
+      if (ProcessToken(return_token, Tok::UNKNOWN, 3, Tok::CHARACTER,
+                       Tok::STRING, Tok::COMMENT)) {
         goto LexNext;
       }
 
       goto LexEnd;
 
-    /// EOF.
+    // EOF.
     case '\0':
       goto LexEnd;
 
-    /// Separator flag.
+    // Separator flag.
     case ',':
     case ';':
-      if (return_token.type == Tok::START) {
-        return_token.type = Tok::OPERATOR;
+      if (return_token.GetKind() == Tok::UNKNOWN) {
+        return_token.SetKind(Tok::OPERATOR);
         ++read_ptr;
         goto LexEnd;
       }
@@ -288,30 +282,32 @@ LexNext:
   goto LexStart;
 
 LexEnd:
-  /// Meaningless token.
-  if (return_token.type == Tok::START || return_token.type == Tok::COMMENT) {
-    return_token.type = Tok::NONE;
+  /// \todo Wait development.
+  // Meaningless token.
+  if (return_token.GetKind() == Tok::UNKNOWN ||
+      return_token.GetKind() == Tok::COMMENT) {
+    return_token.SetKind(Tok::UNKNOWN);
     buffer_ptr_ = read_ptr;
     return 0;
   } else {
-    /// Meaningful token. Determine the specific token information.
+    // Meaningful token. Determine the specific token information.
     char* location = buffer_ptr_;
     size_t length = read_ptr - buffer_ptr_;
     buffer_ptr_ = read_ptr;
 
-    /// Handle the detailed information of tokens.
+    // Handle the detailed information of tokens.
     Token::ValueStr value;
     value.location = location;
     value.length = length;
-    switch (return_token.type) {
+    switch (return_token.GetKind()) {
       case Tok::IDENTIFIER:
         return_token.value.keyword =
             token_map_.GetKeywordValue(std::string(location, length));
-        if (return_token.value.keyword == Token::Keyword::NONE) {
+        if (return_token.value.keyword == Token::Kind::UNKNOWN) {
           return_token.value.identifier = value;
           break;
         }
-        return_token.type = Tok::KEYWORD;
+        return_token.SetKind(Tok::KEYWORD);
         break;
 
       case Tok::CHARACTER:
@@ -325,8 +321,7 @@ LexEnd:
       case Tok::OPERATOR:
         return_token.value._operator =
             token_map_.GetOperatorValue(std::string(location, length));
-        while (return_token.value._operator == Token::Operator::NONE &&
-               length > 1) {
+        while (return_token.GetKind() == Token::Kind::UNKNOWN && length > 1) {
           length--;
           buffer_ptr_--;
           return_token.value._operator =
@@ -357,16 +352,16 @@ bool Compiler::Lexer::IsReadEnd() const {
   return false;
 }
 
-bool Compiler::Lexer::ProcessToken(Token& token, Token::Type start_type,
-                                   int next_type_size, ...) const {
-  if (token.type == Token::Type::START) {
-    token.type = start_type;
+bool Compiler::Lexer::ProcessToken(Token& token, Token::Kind start_kind,
+                                   int next_kind_size, ...) const {
+  if (token.GetKind() == Token::Kind::UNKNOWN) {
+    token.SetKind(start_kind);
     return true;
   }
-  std::va_list next_type_list;
-  va_start(next_type_list, next_type_size);
-  for (int i = 0; i < next_type_size; ++i) {
-    if (token.type == va_arg(next_type_list, Token::Type)) {
+  std::va_list next_kind_list;
+  va_start(next_kind_list, next_kind_size);
+  for (int i = 0; i < next_kind_size; ++i) {
+    if (token.GetKind() == va_arg(next_kind_list, Token::Kind)) {
       return true;
     }
   }

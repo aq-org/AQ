@@ -10,7 +10,6 @@
 #include "compiler/compiler.h"
 
 namespace Aq {
-/// TODO: Should be improved
 class Compiler::Token {
  public:
   Token();
@@ -22,6 +21,11 @@ class Compiler::Token {
   Token& operator=(Token&&) noexcept = default;
 
   enum class Kind;
+
+  void SetKind(Kind kind);
+  Kind GetKind() const;
+  void SetDataPtr(void* data_ptr);
+  void* GetDataPtr() const;
 
  private:
   Kind kind_;

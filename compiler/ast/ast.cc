@@ -4,4 +4,4 @@
 
 #include "compiler/ast/ast.h"
 
-/// TODO: AST
+/// \todo AST
