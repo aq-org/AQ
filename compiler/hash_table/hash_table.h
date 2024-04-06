@@ -2,8 +2,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_COMPILER_HASH_MAP_HASH_MAP_H_
-#define AQ_COMPILER_HASH_MAP_HASH_MAP_H_
+#ifndef AQ_COMPILER_HASH_TABLE_HASH_TABLE_H_
+#define AQ_COMPILER_HASH_TABLE_HASH_TABLE_H_
 
 #include <cstddef>
 
@@ -14,20 +14,20 @@
 
 namespace Aq {
 template <typename ValueType>
-class Compiler::HashMap {
+class Compiler::HashTable {
  public:
-  /// \fn HashMap
+  /// \fn HashTable
   /// \brief Creates and initialize a hash table. 
   /// \param init_capacity std::size_t Type, optional, default value is 1024 
-  HashMap(std::size_t init_capacity = 1024);
-  ~HashMap();
+  HashTable(std::size_t init_capacity = 1024);
+  ~HashTable();
 
   /// \bug These functions have many bugs when called.
   /// \todo Fix these bugs.
-  HashMap(const HashMap&) = default;
-  HashMap(HashMap&&) noexcept = default;
-  HashMap& operator=(const HashMap&) = default;
-  HashMap& operator=(HashMap&&) noexcept = default;
+  HashTable(const HashTable&) = default;
+  HashTable(HashTable&&) noexcept = default;
+  HashTable& operator=(const HashTable&) = default;
+  HashTable& operator=(HashTable&&) noexcept = default;
 
   /// \fn Insert
   /// \brief Insert a new value into the hash table.

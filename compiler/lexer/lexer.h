@@ -26,7 +26,7 @@ class Compiler::Lexer {
   Lexer& operator=(const Lexer&) = delete;
   Lexer& operator=(Lexer&&) noexcept = delete;
 
-  /// \fn LexToken
+  /// \fn Lex
   /// \brief Lexically analyze `buffer_ptr_` and store the analyzed token to
   /// `return_token`.
   /// \details Reads one character at a time and analyzes the token for
@@ -35,7 +35,7 @@ class Compiler::Lexer {
   /// token.
   /// \param return_token Token& Type.
   /// \return A normal read returns `0`, and a read error returns `-1`.
-  int LexToken(Token& return_token);
+  int Lex(Token& return_token);
 
   /// \fn IsReadEnd
   /// \brief Returns whether the source code has finished reading.

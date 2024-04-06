@@ -39,7 +39,7 @@ Compiler::Compiler(const char* filename) {
   Lexer lexer(buffer_ptr_, code.size());
   Token token;
   while (true) {
-    lexer.LexToken(token);
+    lexer.Lex(token);
     if (lexer.IsReadEnd()) {
       break;
     }

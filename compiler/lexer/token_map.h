@@ -6,7 +6,7 @@
 #define AQ_COMPILER_LEXER_TOKEN_MAP_H_
 
 #include "compiler/compiler.h"
-#include "compiler/hash_map/hash_map.h"
+#include "compiler/hash_table/hash_table.h"
 #include "compiler/token/token.h"
 
 namespace Aq {
@@ -30,7 +30,7 @@ class Compiler::TokenMap {
 
  private:
   /// \brief Maps tokens to kinds.
-  HashMap<Token::Kind> token_map_;
+  HashTable<Token::Kind> token_map_;
 };
 }  // namespace Aq
 

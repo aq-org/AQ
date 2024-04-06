@@ -79,32 +79,32 @@ class Compiler {
   template <typename T1, typename T2>
   struct Pair;
 
-  /// \class HashMap
-  /// \brief Stores ValueType in hash map
+  /// \class HashTable
+  /// \brief Stores ValueType in hash table
   /// \details
   /// - **Key Type**: The key is of type `std::string`, allowing string-based
   /// lookup for stored elements.
   /// - **Value Type**: The value associated with each key is of the template
   /// parameter type `ValueType`.
-  ///   Users can instantiate `HashMap` with any desired value type to suit
+  ///   Users can instantiate `HashTable` with any desired value type to suit
   ///   their specific use case.
-  /// - **Hash-Based Storage**: Internally, the class employs a hash map
-  /// implementation (e.g., `std::unordered_map`)
+  /// - **Hash-Based Storage**: Internally, the class employs a hash table
+  /// implementation
   ///   to store and organize key-value pairs. Hashing ensures constant-time
-  ///   average complexity for most operations, making `HashMap` particularly
+  ///   average complexity for most operations, making `HashTable` particularly
   ///   suitable for large datasets where fast access is crucial.
   /// - **Operations**:
-  ///   - **Insertion**: New key-value pairs can be inserted into the map using
+  ///   - **Insertion**: New key-value pairs can be inserted into the table using
   ///   appropriate member functions.
   ///   - **Retrieval**: Given a key, users can efficiently retrieve the
   ///   corresponding value.
   ///   - **Deletion**: Individual entries or entire ranges of entries can be
-  ///   removed from the map.
+  ///   removed from the table.
   ///   - **Iteration**: The container supports iteration over its elements,
   ///   enabling traversal or modification of all stored key-value pairs.
   /// \tparam ValueType
   template <typename ValueType>
-  class HashMap;
+  class HashTable;
 
   /// \class LinkedList
   /// \brief The `LinkedList` template class implements a linear collection of

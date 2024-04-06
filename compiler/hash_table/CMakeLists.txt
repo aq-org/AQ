@@ -6,8 +6,8 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/hash_map.cc)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/hash_table.cc)
 
-add_library(AqCompilerHashMap STATIC ${SOURCES})
+add_library(AqCompilerHashTable STATIC ${SOURCES})
 
-target_link_libraries(AqCompilerHashMap PRIVATE AqDebugger)
+target_link_libraries(AqCompilerHashTable PRIVATE AqDebugger)

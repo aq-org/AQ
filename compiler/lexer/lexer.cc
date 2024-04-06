@@ -17,7 +17,7 @@ Compiler::Lexer::Lexer(char* source_code, size_t length)
     : buffer_ptr_(source_code), buffer_end_(source_code + length - 1){};
 Compiler::Lexer::~Lexer() = default;
 
-int Compiler::Lexer::LexToken(Token& return_token) {
+int Compiler::Lexer::Lex(Token& return_token) {
   using Tok = Token::Kind;
   return_token.SetKind(Tok::UNKNOWN);
   char* read_ptr = buffer_ptr_;
