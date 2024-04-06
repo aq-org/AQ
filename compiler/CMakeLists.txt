@@ -17,6 +17,7 @@ add_subdirectory(pair)
 add_subdirectory(linked_list)
 add_subdirectory(dyn_array)
 add_subdirectory(hash_table)
+add_subdirectory(symbol_table)
 
 add_library(AqCompiler STATIC ${SOURCES})
 
