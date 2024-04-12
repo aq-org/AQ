@@ -155,6 +155,30 @@ class Compiler {
   template <typename DataType>
   class LinkedList;
 
+  /// \class DynamicArray
+  /// \brief The `DynamicArray` template class provides a contiguous memory
+  /// \details 
+  /// - **Template Parameter**:
+  ///   - `ArrayType`: The type of the data stored in the dynamic array.
+  /// - **Memory Management**:
+  ///   - The array internally manages its own memory, automatically growing or
+  ///   shrinking as needed to accommodate changes in the number of stored
+  ///   elements.
+  /// - **Methods**:
+  ///   - **Construction/Destruction**: The array can be created with an initial
+  ///   capacity or default-constructed with zero elements. Destruction releases
+  ///   the underlying memory.
+  ///   - **Size**:
+  ///     - `size()`: Returns the current number of elements in the array.
+  ///   - **Element Access**:
+  ///     - `operator[]`: Allows direct read/write access to elements by index
+  ///     (bounds-checked in debug builds).
+  ///   - **Modifiers**:
+  ///     - `insert()`, `remove()`: Inserts/Removes elements at arbitrary
+  ///     positions, shifting subsequent elements as needed.
+  template <typename ArrayType>
+  class DynamicArray;
+
   /// \class DynArray
   /// \brief The `DynArray` template class provides a contiguous memory buffer
   /// capable of holding elements of type `ArrayType`. It combines the
