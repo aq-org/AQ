@@ -29,10 +29,10 @@ class Debugger {
            const char* debug_message, const char* other_info = nullptr);
   ~Debugger();
 
-  Debugger(const Debugger&) = default;
-  Debugger(Debugger&&) = default;
-  Debugger& operator=(const Debugger&) = default;
-  Debugger& operator=(Debugger&&) = default;
+  Debugger(const Debugger&) = delete;
+  Debugger(Debugger&&) = delete;
+  Debugger& operator=(const Debugger&) = delete;
+  Debugger& operator=(Debugger&&) = delete;
 
  private:
   /// \brief The debug happened time.

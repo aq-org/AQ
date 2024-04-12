@@ -23,6 +23,7 @@ Debugger::Debugger(Level level, const char* location, const char* debug_code,
       other_info_(other_info) {
   OutputMessage();
   if (level_ == Level::ERROR) {
+    /// \todo Add more error handling.
     exit(-1);
   }
 }
@@ -49,11 +50,11 @@ void Debugger::OutputMessage() const {
   std::string message_string =
       "Message:\"" + std::string(debug_message_) + "\"";
   std::string errno_string = "{Errno:" + std::to_string(errno_) +
-                             ",Errno_Message:\"" + std::string(errno_message_) +
+                             ",ErrnoMessage:\"" + std::string(errno_message_) +
                              "\"}";
   std::string other_info_string;
   if (other_info_ != nullptr) {
-    other_info_string = ",Other_Info:{" + std::string(other_info_) + "}";
+    other_info_string = ",OtherInfo:{" + std::string(other_info_) + "}";
   }
 
   std::cerr << "{" << time_string << "," << level_string << ","
