@@ -9,7 +9,7 @@
 
 // Wait development.
 namespace Aq {
-template <typename ArrayType>
+template <typename T>
 class Compiler::DynamicArray {
  public:
   DynamicArray();
@@ -20,29 +20,47 @@ class Compiler::DynamicArray {
   DynamicArray& operator=(const DynamicArray&);
   DynamicArray& operator=(DynamicArray&&) noexcept;
 
-  ArrayType& operator[](std::size_t index);
-  const ArrayType& operator[](std::size_t index) const;
+  class iterator;
 
-  ArrayType& at(std::size_t index);
-  const ArrayType& at(std::size_t index) const;
+  T& at(std::size_t index);
+  T& operator[](std::size_t index);
+  const T& operator[](std::size_t index) const;
+  T& front();
+  T& back();
+  T* data();
 
-  void push_back(const ArrayType& value);
-  void push_back(ArrayType&& value);
-  void insert(std::size_t index, const ArrayType& value);
-  void insert(std::size_t index, ArrayType&& value);
+  typename DynamicArray<T>::iterator begin();
+  typename DynamicArray<T>::iterator end();
+  typename DynamicArray<T>::reverse_iterator rbegin();
+  typename DynamicArray<T>::reverse_iterator rend();
 
-  void pop_back();
-  void erase(std::size_t index);
-  void clear();
-
+  bool empty() const;
   std::size_t size() const;
+  std::size_t max_size() const;
+  void reserve(std::size_t new_cap);
   std::size_t capacity() const;
+  void shrink_to_fit();
 
-  void resize(std::size_t new_size);
-  void reserve(std::size_t new_capacity);
+  void clear();
+  typename DynamicArray<T>::iterator insert(typename DynamicArray<T>::iterator pos, const T& value);
+  typename DynamicArray<T>::iterator insert(typename DynamicArray<T>::iterator pos, std::size_t count, const T& value);
+  template<typename InputIt>
+  typename DynamicArray<T>::iterator insert(typename DynamicArray<T>::iterator pos, InputIt first, InputIt last);
+  typename DynamicArray<T>::iterator erase(typename DynamicArray<T>::iterator pos);
+  typename DynamicArray<T>::iterator erase(typename DynamicArray<T>::iterator first, typename DynamicArray<T>::iterator last);
+  void push_back(const T& value);
+  void pop_back();
+  void resize(std::size_t count);
+  void swap(DynamicArray<T>& other);
+  void assign(std::size_t count, const T& value);
+  template<typename InputIt>
+  void assign(InputIt first, InputIt last);
+
+  bool operator==(const DynamicArray& other) const;
+  bool operator!=(const DynamicArray& other) const;
 
  private:
-  ArrayType* array_;
+  T* array_;
   std::size_t capacity_;
   std::size_t size_;
 };

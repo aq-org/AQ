@@ -159,7 +159,7 @@ class Compiler {
   /// \brief The `DynamicArray` template class provides a contiguous memory
   /// \details 
   /// - **Template Parameter**:
-  ///   - `ArrayType`: The type of the data stored in the dynamic array.
+  ///   - `T`: The type of the data stored in the dynamic array.
   /// - **Memory Management**:
   ///   - The array internally manages its own memory, automatically growing or
   ///   shrinking as needed to accommodate changes in the number of stored
@@ -176,7 +176,7 @@ class Compiler {
   ///   - **Modifiers**:
   ///     - `insert()`, `remove()`: Inserts/Removes elements at arbitrary
   ///     positions, shifting subsequent elements as needed.
-  template <typename ArrayType>
+  template <typename T>
   class DynamicArray;
 
   /// \class DynArray
