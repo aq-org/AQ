@@ -13,6 +13,7 @@ template <typename T>
 class Compiler::DynamicArray {
  public:
   DynamicArray();
+  DynamicArray(size_t count, const T& value = T());
   ~DynamicArray();
 
   DynamicArray(const DynamicArray&);
@@ -22,48 +23,61 @@ class Compiler::DynamicArray {
 
   class iterator;
 
-  T& at(std::size_t index);
-  T& operator[](std::size_t index);
-  const T& operator[](std::size_t index) const;
-  T& front();
-  T& back();
-  T* data();
+  iterator begin();
+  const iterator begin() const;
+  iterator end();
+  const iterator end() const;
+  iterator cbegin() const;
+  iterator cend() const;
 
-  typename DynamicArray<T>::iterator begin();
-  typename DynamicArray<T>::iterator end();
-  typename DynamicArray<T>::reverse_iterator rbegin();
-  typename DynamicArray<T>::reverse_iterator rend();
-
+  size_t size() const;
   bool empty() const;
-  std::size_t size() const;
-  std::size_t max_size() const;
-  void reserve(std::size_t new_cap);
-  std::size_t capacity() const;
+  void reserve(size_t new_cap);
+  size_t capacity() const;
   void shrink_to_fit();
 
-  void clear();
-  typename DynamicArray<T>::iterator insert(typename DynamicArray<T>::iterator pos, const T& value);
-  typename DynamicArray<T>::iterator insert(typename DynamicArray<T>::iterator pos, std::size_t count, const T& value);
-  template<typename InputIt>
-  typename DynamicArray<T>::iterator insert(typename DynamicArray<T>::iterator pos, InputIt first, InputIt last);
-  typename DynamicArray<T>::iterator erase(typename DynamicArray<T>::iterator pos);
-  typename DynamicArray<T>::iterator erase(typename DynamicArray<T>::iterator first, typename DynamicArray<T>::iterator last);
-  void push_back(const T& value);
-  void pop_back();
-  void resize(std::size_t count);
-  void swap(DynamicArray<T>& other);
-  void assign(std::size_t count, const T& value);
-  template<typename InputIt>
-  void assign(InputIt first, InputIt last);
+  T& operator[](size_t index);
+  const T& operator[](size_t index) const;
+  T& at(size_t index);
+  const T& at(size_t index) const;
+  T& front();
+  const T& front() const;
+  T& back();
+  const T& back() const;
+  T* data();
+  const T* data() const;
 
+  void push_back(const T& value);
+  void push_back(T&& value);
+  iterator insert(const iterator pos, const T& value);
+  iterator insert(const iterator pos, T&& value);
+  iterator insert(const iterator pos, size_t count, const T& value);
+  iterator insert(const iterator pos, iterator first, iterator last);
+
+  iterator erase(const iterator pos);
+  iterator erase(const iterator first, const iterator last);
+  void pop_back();
+  void clear();
+
+  void swap(DynamicArray& other);
+  void resize(size_t count);
+  void resize(size_t count, const T& value);
+  void fill(const T& value);
+
+  void assign(iterator first, iterator last);
+  void assign(size_t count, const T& value);
   bool operator==(const DynamicArray& other) const;
   bool operator!=(const DynamicArray& other) const;
+  bool operator<(const DynamicArray& other) const;
+  bool operator>(const DynamicArray& other) const;
+  bool operator<=(const DynamicArray& other) const;
+  bool operator>=(const DynamicArray& other) const;
 
  private:
   T* array_;
   std::size_t capacity_;
   std::size_t size_;
 };
-}
+}  // namespace Aq
 
 #endif
