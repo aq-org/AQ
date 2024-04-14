@@ -280,7 +280,7 @@ LexNext:
   goto LexStart;
 
 LexEnd:
-  /// \todo Wait development.
+/*  /// \todo Wait development.
   // Meaningless token.
   if (return_token.GetKind() == Tok::UNKNOWN ||
       return_token.GetKind() == Tok::COMMENT) {
@@ -339,7 +339,7 @@ LexEnd:
                        nullptr);
         return -2;
     }
-  }
+  }*/
   return 0;
 }
 

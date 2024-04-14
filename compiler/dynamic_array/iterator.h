@@ -14,7 +14,7 @@ namespace Aq {
 template <typename T>
 class Compiler::DynamicArray<T>::iterator {
  public:
-  iterator();
+  iterator(DynamicArray<T>* array, std::size_t index);
   ~iterator();
 
   iterator(const iterator&) = default;
@@ -37,12 +37,17 @@ class Compiler::DynamicArray<T>::iterator {
   iterator operator-(std::ptrdiff_t n) const;
   iterator operator-=(std::ptrdiff_t n);
 
-  iterator& operator[](std::ptrdiff_t n);
+  iterator& operator[](std::size_t n);
 
   bool operator==(const iterator& other) const;
   bool operator!=(const iterator& other) const;
 
-  std::ptrdiff_t operator-(const Iterator& other) const;
+  std::ptrdiff_t operator-(const iterator& other) const;
+
+ private:
+  DynamicArray<T>* array_;
+  std::size_t index_;
+  T& data_;
 };
 }  // namespace Aq
 
