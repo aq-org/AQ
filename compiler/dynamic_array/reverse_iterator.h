@@ -48,6 +48,9 @@ class Compiler::DynamicArray<T>::reverse_iterator {
   DynamicArray<T>* array_;
   std::size_t index_;
   T& data_;
+
+  bool CheckIfTheIndexIsInRange(std::size_t index) const;
+  reverse_iterator& HandleIteratorMoves(std::size_t index);
 };
 }  // namespace Aq
 

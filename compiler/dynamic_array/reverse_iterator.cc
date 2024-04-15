@@ -10,11 +10,22 @@
 
 namespace Aq {
 template <typename T>
-Compiler::DynamicArray<T>::reverse_iterator::reverse_iterator(DynamicArray<T>* array,
-                                              std::size_t index) {
+Compiler::DynamicArray<T>::reverse_iterator::reverse_iterator(
+    DynamicArray<T>* array, std::size_t index) {
   array_ = array;
-  index_ = index;
-  data_ = array_->at(index);
+  index_ = array_->size() - 1 - index;
+  if (!CheckIfTheIndexIsInRange(index_)) {
+    Debugger error(Debugger::Level::ERROR,
+                   "Aq::Compiler::DynamicArray::reverse_iterator::operator++",
+                   "operator++_IndexError", "Index out of range.", nullptr);
+    index_ = 0;
+    return;
+  }
+  if (index_ == -1) {
+    data_ = T();
+    return;
+  }
+  data_ = array_->at(index_);
 }
 template <typename T>
 Compiler::DynamicArray<T>::reverse_iterator::~reverse_iterator() = default;
@@ -64,13 +75,15 @@ Compiler::DynamicArray<T>::reverse_iterator::operator+(std::ptrdiff_t n) const {
 template <typename T>
 Compiler::DynamicArray<T>::reverse_iterator&
 Compiler::DynamicArray<T>::reverse_iterator::operator+=(std::ptrdiff_t n) {
-  index_ += n;
-  if (index_ > array_->size()) {
+  index_ -= n;
+  if (!CheckIfTheIndexIsInRange(index_)) {
     Debugger error(Debugger::Level::ERROR,
                    "Aq::Compiler::DynamicArray::reverse_iterator::operator++",
                    "operator++_IndexError", "Index out of range.", nullptr);
+    index_ += n;
+    return *this;
   }
-  if (index_ == array_->size()) {
+  if (index_ == -1) {
     data_ = T();
     return *this;
   }
@@ -88,13 +101,15 @@ Compiler::DynamicArray<T>::reverse_iterator::operator-(std::ptrdiff_t n) const {
 template <typename T>
 Compiler::DynamicArray<T>::reverse_iterator
 Compiler::DynamicArray<T>::reverse_iterator::operator-=(std::ptrdiff_t n) {
-  index_ -= n;
-  if (index_ < 0) {
+  index_ += n;
+  if (!CheckIfTheIndexIsInRange(index_)) {
     Debugger error(Debugger::Level::ERROR,
                    "Aq::Compiler::DynamicArray::reverse_iterator::operator--",
                    "operator--_IndexError", "Index out of range.", nullptr);
+    index_ -= n;
+    return *this;
   }
-  if (index_ == array_->size()) {
+  if (index_ == -1) {
     data_ = T();
     return *this;
   }
@@ -107,14 +122,14 @@ Compiler::DynamicArray<T>::reverse_iterator&
 Compiler::DynamicArray<T>::reverse_iterator::operator[](std::size_t n) {
   std::size_t original_index = index_;
   index_ = n;
-  if (index_ > array_->size() || index_ < 0) {
+  if (!CheckIfTheIndexIsInRange(index_)) {
     Debugger error(Debugger::Level::ERROR,
                    "Aq::Compiler::DynamicArray::reverse_iterator::operator[]",
                    "operator[]_IndexError", "Index out of range.", nullptr);
     index_ = original_index;
     return *this;
   }
-  if (index_ == array_->size()) {
+  if (index_ == -1) {
     data_ = T();
     return *this;
   }
@@ -136,6 +151,22 @@ bool Compiler::DynamicArray<T>::reverse_iterator::operator!=(
 template <typename T>
 std::ptrdiff_t Compiler::DynamicArray<T>::reverse_iterator::operator-(
     const reverse_iterator& other) const {
-  return index_ - other.index_;
+  return other.index_ - index_;
 }
+
+template <typename T>
+bool Compiler::DynamicArray<T>::reverse_iterator::CheckIfTheIndexIsInRange(
+    std::size_t index) const {
+  if (index_ > array_->size() - 1 || index_ < -1) {
+    return true;
+  }
+  return false;
+}
+
+template <typename T>
+Compiler::DynamicArray<T>::reverse_iterator&
+Compiler::DynamicArray<T>::reverse_iterator::HandleIteratorMoves(
+    std::size_t index) {
+        
+    }
 }  // namespace Aq
