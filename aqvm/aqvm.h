@@ -2,4 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aqvm/aqvm.h"
+#ifndef AQ_AQVM_AQVM_H_
+#define AQ_AQVM_AQVM_H_
+
+#endif
