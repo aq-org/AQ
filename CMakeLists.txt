@@ -3,10 +3,11 @@
 # the root directory.
 
 cmake_minimum_required(VERSION 3.10)
-project(AQ CXX)
+project(AQ C)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
 # add_subdirectory(debugger)
 # add_subdirectory(compiler)
-# add_subdirectory(aq)
+add_subdirectory(aqvm)
+add_subdirectory(aq)
