@@ -7,7 +7,5 @@ project(AQ C)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-# add_subdirectory(debugger)
-# add_subdirectory(compiler)
 add_subdirectory(aqvm)
 add_subdirectory(aq)

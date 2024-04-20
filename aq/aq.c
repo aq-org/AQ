@@ -4,7 +4,12 @@
 
 #include "aq/aq.h"
 
+#include "aqvm/aqvm.h"
+
 int main(int argc, char *argv[]) {
   // TODO(Aqvm): Finish this function after completing AQVM development.
+  if(Aqvm_InitVm() != 0){
+    return -1;
+  }
   return 0;
 }

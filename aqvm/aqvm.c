@@ -3,3 +3,8 @@
 // the root directory.
 
 #include "aqvm/aqvm.h"
+
+int Aqvm_InitVm() {
+  // TODO(Aqvm): Finish this function after completing AQVM development.
+  return 0;
+}

@@ -5,4 +5,7 @@
 #ifndef AQ_AQVM_AQVM_H_
 #define AQ_AQVM_AQVM_H_
 
+// Initialize the aqvm. Returns 0 for success, other values for errors.
+int Aqvm_InitVm();
+
 #endif

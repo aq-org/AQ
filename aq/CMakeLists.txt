@@ -8,6 +8,6 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/aq.c)
 
-add_executable(aq_test ${SOURCES})
+add_executable(aq ${SOURCES})
 
-target_link_libraries(aq_test PRIVATE AqCompiler)
+target_link_libraries(aq PRIVATE Aqvm)
