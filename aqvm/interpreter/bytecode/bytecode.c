@@ -2,4 +2,4 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aqvm/code/bytecode.h"
+#include "aqvm/interpreter/bytecode/bytecode.h"
