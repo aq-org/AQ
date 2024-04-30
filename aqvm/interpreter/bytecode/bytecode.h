@@ -2,8 +2,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_AQVM_CODE_BYTECODE_H_
-#define AQ_AQVM_CODE_BYTECODE_H_
+#ifndef AQ_AQVM_INTERPRETER_BYTECODE_BYTECODE_H_
+#define AQ_AQVM_INTERPRETER_BYTECODE_BYTECODE_H_
 
 enum AqvmInterpreterBytecode_Type {
   NOP = 0x00,
