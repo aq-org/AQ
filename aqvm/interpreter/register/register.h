@@ -5,6 +5,19 @@
 #ifndef AQ_AQVM_INTERPRETER_REGISTER_REGISTER_H_
 #define AQ_AQVM_INTERPRETER_REGISTER_REGISTER_H_
 
-enum AqvmInterpreterRegister_ValueType {};
+typedef struct {
+enum AqvmInterpreterRegisterRegister_ValueType {
+// TODO(Register): Waiting for the implementation of the register.
+};
+typedef union {
+// TODO(Register): Waiting for the implementation of the register.
+} AqvmInterpreterRegisterRegister_Value;
+
+AqvmInterpreterRegisterRegister_ValueType type;
+AqvmInterpreterRegisterRegister_Value value;
+
+// TODO(Register): Wait developing some functions for the register.
+
+}AqvmInterpreterRegister_Register;
 
 #endif
