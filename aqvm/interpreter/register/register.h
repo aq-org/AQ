@@ -6,19 +6,31 @@
 #define AQ_AQVM_INTERPRETER_REGISTER_REGISTER_H_
 
 struct AqvmInterpreterRegister_Register{
-AqvmInterpreterRegister_ValueType type;
-AqvmInterpreterRegister_Value value;
+  AqvmInterpreterRegister_ValueType type;
+  AqvmInterpreterRegister_Value value;
 
-// TODO(Register): Wait developing some functions for the register.
+  // TODO(Register): Wait developing some functions for the register.
 
 };
 
 enum AqvmInterpreterRegister_ValueType {
-// TODO(Register): Waiting for the implementation of the register.
+  // TODO(Register): Waiting for the improvement of the register.
+  INT,
+  FLOAT,
+  DOUBLE,
+  LONG,
+  CHARACTER,
+  BOOLEAN
 };
 
 union AqvmInterpreterRegister_Value{
-// TODO(Register): Waiting for the implementation of the register.
+  // TODO(Register): Waiting for the improvement of the register.
+  int int_value;
+  float float_value;
+  double double_value;
+  long long_value;
+  char character_value;
+  bool boolean_value;
 };
 
 #endif
