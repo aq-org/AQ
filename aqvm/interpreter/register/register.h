@@ -5,12 +5,11 @@
 #ifndef AQ_AQVM_INTERPRETER_REGISTER_REGISTER_H_
 #define AQ_AQVM_INTERPRETER_REGISTER_REGISTER_H_
 
-struct AqvmInterpreterRegister_Register{
+struct AqvmInterpreterRegister_Register {
   AqvmInterpreterRegister_ValueType type;
   AqvmInterpreterRegister_Value value;
 
   // TODO(Register): Wait developing some functions for the register.
-
 };
 
 enum AqvmInterpreterRegister_ValueType {
@@ -23,7 +22,7 @@ enum AqvmInterpreterRegister_ValueType {
   BOOLEAN
 };
 
-union AqvmInterpreterRegister_Value{
+union AqvmInterpreterRegister_Value {
   // TODO(Register): Waiting for the improvement of the register.
   int int_value;
   float float_value;
