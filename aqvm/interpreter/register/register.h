@@ -8,18 +8,16 @@
 struct AqvmInterpreterRegister_Register {
   AqvmInterpreterRegister_ValueType type;
   AqvmInterpreterRegister_Value value;
-
-  // TODO(Register): Wait developing some functions for the register.
 };
 
 enum AqvmInterpreterRegister_ValueType {
   // TODO(Register): Waiting for the improvement of the register.
-  INT,
-  FLOAT,
-  DOUBLE,
-  LONG,
-  CHARACTER,
-  BOOLEAN
+  AqvmInterpreterRegisterValueType_INT,
+  AqvmInterpreterRegisterValueType_FLOAT,
+  AqvmInterpreterRegisterValueType_DOUBLE,
+  AqvmInterpreterRegisterValueType_LONG,
+  AqvmInterpreterRegisterValueType_CHARACTER,
+  AqvmInterpreterRegisterValueType_BOOLEAN
 };
 
 union AqvmInterpreterRegister_Value {
