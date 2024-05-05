@@ -5,4 +5,10 @@
 #ifndef AQ_AQVM_MEMORY_MEMORY_H_
 #define AQ_AQVM_MEMORY_MEMORY_H_
 
+#include <stddef.h>
+
+void* AqvmMemory_MemoryAllocation(size_t size);
+
+void AqvmMemory_FreeMemory(void* ptr);
+
 #endif

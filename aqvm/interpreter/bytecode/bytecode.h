@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "aqvm/interpreter/register/register.h"
+#include "aqvm/memory/register.h"
 
 enum AqvmInterpreterBytecode_Type {
   AqvmInterpreterBytecodeType_NOP = 0x00,
@@ -44,52 +44,52 @@ enum AqvmInterpreterBytecode_Type {
 // TODO(Bytecode): Change these functions after completing bytecode development.
 int AqvmInterpreterBytecode_NOP();
 int AqvmInterpreterBytecode_LDC(
-    void* value, struct AqvmInterpreterRegister_Register* opcode);
+    void* value, struct AqvmMemoryRegister_Register* opcode);
 int AqvmInterpreterBytecode_LOAD(
-    struct AqvmInterpreterRegister_Register* ptr,
-    struct AqvmInterpreterRegister_Register* opcode);
+    struct AqvmMemoryRegister_Register* ptr,
+    struct AqvmMemoryRegister_Register* opcode);
 int AqvmInterpreterBytecode_STORE(
-    struct AqvmInterpreterRegister_Register** ptr,
-    struct AqvmInterpreterRegister_Register* opcode);
+    struct AqvmMemoryRegister_Register** ptr,
+    struct AqvmMemoryRegister_Register* opcode);
 int AqvmInterpreterBytecode_NEW(void** ptr, size_t size);
 int AqvmInterpreterBytecode_FREE(void* ptr, size_t size);
 int AqvmInterpreterBytecode_SIZE();
 int AqvmInterpreterBytecode_ADD(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_SUB(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_MUL(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_DIV(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_MOD(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_NEG(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_SHL(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_SHR(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_SAR(
-    struct AqvmInterpreterRegister_Register* result,
-    struct AqvmInterpreterRegister_Register* opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register* result,
+    struct AqvmMemoryRegister_Register* opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_IF();
 int AqvmInterpreterBytecode_WHILE();
 int AqvmInterpreterBytecode_NOT(bool result, bool opcode);
@@ -98,8 +98,8 @@ int AqvmInterpreterBytecode_OR(bool result, bool opcode1, bool opcode2);
 int AqvmInterpreterBytecode_XOR(bool result, bool opcode1, bool opcode2);
 int AqvmInterpreterBytecode_CMP(
     bool result, int operator,
-    struct AqvmInterpreterRegister_Register * opcode1,
-    struct AqvmInterpreterRegister_Register* opcode2);
+    struct AqvmMemoryRegister_Register * opcode1,
+    struct AqvmMemoryRegister_Register* opcode2);
 int AqvmInterpreterBytecode_INVOKE();
 int AqvmInterpreterBytecode_RETURN();
 int AqvmInterpreterBytecode_GOTO();
