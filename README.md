@@ -96,7 +96,7 @@
 
 ### Introduction
 
-**AQ** is an `interpreted` **programming language**. It's `fast`, `small`, `simple` and `safe`. At the same time, programs written in AQ can also be compiled. *Perhaps a great work. *
+**AQ** is an `interpreted` **programming language**. It's `fast`, `small`, `simple` and `safe`. At the same time, programs written in AQ can also be compiled. *Perhaps a great work.*
 
 [![AQ Card](https://aq-org-github-readme-stats.vercel.app/api/pin/?username=aq-org&repo=AQ)](https://github.com/aq-org/AQ)
 
