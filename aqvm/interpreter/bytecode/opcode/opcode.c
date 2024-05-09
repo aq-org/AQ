@@ -111,6 +111,7 @@ int AqvmInterpreterBytecodeOpcode_ADD(
   }
   return 0;
 }
+
 int AqvmInterpreterBytecodeOpcode_SUB(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
@@ -149,11 +150,71 @@ int AqvmInterpreterBytecodeOpcode_SUB(
 int AqvmInterpreterBytecodeOpcode_MUL(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
-    struct AqvmMemoryRegister_Register* operand2) {}
+    struct AqvmMemoryRegister_Register* operand2) {
+  if (operand1->type != operand2->type) {
+    // TODO(ERROR): Handle the error of the register value type.
+    return -1;
+  }
+  result->type = operand1->type;
+  switch (result->type) {
+    case AqvmMemoryRegisterValueType_INT:
+      result->value.int_value =
+          operand1->value.int_value * operand2->value.int_value;
+      break;
+    case AqvmMemoryRegisterValueType_FLOAT:
+      result->value.float_value =
+          operand1->value.float_value * operand2->value.float_value;
+      break;
+    case AqvmMemoryRegisterValueType_DOUBLE:
+      result->value.double_value =
+          operand1->value.double_value * operand2->value.double_value;
+      break;
+    case AqvmMemoryRegisterValueType_LONG:
+      result->value.long_value =
+          operand1->value.long_value * operand2->value.long_value;
+      break;
+
+    default:
+      // TODO(ERROR): Handle the error of the register value type.
+      return -1;
+  }
+  return 0;
+}
+
 int AqvmInterpreterBytecodeOpcode_DIV(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
-    struct AqvmMemoryRegister_Register* operand2) {}
+    struct AqvmMemoryRegister_Register* operand2) {
+  if (operand1->type != operand2->type) {
+    // TODO(ERROR): Handle the error of the register value type.
+    return -1;
+  }
+  result->type = operand1->type;
+  switch (result->type) {
+    case AqvmMemoryRegisterValueType_INT:
+      result->value.int_value =
+          operand1->value.int_value / operand2->value.int_value;
+      break;
+    case AqvmMemoryRegisterValueType_FLOAT:
+      result->value.float_value =
+          operand1->value.float_value / operand2->value.float_value;
+      break;
+    case AqvmMemoryRegisterValueType_DOUBLE:
+      result->value.double_value =
+          operand1->value.double_value / operand2->value.double_value;
+      break;
+    case AqvmMemoryRegisterValueType_LONG:
+      result->value.long_value =
+          operand1->value.long_value / operand2->value.long_value;
+      break;
+
+    default:
+      // TODO(ERROR): Handle the error of the register value type.
+      return -1;
+  }
+  return 0;
+}
+
 int AqvmInterpreterBytecodeOpcode_MOD(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
@@ -177,12 +238,14 @@ int AqvmInterpreterBytecodeOpcode_SAR(
 int AqvmInterpreterBytecodeOpcode_IF() {}
 int AqvmInterpreterBytecodeOpcode_WHILE() {}
 int AqvmInterpreterBytecodeOpcode_NOT(bool result, bool operand) {}
-int AqvmInterpreterBytecodeOpcode_AND(bool result, bool operand1, bool operand2) {}
-int AqvmInterpreterBytecodeOpcode_OR(bool result, bool operand1, bool operand2) {}
-int AqvmInterpreterBytecodeOpcode_XOR(bool result, bool operand1, bool operand2) {}
+int AqvmInterpreterBytecodeOpcode_AND(bool result, bool operand1,
+                                      bool operand2) {}
+int AqvmInterpreterBytecodeOpcode_OR(bool result, bool operand1,
+                                     bool operand2) {}
+int AqvmInterpreterBytecodeOpcode_XOR(bool result, bool operand1,
+                                      bool operand2) {}
 int AqvmInterpreterBytecodeOpcode_CMP(
-    bool result, int opcode,
-    struct AqvmMemoryRegister_Register * operand1,
+    bool result, int opcode, struct AqvmMemoryRegister_Register* operand1,
     struct AqvmMemoryRegister_Register* operand2) {}
 int AqvmInterpreterBytecodeOpcode_INVOKE() {}
 int AqvmInterpreterBytecodeOpcode_RETURN() {}
