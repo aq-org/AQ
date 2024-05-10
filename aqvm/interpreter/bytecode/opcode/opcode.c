@@ -146,7 +146,6 @@ int AqvmInterpreterBytecodeOpcode_SUB(
   return 0;
 }
 
-// TODO(Bytecode): Waiting for development.
 int AqvmInterpreterBytecodeOpcode_MUL(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
@@ -215,6 +214,7 @@ int AqvmInterpreterBytecodeOpcode_DIV(
   return 0;
 }
 
+// TODO(Bytecode): Waiting for development.
 int AqvmInterpreterBytecodeOpcode_MOD(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
