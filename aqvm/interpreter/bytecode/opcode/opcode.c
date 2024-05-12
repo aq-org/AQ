@@ -215,7 +215,7 @@ int AqvmInterpreterBytecodeOpcode_DIV(
 }
 
 // TODO(Bytecode): Waiting for development.
-int AqvmInterpreterBytecodeOpcode_MOD(
+int AqvmInterpreterBytecodeOpcode_REM(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
     struct AqvmMemoryRegister_Register* operand2) {}
@@ -236,7 +236,6 @@ int AqvmInterpreterBytecodeOpcode_SAR(
     struct AqvmMemoryRegister_Register* operand1,
     struct AqvmMemoryRegister_Register* operand2) {}
 int AqvmInterpreterBytecodeOpcode_IF() {}
-int AqvmInterpreterBytecodeOpcode_WHILE() {}
 int AqvmInterpreterBytecodeOpcode_NOT(bool result, bool operand) {}
 int AqvmInterpreterBytecodeOpcode_AND(bool result, bool operand1,
                                       bool operand2) {}

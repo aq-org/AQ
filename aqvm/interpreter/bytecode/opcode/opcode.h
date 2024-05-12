@@ -22,13 +22,12 @@ enum AqvmInterpreterBytecodeOpcode_Type {
   AqvmInterpreterBytecodeOpcodeType_SUB,
   AqvmInterpreterBytecodeOpcodeType_MUL,
   AqvmInterpreterBytecodeOpcodeType_DIV,
-  AqvmInterpreterBytecodeOpcodeType_MOD,
+  AqvmInterpreterBytecodeOpcodeType_REM,
   AqvmInterpreterBytecodeOpcodeType_NEG,
   AqvmInterpreterBytecodeOpcodeType_SHL,
   AqvmInterpreterBytecodeOpcodeType_SHR,
   AqvmInterpreterBytecodeOpcodeType_SAR,
   AqvmInterpreterBytecodeOpcodeType_IF,
-  AqvmInterpreterBytecodeOpcodeType_WHILE,
   AqvmInterpreterBytecodeOpcodeType_NOT,
   AqvmInterpreterBytecodeOpcodeType_AND,
   AqvmInterpreterBytecodeOpcodeType_OR,
@@ -70,7 +69,7 @@ int AqvmInterpreterBytecodeOpcode_DIV(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
     struct AqvmMemoryRegister_Register* operand2);
-int AqvmInterpreterBytecodeOpcode_MOD(
+int AqvmInterpreterBytecodeOpcode_REM(
     struct AqvmMemoryRegister_Register* result,
     struct AqvmMemoryRegister_Register* operand1,
     struct AqvmMemoryRegister_Register* operand2);
@@ -91,7 +90,6 @@ int AqvmInterpreterBytecodeOpcode_SAR(
     struct AqvmMemoryRegister_Register* operand1,
     struct AqvmMemoryRegister_Register* operand2);
 int AqvmInterpreterBytecodeOpcode_IF();
-int AqvmInterpreterBytecodeOpcode_WHILE();
 int AqvmInterpreterBytecodeOpcode_NOT(bool result, bool operand);
 int AqvmInterpreterBytecodeOpcode_AND(bool result, bool operand1,
                                       bool operand2);
