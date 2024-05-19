@@ -6,7 +6,7 @@
 
   <p align="center">
     <a href="https://github.com/aq-org/AQ/blob/main/LICENSE">
-      <img alt="License" src="https://img.shields.io/badge/license-AQL-dark" />
+      <img alt="License" src="https://img.shields.io/badge/license-AQ-dark" />
     </a>
     <a href="https://github.com/aq-org/AQ/commits">
       <img alt="Commits" src="https://img.shields.io/github/commit-activity/t/aq-org/AQ" />
@@ -109,8 +109,8 @@
 - **Multiplataforma** (compatible con `Windows`, `Linux` y `MacOS`, etc.)
 - Sintaxis similar a `C++` (dominio rápido)
 - Interpretado (`compilación` opcional)
-- Gratis (sujeto a "licencia AQL")
-- Código abierto (basado en `licencia AQL`)
+- Gratis (sujeto a "licencia AQ")
+- Código abierto (basado en `licencia AQ`)
 
 ### La siguiente es una comparación entre el lenguaje **AQ** y otros 15 lenguajes de programación convencionales en diferentes aspectos:
 
@@ -199,15 +199,15 @@ Puedes encontrar información sobre esto en <a href="/docs/standard.md">estánda
 
 ## licencia
 
-**AQ** se basa en [licencia AQL](https://github.com/aq-org/AQ/blob/main/LICENSE). Esta es una `licencia` diseñada específicamente para **AQ** para proteger la `propiedad intelectual` y los `intereses comunitarios` de **AQ**.
+**AQ** se basa en [licencia AQ](https://github.com/aq-org/AQ/blob/main/LICENSE). Esta es una `licencia` diseñada específicamente para **AQ** para proteger la `propiedad intelectual` y los `intereses comunitarios` de **AQ**.
 
-La `licencia AQL` le permite `usar`, `modificar` y `distribuir` **AQ** libremente bajo las condiciones de la licencia, pero también existen algunas restricciones en sus acciones. Por ejemplo, debe conservar el `aviso de derechos de autor` y el `texto de licencia` de **AQ** y no utilizarlos con fines ilegales o poco éticos.
+La `licencia AQ` le permite `usar`, `modificar` y `distribuir` **AQ** libremente bajo las condiciones de la licencia, pero también existen algunas restricciones en sus acciones. Por ejemplo, debe conservar el `aviso de derechos de autor` y el `texto de licencia` de **AQ** y no utilizarlos con fines ilegales o poco éticos.
 
-Si planea utilizar **AQ** para `uso comercial` o desarrollar `productos derivados` basados ​​en **AQ**, lea atentamente el texto completo de la `licencia AQL` y respete los `términos y condiciones`. en esto. Si tienes alguna pregunta, también puedes contactar con nosotros en cualquier momento.
+Si planea utilizar **AQ** para `uso comercial` o desarrollar `productos derivados` basados ​​en **AQ**, lea atentamente el texto completo de la `licencia AQ` y respete los `términos y condiciones`. en esto. Si tienes alguna pregunta, también puedes contactar con nosotros en cualquier momento.
 
 Además, **AQ** también puede utilizar `código parcial` de otro `software de código abierto`, y estos códigos pueden estar sujetos a `otra licencia`. Marcaremos con precisión esta `información de licencia` en el código.
 
-Creemos que la `licencia AQL` puede equilibrar el `código abierto` y la `protección de la propiedad intelectual` de **AQ**, creando condiciones favorables para el `desarrollo a largo plazo` de **AQ**. Si tiene alguna pregunta o sugerencia sobre la licencia, no dude en hablar con nosotros.
+Creemos que la `licencia AQ` puede equilibrar el `código abierto` y la `protección de la propiedad intelectual` de **AQ**, creando condiciones favorables para el `desarrollo a largo plazo` de **AQ**. Si tiene alguna pregunta o sugerencia sobre la licencia, no dude en hablar con nosotros.
 
 > Copyright 2024 AQ authors, All Rights Reserved.
 > This program is licensed under the AQ License. You can find the AQ license in the root directory.

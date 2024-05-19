@@ -6,7 +6,7 @@
 
    <p align="center">
      <a href="https://github.com/aq-org/AQ/blob/main/LICENSE">
-       <img alt="License" src="https://img.shields.io/badge/license-AQL-dark" />
+       <img alt="License" src="https://img.shields.io/badge/license-AQ-dark" />
      </a>
      <a href="https://github.com/aq-org/AQ/commits">
        <img alt="Commits" src="https://img.shields.io/github/commit-activity/t/aq-org/AQ" />

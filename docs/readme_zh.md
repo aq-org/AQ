@@ -6,7 +6,7 @@
 
   <p align="center">
     <a href="https://github.com/aq-org/AQ/blob/main/LICENSE">
-      <img alt="License" src="https://img.shields.io/badge/license-AQL-dark" />
+      <img alt="License" src="https://img.shields.io/badge/license-AQ-dark" />
     </a>
     <a href="https://github.com/aq-org/AQ/commits">
       <img alt="Commits" src="https://img.shields.io/github/commit-activity/t/aq-org/AQ" />
@@ -109,8 +109,8 @@
 - **跨平台**（支持 `Windows`、`Linux` 和 `MacOS` 等）
 - 类似`C++`语法（快速掌握）
 - 解释性（可选`编译`）
-- 免费（遵守 `AQL 许可证`）
-- 开源（基于 `AQL 许可证`）
+- 免费（遵守 `AQ 许可证`）
+- 开源（基于 `AQ 许可证`）
 
 ### 以下是**AQ**语言与其他15种主流编程语言在不同方面的对比:
 
@@ -199,15 +199,15 @@ AQ 是一个开源项目，欢迎大家为它做出贡献！无论是提交 Bug 
 
 ## 许可证
 
-**AQ** 是基于 [AQL 许可证](https://github.com/aq-org/AQ/blob/main/LICENSE)的。这是一种专门为 **AQ** 设计的`许可证`，旨在保护 **AQ** 的`知识产权`和`社区利益`。
+**AQ** 是基于 [AQ 许可证](https://github.com/aq-org/AQ/blob/main/LICENSE)的。这是一种专门为 **AQ** 设计的`许可证`，旨在保护 **AQ** 的`知识产权`和`社区利益`。
 
-`AQL 许可证`允许您在符合许可证条件的情况下`自由使用`、`修改`和`分发` **AQ**，但也对您的行为有一些限制。例如，您需要保留 **AQ** 的`版权声明`和`许可证文本`,并且不得将其用于违法或不道德的目的。
+`AQ 许可证`允许您在符合许可证条件的情况下`自由使用`、`修改`和`分发` **AQ**，但也对您的行为有一些限制。例如，您需要保留 **AQ** 的`版权声明`和`许可证文本`,并且不得将其用于违法或不道德的目的。
 
-如果您打算将 **AQ** 用于`商业用途`,或者基于 **AQ** 开发`衍生产品`,请仔细阅读 `AQL 许可证`的全文,并遵守其中的`条款和条件`。如有任何疑问,也可以随时与我们联系。
+如果您打算将 **AQ** 用于`商业用途`,或者基于 **AQ** 开发`衍生产品`,请仔细阅读 `AQ 许可证`的全文,并遵守其中的`条款和条件`。如有任何疑问,也可以随时与我们联系。
 
 此外,**AQ** 本身可能也采用了其他一些`开源软件`的`部分代码`,这些代码可能受`其他许可证`的约束。我们将在代码中准确标注这些`许可证信息`。
 
-我们相信,`AQL 许可证`可以很好地平衡 **AQ** 的`开源性`与`知识产权保护`,为 **AQ** 的`长期发展`创造有利条件。如果您对许可证有任何`疑问或建议`,欢迎与我们讨论。
+我们相信,`AQ 许可证`可以很好地平衡 **AQ** 的`开源性`与`知识产权保护`,为 **AQ** 的`长期发展`创造有利条件。如果您对许可证有任何`疑问或建议`,欢迎与我们讨论。
 
 > Copyright 2024 AQ authors, All Rights Reserved.
 > This program is licensed under the AQ License. You can find the AQ license in the root directory.
