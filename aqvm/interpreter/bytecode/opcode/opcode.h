@@ -28,7 +28,6 @@ enum AqvmInterpreterBytecodeOpcode_Type {
   AqvmInterpreterBytecodeOpcodeType_SHR,
   AqvmInterpreterBytecodeOpcodeType_SAR,
   AqvmInterpreterBytecodeOpcodeType_IF,
-  AqvmInterpreterBytecodeOpcodeType_NOT,
   AqvmInterpreterBytecodeOpcodeType_AND,
   AqvmInterpreterBytecodeOpcodeType_OR,
   AqvmInterpreterBytecodeOpcodeType_XOR,
@@ -90,7 +89,6 @@ int AqvmInterpreterBytecodeOpcode_SAR(
     struct AqvmMemoryRegister_Register* operand1,
     struct AqvmMemoryRegister_Register* operand2);
 int AqvmInterpreterBytecodeOpcode_IF();
-int AqvmInterpreterBytecodeOpcode_NOT(bool result, bool operand);
 int AqvmInterpreterBytecodeOpcode_AND(bool result, bool operand1,
                                       bool operand2);
 int AqvmInterpreterBytecodeOpcode_OR(bool result, bool operand1, bool operand2);
