@@ -12,7 +12,6 @@
 
 enum AqvmInterpreterBytecodeOpcode_Type {
   AqvmInterpreterBytecodeOpcodeType_NOP = 0x00,
-  AqvmInterpreterBytecodeOpcodeType_LDC,
   AqvmInterpreterBytecodeOpcodeType_LOAD,
   AqvmInterpreterBytecodeOpcodeType_STORE,
   AqvmInterpreterBytecodeOpcodeType_NEW,
@@ -41,8 +40,6 @@ enum AqvmInterpreterBytecodeOpcode_Type {
 
 // TODO(Bytecode): Change these functions after completing bytecode development.
 int AqvmInterpreterBytecodeOpcode_NOP();
-int AqvmInterpreterBytecodeOpcode_LDC(
-    void* value, struct AqvmMemoryRegister_Register* operand);
 int AqvmInterpreterBytecodeOpcode_LOAD(
     struct AqvmMemoryRegister_Register* ptr,
     struct AqvmMemoryRegister_Register* operand);

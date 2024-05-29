@@ -28,6 +28,7 @@ union AqvmMemoryRegister_Value {
 struct AqvmMemoryRegister_Register {
   enum AqvmMemoryRegister_ValueType type;
   union AqvmMemoryRegister_Value value;
+  bool const_status;
 };
 
 #endif
