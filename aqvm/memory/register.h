@@ -8,27 +8,38 @@
 enum AqvmMemoryRegister_ValueType {
   // TODO(Register): Waiting for the improvement of the register.
   AqvmMemoryRegisterValueType_INT,
+  AqvmMemoryRegisterValueType_CONSTINT,
   AqvmMemoryRegisterValueType_FLOAT,
+  AqvmMemoryRegisterValueType_CONSTFLOAT,
   AqvmMemoryRegisterValueType_DOUBLE,
+  AqvmMemoryRegisterValueType_CONSTDOUBLE,
   AqvmMemoryRegisterValueType_LONG,
+  AqvmMemoryRegisterValueType_CONSTLONG,
   AqvmMemoryRegisterValueType_CHARACTER,
-  AqvmMemoryRegisterValueType_BOOLEAN
+  AqvmMemoryRegisterValueType_CONSTCHARACTER,
+  AqvmMemoryRegisterValueType_BOOLEAN,
+  AqvmMemoryRegisterValueType_CONSTBOOLEAN
 };
 
 union AqvmMemoryRegister_Value {
   // TODO(Register): Waiting for the improvement of the register.
   int int_value;
+  const int const_int_value;
   float float_value;
+  const float const_float_value;
   double double_value;
+  const double const_double_value;
   long long_value;
+  const long const_long_value;
   char character_value;
+  const char const_character_value;
   bool boolean_value;
+  const bool const_boolean_value;
 };
 
 struct AqvmMemoryRegister_Register {
   enum AqvmMemoryRegister_ValueType type;
   union AqvmMemoryRegister_Value value;
-  bool const_status;
 };
 
 #endif
