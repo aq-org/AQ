@@ -45,7 +45,7 @@ int AqvmInterpreterBytecodeOpcode_LDC(
 int AqvmInterpreterBytecodeOpcode_LOAD(
     struct AqvmMemoryRegister_Register* ptr,
     struct AqvmMemoryRegister_Register* operand) {
-  *operand = *ptr;
+  //*operand = *ptr;
   return 0;
 }
 

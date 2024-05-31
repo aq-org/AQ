@@ -5,6 +5,8 @@
 #ifndef AQ_AQVM_MEMORY_REGISTER_H_
 #define AQ_AQVM_MEMORY_REGISTER_H_
 
+#include <stdbool.h>
+
 enum AqvmMemoryRegister_ValueType {
   // TODO(Register): Waiting for the improvement of the register.
   AqvmMemoryRegisterValueType_INT,
