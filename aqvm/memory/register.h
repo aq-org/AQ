@@ -44,4 +44,34 @@ struct AqvmMemoryRegister_Register {
   union AqvmMemoryRegister_Value value;
 };
 
+/*
+struct AqvmMemoryRegister_Register {
+  int* value;
+  size_t size;
+};
+
+int AqvmMemoryRegister_IntStore(int value,
+                                struct AqvmMemoryRegister_Register* register,
+                                size_t index) {
+  if (register->size < index * 4) {
+    // TODO(ERROR): Out of Memory.
+    return -1;
+  }
+  register->value[index] = value;
+  return 0;
+}
+int AqvmMemoryRegister_FloatStore(float value,
+                                  struct AqvmMemoryRegister_Register* register,
+                                  size_t index) {
+  if (register->size < index * 4) {
+    // TODO(ERROR): Out of Memory.
+    return -1;
+  }
+  register->value[index] = (int)value;
+  return 0;
+}
+
+// Wait for development.
+* /
+
 #endif

@@ -4,9 +4,14 @@
 
 #include "aq/aq.h"
 
+#include <stdio.h>
+
 #include "aqvm/aqvm.h"
 
 int main(int argc, char *argv[]) {
+  char a[10] = "Helloworld";
+  printf("%s\n", a);
+
   // TODO(Aqvm): Finish this function after completing AQVM development.
   if(Aqvm_InitVm() != 0){
     return -1;
