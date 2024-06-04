@@ -72,6 +72,6 @@ int AqvmMemoryRegister_FloatStore(float value,
 }
 
 // Wait for development.
-* /
+*/
 
 #endif
