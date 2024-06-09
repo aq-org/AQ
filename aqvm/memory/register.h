@@ -7,6 +7,8 @@
 
 #include <stdbool.h>
 
+#include "aqvm/memory/types.h"
+
 enum AqvmMemoryRegister_ValueType {
   // TODO(Register): Waiting for the improvement of the register.
   AqvmMemoryRegisterValueType_INT,
