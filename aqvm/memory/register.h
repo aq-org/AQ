@@ -23,7 +23,6 @@ void* value;
 // value to the memory address of index 0 is int, the index 0 to the index 1 is
 // float, etc.
 size_t type[];
-
 */
 
 enum AqvmMemoryRegister_ValueType {
