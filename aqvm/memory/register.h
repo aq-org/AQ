@@ -9,6 +9,23 @@
 
 #include "aqvm/memory/types.h"
 
+/*
+// plan 1:
+struct register{
+  uint8_t type;
+  void* value_ptr;
+};
+void* value;
+register array[];
+
+// plan 2:
+void* value;
+// value to the memory address of index 0 is int, the index 0 to the index 1 is
+// float, etc.
+size_t type[];
+
+*/
+
 enum AqvmMemoryRegister_ValueType {
   // TODO(Register): Waiting for the improvement of the register.
   AqvmMemoryRegisterValueType_INT,
