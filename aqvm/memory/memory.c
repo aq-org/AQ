@@ -12,7 +12,7 @@ void* AqvmMemory_MemoryAllocation(size_t size) {
   if (ptr == NULL) {
     // TODO(WARNING): Handle the warning of memory allocation.
   }
-  return malloc(size);
+  return ptr;
 }
 
 void AqvmMemory_FreeMemory(void* ptr) {
@@ -20,4 +20,47 @@ void AqvmMemory_FreeMemory(void* ptr) {
     // TODO(WARNING): Handle the warning of memory deallocation.
   }
   free(ptr);
+}
+
+int AqvmMemory_SetType(struct AqvmMemory_Memory* memory, size_t index,
+                       uint8_t type) {
+  if (memory == NULL || memory->type == NULL) {
+    // TODO(ERROR): The memory is NULL.
+    return -1;
+  }
+
+  if (index > memory->size) {
+    // TODO(ERROR): Out of memory range.
+    return -2;
+  }
+
+  type &= 0x0F;
+
+  if (index % 2 != 0) {
+    memory->type[index / 2] = (memory->type[index / 2] & 0xF0) | type;
+  } else {
+    memory->type[index / 2] = (memory->type[index / 2] & 0x0F) | (type << 4);
+  }
+
+  return 0;
+}
+
+uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
+  if (memory == NULL || memory->type == NULL) {
+    // TODO(ERROR): The memory is NULL.
+    return -1;
+  }
+
+  if (index > memory->size) {
+    // TODO(ERROR): Out of memory range.
+    return -2;
+  }
+
+  if (index % 2 != 0) {
+    return memory->type[index / 2] & 0x0F;
+  }else{
+    return (memory->type[index / 2] & 0xF0) >> 4;
+  }
+
+  return 0;
 }

@@ -10,6 +10,7 @@
 #include "aqvm/memory/memory.h"
 #include "aqvm/memory/register.h"
 
+/*
 int AqvmInterpreterBytecodeOpcode_NOP() { return 0; }
 
 int AqvmInterpreterBytecodeOpcode_LDC(
@@ -275,3 +276,4 @@ int AqvmInterpreterBytecodeOpcode_THROW() {}
 // TODO(WIDE): Update this function if an extended instruction set is
 // required.
 int AqvmInterpreterBytecodeOpcode_WIDE() {}
+*/
