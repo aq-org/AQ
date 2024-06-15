@@ -27,7 +27,7 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
   }
 
   if (index > memory->size) {
-    // TODO(ERROR): Out of memory range.
+    // TODO(ERROR): The index is out of memory range.
     return -2;
   }
 

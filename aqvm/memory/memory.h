@@ -23,13 +23,18 @@ struct AqvmMemory_Memory {
   size_t size;
 };
 
-// Allocate memory of size |size| of size_t type argument. Returns a pointer to
-// the allocated memory.
+// Allocate memory of size |size| of size_t type parameter. Returns a void*
+// pointer to the allocated memory.
 void* AqvmMemory_AllocateMemory(size_t size);
 
-// Free the memory that the void* pointer argument |ptr| points to. No return.
+// Free the memory that the void* pointer parameter |ptr| points to. No return.
 void AqvmMemory_FreeMemory(void* ptr);
 
+// Set the uint8_t pointer |type| of the void* pointer |value| corresponding to
+// size_t parameter |index| in struct AqvmMemory_Memory pointer parameter
+// |memory| to the parameter |type|. |index| should be less than 4 bits. Returns
+// 0 if successful. Returns -1 if the memory is NULL. Returns -2 if the index is
+// out of memory range. Returns -3 if the type is out of range.
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type);
 
