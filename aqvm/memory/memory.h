@@ -30,6 +30,7 @@ void* AqvmMemory_AllocateMemory(size_t size);
 // Free the memory that the void* pointer argument |ptr| points to. No return.
 void AqvmMemory_FreeMemory(void* ptr);
 
+
 int AqvmMemory_SetType(struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type);
 
