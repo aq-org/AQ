@@ -34,7 +34,10 @@ int AqvmMemory_SetType(struct AqvmMemory_Memory* memory, size_t index,
     return -2;
   }
 
-  type &= 0x0F;
+  if (type > 0x0F) {
+    // TODO(ERROR): The type is out of range.
+    return -3;
+  }
 
   if (index % 2 != 0) {
     memory->type[index / 2] = (memory->type[index / 2] & 0xF0) | type;
@@ -58,7 +61,7 @@ uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
 
   if (index % 2 != 0) {
     return memory->type[index / 2] & 0x0F;
-  }else{
+  } else {
     return (memory->type[index / 2] & 0xF0) >> 4;
   }
 
