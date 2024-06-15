@@ -8,7 +8,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "aqvm/memory/register.h"
 
 enum AqvmInterpreterBytecodeOpcode_Type {
   AqvmInterpreterBytecodeOpcodeType_NOP = 0x00,

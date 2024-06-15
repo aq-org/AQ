@@ -10,12 +10,12 @@
 
 #include "aqvm/memory/types.h"
 
-// The struct stores infomation about the memory.
-// |type| is a pointer to an array that stores the type of each bytes in the
-// memory. Each bytes use 4 bits to store the type. So a uint8_t variable can
-// store 2 types. Each uint8_t variables' first 4 bits are used by the even
-// byte's type and the next 4 bits are used by the odd byte's type.
-// |value| is a pointer which is void* type to the memory.
+// The struct stores information about the memory.
+// |type| is a pointer to an array that stores the type of each byte in the
+// memory. Each byte uses 4 bits to store the type. So a uint8_t variable can
+// store 2 types. Each uint8_t variable's first 4 bits are used for the even
+// byte's type and the next 4 bits are used for the odd byte's type.
+// |value| is a pointer of type void* to the memory.
 // |size| is the size of the memory.
 struct AqvmMemory_Memory {
   uint8_t* type;

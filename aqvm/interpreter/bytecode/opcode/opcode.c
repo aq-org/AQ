@@ -8,7 +8,6 @@
 #include <stddef.h>
 
 #include "aqvm/memory/memory.h"
-#include "aqvm/memory/register.h"
 
 /*
 int AqvmInterpreterBytecodeOpcode_NOP() { return 0; }
