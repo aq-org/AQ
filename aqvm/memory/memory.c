@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-void* AqvmMemory_MemoryAllocation(size_t size) {
+void* AqvmMemory_AllocateMemory(size_t size) {
   void* ptr = malloc(size);
   if (ptr == NULL) {
     // TODO(WARNING): Handle the warning of memory allocation.

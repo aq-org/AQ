@@ -23,10 +23,11 @@ struct AqvmMemory_Memory {
   size_t size;
 };
 
-// Create a memory with the given size. Returns the pointer to the memory.
-void* AqvmMemory_MemoryAllocation(size_t size);
+// Allocate memory of size |size| of size_t type argument. Returns a pointer to
+// the allocated memory.
+void* AqvmMemory_AllocateMemory(size_t size);
 
-// Free the memory that the void* pointer |ptr| points to. Do not return.
+// Free the memory that the void* pointer argument |ptr| points to. No return.
 void AqvmMemory_FreeMemory(void* ptr);
 
 int AqvmMemory_SetType(struct AqvmMemory_Memory* memory, size_t index,
