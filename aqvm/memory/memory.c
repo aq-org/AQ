@@ -61,6 +61,4 @@ uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
   } else {
     return (memory->type[index / 2] & 0xF0) >> 4;
   }
-
-  return 0;
 }
