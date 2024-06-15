@@ -16,9 +16,6 @@ void* AqvmMemory_MemoryAllocation(size_t size) {
 }
 
 void AqvmMemory_FreeMemory(void* ptr) {
-  if (ptr == NULL) {
-    // TODO(WARNING): Handle the warning of memory deallocation.
-  }
   free(ptr);
 }
 
