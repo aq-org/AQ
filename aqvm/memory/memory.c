@@ -19,7 +19,7 @@ void AqvmMemory_FreeMemory(void* ptr) {
   free(ptr);
 }
 
-int AqvmMemory_SetType(struct AqvmMemory_Memory* memory, size_t index,
+int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type) {
   if (memory == NULL || memory->type == NULL) {
     // TODO(ERROR): The memory is NULL.
