@@ -37,7 +37,9 @@ void AqvmMemory_FreeMemory(void* ptr);
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type);
 
-// Gets the type of the data at |index| bytes in |memory|. Returns the type.
+// Gets the type of the data at |index| bytes in |memory|. Returns the type that
+// is less than 4 bits (0X0F) if success. Returns 0x10 if the memory is NULL.
+// Returns 0x20 if the index is out of memory range.
 uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index);
 
 #endif

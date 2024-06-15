@@ -48,12 +48,12 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
 uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
   if (memory == NULL || memory->type == NULL) {
     // TODO(ERROR): The memory is NULL.
-    return -1;
+    return 0x10;
   }
 
   if (index > memory->size) {
-    // TODO(ERROR): Out of memory range.
-    return -2;
+    // TODO(ERROR): The index is out of memory range.
+    return 0x20;
   }
 
   if (index % 2 != 0) {
