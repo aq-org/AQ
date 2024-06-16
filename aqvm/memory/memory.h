@@ -15,11 +15,11 @@
 // memory. Each byte uses 4 bits to store the type. So a uint8_t variable can
 // store 2 types. Each uint8_t variable's first 4 bits are used for the even
 // byte's type and the next 4 bits are used for the odd byte's type.
-// |value| is a pointer of type void* to the memory.
+// |data| is a pointer of type void* to the memory.
 // |size| is the size of the memory.
 struct AqvmMemory_Memory {
   uint8_t* type;
-  void* value;
+  void* data;
   size_t size;
 };
 
@@ -47,5 +47,12 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
 // Returns the type that is less than 4 bits (0X0F) if successful. Returns 0x10
 // if the memory is NULL. Returns 0x20 if the index is out of memory range.
 uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index);
+
+// Writes the data that |data_ptr| points to of size |size| to the data of at
+// |index| bytes in |memory|.
+// Returns 0 if successful. Returns -1 if the memory is NULL. Returns -2 if the
+// index is out of memory range. Returns -3 if the data is NULL.
+int AqvmMemory_WriteData(struct AqvmMemory_Memory* memory, size_t index,
+                         void* data_ptr, size_t size);
 
 #endif

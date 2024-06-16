@@ -6,6 +6,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "aqvm/memory/types.h"
 
@@ -96,4 +97,23 @@ uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
   } else {
     return (memory->type[index / 2] & 0xF0) >> 4;
   }
+}
+
+int AqvmMemory_WriteData(struct AqvmMemory_Memory* memory, size_t index,
+                         void* data_ptr, size_t size) {
+  if (memory == NULL || memory->data == NULL) {
+    // TODO(ERROR): The memory is NULL.
+    return -1;
+  }
+  if (index + size > memory->size) {
+    // TODO(ERROR): The index is out of memory range.
+    return -2;
+  }
+  if (data_ptr == NULL) {
+    // TODO(ERROR): The data is NULL.
+    return -3;
+  }
+
+  memcpy(memory->data + index, data_ptr, size);
+  return 0;
 }
