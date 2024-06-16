@@ -14,7 +14,8 @@
 // |type| is a pointer to an array that stores the type of each byte in the
 // memory. Each byte uses 4 bits to store the type. So a uint8_t variable can
 // store 2 types. Each uint8_t variable's first 4 bits are used for the even
-// byte's type and the next 4 bits are used for the odd byte's type.
+// byte's type and the next 4 bits are used for the odd byte's type. The type
+// list is in types.h.
 // |data| is a pointer of type void* to the memory that stores the data.
 // |size| is the size of the memory.
 struct AqvmMemory_Memory {
