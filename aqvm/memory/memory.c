@@ -7,6 +7,43 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "aqvm/memory/types.h"
+
+int AqvmMemory_CheckMemoryConditions() {
+  if (sizeof(aqint) != 4) {
+    // TODO(WARNING): The length requirement for the int type does not conform
+    // to the type definition.
+    return -1;
+  }
+  if (sizeof(aqlong) != 8) {
+    // TODO(WARNING): The length requirement for the long type does not conform
+    // to the type definition.
+    return -2;
+  }
+  if (sizeof(aqfloat) != 4) {
+    // TODO(WARNING): The length requirement for the float type does not conform
+    // to the type definition.
+    return -3;
+  }
+  if (sizeof(aqdouble) != 4) {
+    // TODO(WARNING): The length requirement for the double type does not
+    // conform to the type definition.
+    return -4;
+  }
+  if (sizeof(aqchar) != 1) {
+    // TODO(WARNING): The length requirement for the char type does not conform
+    // to the type definition.
+    return -5;
+  }
+  if (sizeof(aqbool) != 1) {
+    // TODO(WARNING): The length requirement for the bool type does not conform
+    // to the type definition.
+    return -6;
+  }
+
+  return 0;
+}
+
 void* AqvmMemory_AllocateMemory(size_t size) {
   void* ptr = malloc(size);
   if (ptr == NULL) {
@@ -15,9 +52,7 @@ void* AqvmMemory_AllocateMemory(size_t size) {
   return ptr;
 }
 
-void AqvmMemory_FreeMemory(void* ptr) {
-  free(ptr);
-}
+void AqvmMemory_FreeMemory(void* ptr) { free(ptr); }
 
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type) {

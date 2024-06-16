@@ -23,11 +23,17 @@ struct AqvmMemory_Memory {
   size_t size;
 };
 
-// Allocate memory of size |size| of size_t type parameter. Returns a void*
-// pointer to the allocated memory.
+// Checks the memory conditions in the system.
+// Returns 0 if successful. Returns -1 if the length requirement for the int
+// type does not conform to the type definition, -2 for long, -3 for float, -4
+// for double, -5 for char, and -6 for bool.
+int AqvmMemory_CheckMemoryConditions();
+
+// Allocates memory of size |size|. Returns a void* pointer to the allocated
+// memory.
 void* AqvmMemory_AllocateMemory(size_t size);
 
-// Free the memory that the void* pointer parameter |ptr| points to. No return.
+// Free the memory that the |ptr| points to. No return.
 void AqvmMemory_FreeMemory(void* ptr);
 
 // Sets the type of the data at |index| bytes in |memory| to |type|. |type|
@@ -37,9 +43,12 @@ void AqvmMemory_FreeMemory(void* ptr);
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type);
 
-// Gets the type of the data at |index| bytes in |memory|. Returns the type that
-// is less than 4 bits (0X0F) if success. Returns 0x10 if the memory is NULL.
-// Returns 0x20 if the index is out of memory range.
+// Gets the type of the data at |index| bytes in |memory|.
+// Returns the type that is less than 4 bits (0X0F) if successful. Returns 0x10
+// if the memory is NULL. Returns 0x20 if the index is out of memory range.
 uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index);
+
+int AqvmMemory_SetSize(const struct AqvmMemory_Memory* memory, size_t index,
+                       size_t size);
 
 #endif
