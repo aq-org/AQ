@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// 0x00 is NULL type
+// 0x00 is NULL type.
 
 // 0x01
 typedef int32_t aqint;
