@@ -48,7 +48,4 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
 // if the memory is NULL. Returns 0x20 if the index is out of memory range.
 uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index);
 
-int AqvmMemory_SetSize(const struct AqvmMemory_Memory* memory, size_t index,
-                       size_t size);
-
 #endif
