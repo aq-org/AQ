@@ -45,15 +45,24 @@ int AqvmMemory_CheckMemoryConditions() {
   return 0;
 }
 
-void* AqvmMemory_AllocateMemory(size_t size) {
-  void* ptr = malloc(size);
-  if (ptr == NULL) {
+struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
+                                                  size_t size) {
+  struct AqvmMemory_Memory* memory_ptr =
+      (struct AqvmMemory_Memory*)malloc(sizeof(struct AqvmMemory_Memory));
+  if (memory_ptr == NULL) {
     // TODO(WARNING): Handle the warning of memory allocation.
   }
-  return ptr;
+
+  memory_ptr->data = data;
+  memory_ptr->type = type;
+  memory_ptr->size = size;
+
+  return memory_ptr;
 }
 
-void AqvmMemory_FreeMemory(void* ptr) { free(ptr); }
+void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr) {
+  free(memory_ptr);
+}
 
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type) {

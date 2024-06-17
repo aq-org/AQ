@@ -18,6 +18,9 @@
 // list is in types.h.
 // |data| is a pointer of type void* to the memory that stores the data.
 // |size| is the size of the memory.
+// NOTICE: The struct AqvmMemory_Memory only stores information of the memory.
+// The memory is allocated by the bytecode function when storing the bytecode.
+// The memory of |memory| and |type| is part of the bytecode memory.
 struct AqvmMemory_Memory {
   uint8_t* type;
   void* data;
@@ -30,12 +33,17 @@ struct AqvmMemory_Memory {
 // for double, -5 for char, and -6 for bool.
 int AqvmMemory_CheckMemoryConditions();
 
-// Allocates memory of size |size|. Returns a void* pointer to the allocated
-// memory.
-void* AqvmMemory_AllocateMemory(size_t size);
+// Creates the struct AqvmMemory_Memory with |data|, |type|, and |size|.
+// The function will allocate a struct AqvmMemory_Memory and copy |data|,
+// |type|, and |size| into the struct. Returns a pointer to the struct.
+struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
+                                                  size_t size);
 
-// Free the memory that the |ptr| points to. No return.
-void AqvmMemory_FreeMemory(void* ptr);
+// Free the memory of the |memory_ptr|. No return.
+// NOTICE: The function only free the memory of the struct. The memory pointed
+// to by pointers to data and type in struct is not freed. This memory is
+// managed by bytecode related functions.
+void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr);
 
 // Sets the type of the data at |index| bytes in |memory| to |type|. |type|
 // should be less than 4 bits.
