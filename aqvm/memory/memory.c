@@ -51,6 +51,7 @@ struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
       (struct AqvmMemory_Memory*)malloc(sizeof(struct AqvmMemory_Memory));
   if (memory_ptr == NULL) {
     // TODO(WARNING): Handle the warning of memory allocation.
+    return NULL;
   }
 
   memory_ptr->data = data;
