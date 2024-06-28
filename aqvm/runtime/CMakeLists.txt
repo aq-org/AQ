@@ -10,4 +10,6 @@ set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/runtime.c)
 
 add_library(AqvmRuntime STATIC ${SOURCES})
 
+add_subdirectory(debugger)
+
 target_link_libraries(AqvmRuntime PRIVATE AqvmRuntimeDebugger)

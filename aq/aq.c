@@ -8,10 +8,15 @@
 
 #include "aqvm/aqvm.h"
 
+#include "aqvm/runtime/debugger/debugger.h"
+
 int main(int argc, char *argv[]) {
   // TODO(Aqvm): Finish this function after completing AQVM development.
   if(Aqvm_InitVm() != 0){
     return -1;
   }
+
+  AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){0, NULL, NULL, NULL});
+
   return 0;
 }
