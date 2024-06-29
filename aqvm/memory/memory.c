@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "aqvm/memory/types.h"
 
@@ -124,6 +125,6 @@ int AqvmMemory_WriteData(struct AqvmMemory_Memory* memory, size_t index,
     return -3;
   }
 
-  memcpy(memory->data + index, data_ptr, size);
+  memcpy((void*)((uintptr_t)memory->data + index), data_ptr, size);
   return 0;
 }
