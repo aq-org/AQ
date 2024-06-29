@@ -7,26 +7,24 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 void AqvmRuntimeDebugger_OutputReport(
     struct AqvmRuntimeDebugger_DebugReport report) {
-  char** type;
+  const char* type = AqvmRuntimeDebugger_FormatReport(&report);
 
-  AqvmRuntimeDebugger_FormatReport(&report, type, NULL);
-
-  char time[26];
+  char time[28];
   AqvmRuntimeDebugger_GetCurrentTime(time);
 
-  fprintf(stderr, "%s%s%s%s%s%s%s%s%s%s%s", "{ \"Time\":\"", time,
-          "\", \"Type\":\"", *type, "\", \"Code\":\"", report.code,
-          "\", \"Message\":\"", report.message, "\", \"OtherInfo\":\"",
-          report.other_info, "\" }\n");
+  fprintf(stderr,
+          "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
+          time, type, report.code, report.message, errno, strerror(errno),
+          report.other_info);
 }
 
-void AqvmRuntimeDebugger_FormatReport(
-    struct AqvmRuntimeDebugger_DebugReport* report, char** type,
-    const char* null_str) {
+const char* AqvmRuntimeDebugger_FormatReport(
+    struct AqvmRuntimeDebugger_DebugReport* report) {
   if (report->code == NULL) {
     report->code = "NULL";
   }
@@ -37,27 +35,20 @@ void AqvmRuntimeDebugger_FormatReport(
     report->other_info = "NULL";
   }
 
-  const char* type_str = NULL;
-
   switch (report->type) {
     case 0:
-      type_str = "\"INFO\"";
-      break;
+      return "\"INFO\"";
     case 1:
-      type_str = "\"WARNING\"";
-      break;
+      return "\"WARNING\"";
     case 2:
-      type_str = "\"ERROR\"";
-      break;
+      return "\"ERROR\"";
     default:
-      type_str = "NULL";
-      break;
+      return "NULL";
   }
-
-  // *type = type_str;
 }
 
 void AqvmRuntimeDebugger_GetCurrentTime(char* return_time) {
   time_t current_time = time(NULL);
-  strftime(return_time, 26, "%Y-%m-%dT%H:%M:%S%z", localtime(&current_time));
+  strftime(return_time, 28, "\"%Y-%m-%dT%H:%M:%S%z\"",
+           localtime(&current_time));
 }
