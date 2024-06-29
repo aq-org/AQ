@@ -5,45 +5,65 @@
 #include "aqvm/memory/memory.h"
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #include "aqvm/memory/types.h"
+#include "aqvm/runtime/debugger/debugger.h"
 
 int AqvmMemory_CheckMemoryConditions() {
+  int warning_count = 0;
   if (sizeof(aqint) != 4) {
-    // TODO(WARNING): The length requirement for the int type does not conform
-    // to the type definition.
-    return -1;
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryCheckMemoryConditions_IntLengthWarning",
+        "The length requirement for the int type does not conform to the type "
+        "definition.",
+        NULL});
+    ++warning_count;
   }
   if (sizeof(aqlong) != 8) {
-    // TODO(WARNING): The length requirement for the long type does not conform
-    // to the type definition.
-    return -2;
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryCheckMemoryConditions_LongLengthWarning",
+        "The length requirement for the long type does not conform to the type "
+        "definition.",
+        NULL});
+    ++warning_count;
   }
   if (sizeof(aqfloat) != 4) {
-    // TODO(WARNING): The length requirement for the float type does not conform
-    // to the type definition.
-    return -3;
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryCheckMemoryConditions_FloatLengthWarning",
+        "The length requirement for the float type does not conform to the "
+        "type definition.",
+        NULL});
+    ++warning_count;
   }
   if (sizeof(aqdouble) != 4) {
-    // TODO(WARNING): The length requirement for the double type does not
-    // conform to the type definition.
-    return -4;
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryCheckMemoryConditions_DoubleLengthWarning",
+        "The length requirement for the double type does not conform to the "
+        "type definition.",
+        NULL});
+    ++warning_count;
   }
   if (sizeof(aqchar) != 1) {
-    // TODO(WARNING): The length requirement for the char type does not conform
-    // to the type definition.
-    return -5;
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryCheckMemoryConditions_CharLengthWarning",
+        "The length requirement for the char type does not conform to the type "
+        "definition.",
+        NULL});
+    ++warning_count;
   }
   if (sizeof(aqbool) != 1) {
-    // TODO(WARNING): The length requirement for the bool type does not conform
-    // to the type definition.
-    return -6;
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryCheckMemoryConditions_BoolLengthWarning",
+        "The length requirement for the bool type does not conform to the type "
+        "definition.",
+        NULL});
+    ++warning_count;
   }
 
-  return 0;
+  return warning_count;
 }
 
 struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
