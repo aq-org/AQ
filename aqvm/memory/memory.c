@@ -1,4 +1,4 @@
-// Copyright 2024 AQ authors, All Rights Reserved.
+// Copyright 2024 AQ author, All Rights Reserved.
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
@@ -72,6 +72,7 @@ struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
       (struct AqvmMemory_Memory*)malloc(sizeof(struct AqvmMemory_Memory));
   if (memory_ptr == NULL) {
     // TODO(WARNING): Handle the warning of memory allocation.
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){1,"AqvmMemoryCreateMemory_MemoryAllocationWarning","Can't allocate memory.",NULL});
     return NULL;
   }
 

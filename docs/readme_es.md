@@ -209,5 +209,5 @@ Además, **AQ** también puede utilizar `código parcial` de otro `software de c
 
 Creemos que la `licencia AQ` puede equilibrar el `código abierto` y la `protección de la propiedad intelectual` de **AQ**, creando condiciones favorables para el `desarrollo a largo plazo` de **AQ**. Si tiene alguna pregunta o sugerencia sobre la licencia, no dude en hablar con nosotros.
 
-> Copyright 2024 AQ authors, All Rights Reserved.
+> Copyright 2024 AQ author, All Rights Reserved.
 > This program is licensed under the AQ License. You can find the AQ license in the root directory.

@@ -209,5 +209,5 @@ AQ — проект с открытым исходным кодом, и кажд
 
 Мы считаем, что `Лицензия AQ` может хорошо сбалансировать `открытый исходный код` **AQ** и `защиту интеллектуальной собственности`, создавая благоприятные условия для `долгосрочного развития` **AQ**. Если у вас есть какие-либо вопросы или предложения по поводу лицензии, пожалуйста, не стесняйтесь обсудить их с нами.
 
-> Copyright 2024 AQ authors, All Rights Reserved.
+> Copyright 2024 AQ author, All Rights Reserved.
 > This program is licensed under the AQ License. You can find the AQ license in the root directory.

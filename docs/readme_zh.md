@@ -209,5 +209,5 @@ AQ 是一个开源项目，欢迎大家为它做出贡献！无论是提交 Bug 
 
 我们相信,`AQ 许可证`可以很好地平衡 **AQ** 的`开源性`与`知识产权保护`,为 **AQ** 的`长期发展`创造有利条件。如果您对许可证有任何`疑问或建议`,欢迎与我们讨论。
 
-> Copyright 2024 AQ authors, All Rights Reserved.
+> Copyright 2024 AQ author, All Rights Reserved.
 > This program is licensed under the AQ License. You can find the AQ license in the root directory.
