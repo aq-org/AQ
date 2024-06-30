@@ -5,8 +5,8 @@
 #ifndef AQ_AQVM_MEMORY_TYPES_H_
 #define AQ_AQVM_MEMORY_TYPES_H_
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 // 0x00 is NULL type.
 
@@ -22,5 +22,9 @@ typedef double aqdouble;
 typedef uint8_t aqchar;
 // 0x06
 typedef bool aqbool;
+
+// Portions exceeding 0x06 and falling within the range 0x0F are currently
+// designated as reserved types. Portions extending beyond 0x0F cannot be
+// utilised without exceeding the 4-bit size limit.
 
 #endif

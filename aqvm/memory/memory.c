@@ -71,8 +71,9 @@ struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
   struct AqvmMemory_Memory* memory_ptr =
       (struct AqvmMemory_Memory*)malloc(sizeof(struct AqvmMemory_Memory));
   if (memory_ptr == NULL) {
-    // TODO(WARNING): Handle the warning of memory allocation.
-    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){1,"AqvmMemoryCreateMemory_MemoryAllocationWarning","Can't allocate memory.",NULL});
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        2, "AqvmMemoryCreateMemory_MemoryAllocationFailure",
+        "Failed to allocate memory.", NULL});
     return NULL;
   }
 
@@ -89,19 +90,32 @@ void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr) {
 
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type) {
-  if (memory == NULL || memory->type == NULL) {
-    // TODO(ERROR): The memory is NULL.
+  if (memory == NULL) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemorySetType_NullMemoryPointer", "The memory pointer is NULL.",
+        NULL});
     return -1;
   }
 
-  if (index > memory->size) {
-    // TODO(ERROR): The index is out of memory range.
+  if (memory->type == NULL) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemorySetType_NullTypePointer", "The type pointer is NULL.",
+        NULL});
     return -2;
   }
 
-  if (type > 0x0F) {
-    // TODO(ERROR): The type is out of range.
+  if (index > memory->size) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemorySetType_OutOfMemoryRange",
+        "The index is out of memory range.", NULL});
     return -3;
+  }
+
+  if (type > 0x0F) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemorySetType_OutOfTypeRange", "The type is out of range.",
+        NULL});
+    return -4;
   }
 
   if (index % 2 != 0) {
@@ -114,14 +128,25 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
 }
 
 uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
-  if (memory == NULL || memory->type == NULL) {
-    // TODO(ERROR): The memory is NULL.
-    return 0x10;
+  if (memory == NULL) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryGetType_NullMemoryPointer", "The memory pointer is NULL.",
+        NULL});
+    return 0x11;
+  }
+
+  if (memory->type == NULL) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryGetType_NullTypePointer", "The type pointer is NULL.",
+        NULL});
+    return 0x12;
   }
 
   if (index > memory->size) {
-    // TODO(ERROR): The index is out of memory range.
-    return 0x20;
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryGetType_OutOfMemoryRange",
+        "The index is out of memory range.", NULL});
+    return 0x13;
   }
 
   if (index % 2 != 0) {
@@ -133,17 +158,31 @@ uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
 
 int AqvmMemory_WriteData(struct AqvmMemory_Memory* memory, size_t index,
                          void* data_ptr, size_t size) {
-  if (memory == NULL || memory->data == NULL) {
-    // TODO(ERROR): The memory is NULL.
+  if (memory == NULL) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryWriteData_NullMemoryPointer",
+        "The memory pointer is NULL.", NULL});
     return -1;
   }
-  if (index + size > memory->size) {
-    // TODO(ERROR): The index is out of memory range.
+
+  if (memory->type == NULL) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryWriteData_NullTypePointer", "The type pointer is NULL.",
+        NULL});
     return -2;
   }
-  if (data_ptr == NULL) {
-    // TODO(ERROR): The data is NULL.
+
+  if (index > memory->size) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryWriteData_OutOfMemoryRange",
+        "The index is out of memory range.", NULL});
     return -3;
+  }
+
+  if (data_ptr == NULL) {
+    AqvmRuntimeDebugger_OutputReport((struct AqvmRuntimeDebugger_DebugReport){
+        1, "AqvmMemoryWriteData_NullDataPointer", "The data pointer is NULL.", NULL});
+    return -4;
   }
 
   memcpy((void*)((uintptr_t)memory->data + index), data_ptr, size);
