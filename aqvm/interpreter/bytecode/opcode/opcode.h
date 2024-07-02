@@ -39,7 +39,7 @@ enum AqvmInterpreterBytecodeOpcode_Type {
 };
 
 // TODO(Bytecode): Change these functions after completing bytecode development.
-int AqvmInterpreterBytecodeOpcode_NOP();
+/* int AqvmInterpreterBytecodeOpcode_NOP();
 int AqvmInterpreterBytecodeOpcode_LOAD(
     struct AqvmMemory_Memory* ptr,
     struct AqvmMemory_Memory* operand);
@@ -101,5 +101,6 @@ int AqvmInterpreterBytecodeOpcode_THROW();
 
 // TODO(WIDE): Update this function if an extended instruction set is required.
 int AqvmInterpreterBytecodeOpcode_WIDE();
+*/
 
 #endif
