@@ -28,12 +28,13 @@ struct AqvmMemory_Memory {
 };
 
 // Checks the memory conditions in the system.
-// Returns the warning counts.
+// Returns the number of warnings and sends the associated report.
 int AqvmMemory_CheckMemoryConditions();
 
 // Creates the struct AqvmMemory_Memory with |data|, |type|, and |size|.
 // The function will allocate a struct AqvmMemory_Memory and copy |data|,
-// |type|, and |size| into the struct. Returns a pointer to the struct.
+// |type|, and |size| into the struct. Returns a pointer to the struct if
+// successful. Returns NULL and sends an error report if creation fails.
 struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
                                                   size_t size);
 
@@ -47,7 +48,7 @@ void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr);
 // should be less than 4 bits.
 // Returns 0 if successful. Returns -1 if the memory pointer is NULL. Returns -2
 // if the type pointer is NULL. Returns -3 if the index is out of range. Returns
-// -3 if the type is out of range.
+// -4 if the type is out of range.
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type);
 
