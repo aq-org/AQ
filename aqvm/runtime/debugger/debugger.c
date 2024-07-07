@@ -18,24 +18,26 @@ void AqvmRuntimeDebugger_OutputReport(
   AqvmRuntimeDebugger_GetCurrentTime(time);
 
   fprintf(stderr,
-          "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
+          "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
+          "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
           time, type, report.code, report.message, errno, strerror(errno),
           report.other_info);
 }
 
-const char* AqvmRuntimeDebugger_FormatReport(
-    struct AqvmRuntimeDebugger_DebugReport* report) {
-  if (report->code == NULL) {
-    report->code = "NULL";
+const char* AqvmRuntimeDebugger_FormatReport(uint8_t type, const char* code,
+                                             const char* message,
+                                             const char* other_info) {
+  if (code == NULL) {
+    code = "NULL";
   }
-  if (report->message == NULL) {
-    report->message = "NULL";
+  if (message == NULL) {
+    message = "NULL";
   }
-  if (report->other_info == NULL) {
-    report->other_info = "NULL";
+  if (other_info == NULL) {
+    other_info = "NULL";
   }
 
-  switch (report->type) {
+  switch (type) {
     case 0:
       return "\"INFO\"";
     case 1:
