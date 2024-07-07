@@ -22,8 +22,10 @@ typedef double aqdouble;
 typedef uint8_t aqchar;
 // 0x06
 typedef bool aqbool;
+// 0x07
+typedef uint8_t aqbyte;
 
-// Portions exceeding 0x06 and falling within the range 0x0F are currently
+// Portions exceeding 0x07 and falling within the range 0x0F are currently
 // designated as reserved types. Portions extending beyond 0x0F cannot be
 // utilised without exceeding the 4-bit size limit.
 
