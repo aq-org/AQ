@@ -13,7 +13,7 @@
 void AqvmRuntimeDebugger_OutputReport(uint8_t type, const char* code,
                                       const char* message,
                                       const char* other_info) {
-  const char* type =
+  const char* type_str =
       AqvmRuntimeDebugger_FormatReport(type, code, message, other_info);
 
   char time[28];
@@ -22,7 +22,7 @@ void AqvmRuntimeDebugger_OutputReport(uint8_t type, const char* code,
   fprintf(stderr,
           "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
           "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
-          time, type, code, message, errno, strerror(errno), other_info);
+          time, type_str, code, message, errno, strerror(errno), other_info);
 }
 
 const char* AqvmRuntimeDebugger_FormatReport(uint8_t type, const char* code,
