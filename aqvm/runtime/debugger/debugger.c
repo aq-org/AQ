@@ -10,9 +10,11 @@
 #include <string.h>
 #include <time.h>
 
-void AqvmRuntimeDebugger_OutputReport(
-    struct AqvmRuntimeDebugger_DebugReport report) {
-  const char* type = AqvmRuntimeDebugger_FormatReport(&report);
+void AqvmRuntimeDebugger_OutputReport(uint8_t type, const char* code,
+                                      const char* message,
+                                      const char* other_info) {
+  const char* type =
+      AqvmRuntimeDebugger_FormatReport(type, code, message, other_info);
 
   char time[28];
   AqvmRuntimeDebugger_GetCurrentTime(time);
@@ -20,8 +22,7 @@ void AqvmRuntimeDebugger_OutputReport(
   fprintf(stderr,
           "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
           "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
-          time, type, report.code, report.message, errno, strerror(errno),
-          report.other_info);
+          time, type, code, message, errno, strerror(errno), other_info);
 }
 
 const char* AqvmRuntimeDebugger_FormatReport(uint8_t type, const char* code,
