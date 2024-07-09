@@ -10,24 +10,12 @@
 #include <string.h>
 #include <time.h>
 
-void AqvmRuntimeDebugger_OutputReport(uint8_t type, const char* code,
+void AqvmRuntimeDebugger_OutputReport(const char* type, const char* code,
                                       const char* message,
                                       const char* other_info) {
-  const char* type_str =
-      AqvmRuntimeDebugger_FormatReport(type, code, message, other_info);
-
-  char time[28];
-  AqvmRuntimeDebugger_GetCurrentTime(time);
-
-  fprintf(stderr,
-          "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
-          "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
-          time, type_str, code, message, errno, strerror(errno), other_info);
-}
-
-const char* AqvmRuntimeDebugger_FormatReport(uint8_t type, const char* code,
-                                             const char* message,
-                                             const char* other_info) {
+  if (type == NULL) {
+    type = "NULL";
+  }
   if (code == NULL) {
     code = "NULL";
   }
@@ -38,20 +26,12 @@ const char* AqvmRuntimeDebugger_FormatReport(uint8_t type, const char* code,
     other_info = "NULL";
   }
 
-  switch (type) {
-    case 0:
-      return "\"INFO\"";
-    case 1:
-      return "\"WARNING\"";
-    case 2:
-      return "\"ERROR\"";
-    default:
-      return "NULL";
-  }
-}
-
-void AqvmRuntimeDebugger_GetCurrentTime(char* return_time) {
+  char time_str[28];
   time_t current_time = time(NULL);
-  strftime(return_time, 28, "\"%Y-%m-%dT%H:%M:%S%z\"",
-           localtime(&current_time));
+  strftime(time_str, 28, "\"%Y-%m-%dT%H:%M:%S%z\"", localtime(&current_time));
+
+  fprintf(stderr,
+          "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
+          "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
+          time_str, type, code, message, errno, strerror(errno), other_info);
 }

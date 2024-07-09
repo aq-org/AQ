@@ -7,44 +7,21 @@
 
 #include <stdint.h>
 
-// The struct stores information about the debug report. |type| is the type of
-// the report. In |type|, 0 is INFO, 1 is WARNING, and 2 is ERROR.
-// |type|, |code|, and |message| are necessary and shouldn't be set to NULL in
-// common. |other_info| is a pointer to the other information and it can be set
-// to NULL if it is not needed.
-// NOTICE: If you need to use it, please use json format.
-struct AqvmRuntimeDebugger_DebugReport {
-  uint8_t type;
-  char* code;
-  char* message;
-  char* other_info;
-};
-
 // Outputs |report| with time, errno and so on to printing to the console or
 // other devices and writing to a log file. No return.
-// |type| is the type of the report. In |type|, 0 is INFO, 1 is WARNING, and 2
-// is ERROR. |type|, |code|, and |message| are necessary and shouldn't be set to
-// NULL in common. |other_info| is a pointer to the other information and it can
-// be set to NULL if it is not needed.
-// NOTICE: If you need to use it, please use json format. The output is json
-// format.
-void AqvmRuntimeDebugger_OutputReport(uint8_t type, const char* code,
+// |type|, |code|, and |message| are necessary and shouldn't be set to NULL in
+// common. But |other_info| can be set to NULL if it is not needed.
+// In general, |type| should be "ERROR", "WARNING" or "INFO". |code| should be a
+// full function name plus a concise description of the error, separated by
+// underscores (e.g., AqvmRuntimeDebugger_OutputReport_TestInfo). |message|
+// should be a detailed and accurate description. |other_info| on the other hand
+// should be an additional information to the current report (e.g. system
+// information).
+// NOTICE: If you need to use the function, please use json format. The output
+// is json format. For example, AqvmRuntimeDebugger_OutputReport("\"type\"",
+// "\"code\"", "\"message\"", "\"other_info\"");
+void AqvmRuntimeDebugger_OutputReport(const char* type, const char* code,
                                       const char* message,
                                       const char* other_info);
-
-// INTERNAL USE ONLY.
-// Gets the current time in a string format based on ISO 8601 standard and
-// stores it in |return_time|. No return.
-// |return_time| length is at least 28 bytes.
-// NOTICE: The output is json format.
-void AqvmRuntimeDebugger_GetCurrentTime(char* return_time);
-
-// INTERNAL USE ONLY.
-// If |code|, |message|, or |other_info| is NULL, It will be set to the string
-// "NULL". Returns type string accroding to the |type|.
-// NOTICE: The output is json format.
-const char* AqvmRuntimeDebugger_FormatReport(uint8_t type, const char* code,
-                                             const char* message,
-                                             const char* other_info);
 
 #endif
