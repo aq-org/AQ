@@ -34,7 +34,8 @@ int AqvmMemory_CheckMemoryConditions() {
   }
   if (sizeof(aqfloat) != 4) {
     AqvmRuntimeDebugger_OutputReport(
-        "\"WARNING\"", "\"AqvmMemory_CheckMemoryConditions_FloatLengthWarning\"",
+        "\"WARNING\"",
+        "\"AqvmMemory_CheckMemoryConditions_FloatLengthWarning\"",
         "\"The length requirement for the float type does not conform to the "
         "type definition.\"",
         NULL);
@@ -65,6 +66,12 @@ int AqvmMemory_CheckMemoryConditions() {
         "definition.",
         NULL);
     ++warning_count;
+  }
+
+  if (warning_count == 0) {
+    AqvmRuntimeDebugger_OutputReport("\"INFO\"",
+                                     "\"AqvmMemory_CheckMemoryConditions_CheckNormal\"",
+                                     "\"No memory conditions warning.\"", NULL);
   }
 
   return warning_count;
@@ -100,21 +107,18 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                                      "\"The memory pointer is NULL.\"", NULL);
     return -1;
   }
-
   if (memory->type == NULL) {
     AqvmRuntimeDebugger_OutputReport("\"ERROR\"",
                                      "\"AqvmMemory_SetType_NullTypePointer\"",
                                      "\"The type pointer is NULL.\"", NULL);
     return -2;
   }
-
   if (index > memory->size) {
     AqvmRuntimeDebugger_OutputReport(
         "\"ERROR\"", "\"AqvmMemory_SetType_OutOfMemoryRange\"",
         "\"The index is out of memory range.\"", NULL);
     return -3;
   }
-
   if (type > 0x0F) {
     AqvmRuntimeDebugger_OutputReport("\"ERROR\"",
                                      "\"AqvmMemory_SetType_OutOfTypeRange\"",
@@ -122,6 +126,12 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
     return -4;
   }
 
+  // Sets the type of the data at |index| bytes in memory.
+  // Since Aqvm stores type data occupying 4 bits and uint8_t occupying 8 bits,
+  // each uint8_t type location stores two type data. The storage locations
+  // (high 4 bits, low 4 bits) are set according to the parity of |index|. Even
+  // numbers are stored in the high bits of (|index| / 2) and odd numbers are
+  // stored in the low bits of (|index| / 2).
   if (index % 2 != 0) {
     memory->type[index / 2] = (memory->type[index / 2] & 0xF0) | type;
   } else {
@@ -138,14 +148,12 @@ uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
                                      "\"The memory pointer is NULL.\"", NULL);
     return 0x11;
   }
-
   if (memory->type == NULL) {
     AqvmRuntimeDebugger_OutputReport("\"ERROR\"",
                                      "\"AqvmMemory_GetType_NullTypePointer\"",
                                      "\"The type pointer is NULL.\"", NULL);
     return 0x12;
   }
-
   if (index > memory->size) {
     AqvmRuntimeDebugger_OutputReport(
         "\"ERROR\"", "\"AqvmMemory_GetType_OutOfMemoryRange\"",
@@ -153,6 +161,12 @@ uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
     return 0x13;
   }
 
+  // Gets the type of the data at |index| bytes in memory.
+  // Since Aqvm stores type data occupying 4 bits and uint8_t occupying 8 bits,
+  // each uint8_t type location stores two type data. The storage locations
+  // (high 4 bits, low 4 bits) are set according to the parity of |index|. Even
+  // numbers are stored in the high bits of (|index| / 2) and odd numbers are
+  // stored in the low bits of (|index| / 2).
   if (index % 2 != 0) {
     return memory->type[index / 2] & 0x0F;
   } else {
@@ -168,21 +182,18 @@ int AqvmMemory_WriteData(struct AqvmMemory_Memory* memory, size_t index,
         "\"The memory pointer is NULL.\"", NULL);
     return -1;
   }
-
   if (memory->type == NULL) {
     AqvmRuntimeDebugger_OutputReport("\"ERROR\"",
                                      "\"AqvmMemory_WriteData_NullTypePointer\"",
                                      "\"The type pointer is NULL.\"", NULL);
     return -2;
   }
-
   if (index > memory->size) {
     AqvmRuntimeDebugger_OutputReport(
         "\"ERROR\"", "\"AqvmMemory_WriteData_OutOfMemoryRange\"",
         "\"The index is out of memory range.\"", NULL);
     return -3;
   }
-
   if (data_ptr == NULL) {
     AqvmRuntimeDebugger_OutputReport("\"ERROR\"",
                                      "\"AqvmMemory_WriteData_NullDataPointer\"",
@@ -190,6 +201,9 @@ int AqvmMemory_WriteData(struct AqvmMemory_Memory* memory, size_t index,
     return -4;
   }
 
+  // Since void* does not have a specific size, pointer moves need to be
+  // converted before moving.
   memcpy((void*)((uintptr_t)memory->data + index), data_ptr, size);
+
   return 0;
 }
