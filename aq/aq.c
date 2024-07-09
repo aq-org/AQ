@@ -11,6 +11,7 @@
 
 int main(int argc, char *argv[]) {
   // TODO(Aqvm): Finish this function after completing AQVM development.
+  AqvmRuntimeDebugger_OutputReport("\"INFO\"", "\"main_Start\"", "\"Aq main program has been started.\"", NULL);
   if (Aqvm_InitVm() != 0) {
     AqvmRuntimeDebugger_OutputReport("\"ERROR\"", "\"main_InitVmError\"",
                                      "\"Initializing Aqvm met error.\"", NULL);
