@@ -69,8 +69,12 @@ int AqvmMemory_CheckMemoryConditions() {
   return warning_count;
 }
 
-struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
-                                                  size_t size) {
+struct AqvmMemory_Memory* AqvmMemory_InitializeMemory(void* data, void* type,
+                                                      size_t size) {
+  AqvmRuntimeDebugger_OutputReport("\"INFO\"",
+                                   "\"AqvmMemory_InitializeMemory_Start\"",
+                                   "\"Memory initialization started.\"", NULL);
+
   struct AqvmMemory_Memory* memory_ptr =
       (struct AqvmMemory_Memory*)malloc(sizeof(struct AqvmMemory_Memory));
   if (memory_ptr == NULL) {
@@ -88,6 +92,10 @@ struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
 }
 
 void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr) {
+  AqvmRuntimeDebugger_OutputReport("\"INFO\"",
+                                   "\"AqvmMemory_FreeMemory_Start\"",
+                                   "\"Memory deallocation started.\"", NULL);
+
   free(memory_ptr);
 }
 

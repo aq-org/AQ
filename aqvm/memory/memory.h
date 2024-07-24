@@ -31,12 +31,12 @@ struct AqvmMemory_Memory {
 // Returns the number of warnings.
 int AqvmMemory_CheckMemoryConditions();
 
-// Creates the struct AqvmMemory_Memory with |data|, |type|, and |size|.
-// The function will allocate a struct AqvmMemory_Memory and copy |data|,
-// |type|, and |size| into the struct. Returns a pointer to the struct if
-// successful. Returns NULL if creation fails.
-struct AqvmMemory_Memory* AqvmMemory_CreateMemory(void* data, void* type,
-                                                  size_t size);
+// Creates and initializes the struct AqvmMemory_Memory with |data|, |type|, and
+// |size|. The function will allocate a struct AqvmMemory_Memory and copy
+// |data|, |type|, and |size| into the struct. Returns a pointer to the struct
+// if successful. Returns NULL if creation fails.
+struct AqvmMemory_Memory* AqvmMemory_InitializeMemory(void* data, void* type,
+                                                      size_t size);
 
 // Free the memory of the |memory_ptr|. No return.
 // NOTICE: The function only free the memory of the struct. The memory pointed
