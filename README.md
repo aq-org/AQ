@@ -48,7 +48,7 @@
    <p align="center">
      <a href="https://www.twitter.com/aq_organization" rel="nofollow"><img src="https://img.shields.io/badge/x-%23232323.svg?&amp;style =for-the-badge&amp;logo=X&amp;logoColor=white" height="25" style="max-width: 100%;"></a>
      <a href="https://www.instagram.com/aqsorg/" rel="nofollow"><img src="https://img.shields.io/badge/instagram-%23E4405F.svg?&amp; style=for-the-badge&amp;logo=instagram&amp;logoColor=white" height="25" style="max-width: 100%;"></a>
-     <a href="https://www.facebook.com/aqorg" rel="nofollow"><img src="https://img.shields.io/badge/facebook-%231DA1F2.svg?&amp;style =for-the-badge&amp;logo=facebook&amp;logoColor=white" height="25" style="max-width: 100%;"></a>
+     <a href="https://www.facebook.com/aq.organization" rel="nofollow"><img src="https://img.shields.io/badge/facebook-%231DA1F2.svg?&amp;style =for-the-badge&amp;logo=facebook&amp;logoColor=white" height="25" style="max-width: 100%;"></a>
      <a href="https://www.reddit.com/u/aqorg/" rel="nofollow"><img src="https://img.shields.io/badge/reddit-%23E4405F.svg? &amp;style=for-the-badge&amp;logo=reddit&amp;logoColor=white" height="25" style="max-width: 100%;"></a>
      <a href="https://aqorg.tumblr.com/" rel="nofollow"><img src="https://img.shields.io/badge/tumblr-%23232323.svg?&amp;style= for-the-badge&amp;logo=tumblr&amp;logoColor=white" height="25" style="max-width: 100%;"></a>
      </p>
