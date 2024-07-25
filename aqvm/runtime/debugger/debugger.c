@@ -34,4 +34,20 @@ void AqvmRuntimeDebugger_OutputReport(const char* type, const char* code,
           "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
           "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
           time_str, type, code, message, errno, strerror(errno), other_info);
+
+  FILE* log_ptr = fopen(".aqvm_debug_report.log", "a");
+  if (log_ptr == NULL) {
+    fprintf(
+        stderr,
+        "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
+        "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
+        time_str, "ERROR", "AqvmRuntimeDebugger_OutputReport_OutputToFileError",
+        "Failed to open log file", errno, strerror(errno), "NULL");
+    return;
+  }
+  fprintf(log_ptr,
+          "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
+          "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
+          time_str, type, code, message, errno, strerror(errno), other_info);
+  fclose(log_ptr);
 }
