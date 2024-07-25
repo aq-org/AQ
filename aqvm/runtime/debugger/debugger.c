@@ -10,9 +10,9 @@
 #include <string.h>
 #include <time.h>
 
-void AqvmRuntimeDebugger_OutputReport(const char* type, const char* code,
-                                      const char* message,
-                                      const char* other_info) {
+void AqvmRuntimeDebugger_OutputLog(const char* type, const char* code,
+                                   const char* message,
+                                   const char* other_info) {
   if (type == NULL) {
     type = "NULL";
   }
@@ -41,7 +41,7 @@ void AqvmRuntimeDebugger_OutputReport(const char* type, const char* code,
         stderr,
         "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
         "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
-        time_str, "ERROR", "AqvmRuntimeDebugger_OutputReport_OutputToFileError",
+        time_str, "ERROR", "AqvmRuntimeDebugger_OutputLog_OutputToFileError",
         "Failed to open log file", errno, strerror(errno), "NULL");
     return;
   }
