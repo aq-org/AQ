@@ -2,7 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aqvm/runtime/debugger/debugger.h"
+#include "aqvm/base/logging.h"
 
 #include <errno.h>
 #include <stdint.h>
@@ -10,7 +10,7 @@
 #include <string.h>
 #include <time.h>
 
-void AqvmRuntimeDebugger_OutputLog(const char* type, const char* code,
+void AqvmBase_OutputLog(const char* type, const char* code,
                                    const char* message,
                                    const char* other_info) {
   if (type == NULL) {
@@ -35,13 +35,13 @@ void AqvmRuntimeDebugger_OutputLog(const char* type, const char* code,
           "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
           time_str, type, code, message, errno, strerror(errno), other_info);
 
-  FILE* log_ptr = fopen(".aqvm_debug_report.log", "a");
+  FILE* log_ptr = fopen(".aqvm_log.log", "a");
   if (log_ptr == NULL) {
     fprintf(
         stderr,
         "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
         "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
-        time_str, "ERROR", "AqvmRuntimeDebugger_OutputLog_OutputToFileError",
+        time_str, "ERROR", "AqvmBase_OutputLog_OutputToFileError",
         "Failed to open log file", errno, strerror(errno), "NULL");
     return;
   }

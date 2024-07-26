@@ -10,4 +10,4 @@ set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/memory.c)
 
 add_library(AqvmMemory STATIC ${SOURCES})
 
-target_link_libraries(AqvmMemory PRIVATE AqvmRuntime)
+target_link_libraries(AqvmMemory PRIVATE AqvmBase)

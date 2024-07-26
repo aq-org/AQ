@@ -7,30 +7,30 @@
 #include <stdio.h>
 
 #include "aqvm/aqvm.h"
-#include "aqvm/runtime/debugger/debugger.h"
+#include "aqvm/base/logging.h"
 
 int main(int argc, char *argv[]) {
   // TODO(Aqvm): Finish this function after completing AQVM development.
-  AqvmRuntimeDebugger_OutputLog("\"INFO\"", "\"main_Start\"",
+  AqvmBase_OutputLog("\"INFO\"", "\"main_Start\"",
                                 "\"Aq main program has been started.\"", NULL);
 
   // TODO(Aq): Before the official release, remove the judgment logic for
   // command line arguments and design a dedicated component to parse command
   // line arguments.
   if (argc < 2) {
-    AqvmRuntimeDebugger_OutputLog(
+    AqvmBase_OutputLog(
         "\"ERROR\"", "\"main_ArgsError\"",
         "\"Please provide a file name as an argument.\"", NULL);
     return -1;
   }
 
   if (Aqvm_StartVm(argv[1]) != 0) {
-    AqvmRuntimeDebugger_OutputLog("\"ERROR\"", "\"main_InitVmError\"",
+    AqvmBase_OutputLog("\"ERROR\"", "\"main_InitVmError\"",
                                   "\"Starting Aqvm met error.\"", NULL);
     return -1;
   }
 
-  AqvmRuntimeDebugger_OutputLog("\"INFO\"", "\"main_End\"",
+  AqvmBase_OutputLog("\"INFO\"", "\"main_End\"",
                                 "\"Aq main program has ended.\"", NULL);
   return 0;
 }

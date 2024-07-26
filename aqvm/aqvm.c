@@ -5,16 +5,16 @@
 #include "aqvm/aqvm.h"
 
 #include "aqvm/memory/memory.h"
-#include "aqvm/runtime/debugger/debugger.h"
+#include "aqvm/base/logging.h"
 
 int Aqvm_StartVm(const char* FileName) {
   // TODO(Aqvm): Finish this function after completing AQVM development.
-  AqvmRuntimeDebugger_OutputLog("\"INFO\"", "\"Aqvm_StartVm_Start\"",
+  AqvmBase_OutputLog("\"INFO\"", "\"Aqvm_StartVm_Start\"",
                                 "\"Initializing Aqvm has been started.\"",
                                 NULL);
 
   if (AqvmMemory_CheckMemoryConditions() != 0) {
-    AqvmRuntimeDebugger_OutputLog(
+    AqvmBase_OutputLog(
         "\"ERROR\"", "\"Aqvm_StartVm_CheckMemoryConditionsError\"",
         "\"Checking memory conditions met error.\"", NULL);
     return -1;

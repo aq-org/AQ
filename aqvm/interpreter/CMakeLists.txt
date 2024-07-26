@@ -11,8 +11,9 @@ set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/interpreter.c)
 add_library(AqvmInterpreter STATIC ${SOURCES})
 
 add_subdirectory(bytecode)
+add_subdirectory(operator)
 
-target_link_libraries(AqvmInterpreter PRIVATE AqvmRuntime)
+target_link_libraries(AqvmInterpreter PRIVATE AqvmBase)
 target_link_libraries(AqvmInterpreter PRIVATE AqvmMemory)
-target_link_libraries(AqvmInterpreter PRIVATE AqvmOs)
 target_link_libraries(AqvmInterpreter PRIVATE AqvmInterpreterBytecode)
+target_link_libraries(AqvmInterpreter PRIVATE AqvmInterpreterOperator)

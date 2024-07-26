@@ -6,8 +6,8 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/opcode.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/operator.c)
 
-add_library(AqvmInterpreterBytecodeOpcode STATIC ${SOURCES})
+add_library(AqvmInterpreterOperator STATIC ${SOURCES})
 
-target_link_libraries(AqvmInterpreterBytecodeOpcode PRIVATE AqvmRuntime)
+target_link_libraries(AqvmInterpreterOperator PRIVATE AqvmBase)

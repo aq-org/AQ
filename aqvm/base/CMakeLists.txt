@@ -6,6 +6,6 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/debugger.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/logging.c)
 
-add_library(AqvmRuntimeDebugger STATIC ${SOURCES})
+add_library(AqvmBase STATIC ${SOURCES})
