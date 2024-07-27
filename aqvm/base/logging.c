@@ -10,9 +10,8 @@
 #include <string.h>
 #include <time.h>
 
-void AqvmBase_OutputLog(const char* type, const char* code,
-                                   const char* message,
-                                   const char* other_info) {
+void AqvmBase_OutputLog(const char* type, const char* code, const char* message,
+                        const char* other_info) {
   if (type == NULL) {
     type = "NULL";
   }

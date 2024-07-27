@@ -21,7 +21,7 @@
 // NOTICE: If you need to use the function, please use json format. The output
 // is json format. For example, AqvmBase_OutputLog("\"type\"",
 // "\"code\"", "\"message\"", "\"other_info\"");
-void AqvmBase_OutputLog(const char* type, const char* code,
-                                   const char* message, const char* other_info);
+void AqvmBase_OutputLog(const char* type, const char* code, const char* message,
+                        const char* other_info);
 
 #endif

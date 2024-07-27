@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "aqvm/memory/types.h"
 #include "aqvm/base/logging.h"
+#include "aqvm/memory/types.h"
 
 int AqvmMemory_CheckMemoryConditions() {
   int warning_count = 0;
@@ -61,9 +61,9 @@ int AqvmMemory_CheckMemoryConditions() {
   }
 
   if (warning_count == 0) {
-    AqvmBase_OutputLog(
-        "\"INFO\"", "\"AqvmMemory_CheckMemoryConditions_CheckNormal\"",
-        "\"No memory conditions warning.\"", NULL);
+    AqvmBase_OutputLog("\"INFO\"",
+                       "\"AqvmMemory_CheckMemoryConditions_CheckNormal\"",
+                       "\"No memory conditions warning.\"", NULL);
   }
 
   return warning_count;
@@ -71,16 +71,15 @@ int AqvmMemory_CheckMemoryConditions() {
 
 struct AqvmMemory_Memory* AqvmMemory_InitializeMemory(void* data, void* type,
                                                       size_t size) {
-  AqvmBase_OutputLog("\"INFO\"",
-                                "\"AqvmMemory_InitializeMemory_Start\"",
-                                "\"Memory initialization started.\"", NULL);
+  AqvmBase_OutputLog("\"INFO\"", "\"AqvmMemory_InitializeMemory_Start\"",
+                     "\"Memory initialization started.\"", NULL);
 
   struct AqvmMemory_Memory* memory_ptr =
       (struct AqvmMemory_Memory*)malloc(sizeof(struct AqvmMemory_Memory));
   if (memory_ptr == NULL) {
-    AqvmBase_OutputLog(
-        "\"ERROR\"", "\"AqvmMemory_CreateMemory_MemoryAllocationFailure\"",
-        "\"Failed to allocate memory.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"",
+                       "\"AqvmMemory_CreateMemory_MemoryAllocationFailure\"",
+                       "\"Failed to allocate memory.\"", NULL);
     return NULL;
   }
 
@@ -93,7 +92,7 @@ struct AqvmMemory_Memory* AqvmMemory_InitializeMemory(void* data, void* type,
 
 void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr) {
   AqvmBase_OutputLog("\"INFO\"", "\"AqvmMemory_FreeMemory_Start\"",
-                                "\"Memory deallocation started.\"", NULL);
+                     "\"Memory deallocation started.\"", NULL);
 
   free(memory_ptr);
 }
@@ -101,27 +100,23 @@ void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr) {
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
                        uint8_t type) {
   if (memory == NULL) {
-    AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_SetType_NullMemoryPointer\"",
-                                  "\"The memory pointer is NULL.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_SetType_NullMemoryPointer\"",
+                       "\"The memory pointer is NULL.\"", NULL);
     return -1;
   }
   if (memory->type == NULL) {
-    AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_SetType_NullTypePointer\"",
-                                  "\"The type pointer is NULL.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_SetType_NullTypePointer\"",
+                       "\"The type pointer is NULL.\"", NULL);
     return -2;
   }
   if (index > memory->size) {
-    AqvmBase_OutputLog(
-        "\"ERROR\"", "\"AqvmMemory_SetType_OutOfMemoryRange\"",
-        "\"The index is out of memory range.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_SetType_OutOfMemoryRange\"",
+                       "\"The index is out of memory range.\"", NULL);
     return -3;
   }
   if (type > 0x0F) {
-    AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_SetType_OutOfTypeRange\"",
-                                  "\"The type is out of range.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_SetType_OutOfTypeRange\"",
+                       "\"The type is out of range.\"", NULL);
     return -4;
   }
 
@@ -142,21 +137,18 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
 
 uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
   if (memory == NULL) {
-    AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_GetType_NullMemoryPointer\"",
-                                  "\"The memory pointer is NULL.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_GetType_NullMemoryPointer\"",
+                       "\"The memory pointer is NULL.\"", NULL);
     return 0x11;
   }
   if (memory->type == NULL) {
-    AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_GetType_NullTypePointer\"",
-                                  "\"The type pointer is NULL.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_GetType_NullTypePointer\"",
+                       "\"The type pointer is NULL.\"", NULL);
     return 0x12;
   }
   if (index > memory->size) {
-    AqvmBase_OutputLog(
-        "\"ERROR\"", "\"AqvmMemory_GetType_OutOfMemoryRange\"",
-        "\"The index is out of memory range.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_GetType_OutOfMemoryRange\"",
+                       "\"The index is out of memory range.\"", NULL);
     return 0x13;
   }
 
@@ -177,26 +169,23 @@ int AqvmMemory_WriteData(struct AqvmMemory_Memory* memory, size_t index,
                          void* data_ptr, size_t size) {
   if (memory == NULL) {
     AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_WriteData_NullMemoryPointer\"",
-                                  "\"The memory pointer is NULL.\"", NULL);
+                       "\"AqvmMemory_WriteData_NullMemoryPointer\"",
+                       "\"The memory pointer is NULL.\"", NULL);
     return -1;
   }
   if (memory->type == NULL) {
-    AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_WriteData_NullTypePointer\"",
-                                  "\"The type pointer is NULL.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_WriteData_NullTypePointer\"",
+                       "\"The type pointer is NULL.\"", NULL);
     return -2;
   }
   if (index > memory->size) {
-    AqvmBase_OutputLog(
-        "\"ERROR\"", "\"AqvmMemory_WriteData_OutOfMemoryRange\"",
-        "\"The index is out of memory range.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_WriteData_OutOfMemoryRange\"",
+                       "\"The index is out of memory range.\"", NULL);
     return -3;
   }
   if (data_ptr == NULL) {
-    AqvmBase_OutputLog("\"ERROR\"",
-                                  "\"AqvmMemory_WriteData_NullDataPointer\"",
-                                  "\"The data pointer is NULL.\"", NULL);
+    AqvmBase_OutputLog("\"ERROR\"", "\"AqvmMemory_WriteData_NullDataPointer\"",
+                       "\"The data pointer is NULL.\"", NULL);
     return -4;
   }
 
