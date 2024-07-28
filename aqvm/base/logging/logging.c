@@ -2,7 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aqvm/base/logging.h"
+#include "aqvm/base/logging/logging.h"
 
 #include <errno.h>
 #include <stdint.h>
@@ -10,8 +10,8 @@
 #include <string.h>
 #include <time.h>
 
-void AqvmBase_OutputLog(const char* type, const char* code, const char* message,
-                        const char* other_info) {
+void AqvmBaseLogging_OutputLog(const char* type, const char* code,
+                               const char* message, const char* other_info) {
   if (type == NULL) {
     type = "NULL";
   }
@@ -40,7 +40,7 @@ void AqvmBase_OutputLog(const char* type, const char* code, const char* message,
         stderr,
         "{\"Time\":%s,\"Type\":%s,\"Code\":%s,\"Message\":%s,\"ErrnoInfo\":{"
         "\"Errno\":%d,\"Message\":\"%s\"},\"OtherInfo\":%s}\n",
-        time_str, "ERROR", "AqvmBase_OutputLog_OutputToFileError",
+        time_str, "ERROR", "AqvmBaseLogging_OutputLog_OutputToFileError",
         "Failed to open log file", errno, strerror(errno), "NULL");
     return;
   }
