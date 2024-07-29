@@ -10,10 +10,12 @@ set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/aqvm.c)
 
 add_subdirectory(base)
 add_subdirectory(memory)
+add_subdirectory(bytecode)
 add_subdirectory(interpreter)
 
 add_library(Aqvm STATIC ${SOURCES})
 
-target_link_libraries(Aqvm PRIVATE AqvmMemory)
 target_link_libraries(Aqvm PRIVATE AqvmBase)
+target_link_libraries(Aqvm PRIVATE AqvmMemory)
+target_link_libraries(Aqvm PRIVATE AqvmBytecode)
 target_link_libraries(Aqvm PRIVATE AqvmInterpreter)

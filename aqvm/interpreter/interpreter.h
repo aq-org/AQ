@@ -5,6 +5,6 @@
 #ifndef AQ_AQVM_INTERPRETER_INTERPRETER_H_
 #define AQ_AQVM_INTERPRETER_INTERPRETER_H_
 
-#include "aqvm/interpreter/bytecode/bytecode.h"
+#include "aqvm/bytecode/bytecode.h"
 
 #endif

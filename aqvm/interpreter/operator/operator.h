@@ -86,11 +86,9 @@ int AqvmInterpreterOperator_SAR(
     struct AqvmMemory_Memory* operand1,
     struct AqvmMemory_Memory* operand2);
 int AqvmInterpreterOperator_IF();
-int AqvmInterpreterOperator_AND(bool result, bool operand1,
-                                      bool operand2);
+int AqvmInterpreterOperator_AND(bool result, bool operand1,                              bool operand2);
 int AqvmInterpreterOperator_OR(bool result, bool operand1, bool operand2);
-int AqvmInterpreterOperator_XOR(bool result, bool operand1,
-                                      bool operand2);
+int AqvmInterpreterOperator_XOR(bool result, bool operand1,                              bool operand2);
 int AqvmInterpreterOperator_CMP(
     bool result, int opcode, struct AqvmMemory_Memory * operand1,
     struct AqvmMemory_Memory* operand2);

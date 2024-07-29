@@ -11,7 +11,7 @@
 int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result) {
   // TODO
   AqvmBaseLogging_OutputLog(
-      "\"WARNING\"", "\"AqvmBaseTime_localtime_ThreadUnsafeWarning\"",
+      "WARNING", "AqvmBaseTime_localtime_ThreadUnsafeWarning",
       "The localtime function may cause thread unsafety.", NULL);
   struct tm* local_time = localtime(&timestamp);
   if (local_time == NULL) {
@@ -23,6 +23,6 @@ int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result) {
 
 int AqvmBaseTime_GetCurrentTimeString(char* result) {
   time_t current_time = time(NULL);
-  strftime(result, 28, "\"%Y-%m-%dT%H:%M:%S%z\"", localtime(&current_time));
+  strftime(result, 28, "%Y-%m-%dT%H:%M:%S%z", localtime(&current_time));
   return 0;
 }

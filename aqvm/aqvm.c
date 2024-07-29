@@ -9,13 +9,13 @@
 
 int Aqvm_StartVm(const char* FileName) {
   // TODO(Aqvm): Finish this function after completing AQVM development.
-  AqvmBaseLogging_OutputLog("\"INFO\"", "\"Aqvm_StartVm_Start\"",
-                            "\"Initializing Aqvm has been started.\"", NULL);
+  AqvmBaseLogging_OutputLog("INFO", "Aqvm_StartVm_Start",
+                            "Initializing Aqvm has been started.", NULL);
 
   if (AqvmMemory_CheckMemoryConditions() != 0) {
-    AqvmBaseLogging_OutputLog(
-        "\"ERROR\"", "\"Aqvm_StartVm_CheckMemoryConditionsError\"",
-        "\"Checking memory conditions met error.\"", NULL);
+    AqvmBaseLogging_OutputLog("ERROR",
+                              "Aqvm_StartVm_CheckMemoryConditionsError",
+                              "Checking memory conditions met error.", NULL);
     return -1;
   }
 

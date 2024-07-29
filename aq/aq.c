@@ -11,26 +11,26 @@
 
 int main(int argc, char *argv[]) {
   // TODO(Aqvm): Finish this function after completing AQVM development.
-  AqvmBaseLogging_OutputLog("\"INFO\"", "\"main_Start\"",
-                            "\"Aq main program has been started.\"", NULL);
+  AqvmBaseLogging_OutputLog("INFO", "main_Start",
+                            "Aq main program has been started.", NULL);
 
   // TODO(Aq): Before the official release, remove the judgment logic for
   // command line arguments and design a dedicated component to parse command
   // line arguments.
   if (argc < 2) {
-    AqvmBaseLogging_OutputLog("\"ERROR\"", "\"main_ArgsError\"",
-                              "\"Please provide a file name as an argument.\"",
+    AqvmBaseLogging_OutputLog("ERROR", "main_ArgsError",
+                              "Please provide a file name as an argument.",
                               NULL);
     return -1;
   }
 
   if (Aqvm_StartVm(argv[1]) != 0) {
-    AqvmBaseLogging_OutputLog("\"ERROR\"", "\"main_InitVmError\"",
-                              "\"Starting Aqvm met error.\"", NULL);
+    AqvmBaseLogging_OutputLog("ERROR", "main_InitVmError",
+                              "Starting Aqvm met error.", NULL);
     return -1;
   }
 
-  AqvmBaseLogging_OutputLog("\"INFO\"", "\"main_End\"",
-                            "\"Aq main program has ended.\"", NULL);
+  AqvmBaseLogging_OutputLog("INFO", "main_End", "Aq main program has ended.",
+                            NULL);
   return 0;
 }

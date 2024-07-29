@@ -8,6 +8,6 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/bytecode.c)
 
-add_library(AqvmInterpreterBytecode STATIC ${SOURCES})
+add_library(AqvmBytecode STATIC ${SOURCES})
 
-target_link_libraries(AqvmInterpreterBytecode PRIVATE AqvmBase)
+target_link_libraries(AqvmBytecode PRIVATE AqvmBase)

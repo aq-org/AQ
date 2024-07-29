@@ -19,9 +19,24 @@
 // should be an additional information to the current log (e.g. system
 // information).
 // NOTICE: If you need to use the function, please use json format. The output
-// is json format. For example, AqvmBaseLogging_OutputLog("\"type\"",
-// "\"code\"", "\"message\"", "\"other_info\"");
+// is json format. For example, AqvmBaseLogging_OutputLog("type",
+// "code", "message", "other_info");
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
                                const char* message, const char* other_info);
+
+void AqvmBaseLogging_ProcessLog(const char* time, const char* type,
+                               const char* code, const char* message, int error_number,
+                               const char* errno_message,
+                               const char* other_info);
+
+int AqvmBaseLogging_OutputLogToConsole(const char* time, const char* type,
+                               const char* code, const char* message, int error_number,
+                               const char* errno_message,
+                               const char* other_info);
+
+int AqvmBaseLogging_OutputLogToFile(const char* time, const char* type,
+                                 const char* code, const char* message, int error_number,
+                                 const char* errno_message,
+                                 const char* other_info);
 
 #endif
