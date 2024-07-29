@@ -8,8 +8,10 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/base.c)
 
-add_library(AqvmBase STATIC ${SOURCES})
-
+add_subdirectory(time)
 add_subdirectory(logging)
 
+add_library(AqvmBase STATIC ${SOURCES})
+
+target_link_libraries(AqvmBase PRIVATE AqvmBaseTime)
 target_link_libraries(AqvmBase PRIVATE AqvmBaseLogging)
