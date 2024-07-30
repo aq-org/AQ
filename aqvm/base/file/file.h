@@ -2,11 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_AQVM_BASE_BASE_H_
-#define AQ_AQVM_BASE_BASE_H_
-
-int AqvmBase_InitilizeBase();
-
-int AqvmBase_CloseBase();
+#ifndef AQ_AQVM_BASE_FILE_FILE_H_
+#define AQ_AQVM_BASE_FILE_FILE_H_
 
 #endif

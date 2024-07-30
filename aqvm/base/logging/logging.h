@@ -24,19 +24,13 @@
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
                                const char* message, const char* other_info);
 
-void AqvmBaseLogging_ProcessLog(const char* time, const char* type,
-                               const char* code, const char* message, int error_number,
-                               const char* errno_message,
-                               const char* other_info);
+void AqvmBaseLogging_ProcessLog(const char* format, const char* time,
+                                const char* type, const char* code,
+                                const char* message, 
+                                const char* other_info, ...);
 
-int AqvmBaseLogging_OutputLogToConsole(const char* time, const char* type,
-                               const char* code, const char* message, int error_number,
-                               const char* errno_message,
-                               const char* other_info);
+int AqvmBaseLogging_OutputLogToConsole(const char* format, ...);
 
-int AqvmBaseLogging_OutputLogToFile(const char* time, const char* type,
-                                 const char* code, const char* message, int error_number,
-                                 const char* errno_message,
-                                 const char* other_info);
+int AqvmBaseLogging_OutputLogToFile(const char* format, ...);
 
 #endif
