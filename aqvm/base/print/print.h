@@ -10,8 +10,6 @@
 
 #include "aqvm/base/threading/mutex/mutex.h"
 
-AqvmBaseThreadingMutex_Mutex AqvmBasePrint_printMutex;
-
 int AqvmBasePrint_InitializePrint();
 
 int AqvmBasePrint_ClosePrint();

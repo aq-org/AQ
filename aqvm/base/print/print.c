@@ -10,6 +10,8 @@
 #include "aqvm/base/threading/file_lock/file_lock.h"
 #include "aqvm/base/threading/mutex/mutex.h"
 
+AqvmBaseThreadingMutex_Mutex AqvmBasePrint_printMutex;
+
 int AqvmBasePrint_InitializePrint() {
   if (AqvmBaseThreadingMutex_InitializeMutex(&AqvmBasePrint_printMutex) != 0) {
     // TODO
