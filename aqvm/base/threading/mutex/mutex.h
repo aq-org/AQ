@@ -13,7 +13,8 @@ typedef AqvmBaseThreadingMutexUnix_Mutex AqvmBaseThreadingMutex_Mutex;
 #elif _WIN32
 typedef AqvmBaseThreadingMutexWindows_Mutex AqvmBaseThreadingMutex_Mutex;
 #else
-typedef void AqvmBaseThreadingMutex_Mutex;
+// TODO(Threading): When Threading is developed, rewrite that code.
+typedef bool AqvmBaseThreadingMutex_Mutex;
 #endif
 
 int AqvmBaseThreadingMutex_InitializeMutex(AqvmBaseThreadingMutex_Mutex *mutex);

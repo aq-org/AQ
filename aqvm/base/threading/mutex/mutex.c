@@ -22,8 +22,9 @@ int AqvmBaseThreadingMutex_InitializeMutex(
   }
   return 0;
 #else
-  // TODO
-  return -3;
+  // TODO(Threading): When Threading is developed, rewrite that code.
+  *mutex = false;
+  return 0;
 #endif
 }
 
@@ -46,8 +47,8 @@ int AqvmBaseThreadingMutex_CloseMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
   }
   return 0;
 #else
-  // TODO
-  return -3;
+  // TODO(Threading): When Threading is developed, rewrite that code.
+  return 0;
 #endif
 }
 
@@ -68,8 +69,10 @@ int AqvmBaseThreadingMutex_LockMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
   }
   return 0;
 #else
-  // TODO
-  return -3;
+  // TODO(Threading): When Threading is developed, rewrite that code.
+  while (*mutex);
+  *mutex = true;
+  return 0;
 #endif
 }
 
@@ -90,8 +93,12 @@ int AqvmBaseThreadingMutex_TryLockMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
   }
   return 0;
 #else
-  // TODO
-  return -3;
+  // TODO(Threading): When Threading is developed, rewrite that code.
+  if (*mutex) {
+    return -3;
+  }
+  *mutex = true;
+  return 0;
 #endif
 }
 
@@ -103,16 +110,22 @@ int AqvmBaseThreadingMutex_UnlockMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
 
 #ifdef __unix__
   if (AqvmBaseThreadingMutexUnix_UnlockMutex(mutex) != 0) {
+    // TODO
     return -2;
   }
   return 0;
 #elif _WIN32
   if (AqvmBaseThreadingMutexWindows_UnlockMutex(mutex) != 0) {
+    // TODO
     return -2;
   }
   return 0;
 #else
-  // TODO
-  return -3;
+  // TODO(Threading): When Threading is developed, rewrite that code.
+  if (!*mutex) {
+    return -3;
+  }
+  *mutex = false;
+  return 0;
 #endif
 }
