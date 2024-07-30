@@ -33,7 +33,7 @@ int AqvmBaseThreadingFileLockUnix_UnlockFile(FILE* file) {
   struct flock file_lock = {0};
   file_lock.l_type = F_UNLCK;
 
-  if (fcntl(fd, F_SETLK, &file_lock) == -1) {
+  if (fcntl(file_descriptor, F_SETLK, &file_lock) == -1) {
     // TODO
     return -1;
   }
