@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "aqvm/base/file/windows/file.h"
 
 #include <io.h>
@@ -11,3 +12,4 @@ HANDLE AqvmBaseFileWindows_FileToHandle(FILE* file) {
   }
   return handle;
 }
+#endif

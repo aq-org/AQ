@@ -8,8 +8,12 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/file.c)
 
+if (WIN32)
 add_subdirectory(windows)
+endif()
 
 add_library(AqvmBaseFile STATIC ${SOURCES})
 
+if (WIN32)
 target_link_libraries(AqvmBaseFile PRIVATE AqvmBaseFileWindows)
+endif()
