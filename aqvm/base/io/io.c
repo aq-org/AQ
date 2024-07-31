@@ -15,13 +15,13 @@
 AqvmBaseThreadingMutex_Mutex AqvmBaseIo_printMutex;
 
 struct AqvmBaseFile_File AqvmBaseIo_stdoutStream;
-extern struct AqvmBaseFile_File* AqvmBaseIo_stdout = &AqvmBaseIo_stdoutStream;
+struct AqvmBaseFile_File* AqvmBaseIo_stdout = &AqvmBaseIo_stdoutStream;
 
 struct AqvmBaseFile_File AqvmBaseIo_stdinStream;
-extern struct AqvmBaseFile_File* AqvmBaseIo_stdin = &AqvmBaseIo_stdinStream;
+struct AqvmBaseFile_File* AqvmBaseIo_stdin = &AqvmBaseIo_stdinStream;
 
 struct AqvmBaseFile_File AqvmBaseIo_stderrStream;
-extern struct AqvmBaseFile_File* AqvmBaseIo_stderr = &AqvmBaseIo_stderrStream;
+struct AqvmBaseFile_File* AqvmBaseIo_stderr = &AqvmBaseIo_stderrStream;
 
 int AqvmBaseIo_InitializeIo() {
   AqvmBaseIo_stdoutStream.file = stdout;
@@ -88,7 +88,7 @@ int AqvmBaseIo_fgetc(struct AqvmBaseFile_File* stream) {
   }
 
   if (result == EOF) {
-    if (AQvmBaseFile_feof(stream)) {
+    if (AqvmBaseFile_feof(stream)) {
       return EOF;
     }
     // TODO
@@ -417,7 +417,7 @@ int AqvmBaseIo_getc(struct AqvmBaseFile_File* stream) {
   }
 
   if (result == EOF) {
-    if (AQvmBaseFile_feof(stream)) {
+    if (AqvmBaseFile_feof(stream)) {
       return EOF;
     } else {
       // TODO
@@ -429,7 +429,7 @@ int AqvmBaseIo_getc(struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseIo_getchar(void) {
-  if (AqvmBaseFile_ferror(stdin)) {
+  if (AqvmBaseFile_ferror(AqvmBaseIo_stdin)) {
     // TODO
     return -2;
   }
@@ -556,7 +556,7 @@ int AqvmBaseIo_putc(int character, struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseIo_putchar(int character) {
-  if (AqvmBaseFile_ferror(stdout)) {
+  if (AqvmBaseFile_ferror(AqvmBaseIo_stdout)) {
     // TODO
     return -2;
   }

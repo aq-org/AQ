@@ -80,7 +80,7 @@ int AqvmBaseFile_feof(struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseFile_ferror(struct AqvmBaseFile_File* stream) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || ferror(stream->file)) {
     // TODO
     return -1;
   }
