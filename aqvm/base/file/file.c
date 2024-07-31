@@ -14,6 +14,7 @@ int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* file) {
     return -1;
   }
 
+  while(file->lock);
   file->lock = true;
   return 0;
 }
@@ -23,19 +24,22 @@ int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* file) {
     // TODO
     return -1;
   }
+  if (!file->lock) {
+    // TODO
+    return -2;
+  }
 
   file->lock = false;
   return 0;
 }
 
-int AqvmBaseFile_clearerr(struct AqvmBaseFile_File* stream) {
+void AqvmBaseFile_clearerr(struct AqvmBaseFile_File* stream) {
   if (stream == NULL || stream->file == NULL) {
     // TODO
-    return -1;
+    return;
   }
 
   clearerr(stream->file);
-  return 0;
 }
 
 int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream) {
@@ -109,13 +113,17 @@ int AqvmBaseFile_fgetpos(struct AqvmBaseFile_File* stream, fpos_t* pos) {
   }
 
   int result = fgetpos(stream->file, pos);
-
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (result != 0) {
     // TODO
     return -3;
   }
 
-  return result;
+  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+    // TODO
+    return -4;
+  }
+
+  return 0;
 }
 
 struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
@@ -320,6 +328,7 @@ int AqvmBaseFile_rename(const char* old_filename, const char* new_filename) {
     // TODO
     return -2;
   }
+  return 0;
 }
 
 void AqvmBaseFile_rewind(struct AqvmBaseFile_File* stream) {
@@ -371,10 +380,14 @@ int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer,
   }
 
   int result = setvbuf(stream->file, buffer, mode, size);
+  if (result != 0) {
+    // TODO
+    return -3;
+  }
 
   if (AqvmBaseFile_UnlockFile(stream) != 0) {
     // TODO
-    return -3;
+    return -4;
   }
 
   return result;
@@ -400,7 +413,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void) {
 }
 
 char* AqvmBaseFile_tmpnam(char* str) {  // TODO
-char* result = tmpnam(str);
+  char* result = tmpnam(str);
   if (result == NULL) {
     // TODO
     return NULL;
