@@ -31,8 +31,6 @@ int AqvmBaseIo_getc(struct AqvmBaseFile_File* stream);
 
 int AqvmBaseIo_getchar(void);
 
-char* AqvmBaseIo_gets(char* str);
-
 int AqvmBaseIo_perror(const char* str);
 
 int AqvmBaseIo_printf(const char* format, ...);
