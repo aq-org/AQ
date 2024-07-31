@@ -10,5 +10,6 @@ set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/io.c)
 
 add_library(AqvmBaseIo STATIC ${SOURCES})
 
+target_link_libraries(AqvmBaseIo PRIVATE AqvmBaseFile)
 target_link_libraries(AqvmBaseIo PRIVATE AqvmBaseThreadingMutex)
 target_link_libraries(AqvmBaseIo PRIVATE AqvmBaseProcessFileLock)

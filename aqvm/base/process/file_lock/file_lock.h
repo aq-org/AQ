@@ -7,11 +7,12 @@
 
 #include <stdio.h>
 
+#include "aqvm/base/file/file.h"
 #include "aqvm/base/process/file_lock/unix/file_lock.h"
 #include "aqvm/base/process/file_lock/windows/file_lock.h"
 
-int AqvmBaseProcessFileLock_LockFile(FILE* file);
+int AqvmBaseProcessFileLock_LockFile(struct AqvmBaseFile_File* file);
 
-int AqvmBaseProcessFileLock_UnlockFile(FILE* file);
+int AqvmBaseProcessFileLock_UnlockFile(struct AqvmBaseFile_File* file);
 
 #endif

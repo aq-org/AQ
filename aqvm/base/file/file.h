@@ -19,51 +19,51 @@ int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* file);
 
 int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* file);
 
-void AqvmBaseIo_clearerr(struct AqvmBaseFile_File* stream);
+void AqvmBaseFile_clearerr(struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_fclose(struct AqvmBaseFile_File* stream);
+int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_feof(struct AqvmBaseFile_File* stream);
+int AqvmBaseFile_feof(struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_ferror(struct AqvmBaseFile_File* stream);
+int AqvmBaseFile_ferror(struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_fflush(struct AqvmBaseFile_File* stream);
+int AqvmBaseFile_fflush(struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_fgetpos(struct AqvmBaseFile_File* stream, fpos_t* pos);
+int AqvmBaseFile_fgetpos(struct AqvmBaseFile_File* stream, fpos_t* pos);
 
-struct AqvmBaseFile_File* AqvmBaseIo_fopen(const char* filename,
+struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
                                            const char* mode);
 
-size_t AqvmBaseIo_fread(void* ptr, size_t size, size_t nmemb,
+size_t AqvmBaseFile_fread(void* ptr, size_t size, size_t nmemb,
                         struct AqvmBaseFile_File* stream);
 
-struct AqvmBaseFile_File* AqvmBaseIo_freopen(const char* filename,
+struct AqvmBaseFile_File* AqvmBaseFile_freopen(const char* filename,
                                              const char* mode,
                                              struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_fseek(struct AqvmBaseFile_File* stream, long int offset,
+int AqvmBaseFile_fseek(struct AqvmBaseFile_File* stream, long int offset,
                      int whence);
 
-int AqvmBaseIo_fsetpos(struct AqvmBaseFile_File* stream, const fpos_t* pos);
+int AqvmBaseFile_fsetpos(struct AqvmBaseFile_File* stream, const fpos_t* pos);
 
-long int AqvmBaseIo_ftell(struct AqvmBaseFile_File* stream);
+long int AqvmBaseFile_ftell(struct AqvmBaseFile_File* stream);
 
-size_t AqvmBaseIo_fwrite(const void* ptr, size_t size, size_t nmemb,
+size_t AqvmBaseFile_fwrite(const void* ptr, size_t size, size_t nmemb,
                          struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_remove(const char* filename);
+int AqvmBaseFile_remove(const char* filename);
 
-int AqvmBaseIo_rename(const char* old_filename, const char* new_filename);
+int AqvmBaseFile_rename(const char* old_filename, const char* new_filename);
 
-void AqvmBaseIo_rewind(struct AqvmBaseFile_File* stream);
+void AqvmBaseFile_rewind(struct AqvmBaseFile_File* stream);
 
-void AqvmBaseIo_setbuf(struct AqvmBaseFile_File* stream, char* buffer);
+void AqvmBaseFile_setbuf(struct AqvmBaseFile_File* stream, char* buffer);
 
-int AqvmBaseIo_setvbuf(struct AqvmBaseFile_File* stream, char* buffer, int mode,
+int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer, int mode,
                        size_t size);
 
-struct AqvmBaseFile_File* AqvmBaseIo_tmpfile(void);
+struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void);
 
-char* AqvmBaseIo_tmpnam(char* str);
+char* AqvmBaseFile_tmpnam(char* str);
 
 #endif

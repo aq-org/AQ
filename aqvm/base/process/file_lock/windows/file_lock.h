@@ -8,9 +8,11 @@
 
 #include <stdio.h>
 
-int AqvmBaseProcessFileLockWindows_LockFile(FILE* file);
+#include "aqvm/base/file/file.h"
 
-int AqvmBaseProcessFileLockWindows_UnlockFile(FILE* file);
+int AqvmBaseProcessFileLockWindows_LockFile(struct AqvmBaseFile_File* file);
+
+int AqvmBaseProcessFileLockWindows_UnlockFile(struct AqvmBaseFile_File* file);
 
 #endif
 #endif

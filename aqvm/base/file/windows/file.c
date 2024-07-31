@@ -5,8 +5,10 @@
 #include <stdio.h>
 #include <windows.h>
 
-HANDLE AqvmBaseFileWindows_FileToHandle(FILE* file) {
-  HANDLE handle = (HANDLE)_get_osfhandle(_fileno(file));
+#include "aqvm/base/file/file.h"
+
+HANDLE AqvmBaseFileWindows_FileToHandle(struct AqvmBaseFile_File* file) {
+  HANDLE handle = (HANDLE)_get_osfhandle(_fileno(file->file));
   if (handle == INVALID_HANDLE_VALUE) {
     // TODO
   }

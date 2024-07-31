@@ -54,10 +54,18 @@ int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream) {
   }
 
   int result = fclose(stream->file);
-  if (result < 0) {
+  if (result != 0) {
     // TODO
     return -2;
   }
+
+  if (AqvmBaseThreadingMutex_CloseMutex(stream->mutex)) {
+    // TODO
+    return -3;
+  }
+
+  free(stream);
+
   return 0;
 }
 
@@ -149,6 +157,12 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
   if (stream->file == NULL) {
     free(stream);
     // TODO
+    return NULL;
+  }
+
+  if (AqvmBaseThreadingMutex_InitializeMutex(stream->mutex) != 0) {
+    fclose(stream->file);
+    free(stream);
     return NULL;
   }
 
@@ -412,6 +426,8 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void) {
     // TODO
     return NULL;
   }
+
+  AqvmBaseThreadingMutex_InitializeMutex(stream->mutex);
 
   return stream;
 }

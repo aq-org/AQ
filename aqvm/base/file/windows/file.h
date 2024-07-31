@@ -9,7 +9,9 @@
 #include <stdio.h>
 #include <windows.h>
 
-HANDLE AqvmBaseFileWindows_FileToHandle(FILE* file);
+#include "aqvm/base/file/file.h"
+
+HANDLE AqvmBaseFileWindows_FileToHandle(struct AqvmBaseFile_File* file);
 
 #endif
 #endif

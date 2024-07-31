@@ -11,6 +11,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "aqvm/base/file/file.h"
 #include "aqvm/base/io/io.h"
 
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
@@ -62,14 +63,18 @@ int AqvmBaseLogging_OutputLogToConsole(const char* format, ...) {
   va_list args;
   va_start(args, format);
 
-  int result = AqvmBaseIo_vfprintf(stderr, format, args);
+  int result = AqvmBaseIo_vfprintf(AqvmBaseIo_stderr, format, args);
+  if (result != 0) {
+    // TODO
+    return -1;
+  }
 
   va_end(args);
   return result;
 }
 
 int AqvmBaseLogging_OutputLogToFile(const char* format, ...) {
-  FILE* log_ptr = fopen(".aqvm_log.log", "a");
+  struct AqvmBaseFile_File* log_ptr = AqvmBaseFile_fopen(".aqvm_log.log", "a");
   if (log_ptr == NULL) {
     return -1;
   }
@@ -78,6 +83,10 @@ int AqvmBaseLogging_OutputLogToFile(const char* format, ...) {
   va_start(args, format);
 
   int result = AqvmBaseIo_vfprintf(log_ptr, format, args);
+  if (result != 0) {
+    // TODO
+    return -2;
+  }
 
   va_end(args);
   fclose(log_ptr);

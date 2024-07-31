@@ -10,30 +10,40 @@
 
 #include "aqvm/base/file/windows/file.h"
 
-int AqvmBaseProcessFileLockWindows_LockFile(FILE* file) {
-  HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file);
-  if (handle_file == INVALID_HANDLE_VALUE) {
+int AqvmBaseProcessFileLockWindows_LockFile(struct AqvmBaseFile_File* file) {
+  if (file == NULL || file->file == NULL) {
     // TODO
     return -1;
+  }
+
+  HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file->file);
+  if (handle_file == INVALID_HANDLE_VALUE) {
+    // TODO
+    return -2;
   }
 
   if (!LockFile(handle_file, 0, 0, MAXDWORD, MAXDWORD)) {
     // TODO
-    return -2;
+    return -3;
   }
   return 0;
 }
 
-int AqvmBaseProcessFileLockWindows_UnlockFile(FILE* file) {
-  HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file);
-  if (handle_file == INVALID_HANDLE_VALUE) {
+int AqvmBaseProcessFileLockWindows_UnlockFile(struct AqvmBaseFile_File* file) {
+  if (file == NULL || file->file == NULL) {
     // TODO
     return -1;
   }
 
-  if (!UnlockFile(handle_file, 0, 0, MAXDWORD, MAXDWORD)) {
+  HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file->file);
+  if (handle_file == INVALID_HANDLE_VALUE) {
     // TODO
     return -2;
+  }
+
+  if (!UnlockFile(handle_file, 0, 0, MAXDWORD, MAXDWORD)) {
+    // TODO
+    return -3;
   }
   return 0;
 }

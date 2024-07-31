@@ -8,10 +8,17 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-int AqvmBaseProcessFileLockUnix_LockFile(FILE* file) {
-  int file_descriptor = fileno(file);
-  if (file_descriptor == -1) {
+#include "aqvm/base/file/file.h"
+
+int AqvmBaseProcessFileLockUnix_LockFile(struct AqvmBaseFile_File* file) {
+  if (file == NULL || file->file == NULL) {
+    // TODO
     return -1;
+  }
+
+  int file_descriptor = fileno(file->file);
+  if (file_descriptor == -1) {
+    return -2;
   }
 
   struct flock file_lock = {0};
@@ -19,15 +26,20 @@ int AqvmBaseProcessFileLockUnix_LockFile(FILE* file) {
   file_lock.l_whence = SEEK_SET;
 
   if (fcntl(file_descriptor, F_SETLK, &file_lock) == -1) {
-    return -1;
+    return -3;
   }
   return 0;
 }
 
-int AqvmBaseProcessFileLockUnix_UnlockFile(FILE* file) {
-  int file_descriptor = fileno(file);
-  if (file_descriptor == -1) {
+int AqvmBaseProcessFileLockUnix_UnlockFile(struct AqvmBaseFile_File* file) {
+  if (file == NULL || file->file == NULL) {
+    // TODO
     return -1;
+  }
+
+  int file_descriptor = fileno(file->file);
+  if (file_descriptor == -1) {
+    return -2;
   }
 
   struct flock file_lock = {0};
@@ -35,7 +47,7 @@ int AqvmBaseProcessFileLockUnix_UnlockFile(FILE* file) {
 
   if (fcntl(file_descriptor, F_SETLK, &file_lock) == -1) {
     // TODO
-    return -1;
+    return -3;
   }
   return 0;
 }

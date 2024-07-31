@@ -8,9 +8,11 @@
 
 #include <stdio.h>
 
-int AqvmBaseProcessFileLockUnix_LockFile(FILE* file);
+#include "aqvm/base/file/file.h"
 
-int AqvmBaseProcessFileLockUnix_UnlockFile(FILE* file);
+int AqvmBaseProcessFileLockUnix_LockFile(struct AqvmBaseFile_File* file);
+
+int AqvmBaseProcessFileLockUnix_UnlockFile(struct AqvmBaseFile_File* file);
 
 #endif
 #endif
