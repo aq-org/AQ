@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* file) {
   if (file == NULL) {
@@ -399,7 +400,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void) {
 }
 
 char* AqvmBaseFile_tmpnam(char* str) {  // TODO
-  char* result = tmpnam(str) == NULL;
+char* result = tmpnam(str);
   if (result == NULL) {
     // TODO
     return NULL;
