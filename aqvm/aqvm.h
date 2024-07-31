@@ -5,6 +5,10 @@
 #ifndef AQ_AQVM_AQVM_H_
 #define AQ_AQVM_AQVM_H_
 
+int Aqvm_InitilizeVm();
+
+int Aqvm_CloseVm();
+
 // Starts a virtual machine with the given bytecode file name. Returns 0 for
 // success, other values for errors.
 int Aqvm_StartVm(const char* FileName);

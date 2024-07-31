@@ -5,4 +5,8 @@
 
 int main(int argc, char* argv[]);
 
+int Aq_InitilizeAq();
+
+int Aq_CloseAq();
+
 #endif
