@@ -3,12 +3,12 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aqvm/base/threading/file_lock/unix/file_lock.h"
+#include "aqvm/base/process/file_lock/unix/file_lock.h"
 
 #include <fcntl.h>
 #include <stdio.h>
 
-int AqvmBaseThreadingFileLockUnix_LockFile(FILE* file) {
+int AqvmBaseProcessFileLockUnix_LockFile(FILE* file) {
   int file_descriptor = fileno(file);
   if (file_descriptor == -1) {
     return -1;
@@ -24,7 +24,7 @@ int AqvmBaseThreadingFileLockUnix_LockFile(FILE* file) {
   return 0;
 }
 
-int AqvmBaseThreadingFileLockUnix_UnlockFile(FILE* file) {
+int AqvmBaseProcessFileLockUnix_UnlockFile(FILE* file) {
   int file_descriptor = fileno(file);
   if (file_descriptor == -1) {
     return -1;

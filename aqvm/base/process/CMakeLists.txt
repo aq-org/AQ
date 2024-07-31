@@ -6,8 +6,10 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/file_lock.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/process.c)
 
-add_library(AqvmBaseThreadingFileLockWindows STATIC ${SOURCES})
+add_subdirectory(file_lock)
 
-target_link_libraries(AqvmBaseThreadingFileLockWindows PRIVATE AqvmBaseFileWindows)
+add_library(AqvmBaseProcess STATIC ${SOURCES})
+
+target_link_libraries(AqvmBaseProcess PRIVATE AqvmBaseProcessFileLock)

@@ -6,9 +6,9 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/print.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/io.c)
 
-add_library(AqvmBasePrint STATIC ${SOURCES})
+add_library(AqvmBaseIo STATIC ${SOURCES})
 
-target_link_libraries(AqvmBasePrint PRIVATE AqvmBaseThreadingMutex)
-target_link_libraries(AqvmBasePrint PRIVATE AqvmBaseThreadingFileLock)
+target_link_libraries(AqvmBaseIo PRIVATE AqvmBaseThreadingMutex)
+target_link_libraries(AqvmBaseIo PRIVATE AqvmBaseProcessFileLock)

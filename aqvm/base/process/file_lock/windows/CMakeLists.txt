@@ -8,4 +8,6 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/file_lock.c)
 
-add_library(AqvmBaseThreadingFileLockUnix STATIC ${SOURCES})
+add_library(AqvmBaseProcessFileLockWindows STATIC ${SOURCES})
+
+target_link_libraries(AqvmBaseProcessFileLockWindows PRIVATE AqvmBaseFileWindows)

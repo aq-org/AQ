@@ -13,5 +13,5 @@ add_subdirectory(mutex)
 
 add_library(AqvmBaseThreading STATIC ${SOURCES})
 
-target_link_libraries(AqvmBaseThreading PRIVATE AqvmBaseThreadingFileLock)
+target_link_libraries(AqvmBaseThreading PRIVATE AqvmBaseProcessFileLock)
 target_link_libraries(AqvmBaseThreading PRIVATE AqvmBaseThreadingMutex)

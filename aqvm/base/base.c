@@ -5,12 +5,12 @@
 #include "aqvm/base/base.h"
 
 #include "aqvm/base/logging/logging.h"
-#include "aqvm/base/print/print.h"
+#include "aqvm/base/io/io.h"
 #include "aqvm/base/threading/threading.h"
 #include "aqvm/base/time/time.h"
 
 int AqvmBase_InitilizeBase() {
-  if (AqvmBasePrint_InitializePrint() != 0) {
+  if (AqvmBaseIo_InitializeIo() != 0) {
     // TODO
     return -1;
   }
@@ -18,7 +18,7 @@ int AqvmBase_InitilizeBase() {
 }
 
 int AqvmBase_CloseBase() {
-  if (AqvmBasePrint_ClosePrint() != 0) {
+  if (AqvmBaseIo_CloseIo() != 0) {
     // TODO
     return -1;
   }

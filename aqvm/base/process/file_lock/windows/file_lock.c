@@ -3,14 +3,14 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aqvm/base/threading/file_lock/windows/file_lock.h"
+#include "aqvm/base/process/file_lock/windows/file_lock.h"
 
 #include <stdio.h>
 #include <windows.h>
 
 #include "aqvm/base/file/windows/file.h"
 
-int AqvmBaseThreadingFileLockWindows_LockFile(FILE* file) {
+int AqvmBaseProcessFileLockWindows_LockFile(FILE* file) {
   HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file);
   if (handle_file == INVALID_HANDLE_VALUE) {
     // TODO
@@ -24,7 +24,7 @@ int AqvmBaseThreadingFileLockWindows_LockFile(FILE* file) {
   return 0;
 }
 
-int AqvmBaseThreadingFileLockWindows_UnlockFile(FILE* file) {
+int AqvmBaseProcessFileLockWindows_UnlockFile(FILE* file) {
   HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file);
   if (handle_file == INVALID_HANDLE_VALUE) {
     // TODO

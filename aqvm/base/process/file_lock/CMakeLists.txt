@@ -14,10 +14,10 @@ elseif (WIN32)
   add_subdirectory(windows)
 endif()
 
-add_library(AqvmBaseThreadingFileLock STATIC ${SOURCES})
+add_library(AqvmBaseProcessFileLock STATIC ${SOURCES})
 
 if (UNIX)
-  target_link_libraries(AqvmBaseThreadingFileLock PRIVATE AqvmBaseThreadingFileLockUnix)
+  target_link_libraries(AqvmBaseProcessFileLock PRIVATE AqvmBaseProcessFileLockUnix)
 elseif (WIN32)
-  target_link_libraries(AqvmBaseThreadingFileLock PRIVATE AqvmBaseThreadingFileLockWindows)
+  target_link_libraries(AqvmBaseProcessFileLock PRIVATE AqvmBaseProcessFileLockWindows)
 endif()
