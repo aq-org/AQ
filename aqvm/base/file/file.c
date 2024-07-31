@@ -8,14 +8,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "aqvm/base/threading/mutex/mutex.h"
+
 int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* file) {
   if (file == NULL) {
     // TODO
     return -1;
   }
 
-  while(file->lock);
-  file->lock = true;
+  int result = AqvmBaseThreadingMutex_LockMutex(file->mutex);
+  if (result != 0) {
+    // TODO
+    return -2;
+  }
   return 0;
 }
 
@@ -24,12 +29,12 @@ int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* file) {
     // TODO
     return -1;
   }
-  if (!file->lock) {
+
+  int result = AqvmBaseThreadingMutex_UnlockMutex(file->mutex);
+  if (result != 0) {
     // TODO
     return -2;
   }
-
-  file->lock = false;
   return 0;
 }
 
@@ -146,7 +151,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
     // TODO
     return NULL;
   }
-  stream->lock = false;
+
   return stream;
 }
 
@@ -407,7 +412,6 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void) {
     // TODO
     return NULL;
   }
-  stream->lock = false;
 
   return stream;
 }
