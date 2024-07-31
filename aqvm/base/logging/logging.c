@@ -89,6 +89,6 @@ int AqvmBaseLogging_OutputLogToFile(const char* format, ...) {
   }
 
   va_end(args);
-  fclose(log_ptr);
+  AqvmBaseFile_fclose(log_ptr);
   return result;
 }

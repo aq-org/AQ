@@ -12,7 +12,7 @@
 
 struct AqvmBaseFile_File {
   FILE* file;
-  AqvmBaseThreadingMutex_Mutex* mutex;
+  AqvmBaseThreadingMutex_Mutex mutex;
 };
 
 int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* file);

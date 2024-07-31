@@ -16,7 +16,7 @@ int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* file) {
     return -1;
   }
 
-  int result = AqvmBaseThreadingMutex_LockMutex(file->mutex);
+  int result = AqvmBaseThreadingMutex_LockMutex(&file->mutex);
   if (result != 0) {
     // TODO
     return -2;
@@ -30,7 +30,7 @@ int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* file) {
     return -1;
   }
 
-  int result = AqvmBaseThreadingMutex_UnlockMutex(file->mutex);
+  int result = AqvmBaseThreadingMutex_UnlockMutex(&file->mutex);
   if (result != 0) {
     // TODO
     return -2;
@@ -59,7 +59,7 @@ int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream) {
     return -2;
   }
 
-  if (AqvmBaseThreadingMutex_CloseMutex(stream->mutex)) {
+  if (AqvmBaseThreadingMutex_CloseMutex(&stream->mutex)) {
     // TODO
     return -3;
   }
@@ -160,7 +160,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
     return NULL;
   }
 
-  if (AqvmBaseThreadingMutex_InitializeMutex(stream->mutex) != 0) {
+  if (AqvmBaseThreadingMutex_InitializeMutex(&stream->mutex) != 0) {
     fclose(stream->file);
     free(stream);
     return NULL;
@@ -427,7 +427,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void) {
     return NULL;
   }
 
-  AqvmBaseThreadingMutex_InitializeMutex(stream->mutex);
+  AqvmBaseThreadingMutex_InitializeMutex(&stream->mutex);
 
   return stream;
 }
