@@ -91,7 +91,7 @@ int AqvmBaseIo_UnlockStream(struct AqvmBaseFile_File* stream) {
   }
 }
 
-int AqvmBaseIo_OutputToStream(struct AqvmBaseFile_File* stream, ...) {
+int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, ...) {
   if (stream == NULL || stream->file == NULL ||
       AqvmBaseFile_ferror(stream) != 0) {
     // TODO
@@ -107,7 +107,7 @@ int AqvmBaseIo_OutputToStream(struct AqvmBaseFile_File* stream, ...) {
   va_start(arg, stream);
   char* str = va_arg(arg, char*);
   while (str != NULL) {
-    int result = vfprintf(stream->file, "%s", arg);
+    int result = fprintf(stream->file, "%s", str);
     if (result < 0) {
       // TODO
       return -3;
