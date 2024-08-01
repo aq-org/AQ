@@ -5,8 +5,11 @@
 #ifndef AQ_AQVM_BASE_THREADING_MUTEX_MUTEX_H_
 #define AQ_AQVM_BASE_THREADING_MUTEX_MUTEX_H_
 
+#ifdef __unix__
 #include "aqvm/base/threading/mutex/unix/mutex.h"
+#elif _WIN32
 #include "aqvm/base/threading/mutex/windows/mutex.h"
+#endif
 
 #ifdef __unix__
 typedef AqvmBaseThreadingMutexUnix_Mutex AqvmBaseThreadingMutex_Mutex;

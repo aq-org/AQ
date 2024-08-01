@@ -446,7 +446,7 @@ int AqvmBaseIo_getchar(void) {
   }
 
   if (result == EOF) {
-    if (AqvmBaseFile_feof(stdin)) {
+    if (AqvmBaseFile_feof(AqvmBaseIo_stdin)) {
       return EOF;
     } else {
       // TODO

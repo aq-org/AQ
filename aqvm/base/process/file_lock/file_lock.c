@@ -5,8 +5,12 @@
 #include "aqvm/base/process/file_lock/file_lock.h"
 
 #include "aqvm/base/file/file.h"
+
+#ifdef __unix__
 #include "aqvm/base/process/file_lock/unix/file_lock.h"
+#elif _WIN32
 #include "aqvm/base/process/file_lock/windows/file_lock.h"
+#endif
 
 int AqvmBaseProcessFileLock_LockFile(struct AqvmBaseFile_File* file) {
 #ifdef __unix__
