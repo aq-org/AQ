@@ -389,7 +389,7 @@ int AqvmBaseIo_getchar(void) {
 }
 
 int AqvmBaseIo_perror(const char* str) {
-  if (str == NULL||AqvmBaseFile_ferror(AqvmBaseIo_stdout) != 0) {
+  if (str == NULL || AqvmBaseFile_ferror(AqvmBaseIo_stdout) != 0) {
     return -1;
   }
 
@@ -409,7 +409,7 @@ int AqvmBaseIo_perror(const char* str) {
 }
 
 int AqvmBaseIo_printf(const char* format, ...) {
-  if (format == NULL||AqvmBaseFile_ferror(AqvmBaseIo_stdout) != 0) {
+  if (format == NULL || AqvmBaseFile_ferror(AqvmBaseIo_stdout) != 0) {
     return -1;
   }
 
@@ -494,7 +494,7 @@ int AqvmBaseIo_putchar(int character) {
 }
 
 int AqvmBaseIo_puts(const char* str) {
-  if (str == NULL||AqvmBaseFile_ferror(AqvmBaseIo_stdout) != 0) {
+  if (str == NULL || AqvmBaseFile_ferror(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -1;
   }
