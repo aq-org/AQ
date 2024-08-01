@@ -19,6 +19,10 @@ int AqvmBaseIo_InitializeIo();
 
 int AqvmBaseIo_CloseIo();
 
+int AqvmBaseIo_LockStream(struct AqvmBaseFile_File* stream);
+
+int AqvmBaseIo_UnlockStream(struct AqvmBaseFile_File* stream);
+
 int AqvmBaseIo_OutputToStream(struct AqvmBaseFile_File* stream, ...);
 
 int AqvmBaseIo_fgetc(struct AqvmBaseFile_File* stream);

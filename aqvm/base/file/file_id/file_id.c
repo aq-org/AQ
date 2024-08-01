@@ -27,7 +27,7 @@ int AqvmBaseFileFileId_GetFileId(const char* filename,
     return -2;
   }
 #elif _WIN32
-  if (AqvmBaseFileFileIdUnix_GetFileId(filename, file_id) != 0) {
+  if (AqvmBaseFileFileIdWindows_GetFileId(filename, file_id) != 0) {
     // TODO
     return -3;
   }
@@ -48,7 +48,7 @@ uint32_t AqvmBaseFileFileId_GetFileIdHash(AqvmBaseFileFileId_FileId* file_id) {
 #ifdef __unix__
   return AqvmBaseFileFileIdUnix_GetFileIdHash(file_id);
 #elif _WIN32
-  return AqvmBaseFileFileIdUnix_GetFileIdHash(file_id);
+  return AqvmBaseFileFileIdWindows_GetFileIdHash(file_id);
 #else
   // TODO
   return 0;

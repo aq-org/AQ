@@ -39,7 +39,7 @@ int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* file) {
 }
 
 void AqvmBaseFile_clearerr(struct AqvmBaseFile_File* stream) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return;
   }
@@ -48,7 +48,7 @@ void AqvmBaseFile_clearerr(struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return -1;
   }
@@ -70,7 +70,7 @@ int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseFile_feof(struct AqvmBaseFile_File* stream) {
-  if (stream == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return -1;
   }
@@ -90,7 +90,7 @@ int AqvmBaseFile_ferror(struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseFile_fflush(struct AqvmBaseFile_File* stream) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return -1;
   }
@@ -116,7 +116,7 @@ int AqvmBaseFile_fflush(struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseFile_fgetpos(struct AqvmBaseFile_File* stream, fpos_t* pos) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) ||
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0 ||
       pos == NULL) {
     // TODO
     return -1;
@@ -156,7 +156,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
   }
 
   stream->file = fopen(filename, mode);
-  if (stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     free(stream);
     // TODO
     return NULL;
@@ -174,7 +174,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
 size_t AqvmBaseFile_fread(void* ptr, size_t size, size_t nmemb,
                           struct AqvmBaseFile_File* stream) {
   if (ptr == NULL || stream == NULL || stream->file == NULL ||
-      AqvmBaseFile_ferror(stream)) {
+      AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return 0;
   }
@@ -197,7 +197,7 @@ size_t AqvmBaseFile_fread(void* ptr, size_t size, size_t nmemb,
 struct AqvmBaseFile_File* AqvmBaseFile_freopen(
     const char* filename, const char* mode, struct AqvmBaseFile_File* stream) {
   if (filename == NULL || mode == NULL || stream == NULL ||
-      stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+      stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return NULL;
   }
@@ -229,7 +229,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_freopen(
 
 int AqvmBaseFile_fseek(struct AqvmBaseFile_File* stream, long int offset,
                        int whence) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return -1;
   }
@@ -255,7 +255,7 @@ int AqvmBaseFile_fseek(struct AqvmBaseFile_File* stream, long int offset,
 }
 
 int AqvmBaseFile_fsetpos(struct AqvmBaseFile_File* stream, const fpos_t* pos) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) ||
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0 ||
       pos == NULL) {
     // TODO
     return -1;
@@ -282,7 +282,7 @@ int AqvmBaseFile_fsetpos(struct AqvmBaseFile_File* stream, const fpos_t* pos) {
 }
 
 long int AqvmBaseFile_ftell(struct AqvmBaseFile_File* stream) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return -1L;
   }
@@ -310,7 +310,7 @@ long int AqvmBaseFile_ftell(struct AqvmBaseFile_File* stream) {
 size_t AqvmBaseFile_fwrite(const void* ptr, size_t size, size_t nmemb,
                            struct AqvmBaseFile_File* stream) {
   if (ptr == NULL || stream == NULL || stream->file == NULL ||
-      AqvmBaseFile_ferror(stream)) {
+      AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return 0;
   }
@@ -359,7 +359,7 @@ int AqvmBaseFile_rename(const char* old_filename, const char* new_filename) {
 }
 
 void AqvmBaseFile_rewind(struct AqvmBaseFile_File* stream) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return;
   }
@@ -377,7 +377,7 @@ void AqvmBaseFile_rewind(struct AqvmBaseFile_File* stream) {
 }
 
 void AqvmBaseFile_setbuf(struct AqvmBaseFile_File* stream, char* buffer) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return;
   }
@@ -396,7 +396,7 @@ void AqvmBaseFile_setbuf(struct AqvmBaseFile_File* stream, char* buffer) {
 
 int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer,
                          int mode, size_t size) {
-  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     // TODO
     return -1;
   }
@@ -430,7 +430,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void) {
   }
 
   stream->file = tmpfile();
-  if (stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+  if (stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
     free(stream);
     // TODO
     return NULL;

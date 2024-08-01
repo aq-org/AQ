@@ -7,6 +7,8 @@
 
 #include <windows.h>
 
+#include "aqvm/base/hash/hash.h"
+
 int AqvmBaseFileFileIdWindows_GetFileId(
     const char* filename, AqvmBaseFileFileIdWindows_FileId* file_id) {
   if (filename == NULL || file_id == NULL) {
@@ -23,9 +25,9 @@ int AqvmBaseFileFileIdWindows_GetFileId(
 
   BY_HANDLE_FILE_INFORMATION file_info;
   if (GetFileInformationByHandle(handle_file, &file_info)) {
-    file_id.dwVolumeSerialNumber = file_info.dwVolumeSerialNumber;
-    file_id.nFileIndexHigh = file_info.nFileIndexHigh;
-    file_id.nFileIndexLow = file_info.nFileIndexLow;
+    file_id->dwVolumeSerialNumber = file_info.dwVolumeSerialNumber;
+    file_id->nFileIndexHigh = file_info.nFileIndexHigh;
+    file_id->nFileIndexLow = file_info.nFileIndexLow;
   } else {
     // TODO
     return -3;
