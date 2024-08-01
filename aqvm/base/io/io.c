@@ -43,6 +43,38 @@ int AqvmBaseIo_CloseIo() {
   return 0;
 }
 
+int AqvmBaseIo_OutputToStream(struct AqvmBaseFile_File* stream, ...) {
+  if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
+    // TODO
+    return -1;
+  }
+
+  if (AqvmBaseThreadingMutex_LockMutex(&AqvmBaseIo_printMutex) != 0) {
+    // TODO
+    return -2;
+  }
+
+  va_list arg;
+  va_start(arg, stream);
+  char* str = va_arg(arg, char*);
+  while (str != NULL) {
+    int result = vfprintf(stream->file, "%s", arg);
+    if (result < 0) {
+      // TODO
+      return -3;
+    }
+    str = va_arg(arg, char*);
+  }
+  va_end(arg);
+
+  if (AqvmBaseThreadingMutex_CloseMutex(&AqvmBaseIo_printMutex) != 0) {
+    // TODO
+    return -4;
+  }
+
+  return 0;
+}
+
 int AqvmBaseIo_fgetc(struct AqvmBaseFile_File* stream) {
   if (stream == NULL || stream->file == NULL || AqvmBaseFile_ferror(stream)) {
     // TODO
