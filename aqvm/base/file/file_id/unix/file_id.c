@@ -31,7 +31,7 @@ int AqvmBaseFileFileIdUnix_GetFileId(const char* filename,
 }
 
 uint32_t AqvmBaseFileFileIdUnix_GetFileIdHash(
-    AqvmBaseFileFileIdUnix_FileId* file_id) {
+    const AqvmBaseFileFileIdUnix_FileId* file_id) {
   if (file_id == NULL) {
     // TODO
     return 0;

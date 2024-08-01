@@ -21,7 +21,7 @@ int AqvmBaseFileFileIdWindows_GetFileId(
     const char* filename, AqvmBaseFileFileIdWindows_FileId* file_id);
 
 uint32_t AqvmBaseFileFileIdWindows_GetFileIdHash(
-    AqvmBaseFileFileIdWindows_FileId* file_id);
+    const AqvmBaseFileFileIdWindows_FileId* file_id);
 
 #endif
 #endif

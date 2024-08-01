@@ -42,7 +42,7 @@ int AqvmBaseFileFileIdWindows_GetFileId(
 }
 
 uint32_t AqvmBaseFileFileIdWindows_GetFileIdHash(
-    AqvmBaseFileFileIdWindows_FileId* file_id) {
+    const AqvmBaseFileFileIdWindows_FileId* file_id) {
   if (file_id == NULL) {
     // TODO
     return 0;

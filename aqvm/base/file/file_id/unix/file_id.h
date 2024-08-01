@@ -7,7 +7,6 @@
 #define AQVM_BASE_FILE_FILE_ID_UNIX_FILE_ID_H_
 
 #include <stdint.h>
-
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -22,7 +21,7 @@ int AqvmBaseFileFileIdUnix_GetFileId(const char* filename,
                                      AqvmBaseFileFileIdUnix_FileId* file_id);
 
 uint32_t AqvmBaseFileFileIdUnix_GetFileIdHash(
-    AqvmBaseFileFileIdUnix_FileId* file_id);
+    const AqvmBaseFileFileIdUnix_FileId* file_id);
 
 #endif
 

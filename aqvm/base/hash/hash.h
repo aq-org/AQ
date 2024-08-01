@@ -12,6 +12,6 @@ int AqvmBaseHash_Hash(int data);
 
 uint32_t AqvmBaseHash_HashString(const char* str);
 
-uint32_t AqvmBaseHash_HashUnsignedIntArray(uint32_t* data, size_t size);
+uint32_t AqvmBaseHash_HashUnsignedIntArray(const uint32_t* data, size_t size);
 
 #endif

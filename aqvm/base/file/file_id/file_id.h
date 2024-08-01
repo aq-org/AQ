@@ -24,6 +24,6 @@ typedef void AqvmBaseFileFileId_FileId;
 int AqvmBaseFileFileId_GetFileId(const char* filename,
                                  AqvmBaseFileFileId_FileId* file_id);
 
-uint32_t AqvmBaseFileFileId_GetFileIdHash(AqvmBaseFileFileId_FileId* file_id);
+uint32_t AqvmBaseFileFileId_GetFileIdHash(const AqvmBaseFileFileId_FileId* file_id);
 
 #endif
