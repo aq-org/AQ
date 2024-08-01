@@ -22,7 +22,7 @@ void AqvmBaseLogging_OutputLog(const char* type, const char* code,
 
   va_list other_info;
   va_start(other_info, message);
-  AqvmBaseLogging_ProcessLog(time_str, type, code, message, other_info, "Test","This is a test.",NULL);
+  AqvmBaseLogging_ProcessLog(time_str, type, code, message, other_info, NULL);
   va_end(other_info);
 }
 

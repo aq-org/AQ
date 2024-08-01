@@ -9,6 +9,17 @@
 #include "aqvm/base/logging/logging.h"
 
 int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result) {
+#ifdef __unix__
+  if (AqvmBaseTimeUnix_localtime(timestamp, result)) {
+    // TODO
+    return -1;
+  }
+#elif _WIN32
+  if (AqvmBaseTimeWindows_localtime(timestamp, result)) {
+    // TODO
+    return -2;
+  }
+#else
   // TODO
   AqvmBaseLogging_OutputLog(
       "WARNING", "AqvmBaseTime_localtime_ThreadUnsafeWarning",
@@ -18,11 +29,22 @@ int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result) {
     return -2;
   }
   *result = *local_time;
+#endif
+
   return 0;
 }
 
 int AqvmBaseTime_GetCurrentTimeString(char* result) {
-  time_t current_time = time(NULL);
-  strftime(result, 28, "%Y-%m-%dT%H:%M:%S%z", localtime(&current_time));
+  if(result == NULL){
+    // TODO
+    return -1;
+  }
+
+  struct tm local_time;
+  if(AqvmBaseTime_localtime(time(NULL), &local_time)){
+    // TODO
+    return -2;
+  }
+  strftime(result, 28, "%Y-%m-%dT%H:%M:%S%z", &local_time);
   return 0;
 }

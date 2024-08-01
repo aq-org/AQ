@@ -7,13 +7,14 @@
 
 #include <time.h>
 
-#include "aqvm/base/time/time.h"
 #include "aqvm/base/logging/logging.h"
+#include "aqvm/base/time/time.h"
 
 int AqvmBaseTimeWindows_localtime(const time_t timestamp, struct tm* result) {
-    if (localtime_s(result, &timestamp) != 0) {AqvmBaseLogging_OutputLog("AqvmBaseTimeWindows_localtime_","","",NULL);return -1;
-    }
-    return 0;
+  if (localtime_s(result, &timestamp) != 0) {
+    // TODO
+    return -1;
+  }
   return 0;
 }
 #endif
