@@ -23,7 +23,10 @@ int AqvmBaseIo_LockStream(struct AqvmBaseFile_File* stream);
 
 int AqvmBaseIo_UnlockStream(struct AqvmBaseFile_File* stream);
 
-int AqvmBaseIo_OutputToStream(struct AqvmBaseFile_File* stream, ...);
+int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
+                         const char* type, const char* code,
+                         const char* message, va_list system_info,
+                         va_list other_info);
 
 int AqvmBaseIo_fgetc(struct AqvmBaseFile_File* stream);
 

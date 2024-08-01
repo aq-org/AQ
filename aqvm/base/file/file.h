@@ -15,9 +15,11 @@ struct AqvmBaseFile_File {
   AqvmBaseThreadingMutex_Mutex mutex;
 };
 
-int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* file);
+int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* stream);
 
-int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* file);
+int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* stream);
+
+int AqvmBaseFile_CheckStream(struct AqvmBaseFile_File* stream);
 
 void AqvmBaseFile_clearerr(struct AqvmBaseFile_File* stream);
 

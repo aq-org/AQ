@@ -5,6 +5,7 @@
 #ifndef AQ_AQVM_BASE_LOGGING_LOGGING_H_
 #define AQ_AQVM_BASE_LOGGING_LOGGING_H_
 
+#include <stdarg.h>
 #include <stdint.h>
 
 // Outputs log with |type|, |code|, |message|, |other_info|, time, errno and so
@@ -22,15 +23,18 @@
 // is json format. For example, AqvmBaseLogging_OutputLog("type",
 // "code", "message", "other_info");
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
-                               const char* message, const char* other_info);
+                               const char* message, ...);
 
-void AqvmBaseLogging_ProcessLog(const char* format, const char* time,
-                                const char* type, const char* code,
-                                const char* message, 
-                                const char* other_info, ...);
+void AqvmBaseLogging_ProcessLog(const char* time, const char* type,
+                                const char* code, const char* message,
+                                va_list other_info, ...);
 
-int AqvmBaseLogging_OutputLogToConsole(const char* format, ...);
+int AqvmBaseLogging_OutputLogToConsole(const char* time, const char* type,
+                                       const char* code, const char* message,
+                                       va_list system_info, va_list other_info);
 
-int AqvmBaseLogging_OutputLogToFile(const char* format, ...);
+int AqvmBaseLogging_OutputLogToFile(const char* time, const char* type,
+                                    const char* code, const char* message,
+                                    va_list system_info, va_list other_info);
 
 #endif

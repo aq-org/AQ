@@ -15,31 +15,20 @@
 #include "aqvm/base/io/io.h"
 
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
-                               const char* message, const char* other_info) {
+                               const char* message, ...) {
   char time_str[28];
   time_t current_time = time(NULL);
   strftime(time_str, 28, "%Y-%m-%dT%H:%M:%S%z", localtime(&current_time));
 
-  const char* format = NULL;
-
-  if (other_info != NULL) {
-    format =
-        "{\"Time\":\"%s\",\"Type\":\"%s\",\"Code\":\"%s\",\"Message\":\"%s\",%"
-        "s}\n";
-  }
-
-  AqvmBaseLogging_ProcessLog(format, time_str, type, code, message, other_info);
+  va_list other_info;
+  va_start(other_info, message);
+  AqvmBaseLogging_ProcessLog(time_str, type, code, message, other_info, "Test","This is a test.",NULL);
+  va_end(other_info);
 }
 
-void AqvmBaseLogging_ProcessLog(const char* format, const char* time,
-                                const char* type, const char* code,
-                                const char* message, const char* other_info,
-                                ...) {
-  if (format == NULL) {
-    format =
-        "{\"Time\":\"%s\",\"Type\":\"%s\",\"Code\":\"%s\",\"Message\":\"%s\"}"
-        "\n";
-  }
+void AqvmBaseLogging_ProcessLog(const char* time, const char* type,
+                                const char* code, const char* message,
+                                va_list other_info, ...) {
   if (time == NULL) {
     time = "NULL";
   }
@@ -53,42 +42,44 @@ void AqvmBaseLogging_ProcessLog(const char* format, const char* time,
     message = "NULL";
   }
 
-  AqvmBaseLogging_OutputLogToConsole(format, time, type, code, message,
-                                     other_info);
-  AqvmBaseLogging_OutputLogToFile(format, time, type, code, message,
-                                  other_info);
+  va_list system_info;
+  va_start(system_info, other_info);
+  AqvmBaseLogging_OutputLogToConsole(time, type, code, message, other_info,
+                                     system_info);
+  AqvmBaseLogging_OutputLogToFile(time, type, code, message, other_info,
+                                  system_info);
+  va_end(system_info);
 }
 
-int AqvmBaseLogging_OutputLogToConsole(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-
-  int result = AqvmBaseIo_vfprintf(AqvmBaseIo_stderr, format, args);
+int AqvmBaseLogging_OutputLogToConsole(const char* time, const char* type,
+                                       const char* code, const char* message,
+                                       va_list system_info,
+                                       va_list other_info) {
+  int result = AqvmBaseIo_OutputLog(AqvmBaseIo_stderr, time, type, code,
+                                    message, system_info, other_info);
   if (result != 0) {
     // TODO
     return -1;
   }
-
-  va_end(args);
-  return result;
+  return 0;
 }
 
-int AqvmBaseLogging_OutputLogToFile(const char* format, ...) {
+int AqvmBaseLogging_OutputLogToFile(const char* time, const char* type,
+                                    const char* code, const char* message,
+                                    va_list system_info, va_list other_info) {
   struct AqvmBaseFile_File* log_ptr = AqvmBaseFile_fopen(".aqvm_log.log", "a");
   if (log_ptr == NULL) {
     return -1;
   }
 
-  va_list args;
-  va_start(args, format);
-
-  int result = AqvmBaseIo_vfprintf(log_ptr, format, args);
+  int result = AqvmBaseIo_OutputLog(log_ptr, time, type, code, message,
+                                    system_info, other_info);
   if (result != 0) {
     // TODO
     return -2;
   }
 
-  va_end(args);
   AqvmBaseFile_fclose(log_ptr);
-  return result;
+
+  return 0;
 }
