@@ -9,8 +9,6 @@
 #include <stdlib.h>
 
 #include "aqvm/base/file/file.h"
-#include "aqvm/base/process/file_lock/file_lock.h"
-#include "aqvm/base/threading/mutex/mutex.h"
 
 AqvmBaseThreadingMutex_Mutex AqvmBaseIo_printMutex;
 
@@ -43,56 +41,6 @@ int AqvmBaseIo_CloseIo() {
   return 0;
 }
 
-int AqvmBaseIo_LockStream(struct AqvmBaseFile_File* stream) {
-  if (AqvmBaseFile_CheckStream(stream) != 0) {
-    // TODO
-    return -1;
-  }
-  if (stream->file == stdout || stream->file == stderr ||
-      stream->file == stdin) {
-    if (AqvmBaseThreadingMutex_LockMutex(&AqvmBaseIo_printMutex) != 0) {
-      // TODO
-      return -2;
-    }
-  } else {
-    if (AqvmBaseProcessFileLock_LockFile(stream) != 0) {
-      // TODO
-      return -3;
-    }
-    if (AqvmBaseFile_LockFile(stream) != 0) {
-      // TODO
-      return -4;
-    }
-  }
-
-  return 0;
-}
-
-int AqvmBaseIo_UnlockStream(struct AqvmBaseFile_File* stream) {
-  if (AqvmBaseFile_CheckStream(stream) != 0) {
-    // TODO
-    return -1;
-  }
-  if (stream->file == stdout || stream->file == stderr ||
-      stream->file == stdin) {
-    if (AqvmBaseThreadingMutex_LockMutex(&AqvmBaseIo_printMutex) != 0) {
-      // TODO
-      return -2;
-    }
-  } else {
-    if (AqvmBaseProcessFileLock_LockFile(stream) != 0) {
-      // TODO
-      return -3;
-    }
-    if (AqvmBaseFile_LockFile(stream) != 0) {
-      // TODO
-      return -4;
-    }
-  }
-
-  return 0;
-}
-
 int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
                          const char* type, const char* code,
                          const char* message, va_list system_info,
@@ -103,7 +51,7 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -2;
   }
@@ -111,7 +59,7 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
   if (fprintf(
           stream->file,
           "{\"Time\":\"%s\",\"Type\":\"%s\",\"Code\":\"%s\",\"Message\":\"%s\"",
-          time, type, code, message) < 0) {
+          "Test", type, code, message) < 0) {
     // TODO
     return -3;
   }
@@ -119,7 +67,7 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
   char* name = va_arg(system_info, char*);
   char* value = va_arg(system_info, char*);
   while (name != NULL && value != NULL) {
-    if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) < 0) {
+    if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) != 0) {
       // TODO
       return -4;
     }
@@ -130,7 +78,7 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
   name = va_arg(other_info, char*);
   value = va_arg(other_info, char*);
   while (name != NULL && value != NULL) {
-    if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) < 0) {
+    if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) != 0) {
       // TODO
       return -5;
     }
@@ -143,7 +91,7 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
     return -6;
   }
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) < 0) {
     // TODO
     return -7;
   }
@@ -161,14 +109,14 @@ int AqvmBaseIo_fgetc(struct AqvmBaseFile_File* stream) {
     return -3;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -4;
   }
 
   int result = fgetc(stream->file);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -5;
   }
@@ -194,14 +142,14 @@ char* AqvmBaseIo_fgets(char* str, int n, struct AqvmBaseFile_File* stream) {
     return NULL;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return NULL;
   }
 
   char* result = fgets(str, n, stream->file);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return NULL;
   }
@@ -228,7 +176,7 @@ int AqvmBaseIo_fprintf(struct AqvmBaseFile_File* stream, const char* format,
     return -2;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -3;
   }
@@ -238,7 +186,7 @@ int AqvmBaseIo_fprintf(struct AqvmBaseFile_File* stream, const char* format,
   int result = vfprintf(stream->file, format, arg);
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -4;
   }
@@ -261,14 +209,14 @@ int AqvmBaseIo_fputc(int character, struct AqvmBaseFile_File* stream) {
     return -3;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -4;
   }
 
   int result = fputc(character, stream->file);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -5;
   }
@@ -291,14 +239,14 @@ int AqvmBaseIo_fputs(const char* str, struct AqvmBaseFile_File* stream) {
     return -2;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -3;
   }
 
   int result = fputs(str, stream->file);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -4;
   }
@@ -322,7 +270,7 @@ int AqvmBaseIo_fscanf(struct AqvmBaseFile_File* stream, const char* format,
     return -3;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -4;
   }
@@ -332,7 +280,7 @@ int AqvmBaseIo_fscanf(struct AqvmBaseFile_File* stream, const char* format,
   int result = vfscanf(stream->file, format, arg);
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -5;
   }
@@ -354,14 +302,14 @@ int AqvmBaseIo_getc(struct AqvmBaseFile_File* stream) {
     return -3;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -4;
   }
 
   int result = getc(stream->file);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -5;
   }
@@ -384,14 +332,14 @@ int AqvmBaseIo_getchar(void) {
     return -2;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdin) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdin) != 0) {
     // TODO
     return -3;
   }
 
   int result = getchar();
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdin) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdin) != 0) {
     // TODO
     return -4;
   }
@@ -413,14 +361,14 @@ int AqvmBaseIo_perror(const char* str) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stderr) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stderr) != 0) {
     // TODO
     return -2;
   }
 
   perror(str);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stderr) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stderr) != 0) {
     // TODO
     return -3;
   }
@@ -433,7 +381,7 @@ int AqvmBaseIo_printf(const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
@@ -443,7 +391,7 @@ int AqvmBaseIo_printf(const char* format, ...) {
   int result = vprintf(format, arg);
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
@@ -466,14 +414,14 @@ int AqvmBaseIo_putc(int character, struct AqvmBaseFile_File* stream) {
     return -2;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -3;
   }
 
   int result = putc(character, stream->file);
 
-  if (AqvmBaseIo_UnlockStream(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -4;
   }
@@ -492,14 +440,14 @@ int AqvmBaseIo_putchar(int character) {
     return -2;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
 
   int result = putchar(character);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -4;
   }
@@ -518,14 +466,14 @@ int AqvmBaseIo_puts(const char* str) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
 
   int result = puts(str);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
@@ -544,7 +492,7 @@ int AqvmBaseIo_scanf(const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
@@ -554,7 +502,7 @@ int AqvmBaseIo_scanf(const char* format, ...) {
   int result = vfscanf(stdin, format, arg);
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
@@ -574,7 +522,7 @@ int AqvmBaseIo_snprintf(char* str, size_t size, const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
@@ -584,7 +532,7 @@ int AqvmBaseIo_snprintf(char* str, size_t size, const char* format, ...) {
   int result = vsnprintf(str, size, format, arg);
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
@@ -604,7 +552,7 @@ int AqvmBaseIo_sprintf(char* str, const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
@@ -614,7 +562,7 @@ int AqvmBaseIo_sprintf(char* str, const char* format, ...) {
   int result = vsprintf(str, format, arg);
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
@@ -634,7 +582,7 @@ int AqvmBaseIo_sscanf(const char* str, const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
@@ -644,7 +592,7 @@ int AqvmBaseIo_sscanf(const char* str, const char* format, ...) {
   int result = vsscanf(str, format, arg);
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
@@ -667,14 +615,14 @@ int AqvmBaseIo_ungetc(int character, struct AqvmBaseFile_File* stream) {
     return -2;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -3;
   }
 
   int result = ungetc(character, stream->file);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -4;
   }
@@ -698,14 +646,14 @@ int AqvmBaseIo_vfprintf(struct AqvmBaseFile_File* stream, const char* format,
     return -2;
   }
 
-  if (AqvmBaseIo_LockStream(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -3;
   }
 
   int result = vfprintf(stream->file, format, arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -4;
   }
@@ -723,7 +671,7 @@ int AqvmBaseIo_vprintf(const char* format, va_list arg) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
@@ -735,7 +683,7 @@ int AqvmBaseIo_vprintf(const char* format, va_list arg) {
   }
   va_end(arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -4;
   }
@@ -750,14 +698,14 @@ int AqvmBaseIo_vsprintf(char* str, const char* format, va_list arg) {
     return -1;
   }
 
-  if (AqvmBaseIo_LockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -2;
   }
 
   int result = vsprintf(str, format, arg);
 
-  if (AqvmBaseIo_UnlockStream(AqvmBaseIo_stdout) != 0) {
+  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
     // TODO
     return -4;
   }

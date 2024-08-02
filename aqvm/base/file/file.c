@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "aqvm/base/io/io.h"
+#include "aqvm/base/process/file_lock/file_lock.h"
 #include "aqvm/base/threading/mutex/mutex.h"
 
 int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* stream) {
@@ -35,6 +37,56 @@ int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* stream) {
     // TODO
     return -2;
   }
+  return 0;
+}
+
+int AqvmBaseFile_LockStream(struct AqvmBaseFile_File* stream) {
+  /*if (AqvmBaseFile_CheckStream(stream) != 0) {
+    // TODO
+    return -1;
+  }
+  if (stream->file == stdout || stream->file == stderr ||
+      stream->file == stdin) {
+    if (AqvmBaseThreadingMutex_LockMutex(&AqvmBaseIo_printMutex) != 0) {
+      // TODO
+      return -2;
+    }
+  } else {
+    if (AqvmBaseProcessFileLock_LockFile(stream) != 0) {
+      // TODO
+      return -3;
+    }
+    if (AqvmBaseFile_LockStream(stream) != 0) {
+      // TODO
+      return -4;
+    }
+  }*/
+
+  return 0;
+}
+
+int AqvmBaseFile_UnlockStream(struct AqvmBaseFile_File* stream) {
+  /*if (AqvmBaseFile_CheckStream(stream) != 0) {
+    // TODO
+    return -1;
+  }
+  if (stream->file == stdout || stream->file == stderr ||
+      stream->file == stdin) {
+    if (AqvmBaseThreadingMutex_LockMutex(&AqvmBaseIo_printMutex) != 0) {
+      // TODO
+      return -2;
+    }
+  } else {
+    if (AqvmBaseProcessFileLock_LockFile(stream) != 0) {
+      // TODO
+      return -3;
+    }
+    if (AqvmBaseFile_LockStream(stream) != 0) {
+      // TODO
+      return -4;
+    }
+  }*/
+
   return 0;
 }
 
@@ -112,14 +164,14 @@ int AqvmBaseFile_fflush(struct AqvmBaseFile_File* stream) {
     return -1;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -2;
   }
 
   int result = fflush(stream->file);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -3;
   }
@@ -138,7 +190,7 @@ int AqvmBaseFile_fgetpos(struct AqvmBaseFile_File* stream, fpos_t* pos) {
     return -1;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -2;
   }
@@ -149,7 +201,7 @@ int AqvmBaseFile_fgetpos(struct AqvmBaseFile_File* stream, fpos_t* pos) {
     return -3;
   }
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -4;
   }
@@ -194,14 +246,14 @@ size_t AqvmBaseFile_fread(void* ptr, size_t size, size_t nmemb,
     return 0;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return 0;
   }
 
   size_t result = fread(ptr, size, nmemb, stream->file);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return 0;
   }
@@ -216,13 +268,13 @@ struct AqvmBaseFile_File* AqvmBaseFile_freopen(
     return NULL;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return NULL;
   }
   FILE* new_file = freopen(filename, mode, stream->file);
   if (new_file == NULL) {
-    if (AqvmBaseFile_UnlockFile(stream) != 0) {
+    if (AqvmBaseFile_UnlockStream(stream) != 0) {
       // TODO
       return NULL;
     }
@@ -233,7 +285,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_freopen(
 
   stream->file = new_file;
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return NULL;
   }
@@ -248,14 +300,14 @@ int AqvmBaseFile_fseek(struct AqvmBaseFile_File* stream, long int offset,
     return -1;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -2;
   }
 
   int result = fseek(stream->file, offset, whence);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -3;
   }
@@ -274,14 +326,14 @@ int AqvmBaseFile_fsetpos(struct AqvmBaseFile_File* stream, const fpos_t* pos) {
     return -1;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -2;
   }
 
   int result = fsetpos(stream->file, pos);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -3;
   }
@@ -300,14 +352,14 @@ long int AqvmBaseFile_ftell(struct AqvmBaseFile_File* stream) {
     return -1L;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -1L;
   }
 
   long int result = ftell(stream->file);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -1L;
   }
@@ -327,14 +379,14 @@ size_t AqvmBaseFile_fwrite(const void* ptr, size_t size, size_t nmemb,
     return 0;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return 0;
   }
 
   size_t result = fwrite(ptr, size, nmemb, stream->file);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return 0;
   }
@@ -376,13 +428,13 @@ void AqvmBaseFile_rewind(struct AqvmBaseFile_File* stream) {
     return;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return;
   }
   rewind(stream->file);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return;
   }
@@ -394,13 +446,13 @@ void AqvmBaseFile_setbuf(struct AqvmBaseFile_File* stream, char* buffer) {
     return;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return;
   }
   setbuf(stream->file, buffer);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return;
   }
@@ -413,14 +465,14 @@ int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer,
     return -1;
   }
 
-  if (AqvmBaseFile_LockFile(stream) != 0) {
+  if (AqvmBaseFile_LockStream(stream) != 0) {
     // TODO
     return -2;
   }
 
   int result = setvbuf(stream->file, buffer, mode, size);
 
-  if (AqvmBaseFile_UnlockFile(stream) != 0) {
+  if (AqvmBaseFile_UnlockStream(stream) != 0) {
     // TODO
     return -3;
   }

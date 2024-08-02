@@ -13,12 +13,12 @@
 
 #include "aqvm/base/file/file.h"
 #include "aqvm/base/io/io.h"
+#include "aqvm/base/time/time.h"
 
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
                                const char* message, ...) {
   char time_str[28];
-  time_t current_time = time(NULL);
-  strftime(time_str, 28, "%Y-%m-%dT%H:%M:%S%z", localtime(&current_time));
+  AqvmBaseTime_GetCurrentTimeString(time_str);
 
   va_list other_info;
   va_start(other_info, message);

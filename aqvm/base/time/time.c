@@ -8,6 +8,12 @@
 
 #include "aqvm/base/logging/logging.h"
 
+#ifdef __unix__
+#include "aqvm/base/time/unix/time.h"
+#elif _WIN32
+#include "aqvm/base/time/windows/time.h"
+#endif
+
 int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result) {
 #ifdef __unix__
   if (AqvmBaseTimeUnix_localtime(timestamp, result)) {

@@ -11,6 +11,8 @@
 #include "aqvm/base/file/file.h"
 #include "aqvm/base/threading/mutex/mutex.h"
 
+extern AqvmBaseThreadingMutex_Mutex AqvmBaseIo_printMutex;
+
 extern struct AqvmBaseFile_File* AqvmBaseIo_stdout;
 extern struct AqvmBaseFile_File* AqvmBaseIo_stdin;
 extern struct AqvmBaseFile_File* AqvmBaseIo_stderr;
@@ -18,10 +20,6 @@ extern struct AqvmBaseFile_File* AqvmBaseIo_stderr;
 int AqvmBaseIo_InitializeIo();
 
 int AqvmBaseIo_CloseIo();
-
-int AqvmBaseIo_LockStream(struct AqvmBaseFile_File* stream);
-
-int AqvmBaseIo_UnlockStream(struct AqvmBaseFile_File* stream);
 
 int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
                          const char* type, const char* code,
