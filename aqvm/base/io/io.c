@@ -10,7 +10,9 @@
 
 #include "aqvm/base/file/file.h"
 
-AqvmBaseThreadingMutex_Mutex AqvmBaseIo_printMutex;
+AqvmBaseThreadingMutex_Mutex AqvmBaseIo_inputMutex;
+AqvmBaseThreadingMutex_Mutex
+AqvmBaseIo_outputMutex;
 
 struct AqvmBaseFile_File AqvmBaseIo_stdoutStream;
 struct AqvmBaseFile_File* AqvmBaseIo_stdout = &AqvmBaseIo_stdoutStream;
@@ -26,15 +28,23 @@ int AqvmBaseIo_InitializeIo() {
   AqvmBaseIo_stdinStream.file = stdin;
   AqvmBaseIo_stderrStream.file = stderr;
 
-  if (AqvmBaseThreadingMutex_InitializeMutex(&AqvmBaseIo_printMutex) != 0) {
+  if (AqvmBaseThreadingMutex_InitializeMutex(&AqvmBaseIo_inputMutex) != 0) {
     // TODO
     return -1;
+  }
+  if (AqvmBaseThreadingMutex_InitializeMutex(&AqvmBaseIo_outputMutex) != 0) {
+    // TODO
+    return -2;
   }
   return 0;
 }
 
 int AqvmBaseIo_CloseIo() {
-  if (AqvmBaseThreadingMutex_CloseMutex(&AqvmBaseIo_printMutex) != 0) {
+  if (AqvmBaseThreadingMutex_CloseMutex(&AqvmBaseIo_inputMutex) != 0) {
+    // TODO
+    return -1;
+  }
+  if (AqvmBaseThreadingMutex_CloseMutex(&AqvmBaseIo_outputMutex) != 0) {
     // TODO
     return -1;
   }
