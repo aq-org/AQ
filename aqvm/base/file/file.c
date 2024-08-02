@@ -272,13 +272,12 @@ struct AqvmBaseFile_File* AqvmBaseFile_freopen(
     // TODO
     return NULL;
   }
+
   FILE* new_file = freopen(filename, mode, stream->file);
   if (new_file == NULL) {
     if (AqvmBaseFile_UnlockStream(stream) != 0) {
       // TODO
-      return NULL;
     }
-
     // TODO
     return NULL;
   }
