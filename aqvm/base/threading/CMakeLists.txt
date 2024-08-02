@@ -9,7 +9,9 @@ include_directories(${PROJECT_SOURCE_DIR})
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/threading.c)
 
 add_subdirectory(mutex)
+add_subdirectory(file_lock)
 
 add_library(AqvmBaseThreading STATIC ${SOURCES})
 
 target_link_libraries(AqvmBaseThreading PRIVATE AqvmBaseThreadingMutex)
+target_link_libraries(AqvmBaseThreading PRIVATE AqvmBaseThreadingFileLock)
