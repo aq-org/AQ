@@ -11,7 +11,8 @@
 #include "aqvm/base/file/file.h"
 #include "aqvm/base/threading/mutex/mutex.h"
 
-extern AqvmBaseThreadingMutex_Mutex AqvmBaseIo_printMutex;
+extern AqvmBaseThreadingMutex_Mutex AqvmBaseIo_inputMutex;
+extern AqvmBaseThreadingMutex_Mutex AqvmBaseIo_outputMutex;
 
 extern struct AqvmBaseFile_File* AqvmBaseIo_stdout;
 extern struct AqvmBaseFile_File* AqvmBaseIo_stdin;
