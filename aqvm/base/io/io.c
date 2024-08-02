@@ -59,7 +59,7 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
   if (fprintf(
           stream->file,
           "{\"Time\":\"%s\",\"Type\":\"%s\",\"Code\":\"%s\",\"Message\":\"%s\"",
-          "Test", type, code, message) < 0) {
+          time, type, code, message) < 0) {
     // TODO
     return -3;
   }
