@@ -44,10 +44,22 @@ void AqvmBaseLogging_ProcessLog(const char* time, const char* type,
 
   va_list system_info;
   va_start(system_info, other_info);
-  AqvmBaseLogging_OutputLogToConsole(time, type, code, message, other_info,
-                                     system_info);
-  AqvmBaseLogging_OutputLogToFile(time, type, code, message, other_info,
-                                  system_info);
+
+  va_list system_info_to_console;
+  va_list other_info_to_console;
+  va_copy(system_info_to_console, system_info);
+  va_copy(other_info_to_console, other_info);
+
+  va_list system_info_to_file;
+  va_list other_info_to_file;
+  va_copy(system_info_to_file, system_info);
+  va_copy(other_info_to_file, other_info);
+
+  AqvmBaseLogging_OutputLogToConsole(
+      time, type, code, message, other_info_to_console, system_info_to_console);
+  AqvmBaseLogging_OutputLogToFile(time, type, code, message, other_info_to_file,
+                                  system_info_to_file);
+
   va_end(system_info);
 }
 

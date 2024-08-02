@@ -16,12 +16,12 @@
 
 int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result) {
 #ifdef __unix__
-  if (AqvmBaseTimeUnix_localtime(timestamp, result)) {
+  if (AqvmBaseTimeUnix_localtime(timestamp, result) != 0) {
     // TODO
     return -1;
   }
 #elif _WIN32
-  if (AqvmBaseTimeWindows_localtime(timestamp, result)) {
+  if (AqvmBaseTimeWindows_localtime(timestamp, result) != 0) {
     // TODO
     return -2;
   }
@@ -41,13 +41,13 @@ int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result) {
 }
 
 int AqvmBaseTime_GetCurrentTimeString(char* result) {
-  if(result == NULL){
+  if (result == NULL) {
     // TODO
     return -1;
   }
 
   struct tm local_time;
-  if(AqvmBaseTime_localtime(time(NULL), &local_time)){
+  if (AqvmBaseTime_localtime(time(NULL), &local_time)) {
     // TODO
     return -2;
   }

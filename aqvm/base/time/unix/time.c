@@ -11,7 +11,7 @@
 #include "aqvm/base/time/time.h"
 
 int AqvmBaseTimeUnix_localtime(const time_t timestamp, struct tm* result) {
-  if (localtime_r(&timestamp, result) != 0) {
+  if (localtime_r(&timestamp, result) == NULL) {
     // TODO
     return -1;
   }

@@ -11,8 +11,7 @@
 #include "aqvm/base/file/file.h"
 
 AqvmBaseThreadingMutex_Mutex AqvmBaseIo_inputMutex;
-AqvmBaseThreadingMutex_Mutex
-AqvmBaseIo_outputMutex;
+AqvmBaseThreadingMutex_Mutex AqvmBaseIo_outputMutex;
 
 struct AqvmBaseFile_File AqvmBaseIo_stdoutStream;
 struct AqvmBaseFile_File* AqvmBaseIo_stdout = &AqvmBaseIo_stdoutStream;
@@ -75,25 +74,35 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
   }
 
   char* name = va_arg(system_info, char*);
-  char* value = va_arg(system_info, char*);
+  char* value = NULL;
+  if (name != NULL) {
+    value = va_arg(system_info, char*);
+  }
   while (name != NULL && value != NULL) {
     if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) != 0) {
       // TODO
       return -4;
     }
     name = va_arg(system_info, char*);
-    value = va_arg(system_info, char*);
+    if (name != NULL) {
+      value = va_arg(system_info, char*);
+    }
   }
 
   name = va_arg(other_info, char*);
-  value = va_arg(other_info, char*);
+  value = NULL;
+  if (name != NULL) {
+    value = va_arg(system_info, char*);
+  }
   while (name != NULL && value != NULL) {
     if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) != 0) {
       // TODO
       return -5;
     }
     name = va_arg(other_info, char*);
-    value = va_arg(other_info, char*);
+    if (name != NULL) {
+      value = va_arg(system_info, char*);
+    }
   }
 
   if (fprintf(stream->file, "}\n") < 0) {
