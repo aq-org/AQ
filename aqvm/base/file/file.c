@@ -41,7 +41,7 @@ int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* stream) {
 }
 
 int AqvmBaseFile_LockStream(struct AqvmBaseFile_File* stream) {
-  /*if (AqvmBaseFile_CheckStream(stream) != 0) {
+  if (AqvmBaseFile_CheckStream(stream) != 0) {
     // TODO
     return -1;
   }
@@ -60,13 +60,13 @@ int AqvmBaseFile_LockStream(struct AqvmBaseFile_File* stream) {
       // TODO
       return -4;
     }
-  }*/
+  }
 
   return 0;
 }
 
 int AqvmBaseFile_UnlockStream(struct AqvmBaseFile_File* stream) {
-  /*if (AqvmBaseFile_CheckStream(stream) != 0) {
+  if (AqvmBaseFile_CheckStream(stream) != 0) {
     // TODO
     return -1;
   }
@@ -85,7 +85,7 @@ int AqvmBaseFile_UnlockStream(struct AqvmBaseFile_File* stream) {
       // TODO
       return -4;
     }
-  }*/
+  }
 
   return 0;
 }
