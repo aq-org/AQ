@@ -3,15 +3,15 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "aqvm/base/file/file_id/windows/file_id.h"
+#include "aqvm/base/file/identifier/windows/identifier.h"
 
 #include <windows.h>
 
 #include "aqvm/base/hash/hash.h"
 
-int AqvmBaseFileFileIdWindows_GetFileId(
-    const char* filename, AqvmBaseFileFileIdWindows_FileId* file_id) {
-  if (filename == NULL || file_id == NULL) {
+int AqvmBaseFileIdentifierWindows_GetIdentifier(
+    const char* filename, AqvmBaseFileIdentifierWindows_Identifier* identifier) {
+  if (filename == NULL || identifier == NULL) {
     // TODO
     return -1;
   }
@@ -25,9 +25,9 @@ int AqvmBaseFileFileIdWindows_GetFileId(
 
   BY_HANDLE_FILE_INFORMATION file_info;
   if (GetFileInformationByHandle(handle_file, &file_info)) {
-    file_id->dwVolumeSerialNumber = file_info.dwVolumeSerialNumber;
-    file_id->nFileIndexHigh = file_info.nFileIndexHigh;
-    file_id->nFileIndexLow = file_info.nFileIndexLow;
+    identifier->dwVolumeSerialNumber = file_info.dwVolumeSerialNumber;
+    identifier->nFileIndexHigh = file_info.nFileIndexHigh;
+    identifier->nFileIndexLow = file_info.nFileIndexLow;
   } else {
     // TODO
     return -3;
@@ -41,17 +41,17 @@ int AqvmBaseFileFileIdWindows_GetFileId(
   return 0;
 }
 
-uint32_t AqvmBaseFileFileIdWindows_GetFileIdHash(
-    const AqvmBaseFileFileIdWindows_FileId* file_id) {
-  if (file_id == NULL) {
+uint32_t AqvmBaseFileIdentifierWindows_GetIdentifierHash(
+    const AqvmBaseFileIdentifierWindows_Identifier* identifier) {
+  if (identifier == NULL) {
     // TODO
     return 0;
   }
   uint32_t hash[3];
 
-  hash[0] = file_id->dwVolumeSerialNumber;
-  hash[1] = file_id->nFileIndexHigh;
-  hash[2] = file_id->nFileIndexLow;
+  hash[0] = identifier->dwVolumeSerialNumber;
+  hash[1] = identifier->nFileIndexHigh;
+  hash[2] = identifier->nFileIndexLow;
 
   return AqvmBaseHash_HashUnsignedIntArray(hash, 3);
 }

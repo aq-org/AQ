@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/file_id.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/identifier.c)
 
 if(UNIX)
 add_subdirectory(unix)
@@ -14,10 +14,10 @@ elseif (WIN32)
 add_subdirectory(windows)
 endif()
 
-add_library(AqvmBaseFileFileId STATIC ${SOURCES})
+add_library(AqvmBaseFileIdentifier STATIC ${SOURCES})
 
 if(unix)
-target_link_libraries(AqvmBaseFileFileId PRIVATE AqvmBaseFileFileIdUnix)
+target_link_libraries(AqvmBaseFileIdentifier PRIVATE AqvmBaseFileIdentifierUnix)
 elseif (WIN32)
-target_link_libraries(AqvmBaseFileFileId PRIVATE AqvmBaseFileFileIdWindows)
+target_link_libraries(AqvmBaseFileIdentifier PRIVATE AqvmBaseFileIdentifierWindows)
 endif()

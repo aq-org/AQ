@@ -12,7 +12,7 @@ if (WIN32)
 add_subdirectory(windows)
 endif()
 
-add_subdirectory(file_id)
+add_subdirectory(identifier)
 
 add_library(AqvmBaseFile STATIC ${SOURCES})
 
@@ -20,4 +20,4 @@ if (WIN32)
 target_link_libraries(AqvmBaseFile PRIVATE AqvmBaseFileWindows)
 endif()
 
-target_link_libraries(AqvmBaseFile PRIVATE AqvmBaseFileFileId)
+target_link_libraries(AqvmBaseFile PRIVATE AqvmBaseFileIdentifier)

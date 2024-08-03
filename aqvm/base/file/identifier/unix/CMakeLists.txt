@@ -6,6 +6,6 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/file_id.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/identifier.c)
 
-add_library(AqvmBaseFileFileIdWindows STATIC ${SOURCES})
+add_library(AqvmBaseFileIdentifierUnix STATIC ${SOURCES})
