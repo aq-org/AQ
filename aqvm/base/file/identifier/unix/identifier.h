@@ -3,8 +3,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQVM_BASE_FILE_IDENTIFIER_UNIX_IDENTIFIER_H_
-#define AQVM_BASE_FILE_IDENTIFIER_UNIX_IDENTIFIER_H_
+#ifndef AQ_AQVM_BASE_FILE_IDENTIFIER_UNIX_IDENTIFIER_H_
+#define AQ_AQVM_BASE_FILE_IDENTIFIER_UNIX_IDENTIFIER_H_
 
 #include <stdint.h>
 #include <sys/stat.h>
