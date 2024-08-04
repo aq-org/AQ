@@ -6,10 +6,6 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/hash.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/table.c)
 
-add_subdirectory(table)
-
-add_library(AqvmBaseHash STATIC ${SOURCES})
-
-target_link_libraries(AqvmBaseHash PRIVATE AqvmBaseHashTable)
+add_library(AqvmBaseHashTable STATIC ${SOURCES})
