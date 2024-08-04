@@ -17,15 +17,15 @@ int AqvmBaseFileIdentifierUnix_GetIdentifier(const char* filename,
     return -1;
   }
 
-  struct stat* file_info;
+  struct stat file_info;
 
-  if (stat(filename, file_info) != 0) {
+  if (stat(filename, &file_info) != 0) {
     // TODO
     return -2;
   }
 
-  identifier->st_dev = file_info->st_dev;
-  identifier->st_ino = file_info->st_ino;
+  identifier->st_dev = file_info.st_dev;
+  identifier->st_ino = file_info.st_ino;
 
   return 0;
 }
