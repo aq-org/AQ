@@ -6,7 +6,7 @@
 #include "aqvm/base/threading/mutex/windows/mutex.h"
 
 #include <stdio.h>
-#include <windows.h>
+#include <Windows.h>
 
 int AqvmBaseThreadingMutexWindows_InitializeMutex(
     AqvmBaseThreadingMutexWindows_Mutex *mutex) {

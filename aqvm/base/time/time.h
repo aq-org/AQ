@@ -24,7 +24,8 @@ int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result);
 
 int AqvmBaseTime_GetCurrentTime(struct AqvmBaseTime_Time* result);
 
-int AqvmBaseTime_ConvertTmToTime(char* result);
+int AqvmBaseTime_ConvertTmToTime(const struct tm* time,
+                                 struct AqvmBaseTime_Time* result);
 
 // Get the current time. The current time is then formatted as an ISO 8601
 // compliant string and written to |result|. |result| must not be NULL and must

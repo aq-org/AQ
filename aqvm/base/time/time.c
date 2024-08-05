@@ -62,28 +62,38 @@ int AqvmBaseTime_GetCurrentTime(struct AqvmBaseTime_Time* result) {
     return -3;
   }
 #else
-  struct tm local_time;
-  if (AqvmBaseTime_localtime(time(NULL), &local_time) != 0) {
+  struct tm time;
+  if (AqvmBaseTime_localtime(time(NULL), &time) != 0) {
     // TODO
     return -4;
   }
-  result->year = local_time.tm_year + 1900;
-  result->month = local_time.tm_mon + 1;
-  result->day = local_time.tm_mday;
-  result->hour = local_time.tm_hour;
-  result->minute = local_time.tm_min;
-  result->second = local_time.tm_sec;
-  result->millisecond = 0;
-  result->weekday = local_time.tm_wday;
-  result->yearday = local_time.tm_yday;
-  result->isdst = local_time.tm_isdst;
+  if (AqvmBaseTime_ConvertTmToTime(&time, result) != 0) {
+    // TODO
+    return -5;
+  }
 #endif
 
   return 0;
 }
 
-int AqvmBaseTime_ConvertTmToTime(){
+int AqvmBaseTime_ConvertTmToTime(const struct tm* time,
+                                 struct AqvmBaseTime_Time* result) {
+  if (time == NULL || result == NULL) {
+    // TODO
+    return -1;
+  }
 
+  result->year = time->tm_year + 1900;
+  result->month = time->tm_mon + 1;
+  result->day = time->tm_mday;
+  result->hour = time->tm_hour;
+  result->minute = time->tm_min;
+  result->second = time->tm_sec;
+  result->millisecond = 0;
+  result->weekday = time->tm_wday;
+  result->yearday = time->tm_yday;
+  result->isdst = time->tm_isdst;
+  return 0;
 }
 
 int AqvmBaseTime_GetCurrentTimeString(char* result) {

@@ -7,7 +7,7 @@
 #define AQ_AQVM_BASE_FILE_IDENTIFIER_WINDOWS_IDENTIFIER_H_
 
 #include <stdint.h>
-#include <windows.h>
+#include <Windows.h>
 
 #include "aqvm/base/file/file.h"
 

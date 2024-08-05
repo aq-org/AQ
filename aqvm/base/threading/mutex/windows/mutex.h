@@ -6,7 +6,7 @@
 #ifndef AQ_AQVM_BASE_THREADING_MUTEX_WINDOWS_MUTEX_H_
 #define AQ_AQVM_BASE_THREADING_MUTEX_WINDOWS_MUTEX_H_
 
-#include <windows.h>
+#include <Windows.h>
 
 typedef HANDLE AqvmBaseThreadingMutexWindows_Mutex;
 

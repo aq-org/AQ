@@ -5,6 +5,7 @@
 
 #include "aqvm/base/time/windows/time.h"
 
+#include <Windows.h>
 #include <time.h>
 
 #include "aqvm/base/logging/logging.h"
@@ -18,7 +19,13 @@ int AqvmBaseTimeWindows_localtime(const time_t timestamp, struct tm* result) {
   return 0;
 }
 
-int AqvmBaseTimeWindows_GetCurrentTime(struct AqvmBaseTime_Time* result){
+int AqvmBaseTimeWindows_GetCurrentTime(struct AqvmBaseTime_Time* result) {
+  if (result == NULL) {
+    // TODO
+    return -1;
+  }
+
+
   return 0;
 }
 #endif
