@@ -8,7 +8,11 @@
 
 #include <time.h>
 
+#include "aqvm/base/time/time.h"
+
 int AqvmBaseTimeWindows_localtime(const time_t timestamp, struct tm* result);
+
+int AqvmBaseTimeWindows_GetCurrentTime(struct AqvmBaseTime_Time* result);
 
 #endif
 #endif

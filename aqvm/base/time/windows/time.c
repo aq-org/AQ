@@ -17,4 +17,8 @@ int AqvmBaseTimeWindows_localtime(const time_t timestamp, struct tm* result) {
   }
   return 0;
 }
+
+int AqvmBaseTimeWindows_GetCurrentTime(struct AqvmBaseTime_Time* result){
+  return 0;
+}
 #endif

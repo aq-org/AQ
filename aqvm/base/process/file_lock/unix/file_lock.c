@@ -21,8 +21,8 @@ int AqvmBaseProcessFileLockUnix_LockFile(struct AqvmBaseFile_File* file) {
     return -2;
   }
 
-  int file_descriptor = fileno(file->file);
-  if (file_descriptor == -1) {
+  int fd = fileno(file->file);
+  if (fd == -1) {
     return -3;
   }
 
@@ -32,7 +32,7 @@ int AqvmBaseProcessFileLockUnix_LockFile(struct AqvmBaseFile_File* file) {
 
   
 
-  if (fcntl(file_descriptor, F_SETLK, &file_lock) == -1) {
+  if (fcntl(fd, F_SETLK, &file_lock) == -1) {
     printf("%i",errno);
     return -4;
   }
@@ -49,15 +49,15 @@ int AqvmBaseProcessFileLockUnix_UnlockFile(struct AqvmBaseFile_File* file) {
     return -2;
   }
 
-  int file_descriptor = fileno(file->file);
-  if (file_descriptor == -1) {
+  int fd = fileno(file->file);
+  if (fd == -1) {
     return -3;
   }
 
   struct flock file_lock = {0};
   file_lock.l_type = F_UNLCK;
 
-  if (fcntl(file_descriptor, F_SETLK, &file_lock) == -1) {
+  if (fcntl(fd, F_SETLK, &file_lock) == -1) {
     // TODO
     return -4;
   }

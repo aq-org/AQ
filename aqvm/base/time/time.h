@@ -6,9 +6,25 @@
 #define AQ_AQVM_BASE_TIME_TIME_H_
 
 #include <time.h>
-#include <stdbool.h>
+
+struct AqvmBaseTime_Time {
+  int year;
+  int month;
+  int day;
+  int hour;
+  int minute;
+  int second;
+  int millisecond;
+  int weekday;
+  int yearday;
+  int isdst;
+};
 
 int AqvmBaseTime_localtime(const time_t timestamp, struct tm* result);
+
+int AqvmBaseTime_GetCurrentTime(struct AqvmBaseTime_Time* result);
+
+int AqvmBaseTime_ConvertTmToTime(char* result);
 
 // Get the current time. The current time is then formatted as an ISO 8601
 // compliant string and written to |result|. |result| must not be NULL and must

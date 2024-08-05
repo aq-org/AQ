@@ -11,9 +11,9 @@
 
 #include "aqvm/base/file/file.h"
 
-HANDLE AqvmBaseFileWindows_FileToHandle(struct AqvmBaseFile_File* file);
+HANDLE AqvmBaseFileWindows_ConvertFileToHandle(struct AqvmBaseFile_File* file);
 
-// fopen freopen setbuf tmpfile tmpnam vsprintf 
+// fopen freopen setbuf tmpfile tmpnam vsprintf
 
 #endif
 #endif

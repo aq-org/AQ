@@ -16,7 +16,7 @@ int AqvmBaseProcessFileLockWindows_LockFile(struct AqvmBaseFile_File* file) {
     return -1;
   }
 
-  HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file);
+  HANDLE handle_file = AqvmBaseFileWindows_ConvertFileToHandle(file);
   if (handle_file == INVALID_HANDLE_VALUE) {
     // TODO
     return -2;
@@ -35,7 +35,7 @@ int AqvmBaseProcessFileLockWindows_UnlockFile(struct AqvmBaseFile_File* file) {
     return -1;
   }
 
-  HANDLE handle_file = AqvmBaseFileWindows_FileToHandle(file);
+  HANDLE handle_file = AqvmBaseFileWindows_ConvertFileToHandle(file);
   if (handle_file == INVALID_HANDLE_VALUE) {
     // TODO
     return -2;

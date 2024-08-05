@@ -7,7 +7,7 @@
 
 #include "aqvm/base/file/file.h"
 
-HANDLE AqvmBaseFileWindows_FileToHandle(struct AqvmBaseFile_File* file) {
+HANDLE AqvmBaseFileWindows_ConvertFileToHandle(struct AqvmBaseFile_File* file) {
   HANDLE handle = (HANDLE)_get_osfhandle(_fileno(file->file));
   if (handle == INVALID_HANDLE_VALUE) {
     // TODO
