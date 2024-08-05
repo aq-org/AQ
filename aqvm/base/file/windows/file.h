@@ -7,7 +7,7 @@
 #define AQ_AQVM_BASE_FILE_WINDOWS_FILE_H_
 
 #include <stdio.h>
-#include <Windows.h>
+#include <windows.h>
 
 #include "aqvm/base/file/file.h"
 

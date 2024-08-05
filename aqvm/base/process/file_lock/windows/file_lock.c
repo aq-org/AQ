@@ -6,7 +6,7 @@
 #include "aqvm/base/process/file_lock/windows/file_lock.h"
 
 #include <stdio.h>
-#include <Windows.h>
+#include <windows.h>
 
 #include "aqvm/base/file/windows/file.h"
 

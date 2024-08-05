@@ -5,7 +5,7 @@
 
 #include "aqvm/base/file/identifier/windows/identifier.h"
 
-#include <Windows.h>
+#include <windows.h>
 
 #include "aqvm/base/hash/hash.h"
 

@@ -5,7 +5,7 @@
 
 #include "aqvm/base/time/windows/time.h"
 
-#include <Windows.h>
+#include <windows.h>
 #include <time.h>
 
 #include "aqvm/base/logging/logging.h"
