@@ -96,13 +96,13 @@ int AqvmBaseTimeWindows_GetCurrentTime(struct AqvmBaseTime_Time* result) {
     // TODO
     return -4;
   }
-  if (AqvmBaseTime_SetTimeZoneOffset(result) != 0) {
-    // TODO
-    return -5;
-  }
   if (AqvmBaseTime_SetIsdst(result) != 0) {
     // TODO
-    return -6;
+    // return -5;
+  }
+  if (AqvmBaseTime_SetTimezoneOffset(result) != 0) {
+    // TODO
+    // return -6;
   }
 
   return 0;

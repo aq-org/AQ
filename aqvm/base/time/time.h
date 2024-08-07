@@ -31,9 +31,7 @@ int AqvmBaseTime_localtime(const time_t timestamp,
 int AqvmBaseTime_gmtime(const time_t timestamp,
                         struct AqvmBaseTime_Time* result);
 
-bool AqvmBaseTime_IsValidTime(const struct AqvmBaseTime_Time* time_info);
-
-int AqvmBaseTime_GetCurrentTime(struct AqvmBaseTime_Time* result);
+time_t AqvmBaseTime_mktime(struct AqvmBaseTime_Time* time_info);
 
 int AqvmBaseTime_ConvertTmToTime(const struct tm* time_info,
                                  struct AqvmBaseTime_Time* result);
@@ -41,24 +39,23 @@ int AqvmBaseTime_ConvertTmToTime(const struct tm* time_info,
 int AqvmBaseTime_ConvertTimeToTm(const struct AqvmBaseTime_Time* time_info,
                                  struct tm* result);
 
-time_t AqvmBaseTime_mktime(struct AqvmBaseTime_Time* time_info);
+int AqvmBaseTime_GetCurrentTime(struct AqvmBaseTime_Time* result);
+
+int AqvmBaseTime_GetCurrentTimeString(char* result);
+
+int AqvmBaseTime_GetTimezoneOffsetString(
+    const struct AqvmBaseTime_Time* time_info, char* result);
 
 bool AqvmBaseTime_IsLeapYear(const struct AqvmBaseTime_Time* time_info);
+
+bool AqvmBaseTime_IsValidTime(const struct AqvmBaseTime_Time* time_info);
+
+int AqvmBaseTime_SetIsdst(struct AqvmBaseTime_Time* time_info);
+
+int AqvmBaseTime_SetTimezoneOffset(struct AqvmBaseTime_Time* time_info);
 
 int AqvmBaseTime_SetWeekday(struct AqvmBaseTime_Time* time_info);
 
 int AqvmBaseTime_SetYearday(struct AqvmBaseTime_Time* time_info);
-
-int AqvmBaseTime_SetIsdst(struct AqvmBaseTime_Time* time_info);
-
-int AqvmBaseTime_SetTimeZoneOffset(struct AqvmBaseTime_Time* time_info);
-
-// Get the current time. The current time is then formatted as an ISO 8601
-// compliant string and written to |result|. |result| must not be NULL and must
-// be at least 28 characters in length. Returns 0 if successful.
-// The format of the string is YYYY-MM-DDThh:mm:ss.mmm[Z/+hhmm/-hhmm]. Each part
-// cannot be omitted. The final time offset is set according to the current
-// system time zone.
-int AqvmBaseTime_GetCurrentTimeString(char* result);
 
 #endif
