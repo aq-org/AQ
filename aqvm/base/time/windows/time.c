@@ -14,7 +14,7 @@
 
 int AqvmBaseTimeWindows_localtime(const time_t timestamp,
                                   struct AqvmBaseTime_Time* result) {
-  if (timestamp != (time_t)-1 || result == NULL) {
+  if (timestamp == (time_t)-1 || result == NULL) {
     // TODO
     return -1;
   }
@@ -34,7 +34,7 @@ int AqvmBaseTimeWindows_localtime(const time_t timestamp,
 
 int AqvmBaseTimeWindows_gmtime(const time_t timestamp,
                                struct AqvmBaseTime_Time* result) {
-  if (timestamp != (time_t)-1 || result == NULL) {
+  if (timestamp == (time_t)-1 || result == NULL) {
     // TODO
     return -1;
   }
@@ -90,22 +90,18 @@ int AqvmBaseTimeWindows_GetCurrentTime(struct AqvmBaseTime_Time* result) {
 
   if (AqvmBaseTime_SetWeekday(result) != 0) {
     // TODO
-    printf("SetWeekday error\n");
     return -3;
   }
   if (AqvmBaseTime_SetYearday(result) != 0) {
     // TODO
-    printf("SetYearday error\n");
     return -4;
   }
   if (AqvmBaseTime_SetTimeZoneOffset(result) != 0) {
     // TODO
-    printf("SetTimeZoneOffset error\n");
     return -5;
   }
   if (AqvmBaseTime_SetIsdst(result) != 0) {
     // TODO
-    printf("SetIsdst error\n");
     return -6;
   }
 

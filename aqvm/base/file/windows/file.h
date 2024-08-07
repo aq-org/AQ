@@ -13,7 +13,5 @@
 
 HANDLE AqvmBaseFileWindows_ConvertFileToHandle(struct AqvmBaseFile_File* file);
 
-// fopen freopen setbuf tmpfile tmpnam vsprintf
-
 #endif
 #endif

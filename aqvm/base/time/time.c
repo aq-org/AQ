@@ -17,7 +17,7 @@
 
 int AqvmBaseTime_localtime(const time_t timestamp,
                            struct AqvmBaseTime_Time* result) {
-  if (timestamp != (time_t)-1 || result == NULL) {
+  if (timestamp == (time_t)-1 || result == NULL) {
     // TODO
     return -1;
   }
@@ -74,7 +74,7 @@ int AqvmBaseTime_localtime(const time_t timestamp,
 
 int AqvmBaseTime_gmtime(const time_t timestamp,
                         struct AqvmBaseTime_Time* result) {
-  if (timestamp != (time_t)-1 || result == NULL) {
+  if (timestamp == (time_t)-1 || result == NULL) {
     // TODO
     return -1;
   }
@@ -109,7 +109,7 @@ bool AqvmBaseTime_IsValidTime(const struct AqvmBaseTime_Time* time_info) {
     // TODO
     return false;
   }
-  if (time_info->year < 1970 || time_info->year > 9999) {
+  if (time_info->year < 1900 || time_info->year > 9999) {
     // TODO
     return false;
   }
@@ -189,7 +189,7 @@ int AqvmBaseTime_ConvertTmToTime(const struct tm* time_info,
     return -1;
   }
 
-  result->year = time_info->tm_year + 1970;
+  result->year = time_info->tm_year + 1900;
   result->month = time_info->tm_mon + 1;
   result->day = time_info->tm_mday;
   result->hour = time_info->tm_hour;
@@ -212,7 +212,7 @@ int AqvmBaseTime_ConvertTimeToTm(const struct AqvmBaseTime_Time* time_info,
     return -1;
   }
 
-  result->tm_year = time_info->year - 1970;
+  result->tm_year = time_info->year - 1900;
   result->tm_mon = time_info->month - 1;
   result->tm_mday = time_info->day;
   result->tm_hour = time_info->hour;
@@ -305,7 +305,7 @@ int AqvmBaseTime_SetIsdst(struct AqvmBaseTime_Time* time_info) {
   }
 
   time_t timestamp = AqvmBaseTime_mktime(time_info);
-  if (timestamp != (time_t)-1) {
+  if (timestamp == (time_t)-1) {
     // TODO
     return -2;
   }
@@ -321,25 +321,19 @@ int AqvmBaseTime_SetIsdst(struct AqvmBaseTime_Time* time_info) {
 int AqvmBaseTime_SetTimeZoneOffset(struct AqvmBaseTime_Time* time_info) {
   if (!AqvmBaseTime_IsValidTime(time_info)) {
     // TODO
-    printf("invalid time\n");
     return -1;
   }
 
   time_t timestamp = AqvmBaseTime_mktime(time_info);
   if (timestamp == (time_t)-1) {
     // TODO
-    printf("mktime error\n");
     return -2;
   }
   struct AqvmBaseTime_Time local_time;
-  /*if (AqvmBaseTime_localtime(timestamp, &local_time) != 0) {
+  if (AqvmBaseTime_localtime(timestamp, &local_time) != 0) {
     // TODO
-    printf("localtime error\n");
     return -3;
-  }*/
-  printf("timestamp: %ld\n", timestamp);
-  printf("return %d\n", AqvmBaseTime_localtime(timestamp, &local_time));
-  printf("errno: %d,message: %s\n", errno, strerror(errno));
+  }
   time_info->offset_sign = local_time.offset_sign;
   time_info->offset_hour = local_time.offset_hour;
   time_info->offset_minute = local_time.offset_minute;

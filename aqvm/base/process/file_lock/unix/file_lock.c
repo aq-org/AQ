@@ -33,7 +33,6 @@ int AqvmBaseProcessFileLockUnix_LockFile(struct AqvmBaseFile_File* file) {
   
 
   if (fcntl(fd, F_SETLK, &file_lock) == -1) {
-    printf("%i",errno);
     return -4;
   }
   return 0;

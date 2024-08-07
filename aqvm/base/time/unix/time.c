@@ -13,7 +13,7 @@
 
 int AqvmBaseTimeUnix_localtime(const time_t timestamp,
                                struct AqvmBaseTime_Time* result) {
-  if (timestamp != (time_t)-1 || result == NULL) {
+  if (timestamp == (time_t)-1 || result == NULL) {
     // TODO
     return -1;
   }
@@ -33,7 +33,7 @@ int AqvmBaseTimeUnix_localtime(const time_t timestamp,
 
 int AqvmBaseTimeUnix_gmtime(const time_t timestamp,
                             struct AqvmBaseTime_Time* result) {
-  if (timestamp != (time_t)-1 || result == NULL) {
+  if (timestamp == (time_t)-1 || result == NULL) {
     // TODO
     return -1;
   }
