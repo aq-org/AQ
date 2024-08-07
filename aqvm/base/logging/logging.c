@@ -17,8 +17,11 @@
 
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
                                const char* message, ...) {
-  char time_str[28];
-  AqvmBaseTime_GetCurrentTimeString(time_str);
+  char time_str[29];
+  if (AqvmBaseTime_GetCurrentTimeString(time_str) != 0) {
+    // TODO
+    return;
+  }
 
   va_list other_info;
   va_start(other_info, message);

@@ -541,24 +541,14 @@ int AqvmBaseIo_snprintf(char* str, size_t size, const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
-    // TODO
-    return -2;
-  }
-
   va_list arg;
   va_start(arg, format);
   int result = vsnprintf(str, size, format, arg);
   va_end(arg);
 
-  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
-    // TODO
-    return -3;
-  }
-
   if (result < 0) {
     // TODO
-    return -4;
+    return -2;
   }
 
   return result;
@@ -571,24 +561,14 @@ int AqvmBaseIo_sprintf(char* str, const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
-    // TODO
-    return -2;
-  }
-
   va_list arg;
   va_start(arg, format);
   int result = vsprintf(str, format, arg);
   va_end(arg);
 
-  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
-    // TODO
-    return -3;
-  }
-
   if (result < 0) {
     // TODO
-    return -4;
+    return -2;
   }
 
   return result;
@@ -601,24 +581,14 @@ int AqvmBaseIo_sscanf(const char* str, const char* format, ...) {
     return -1;
   }
 
-  if (AqvmBaseFile_LockStream(AqvmBaseIo_stdout) != 0) {
-    // TODO
-    return -2;
-  }
-
   va_list arg;
   va_start(arg, format);
   int result = vsscanf(str, format, arg);
   va_end(arg);
 
-  if (AqvmBaseFile_UnlockStream(AqvmBaseIo_stdout) != 0) {
-    // TODO
-    return -3;
-  }
-
   if (result == EOF) {
     // TODO
-    return -4;
+    return -2;
   }
 
   return result;
