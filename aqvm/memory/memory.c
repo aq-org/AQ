@@ -130,7 +130,8 @@ int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,
   return 0;
 }
 
-uint8_t AqvmMemory_GetType(struct AqvmMemory_Memory* memory, size_t index) {
+uint8_t AqvmMemory_GetType(const struct AqvmMemory_Memory* memory,
+                           size_t index) {
   if (memory == NULL) {
     AqvmBaseLogging_OutputLog("ERROR", "AqvmMemory_GetType_NullMemoryPointer",
                               "The memory pointer is NULL.", NULL);
