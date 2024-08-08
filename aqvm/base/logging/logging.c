@@ -20,7 +20,7 @@ void AqvmBaseLogging_OutputLog(const char* type, const char* code,
   char time_str[31];
   if (AqvmBaseTime_GetCurrentTimeString(time_str) != 0) {
     // TODO
-    return;
+    // return;
   }
 
   va_list other_info;
@@ -84,7 +84,7 @@ int AqvmBaseLogging_OutputLogToFile(const char* time, const char* type,
                                     system_info, other_info);
   if (result != 0) {
     // TODO
-    return -2;
+    // return -2;
   }
 
   AqvmBaseFile_fclose(log_ptr);

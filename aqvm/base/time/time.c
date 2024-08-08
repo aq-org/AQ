@@ -198,7 +198,7 @@ int AqvmBaseTime_GetCurrentTimeString(char* result) {
   if (AqvmBaseTime_GetTimezoneOffsetString(&current_time,
                                            timezone_offset_string) != 0) {
     // TODO
-    return -4;
+    // return -4;
   }
   if (current_time.year < 0) {
     if (AqvmBaseIo_snprintf(
@@ -232,7 +232,7 @@ int AqvmBaseTime_GetTimezoneOffsetString(
   if (time_info->offset_sign == 0 && AqvmBaseIo_snprintf(result, 2, "Z") < 0) {
     // TODO
     return -2;
-  } else if (time_info->offset_sign > 0 ||
+  } else if (time_info->offset_sign > 0 &&
              AqvmBaseIo_snprintf(result, 7, "+%02d:%02d",
                                  time_info->offset_hour,
                                  time_info->offset_minute) < 0) {
