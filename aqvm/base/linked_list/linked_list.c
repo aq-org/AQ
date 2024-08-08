@@ -30,20 +30,6 @@ int AqvmBaseLinkedList_AddNode(struct AqvmBaseLinkedList_LinkedList* list,
   return 0;
 }
 
-struct AqvmBaseLinkedList_LinkedList* AqvmBaseLinkedList_CreateLinkedList() {
-  struct AqvmBaseLinkedList_LinkedList* result =
-      (struct AqvmBaseLinkedList_LinkedList*)malloc(
-          sizeof(struct AqvmBaseLinkedList_LinkedList));
-  if (result == NULL) {
-    // TODO
-    return NULL;
-  }
-  result->head = NULL;
-  result->tail = NULL;
-  result->capacity = 0;
-  return result;
-}
-
 int AqvmBaseLinkedList_CloseLinkedList(
     struct AqvmBaseLinkedList_LinkedList* list) {
   if (list == NULL) {
@@ -57,7 +43,6 @@ int AqvmBaseLinkedList_CloseLinkedList(
       return -2;
     }
   }
-  free(list);
   return 0;
 }
 
@@ -97,6 +82,18 @@ void* AqvmBaseLinkedList_GetData(struct AqvmBaseLinkedList_LinkedList* list,
     return NULL;
   }
   return get_node->data;
+}
+
+int AqvmBaseLinkedList_InitializeLinkedList(
+    struct AqvmBaseLinkedList_LinkedList* linked_list) {
+  if (linked_list == NULL) {
+    // TODO
+    return -1;
+  }
+  linked_list->head = NULL;
+  linked_list->tail = NULL;
+  linked_list->capacity = 0;
+  return linked_list;
 }
 
 int AqvmBaseLinkedList_InsertNode(struct AqvmBaseLinkedList_LinkedList* list,

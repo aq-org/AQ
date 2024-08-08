@@ -8,11 +8,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "aqvm/base/threading/mutex/mutex.h"
+#include "aqvm/base/file/identifier/identifier.h"
+#include "aqvm/base/file/read_write_lock/read_write_lock.h"
 
 struct AqvmBaseFile_File {
   FILE* file;
-  AqvmBaseThreadingMutex_Mutex mutex;
+  AqvmBaseFileIdentifier_Identifier identifier;
+  struct AqvmBaseFileReadWriteLock_ReadWriteLock lock;
 };
 
 int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* stream);
@@ -38,24 +40,23 @@ int AqvmBaseFile_fflush(struct AqvmBaseFile_File* stream);
 int AqvmBaseFile_fgetpos(struct AqvmBaseFile_File* stream, fpos_t* pos);
 
 struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
-                                           const char* mode);
+                                             const char* mode);
 
 size_t AqvmBaseFile_fread(void* ptr, size_t size, size_t nmemb,
-                        struct AqvmBaseFile_File* stream);
+                          struct AqvmBaseFile_File* stream);
 
-struct AqvmBaseFile_File* AqvmBaseFile_freopen(const char* filename,
-                                             const char* mode,
-                                             struct AqvmBaseFile_File* stream);
+struct AqvmBaseFile_File* AqvmBaseFile_freopen(
+    const char* filename, const char* mode, struct AqvmBaseFile_File* stream);
 
 int AqvmBaseFile_fseek(struct AqvmBaseFile_File* stream, long int offset,
-                     int whence);
+                       int whence);
 
 int AqvmBaseFile_fsetpos(struct AqvmBaseFile_File* stream, const fpos_t* pos);
 
 long int AqvmBaseFile_ftell(struct AqvmBaseFile_File* stream);
 
 size_t AqvmBaseFile_fwrite(const void* ptr, size_t size, size_t nmemb,
-                         struct AqvmBaseFile_File* stream);
+                           struct AqvmBaseFile_File* stream);
 
 int AqvmBaseFile_remove(const char* filename);
 
@@ -65,8 +66,8 @@ void AqvmBaseFile_rewind(struct AqvmBaseFile_File* stream);
 
 void AqvmBaseFile_setbuf(struct AqvmBaseFile_File* stream, char* buffer);
 
-int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer, int mode,
-                       size_t size);
+int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer,
+                         int mode, size_t size);
 
 struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void);
 

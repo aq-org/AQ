@@ -22,8 +22,6 @@ struct AqvmBaseLinkedList_Node {
 int AqvmBaseLinkedList_AddNode(struct AqvmBaseLinkedList_LinkedList* list,
                                void* data);
 
-struct AqvmBaseLinkedList_LinkedList* AqvmBaseLinkedList_CreateLinkedList();
-
 int AqvmBaseLinkedList_CloseLinkedList(
     struct AqvmBaseLinkedList_LinkedList* list);
 
@@ -32,6 +30,9 @@ int AqvmBaseLinkedList_DeleteNode(struct AqvmBaseLinkedList_LinkedList* list,
 
 void* AqvmBaseLinkedList_GetData(struct AqvmBaseLinkedList_LinkedList* list,
                                  size_t index);
+
+int AqvmBaseLinkedList_InitializeLinkedList(
+    struct AqvmBaseLinkedList_LinkedList* linked_list);
 
 int AqvmBaseLinkedList_InsertNode(struct AqvmBaseLinkedList_LinkedList* list,
                                   size_t index, void* data);

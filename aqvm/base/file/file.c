@@ -18,11 +18,11 @@ int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* stream) {
     return -1;
   }
 
-  int result = AqvmBaseThreadingMutex_LockMutex(&stream->mutex);
+  /*int result = AqvmBaseThreadingMutex_LockMutex(&stream->mutex);
   if (result != 0) {
     // TODO
     return -2;
-  }
+  }*/
   return 0;
 }
 
@@ -32,11 +32,11 @@ int AqvmBaseFile_UnlockFile(struct AqvmBaseFile_File* stream) {
     return -1;
   }
 
-  int result = AqvmBaseThreadingMutex_UnlockMutex(&stream->mutex);
+  /*int result = AqvmBaseThreadingMutex_UnlockMutex(&stream->mutex);
   if (result != 0) {
     // TODO
     return -2;
-  }
+  }*/
   return 0;
 }
 
@@ -59,10 +59,6 @@ int AqvmBaseFile_LockStream(struct AqvmBaseFile_File* stream) {
     if (AqvmBaseProcessFileLock_LockFile(stream) != 0) {
       // TODO
       return -4;
-    }
-    if (AqvmBaseFile_LockFile(stream) != 0) {
-      // TODO
-      return -5;
     }
   }
 
@@ -88,10 +84,6 @@ int AqvmBaseFile_UnlockStream(struct AqvmBaseFile_File* stream) {
     if (AqvmBaseProcessFileLock_UnlockFile(stream) != 0) {
       // TODO
       return -4;
-    }
-    if (AqvmBaseFile_UnlockFile(stream) != 0) {
-      // TODO
-      return -5;
     }
   }
 
@@ -131,10 +123,10 @@ int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream) {
   }
 
   int result = fclose(stream->file);
-  if (AqvmBaseThreadingMutex_CloseMutex(&stream->mutex)) {
+  /*if (AqvmBaseThreadingMutex_CloseMutex(&stream->mutex)) {
     // TODO
     return -2;
-  }
+  }*/
 
   if (result != 0) {
     // TODO
@@ -238,11 +230,11 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
     return NULL;
   }
 
-  if (AqvmBaseThreadingMutex_InitializeMutex(&stream->mutex) != 0) {
+  /*if (AqvmBaseThreadingMutex_InitializeMutex(&stream->mutex) != 0) {
     fclose(stream->file);
     free(stream);
     return NULL;
-  }
+  }*/
 
   return stream;
 }
@@ -507,12 +499,13 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void) {
     return NULL;
   }
 
-  AqvmBaseThreadingMutex_InitializeMutex(&stream->mutex);
+  /*AqvmBaseThreadingMutex_InitializeMutex(&stream->mutex);*/
 
   return stream;
 }
 
-char* AqvmBaseFile_tmpnam(char* str) {  // TODO
+char* AqvmBaseFile_tmpnam(char* str) {
+  // TODO
   char* result = tmpnam(str);
   if (result == NULL) {
     // TODO
