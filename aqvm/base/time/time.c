@@ -229,23 +229,21 @@ int AqvmBaseTime_GetTimezoneOffsetString(
     return -1;
   }
 
-  if (time_info->offset_sign == 0) {
-    if (AqvmBaseIo_snprintf(result, 2, "Z") < 0) {
-      // TODO
-      return -2;
-    }
-  } else if (time_info->offset_sign > 0) {
-    if (AqvmBaseIo_snprintf(result, 7, "+%02d:%02d", time_info->offset_hour,
-                            time_info->offset_minute) < 0) {
-      // TODO
-      return -3;
-    }
-  } else if (time_info->offset_sign < 0) {
-    if (AqvmBaseIo_snprintf(result, 7, "-%02d:%02d", time_info->offset_hour,
-                            time_info->offset_minute) < 0) {
-      // TODO
-      return -4;
-    }
+  if (time_info->offset_sign == 0 && AqvmBaseIo_snprintf(result, 2, "Z") < 0) {
+    // TODO
+    return -2;
+  } else if (time_info->offset_sign > 0 ||
+             AqvmBaseIo_snprintf(result, 7, "+%02d:%02d",
+                                 time_info->offset_hour,
+                                 time_info->offset_minute) < 0) {
+    // TODO
+    return -3;
+  } else if (time_info->offset_sign < 0 &&
+             AqvmBaseIo_snprintf(result, 7, "-%02d:%02d",
+                                 time_info->offset_hour,
+                                 time_info->offset_minute) < 0) {
+    // TODO
+    return -4;
   }
   return 0;
 }
