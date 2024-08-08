@@ -363,8 +363,8 @@ int AqvmBaseTime_SetWeekday(struct AqvmBaseTime_Time* time_info) {
   int m = time_info->month;
   int d = time_info->day;
 
-  if ((time_info->year == 1582 && time_info->month == 10 &&
-       time_info->day > 4 && time_info->day < 15)) {
+  if (time_info->year == 1582 && time_info->month == 10 && time_info->day > 4 &&
+      time_info->day < 15) {
     // TODO
     return -2;
   }
