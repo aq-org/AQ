@@ -13,11 +13,13 @@ int AqvmBaseThreadingMutex_InitializeMutex(
 
 #ifdef __unix__
   if (AqvmBaseThreadingMutexUnix_InitializeMutex(mutex) != 0) {
+    // TODO
     return -2;
   }
   return 0;
 #elif _WIN32
   if (AqvmBaseThreadingMutexWindows_InitializeMutex(mutex) != 0) {
+    // TODO
     return -2;
   }
   return 0;
@@ -60,11 +62,13 @@ int AqvmBaseThreadingMutex_LockMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
 
 #ifdef __unix__
   if (AqvmBaseThreadingMutexUnix_LockMutex(mutex) != 0) {
+    // TODO
     return -2;
   }
   return 0;
 #elif _WIN32
   if (AqvmBaseThreadingMutexWindows_LockMutex(mutex) != 0) {
+    // TODO
     return -2;
   }
   return 0;

@@ -4,7 +4,6 @@
 
 #include "aqvm/base/time/time.h"
 
-#include <stdio.h>
 #include <time.h>
 
 #include "aqvm/base/io/io.h"
@@ -50,25 +49,20 @@ int AqvmBaseTime_localtime(const time_t timestamp,
     // TODO
     return -5;
   }
-
-  int offset_hour = result->hour - utc_time.hour;
-  int offset_minute = result->minute - utc_time.minute;
-  if (offset_hour > 0 || (offset_hour == 0 && offset_minute > 0)) {
-    result->offset_sign = 1;
+  int timezone_offset = (result->hour - utc_time.hour) * 3600 +
+                        (result->minute - utc_time.minute) * 60 +
+                        (result->second - utc_time.second);
+  if (result->day != utc_time.day)
+    timezone_offset += result->day > utc_time.day ? 24 * 3600 : -24 * 3600;
+  if (timezone_offset == 0) {
+    result->offset_sign = 0;
+  } else {
+    int offset_hour = timezone_offset / 3600;
+    int offset_minute = timezone_offset % 3600 / 60;
+    result->offset_sign = timezone_offset > 0 ? 1 : -1;
+    result->offset_hour = offset_hour >= 0 ? offset_hour : -offset_hour;
+    result->offset_minute = offset_minute >= 0 ? offset_minute : -offset_minute;
   }
-  if (offset_hour < 0 || (offset_hour == 0 && offset_minute < 0)) {
-    result->offset_sign = -1;
-  }
-  if (offset_hour > 0 && offset_minute < 0) {
-    offset_minute += 60;
-    --offset_hour;
-  }
-  if (offset_hour < 0 && offset_minute > 0) {
-    offset_minute -= 60;
-    ++offset_hour;
-  }
-  result->offset_hour = abs(offset_hour);
-  result->offset_minute = abs(offset_minute);
 
   return 0;
 }
@@ -97,6 +91,7 @@ int AqvmBaseTime_gmtime(const time_t timestamp,
       "The gmtime function may cause thread unsafety.", NULL);
   struct tm* gm_time = gmtime(&timestamp);
   if (gm_time == NULL) {
+    // TODO
     return -4;
   }
   *result = *gm_time;
@@ -199,7 +194,7 @@ int AqvmBaseTime_GetCurrentTimeString(char* result) {
     // TODO
     return -3;
   }
-  char timezone_offset_string[6];
+  char timezone_offset_string[7];
   if (AqvmBaseTime_GetTimezoneOffsetString(&current_time,
                                            timezone_offset_string) != 0) {
     // TODO
@@ -207,7 +202,7 @@ int AqvmBaseTime_GetCurrentTimeString(char* result) {
   }
   if (current_time.year < 0) {
     if (AqvmBaseIo_snprintf(
-            result, 30, "-%04d-%02d-%02dT%02d:%02d:%02d.%03d%s",
+            result, 31, "-%04d-%02d-%02dT%02d:%02d:%02d.%03d%s",
             current_time.year, current_time.month, current_time.day,
             current_time.hour, current_time.minute, current_time.second,
             current_time.millisecond, timezone_offset_string) < 0) {
@@ -216,7 +211,7 @@ int AqvmBaseTime_GetCurrentTimeString(char* result) {
     }
   } else {
     if (AqvmBaseIo_snprintf(
-            result, 29, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%s",
+            result, 30, "%04d-%02d-%02dT%02d:%02d:%02d.%03d%s",
             current_time.year, current_time.month, current_time.day,
             current_time.hour, current_time.minute, current_time.second,
             current_time.millisecond, timezone_offset_string) < 0) {
@@ -235,18 +230,18 @@ int AqvmBaseTime_GetTimezoneOffsetString(
   }
 
   if (time_info->offset_sign == 0) {
-    if (AqvmBaseIo_snprintf(result, 1, "Z") < 0) {
+    if (AqvmBaseIo_snprintf(result, 2, "Z") < 0) {
       // TODO
       return -2;
     }
   } else if (time_info->offset_sign > 0) {
-    if (AqvmBaseIo_snprintf(result, 6, "+%02d:%02d", time_info->offset_hour,
+    if (AqvmBaseIo_snprintf(result, 7, "+%02d:%02d", time_info->offset_hour,
                             time_info->offset_minute) < 0) {
       // TODO
       return -3;
     }
   } else if (time_info->offset_sign < 0) {
-    if (AqvmBaseIo_snprintf(result, 6, "-%02d:%02d", time_info->offset_hour,
+    if (AqvmBaseIo_snprintf(result, 7, "-%02d:%02d", time_info->offset_hour,
                             time_info->offset_minute) < 0) {
       // TODO
       return -4;
@@ -376,9 +371,7 @@ int AqvmBaseTime_SetWeekday(struct AqvmBaseTime_Time* time_info) {
     return -2;
   }
 
-  if (y < 0) {
-    ++y;
-  }
+  if (y < 0) ++y;
   if (m < 3) {
     m += 12;
     --y;
@@ -387,9 +380,8 @@ int AqvmBaseTime_SetWeekday(struct AqvmBaseTime_Time* time_info) {
   if (time_info->year < 1582 ||
       (time_info->year == 1582 && time_info->month < 10) ||
       (time_info->year == 1582 && time_info->month == 10 &&
-       time_info->day <= 4)) {
+       time_info->day <= 4))
     time_info->weekday = (-c + y + y / 4 + 13 * (m + 1) / 5 + d + 4) % 7;
-  }
 
   time_info->weekday =
       (c / 4 - 2 * c + y + y / 4 + 13 * (m + 1) / 5 + d - 1) % 7;
@@ -405,8 +397,7 @@ int AqvmBaseTime_SetYearday(struct AqvmBaseTime_Time* time_info) {
 
   int days[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365};
   time_info->yearday = days[time_info->month - 1] + time_info->day;
-  if (time_info->month > 2 && AqvmBaseTime_IsLeapYear(time_info)) {
+  if (time_info->month > 2 && AqvmBaseTime_IsLeapYear(time_info))
     ++time_info->yearday;
-  }
   return 0;
 }

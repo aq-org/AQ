@@ -75,34 +75,26 @@ int AqvmBaseIo_OutputLog(struct AqvmBaseFile_File* stream, const char* time,
 
   char* name = va_arg(system_info, char*);
   char* value = NULL;
-  if (name != NULL) {
-    value = va_arg(system_info, char*);
-  }
+  if (name != NULL) value = va_arg(system_info, char*);
   while (name != NULL && value != NULL) {
     if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) != 0) {
       // TODO
       return -4;
     }
     name = va_arg(system_info, char*);
-    if (name != NULL) {
-      value = va_arg(system_info, char*);
-    }
+    if (name != NULL) value = va_arg(system_info, char*);
   }
 
   name = va_arg(other_info, char*);
   value = NULL;
-  if (name != NULL) {
-    value = va_arg(system_info, char*);
-  }
+  if (name != NULL) value = va_arg(system_info, char*);
   while (name != NULL && value != NULL) {
     if (fprintf(stream->file, ",\"%s\":\"%s\"", name, value) != 0) {
       // TODO
       return -5;
     }
     name = va_arg(other_info, char*);
-    if (name != NULL) {
-      value = va_arg(system_info, char*);
-    }
+    if (name != NULL) value = va_arg(system_info, char*);
   }
 
   if (fprintf(stream->file, "}\n") < 0) {
@@ -657,6 +649,7 @@ int AqvmBaseIo_vfprintf(struct AqvmBaseFile_File* stream, const char* format,
 
 int AqvmBaseIo_vprintf(const char* format, va_list arg) {
   if (format == NULL || AqvmBaseFile_CheckStream(AqvmBaseIo_stdout) != 0) {
+    // TODO
     return -1;
   }
 

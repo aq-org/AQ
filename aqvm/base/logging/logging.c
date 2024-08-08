@@ -17,7 +17,7 @@
 
 void AqvmBaseLogging_OutputLog(const char* type, const char* code,
                                const char* message, ...) {
-  char time_str[29];
+  char time_str[31];
   if (AqvmBaseTime_GetCurrentTimeString(time_str) != 0) {
     // TODO
     return;
@@ -32,18 +32,10 @@ void AqvmBaseLogging_OutputLog(const char* type, const char* code,
 void AqvmBaseLogging_ProcessLog(const char* time, const char* type,
                                 const char* code, const char* message,
                                 va_list other_info, ...) {
-  if (time == NULL) {
-    time = "NULL";
-  }
-  if (type == NULL) {
-    type = "NULL";
-  }
-  if (code == NULL) {
-    code = "NULL";
-  }
-  if (message == NULL) {
-    message = "NULL";
-  }
+  if (time == NULL) time = "NULL";
+  if (type == NULL) type = "NULL";
+  if (code == NULL) code = "NULL";
+  if (message == NULL) message = "NULL";
 
   va_list system_info;
   va_start(system_info, other_info);
@@ -84,6 +76,7 @@ int AqvmBaseLogging_OutputLogToFile(const char* time, const char* type,
                                     va_list system_info, va_list other_info) {
   struct AqvmBaseFile_File* log_ptr = AqvmBaseFile_fopen(".aqvm_log.log", "a");
   if (log_ptr == NULL) {
+    // TODO
     return -1;
   }
 
