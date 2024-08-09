@@ -40,7 +40,8 @@ int AqvmBaseFileReadWriteLock_LockReadLock(
     return -1;
   }
 
-  if (AqvmBaseThreadingMutex_LockMutex(&read_write_lock->mutex) != 0) {
+  if (read_write_lock->read_count == 0 &&
+      AqvmBaseThreadingMutex_LockMutex(&read_write_lock->mutex) != 0) {
     // TODO
     return -2;
   }

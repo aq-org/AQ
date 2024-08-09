@@ -42,7 +42,7 @@ int AqvmBaseHashTable_InitializeHashTable(
     return -2;
   }
   for (size_t i = 0; i < capacity; i++) {
-    if (AqvmBaseLinkedList_InitializeLinkedList(&hash_table->data[i])) {
+    if (AqvmBaseLinkedList_InitializeLinkedList(&hash_table->data[i])!=0) {
       // TODO
       return -3;
     }

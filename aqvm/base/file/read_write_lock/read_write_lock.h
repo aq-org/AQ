@@ -9,6 +9,7 @@
 
 struct AqvmBaseFileReadWriteLock_ReadWriteLock {
   AqvmBaseThreadingMutex_Mutex mutex;
+  int lock_count;
   int read_count;
 };
 

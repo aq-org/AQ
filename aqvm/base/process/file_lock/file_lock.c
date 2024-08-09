@@ -14,7 +14,7 @@
 
 int AqvmBaseProcessFileLock_LockFile(struct AqvmBaseFile_File* file) {
 #ifdef __unix__
-  if (AqvmBaseProcessFileLockUnix_LockFile(file)) {
+  if (AqvmBaseProcessFileLockUnix_LockFile(file) != 0) {
     // TODO
     return -1;
   }
@@ -33,7 +33,7 @@ int AqvmBaseProcessFileLock_LockFile(struct AqvmBaseFile_File* file) {
 
 int AqvmBaseProcessFileLock_UnlockFile(struct AqvmBaseFile_File* file) {
 #ifdef __unix__
-  if (AqvmBaseProcessFileLockUnix_UnlockFile(file)) {
+  if (AqvmBaseProcessFileLockUnix_UnlockFile(file) != 0) {
     // TODO
     return -1;
   }

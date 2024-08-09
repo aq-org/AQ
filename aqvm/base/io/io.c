@@ -133,7 +133,7 @@ int AqvmBaseIo_fgetc(struct AqvmBaseFile_File* stream) {
   }
 
   if (result == EOF) {
-    if (AqvmBaseFile_feof(stream)) {
+    if (AqvmBaseFile_feof(stream) != 0) {
       return EOF;
     }
     // TODO
@@ -166,7 +166,7 @@ char* AqvmBaseIo_fgets(char* str, int n, struct AqvmBaseFile_File* stream) {
   }
 
   if (result == NULL) {
-    if (AqvmBaseFile_feof(stream)) {
+    if (AqvmBaseFile_feof(stream) != 0) {
       return NULL;
     }
     // TODO
@@ -326,7 +326,7 @@ int AqvmBaseIo_getc(struct AqvmBaseFile_File* stream) {
   }
 
   if (result == EOF) {
-    if (AqvmBaseFile_feof(stream)) {
+    if (AqvmBaseFile_feof(stream) != 0) {
       return EOF;
     } else {
       // TODO
@@ -356,7 +356,7 @@ int AqvmBaseIo_getchar(void) {
   }
 
   if (result == EOF) {
-    if (AqvmBaseFile_feof(AqvmBaseIo_stdin)) {
+    if (AqvmBaseFile_feof(AqvmBaseIo_stdin) != 0) {
       return EOF;
     } else {
       // TODO

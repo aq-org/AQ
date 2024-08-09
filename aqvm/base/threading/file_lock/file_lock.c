@@ -4,10 +4,14 @@
 
 #include "aqvm/base/threading/file_lock/file_lock.h"
 
+#include <stddef.h>
+#include <stdlib.h>
+
 #include "aqvm/base/file/file.h"
 #include "aqvm/base/file/identifier/identifier.h"
 #include "aqvm/base/file/read_write_lock/read_write_lock.h"
 #include "aqvm/base/hash/table/table.h"
+#include "aqvm/base/linked_list/linked_list.h"
 #include "aqvm/base/pair.h"
 
 struct AqvmBaseHashTable_HashTable AqvmBaseThreadingFileLock_fileLockTable;
@@ -31,12 +35,63 @@ int AqvmBaseThreadingFileLock_InitializeFileLockTable() {
   return 0;
 }
 
-int AqvmBaseThreadingFileLock_InsertFileLock(struct AqvmBaseFile_File* file) {
-  if (file == NULL) {
+int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
+  if (file == NULL || file->identifier == NULL) {
     // TODO
     return -1;
   }
 
-  AqvmBaseThreadingFileLock_fileLockTable
-      .data[AqvmBaseFileIdentifier_GetIdentifierHash(&file->identifier) % 1024];
+  struct AqvmBase_Pair* file_lock_pair =
+      (struct AqvmBase_Pair*)malloc(sizeof(struct AqvmBase_Pair));
+  if (file_lock_pair == NULL) {
+    // TODO
+    return -2;
+  }
+  file_lock_pair->key = file->identifier;
+  file_lock_pair->value = file->lock;
+  if (AqvmBaseLinkedList_AddNode(
+          &AqvmBaseThreadingFileLock_fileLockTable
+               .data[AqvmBaseFileIdentifier_GetIdentifierHash(
+                         &file->identifier) %
+                     1024],
+          file_lock_pair) != 0) {
+    // TODO
+    return -3;
+  }
+  return 0;
+}
+
+int AqvmBaseThreadingFileLock_RemoveFileLock(struct AqvmBaseFile_File* file) {
+  if (file == NULL) {
+    // TODO
+    return -1;
+  }
+}
+
+struct AqvmBaseFileReadWriteLock_ReadWriteLock*
+AqvmBaseThreadingFileLock_GetFileLock(struct AqvmBaseFile_File* file) {
+  if (file == NULL || file->identifier == NULL) {
+    // TODO
+    return NULL;
+  }
+
+  struct AqvmBaseLinkedList_LinkedList* linked_list =
+      &AqvmBaseThreadingFileLock_fileLockTable
+           .data[AqvmBaseFileIdentifier_GetIdentifierHash(&file->identifier) %
+                 1024];
+  struct AqvmBaseLinkedList_Node* node = linked_list->head;
+
+  struct AqvmBaseFileReadWriteLock_ReadWriteLock* lock = NULL;
+  while (node != NULL) {
+    if (*file->identifier ==
+        *(AqvmBaseFileIdentifier_Identifier*)((struct AqvmBase_Pair*)node->data)
+             ->key) {
+      lock = (struct
+              AqvmBaseFileReadWriteLock_ReadWriteLock*)((struct AqvmBase_Pair*)
+                                                            node->data)
+                 ->value;
+      break;
+    }
+    node = node->next;
+  }
 }

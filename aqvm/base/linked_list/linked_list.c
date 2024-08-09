@@ -38,7 +38,7 @@ int AqvmBaseLinkedList_CloseLinkedList(
   }
 
   while (list->capacity > 0) {
-    if (AqvmBaseLinkedList_DeleteNode(list, 0)) {
+    if (AqvmBaseLinkedList_DeleteNode(list, 0) != 0) {
       // TODO
       return -2;
     }

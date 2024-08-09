@@ -5,7 +5,7 @@
 #ifndef AQ_AQVM_BASE_PAIR_PAIR_H_
 #define AQ_AQVM_BASE_PAIR_PAIR_H_
 
-struct AqvmBaseHashTable_Pair {
+struct AqvmBase_Pair {
   void* key;
   void* value;
 };

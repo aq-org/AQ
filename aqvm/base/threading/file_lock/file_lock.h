@@ -17,6 +17,11 @@ int AqvmBaseThreadingFileLock_CloseFileLockTable();
 
 int AqvmBaseThreadingFileLock_InitializeFileLockTable();
 
-int AqvmBaseThreadingFileLock_InsertFileLock(struct AqvmBaseFile_File* file);
+struct AqvmBaseFileReadWriteLock_ReadWriteLock*
+AqvmBaseThreadingFileLock_GetFileLock(struct AqvmBaseFile_File* file);
+
+int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file);
+
+int AqvmBaseThreadingFileLock_RemoveFileLock(struct AqvmBaseFile_File* file);
 
 #endif

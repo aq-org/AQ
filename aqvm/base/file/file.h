@@ -13,8 +13,8 @@
 
 struct AqvmBaseFile_File {
   FILE* file;
-  AqvmBaseFileIdentifier_Identifier identifier;
-  struct AqvmBaseFileReadWriteLock_ReadWriteLock lock;
+  AqvmBaseFileIdentifier_Identifier* identifier;
+  struct AqvmBaseFileReadWriteLock_ReadWriteLock* lock;
 };
 
 int AqvmBaseFile_LockFile(struct AqvmBaseFile_File* stream);
@@ -69,7 +69,7 @@ void AqvmBaseFile_setbuf(struct AqvmBaseFile_File* stream, char* buffer);
 int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer,
                          int mode, size_t size);
 
-struct AqvmBaseFile_File* AqvmBaseFile_tmpfile(void);
+struct AqvmBaseFile_File* AqvmBaseFile_tmpfile();
 
 char* AqvmBaseFile_tmpnam(char* str);
 
