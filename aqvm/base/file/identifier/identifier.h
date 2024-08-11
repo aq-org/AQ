@@ -5,6 +5,7 @@
 #ifndef AQ_AQVM_BASE_FILE_IDENTIFIER_IDENTIFIER_H_
 #define AQ_AQVM_BASE_FILE_IDENTIFIER_IDENTIFIER_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __unix__
@@ -16,14 +17,20 @@
 #ifdef __unix__
 typedef AqvmBaseFileIdentifierUnix_Identifier AqvmBaseFileIdentifier_Identifier;
 #elif _WIN32
-typedef AqvmBaseFileIdentifierWindows_Identifier AqvmBaseFileIdentifier_Identifier;
+typedef AqvmBaseFileIdentifierWindows_Identifier
+    AqvmBaseFileIdentifier_Identifier;
 #else
 typedef void AqvmBaseFileIdentifier_Identifier;
 #endif
 
-int AqvmBaseFileIdentifier_GetIdentifier(const char* filename,
-                                 AqvmBaseFileIdentifier_Identifier* identifier);
+int AqvmBaseFileIdentifier_GetIdentifier(
+    const char* filename, AqvmBaseFileIdentifier_Identifier* identifier);
 
-uint32_t AqvmBaseFileIdentifier_GetIdentifierHash(const AqvmBaseFileIdentifier_Identifier* identifier);
+uint32_t AqvmBaseFileIdentifier_GetIdentifierHash(
+    const AqvmBaseFileIdentifier_Identifier* identifier);
+
+bool AqvmBaseFileIdentifier_IsEqual(
+    const AqvmBaseFileIdentifier_Identifier* identifier1,
+    const AqvmBaseFileIdentifier_Identifier* identifier2);
 
 #endif

@@ -6,6 +6,7 @@
 #ifndef AQ_AQVM_BASE_FILE_IDENTIFIER_UNIX_IDENTIFIER_H_
 #define AQ_AQVM_BASE_FILE_IDENTIFIER_UNIX_IDENTIFIER_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -17,11 +18,15 @@ typedef struct {
   ino_t st_ino;
 } AqvmBaseFileIdentifierUnix_Identifier;
 
-int AqvmBaseFileIdentifierUnix_GetIdentifier(const char* filename,
-                                     AqvmBaseFileIdentifierUnix_Identifier* identifier);
+int AqvmBaseFileIdentifierUnix_GetIdentifier(
+    const char* filename, AqvmBaseFileIdentifierUnix_Identifier* identifier);
 
 uint32_t AqvmBaseFileIdentifierUnix_GetIdentifierHash(
     const AqvmBaseFileIdentifierUnix_Identifier* identifier);
+
+bool AqvmBaseFileIdentifierUnix_IsEqual(
+    const AqvmBaseFileIdentifier_Identifier* identifier1,
+    const AqvmBaseFileIdentifier_Identifier* identifier2);
 
 #endif
 

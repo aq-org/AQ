@@ -41,27 +41,33 @@ int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
     return -1;
   }
 
-  struct AqvmBase_Pair* file_lock_pair =
-      (struct AqvmBase_Pair*)malloc(sizeof(struct AqvmBase_Pair));
-  if (file_lock_pair == NULL) {
-    // TODO
-    return -2;
+  file->lock = AqvmBaseThreadingFileLock_GetFileLock(file);
+  if (file->lock == NULL) {
+    struct AqvmBase_Pair* file_lock_pair =
+        (struct AqvmBase_Pair*)malloc(sizeof(struct AqvmBase_Pair));
+    if (file_lock_pair == NULL) {
+      // TODO
+      return -2;
+    }
+    file_lock_pair->key = file->identifier;
+    file_lock_pair->value = file->lock;
+    if (AqvmBaseLinkedList_AddNode(
+            &AqvmBaseThreadingFileLock_fileLockTable
+                 .data[AqvmBaseFileIdentifier_GetIdentifierHash(
+                           file->identifier) %
+                       1024],
+            file_lock_pair) != 0) {
+      // TODO
+      free(file_lock_pair);
+      return -3;
+    }
   }
-  file_lock_pair->key = file->identifier;
-  file_lock_pair->value = file->lock;
-  if (AqvmBaseLinkedList_AddNode(
-          &AqvmBaseThreadingFileLock_fileLockTable
-               .data[AqvmBaseFileIdentifier_GetIdentifierHash(
-                         &file->identifier) %
-                     1024],
-          file_lock_pair) != 0) {
-    // TODO
-    return -3;
-  }
+  ++file->lock->lock_count;
   return 0;
 }
 
 int AqvmBaseThreadingFileLock_RemoveFileLock(struct AqvmBaseFile_File* file) {
+  // TODO
   if (file == NULL) {
     // TODO
     return -1;
@@ -77,15 +83,17 @@ AqvmBaseThreadingFileLock_GetFileLock(struct AqvmBaseFile_File* file) {
 
   struct AqvmBaseLinkedList_LinkedList* linked_list =
       &AqvmBaseThreadingFileLock_fileLockTable
-           .data[AqvmBaseFileIdentifier_GetIdentifierHash(&file->identifier) %
+           .data[AqvmBaseFileIdentifier_GetIdentifierHash(file->identifier) %
                  1024];
   struct AqvmBaseLinkedList_Node* node = linked_list->head;
 
   struct AqvmBaseFileReadWriteLock_ReadWriteLock* lock = NULL;
   while (node != NULL) {
-    if (*file->identifier ==
-        *(AqvmBaseFileIdentifier_Identifier*)((struct AqvmBase_Pair*)node->data)
-             ->key) {
+    if (AqvmBaseFileIdentifier_IsEqual(
+            file->identifier,
+            (AqvmBaseFileIdentifier_Identifier*)((struct AqvmBase_Pair*)
+                                                     node->data)
+                ->key)) {
       lock = (struct
               AqvmBaseFileReadWriteLock_ReadWriteLock*)((struct AqvmBase_Pair*)
                                                             node->data)

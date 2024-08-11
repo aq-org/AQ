@@ -6,6 +6,7 @@
 #ifndef AQ_AQVM_BASE_FILE_IDENTIFIER_WINDOWS_IDENTIFIER_H_
 #define AQ_AQVM_BASE_FILE_IDENTIFIER_WINDOWS_IDENTIFIER_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <windows.h>
 
@@ -22,6 +23,10 @@ int AqvmBaseFileIdentifierWindows_GetIdentifier(
 
 uint32_t AqvmBaseFileIdentifierWindows_GetIdentifierHash(
     const AqvmBaseFileIdentifierWindows_Identifier* identifier);
+
+bool AqvmBaseFileIdentifierWindows_IsEqual(
+    const AqvmBaseFileIdentifier_Identifier* identifier1,
+    const AqvmBaseFileIdentifier_Identifier* identifier2);
 
 #endif
 #endif

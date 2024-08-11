@@ -10,8 +10,8 @@
 
 #include "aqvm/base/hash/hash.h"
 
-int AqvmBaseFileIdentifierUnix_GetIdentifier(const char* filename,
-                                     AqvmBaseFileIdentifierUnix_Identifier* identifier) {
+int AqvmBaseFileIdentifierUnix_GetIdentifier(
+    const char* filename, AqvmBaseFileIdentifierUnix_Identifier* identifier) {
   if (filename == NULL || identifier == NULL) {
     // TODO
     return -1;
@@ -44,4 +44,17 @@ uint32_t AqvmBaseFileIdentifierUnix_GetIdentifierHash(
   return AqvmBaseHash_HashUnsignedIntArray(hash, 2);
 }
 
+bool AqvmBaseFileIdentifierUnix_IsEqual(
+    const AqvmBaseFileIdentifier_Identifier* identifier1,
+    const AqvmBaseFileIdentifier_Identifier* identifier2) {
+  if (identifier1 == NULL || identifier2 == NULL) {
+    // TODO
+    return false;
+  }
+
+  if (identifier1->st_dev == identifier2->st_dev ||
+      identifier1->st_ino == identifier2->st_ino) {
+        return true;
+  }
+  return false;
 #endif

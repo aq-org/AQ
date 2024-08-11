@@ -10,7 +10,8 @@
 #include "aqvm/base/hash/hash.h"
 
 int AqvmBaseFileIdentifierWindows_GetIdentifier(
-    const char* filename, AqvmBaseFileIdentifierWindows_Identifier* identifier) {
+    const char* filename,
+    AqvmBaseFileIdentifierWindows_Identifier* identifier) {
   if (filename == NULL || identifier == NULL) {
     // TODO
     return -1;
@@ -55,4 +56,21 @@ uint32_t AqvmBaseFileIdentifierWindows_GetIdentifierHash(
 
   return AqvmBaseHash_HashUnsignedIntArray(hash, 3);
 }
+
+bool AqvmBaseFileIdentifierWindows_IsEqual(
+    const AqvmBaseFileIdentifier_Identifier* identifier1,
+    const AqvmBaseFileIdentifier_Identifier* identifier2) {
+  if (identifier1 == NULL || identifier2 == NULL) {
+    // TODO
+    return false;
+  }
+
+  if (identifier1->dwVolumeSerialNumber == identifier2->dwVolumeSerialNumber ||
+      identifier1->nFileIndexHigh == identifier2->nFileIndexHigh ||
+      identifier1->nFileIndexLow == identifier2->nFileIndexLow) {
+    return true;
+  }
+  return false;
+}
+
 #endif
