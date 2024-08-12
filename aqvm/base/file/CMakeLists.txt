@@ -21,3 +21,4 @@ target_link_libraries(AqvmBaseFile PRIVATE AqvmBaseFileWindows)
 endif()
 
 target_link_libraries(AqvmBaseFile PRIVATE AqvmBaseFileIdentifier)
+target_link_libraries(AqvmBaseFile PRIVATE AqvmBaseThreadingFileLock)

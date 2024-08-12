@@ -37,11 +37,13 @@ int AqvmBaseLinkedList_CloseLinkedList(
     return -1;
   }
 
+  struct AqvmBaseLinkedList_Node* delete_node = list->head;
+  struct AqvmBaseLinkedList_Node* next_node = NULL;
   while (list->capacity > 0) {
-    if (AqvmBaseLinkedList_DeleteNode(list, 0) != 0) {
-      // TODO
-      return -2;
-    }
+    next_node = delete_node->next;
+    free(delete_node);
+    delete_node = next_node;
+    --list->capacity;
   }
   return 0;
 }

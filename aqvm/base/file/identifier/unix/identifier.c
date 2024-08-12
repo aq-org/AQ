@@ -45,8 +45,8 @@ uint32_t AqvmBaseFileIdentifierUnix_GetIdentifierHash(
 }
 
 bool AqvmBaseFileIdentifierUnix_IsEqual(
-    const AqvmBaseFileIdentifier_Identifier* identifier1,
-    const AqvmBaseFileIdentifier_Identifier* identifier2) {
+    const AqvmBaseFileIdentifierUnix_Identifier* identifier1,
+    const AqvmBaseFileIdentifierUnix_Identifier* identifier2) {
   if (identifier1 == NULL || identifier2 == NULL) {
     // TODO
     return false;
@@ -54,7 +54,8 @@ bool AqvmBaseFileIdentifierUnix_IsEqual(
 
   if (identifier1->st_dev == identifier2->st_dev ||
       identifier1->st_ino == identifier2->st_ino) {
-        return true;
+    return true;
   }
   return false;
+}
 #endif

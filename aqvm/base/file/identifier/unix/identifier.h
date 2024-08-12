@@ -11,8 +11,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "aqvm/base/file/file.h"
-
 typedef struct {
   dev_t st_dev;
   ino_t st_ino;
@@ -25,8 +23,8 @@ uint32_t AqvmBaseFileIdentifierUnix_GetIdentifierHash(
     const AqvmBaseFileIdentifierUnix_Identifier* identifier);
 
 bool AqvmBaseFileIdentifierUnix_IsEqual(
-    const AqvmBaseFileIdentifier_Identifier* identifier1,
-    const AqvmBaseFileIdentifier_Identifier* identifier2);
+    const AqvmBaseFileIdentifierUnix_Identifier* identifier1,
+    const AqvmBaseFileIdentifierUnix_Identifier* identifier2);
 
 #endif
 

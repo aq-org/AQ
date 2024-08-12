@@ -240,7 +240,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
     return NULL;
   }
 
-  if (AqvmBaseFileIdentifier_GetIdentifier(filename, &stream->identifier) !=
+  if (AqvmBaseFileIdentifier_GetIdentifier(filename, stream->identifier) !=
       0) {
     // TODO
     fclose(stream->file);

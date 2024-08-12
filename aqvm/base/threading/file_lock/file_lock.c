@@ -67,11 +67,17 @@ int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
 }
 
 int AqvmBaseThreadingFileLock_RemoveFileLock(struct AqvmBaseFile_File* file) {
-  // TODO
-  if (file == NULL) {
+  if (file == NULL || file->lock == NULL || file->lock->lock_count == 0) {
     // TODO
     return -1;
   }
+
+  --file->lock->lock_count;
+  /*if (file->lock->lock_count = 0) {
+    AqvmBaseLinkedList_DeleteNode(AqvmBaseLinkedList_GetData(
+        &AqvmBaseThreadingFileLock_fileLockTable.data,
+        AqvmBaseFileIdentifier_GetIdentifierHash(file->identifier) % 1024));
+  }*/
 }
 
 struct AqvmBaseFileReadWriteLock_ReadWriteLock*

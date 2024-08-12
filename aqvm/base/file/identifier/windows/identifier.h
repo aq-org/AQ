@@ -10,8 +10,6 @@
 #include <stdint.h>
 #include <windows.h>
 
-#include "aqvm/base/file/file.h"
-
 typedef struct {
   DWORD dwVolumeSerialNumber;
   DWORD nFileIndexHigh;
@@ -25,8 +23,8 @@ uint32_t AqvmBaseFileIdentifierWindows_GetIdentifierHash(
     const AqvmBaseFileIdentifierWindows_Identifier* identifier);
 
 bool AqvmBaseFileIdentifierWindows_IsEqual(
-    const AqvmBaseFileIdentifier_Identifier* identifier1,
-    const AqvmBaseFileIdentifier_Identifier* identifier2);
+    const AqvmBaseFileIdentifierWindows_Identifier* identifier1,
+    const AqvmBaseFileIdentifierWindows_Identifier* identifier2);
 
 #endif
 #endif

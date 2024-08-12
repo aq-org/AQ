@@ -58,8 +58,8 @@ uint32_t AqvmBaseFileIdentifierWindows_GetIdentifierHash(
 }
 
 bool AqvmBaseFileIdentifierWindows_IsEqual(
-    const AqvmBaseFileIdentifier_Identifier* identifier1,
-    const AqvmBaseFileIdentifier_Identifier* identifier2) {
+    const AqvmBaseFileIdentifierWindows_Identifier* identifier1,
+    const AqvmBaseFileIdentifierWindows_Identifier* identifier2) {
   if (identifier1 == NULL || identifier2 == NULL) {
     // TODO
     return false;
