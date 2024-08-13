@@ -249,7 +249,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
     return NULL;
   }
 
-  if (AqvmBaseFileThreadingFileLock_AddFileLock(stream) != 0) {
+  if (AqvmBaseThreadingFileLock_AddFileLock(stream) != 0) {
     fclose(stream->file);
     free(stream->identifier);
     free(stream);
@@ -527,7 +527,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile() {
     free(stream);
     return NULL;
   }
-  if (AqvmBaseFileThreadingFileLock_AddFileLock(stream) != 0) {
+  if (AqvmBaseThreadingFileLock_AddFileLock(stream) != 0) {
     // TODO
     fclose(stream->file);
     free(stream->identifier);
