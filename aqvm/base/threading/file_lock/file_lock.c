@@ -22,7 +22,6 @@ int AqvmBaseThreadingFileLock_CloseFileLockTable() {
     // TODO
     return -1;
   }
-
   return 0;
 }
 
@@ -31,7 +30,6 @@ int AqvmBaseThreadingFileLock_InitializeFileLockTable() {
           &AqvmBaseThreadingFileLock_fileLockTable, 1024) != 0) {
     return -1;
   }
-
   return 0;
 }
 
