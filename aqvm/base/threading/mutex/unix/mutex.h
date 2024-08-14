@@ -10,11 +10,10 @@
 
 typedef pthread_mutex_t AqvmBaseThreadingMutexUnix_Mutex;
 
-int AqvmBaseThreadingMutexUnix_InitializeMutex(
-    AqvmBaseThreadingMutexUnix_Mutex* mutex);
+AqvmBaseThreadingMutexUnix_Mutex *AqvmBaseThreadingMutexUnix_CreateMutex();
 
-int AqvmBaseThreadingMutexUnix_CloseMutex(
-    AqvmBaseThreadingMutexUnix_Mutex* mutex);
+int AqvmBaseThreadingMutexUnix_DestroyMutex(
+    AqvmBaseThreadingMutexUnix_Mutex *mutex);
 
 int AqvmBaseThreadingMutexUnix_LockMutex(
     AqvmBaseThreadingMutexUnix_Mutex *mutex);

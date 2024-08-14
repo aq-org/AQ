@@ -13,10 +13,10 @@ struct AqvmBaseFileReadWriteLock_ReadWriteLock {
   int read_count;
 };
 
-int AqvmBaseFileReadWriteLock_InitializeReadWriteLock(
-    struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock);
+struct AqvmBaseFileReadWriteLock_ReadWriteLock*
+AqvmBaseFileReadWriteLock_CreateReadWriteLock();
 
-int AqvmBaseFileReadWriteLock_CloseReadWriteLock(
+int AqvmBaseFileReadWriteLock_DestroyReadWriteLock(
     struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock);
 
 int AqvmBaseFileReadWriteLock_LockReadLock(

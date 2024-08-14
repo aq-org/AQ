@@ -47,12 +47,12 @@ int AqvmBaseFile_LockStream(struct AqvmBaseFile_File* stream) {
     return -1;
   }
   if (stream->file == stdin) {
-    if (AqvmBaseThreadingMutex_LockMutex(&AqvmBaseIo_inputMutex) != 0) {
+    if (AqvmBaseThreadingMutex_LockMutex(AqvmBaseIo_inputMutex) != 0) {
       // TODO
       return -2;
     }
   } else if (stream->file == stdout || stream->file == stderr) {
-    if (AqvmBaseThreadingMutex_LockMutex(&AqvmBaseIo_outputMutex) != 0) {
+    if (AqvmBaseThreadingMutex_LockMutex(AqvmBaseIo_outputMutex) != 0) {
       // TODO
       return -3;
     }
@@ -72,12 +72,12 @@ int AqvmBaseFile_UnlockStream(struct AqvmBaseFile_File* stream) {
     return -1;
   }
   if (stream->file == stdin) {
-    if (AqvmBaseThreadingMutex_UnlockMutex(&AqvmBaseIo_inputMutex) != 0) {
+    if (AqvmBaseThreadingMutex_UnlockMutex(AqvmBaseIo_inputMutex) != 0) {
       // TODO
       return -2;
     }
   } else if (stream->file == stdout || stream->file == stderr) {
-    if (AqvmBaseThreadingMutex_UnlockMutex(&AqvmBaseIo_outputMutex) != 0) {
+    if (AqvmBaseThreadingMutex_UnlockMutex(AqvmBaseIo_outputMutex) != 0) {
       // TODO
       return -3;
     }

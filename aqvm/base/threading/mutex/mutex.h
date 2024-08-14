@@ -20,14 +20,14 @@ typedef AqvmBaseThreadingMutexWindows_Mutex AqvmBaseThreadingMutex_Mutex;
 typedef bool AqvmBaseThreadingMutex_Mutex;
 #endif
 
-int AqvmBaseThreadingMutex_InitializeMutex(AqvmBaseThreadingMutex_Mutex *mutex);
+AqvmBaseThreadingMutex_Mutex* AqvmBaseThreadingMutex_CreateMutex();
 
-int AqvmBaseThreadingMutex_CloseMutex(AqvmBaseThreadingMutex_Mutex *mutex);
+int AqvmBaseThreadingMutex_DestroyMutex(AqvmBaseThreadingMutex_Mutex* mutex);
 
-int AqvmBaseThreadingMutex_LockMutex(AqvmBaseThreadingMutex_Mutex *mutex);
+int AqvmBaseThreadingMutex_LockMutex(AqvmBaseThreadingMutex_Mutex* mutex);
 
-int AqvmBaseThreadingMutex_TryLockMutex(AqvmBaseThreadingMutex_Mutex *mutex);
+int AqvmBaseThreadingMutex_TryLockMutex(AqvmBaseThreadingMutex_Mutex* mutex);
 
-int AqvmBaseThreadingMutex_UnlockMutex(AqvmBaseThreadingMutex_Mutex *mutex);
+int AqvmBaseThreadingMutex_UnlockMutex(AqvmBaseThreadingMutex_Mutex* mutex);
 
 #endif

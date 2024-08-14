@@ -3,9 +3,12 @@
 # the root directory.
 
 cmake_minimum_required(VERSION 3.10)
-project(AQ C)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-add_subdirectory(aq)
-add_subdirectory(aqvm)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/map.c)
+
+add_library(AqvmBaseHashMap STATIC ${SOURCES})
+
+target_link_libraries(AqvmBaseHashMap PRIVATE AqvmBaseHash)
+target_link_libraries(AqvmBaseHashMap PRIVATE AqvmBaseHashTable)

@@ -5,22 +5,23 @@
 
 #include "aqvm/base/threading/mutex/unix/mutex.h"
 
-int AqvmBaseThreadingMutexUnix_InitializeMutex(
-    AqvmBaseThreadingMutexUnix_Mutex *mutex) {
+AqvmBaseThreadingMutexUnix_Mutex *AqvmBaseThreadingMutexUnix_CreateMutex() {
+  AqvmBaseThreadingMutexUnix_Mutex *mutex =
+      (AqvmBaseThreadingMutexUnix_Mutex *)malloc(
+          sizeof(AqvmBaseThreadingMutexUnix_Mutex));
   if (mutex == NULL) {
     // TODO
-    return -1;
+    return NULL;
   }
-
   int result = pthread_mutex_init(mutex, NULL);
   if (result != 0) {
     // TODO
-    return -2;
+    return NULL;
   }
-  return 0;
+  return mutex;
 }
 
-int AqvmBaseThreadingMutexUnix_CloseMutex(
+int AqvmBaseThreadingMutexUnix_DestroyMutex(
     AqvmBaseThreadingMutexUnix_Mutex *mutex) {
   if (mutex == NULL) {
     // TODO
@@ -28,6 +29,7 @@ int AqvmBaseThreadingMutexUnix_CloseMutex(
   }
 
   int result = pthread_mutex_destroy(mutex);
+  free(mutex);
   if (result != 0) {
     // TODO
     return -2;

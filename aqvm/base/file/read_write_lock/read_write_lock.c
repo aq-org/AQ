@@ -4,29 +4,33 @@
 
 #include "aqvm/base/file/read_write_lock/read_write_lock.h"
 
-int AqvmBaseFileReadWriteLock_InitializeReadWriteLock(
-    struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock) {
+struct AqvmBaseFileReadWriteLock_ReadWriteLock*
+AqvmBaseFileReadWriteLock_CreateReadWriteLock() {
+  struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock =
+      (struct AqvmBaseFileReadWriteLock_ReadWriteLock*)malloc(
+          sizeof(struct AqvmBaseFileReadWriteLock_ReadWriteLock));
   if (read_write_lock == NULL) {
     // TODO
-    return -1;
+    return NULL;
   }
-
-  if (AqvmBaseThreadingMutex_InitializeMutex(&read_write_lock->mutex) != 0) {
+  if (AqvmBaseThreadingMutex_CreateMutex(&read_write_lock->mutex) == NULL) {
     // TODO
-    return -2;
+    return NULL;
   }
   read_write_lock->read_count = 0;
   return 0;
 }
 
-int AqvmBaseFileReadWriteLock_CloseReadWriteLock(
+int AqvmBaseFileReadWriteLock_DestroyReadWriteLock(
     struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock) {
   if (read_write_lock == NULL) {
     // TODO
     return -1;
   }
 
-  if (AqvmBaseThreadingMutex_CloseMutex(&read_write_lock->mutex) != 0) {
+  int result = AqvmBaseThreadingMutex_DestoryMutex(&read_write_lock->mutex);
+  free(read_write_lock);
+  if (result != 0) {
     // TODO
     return -2;
   }

@@ -8,38 +8,40 @@
 #include <stdio.h>
 #include <windows.h>
 
-int AqvmBaseThreadingMutexWindows_InitializeMutex(
-    AqvmBaseThreadingMutexWindows_Mutex *mutex) {
+AqvmBaseThreadingMutexWindows_Mutex*
+AqvmBaseThreadingMutexWindows_CreateMutex() {
+  AqvmBaseThreadingMutexWindows_Mutex* mutex =
+      (AqvmBaseThreadingMutexWindows_Mutex*)malloc(
+          sizeof(AqvmBaseThreadingMutexWindows_Mutex));
   if (mutex == NULL) {
     // TODO
-    return -1;
+    return NULL;
   }
-
   *mutex = CreateMutex(NULL, FALSE, NULL);
-  if (mutex == NULL) {
+  if (*mutex == NULL) {
     // TODO
-    return -2;
+    return NULL;
   }
   return 0;
 }
 
-int AqvmBaseThreadingMutexWindows_CloseMutex(
-    AqvmBaseThreadingMutexWindows_Mutex *mutex) {
-  if (mutex == NULL || *mutex == NULL) {
+int AqvmBaseThreadingMutexWindows_DestroyMutex(
+    AqvmBaseThreadingMutexWindows_Mutex* mutex) {
+  if (mutex == NULL) {
     // TODO
     return -1;
   }
 
-  if (!CloseHandle(*mutex)) {
+  if (*mutex != NULL && !CloseHandle(*mutex)) {
     // TODO
     return -2;
   }
-  *mutex = NULL;
+  free(mutex);
   return 0;
 }
 
 int AqvmBaseThreadingMutexWindows_LockMutex(
-    AqvmBaseThreadingMutexWindows_Mutex *mutex) {
+    AqvmBaseThreadingMutexWindows_Mutex* mutex) {
   if (mutex == NULL || *mutex == NULL) {
     // TODO
     return -1;
@@ -54,7 +56,7 @@ int AqvmBaseThreadingMutexWindows_LockMutex(
 }
 
 int AqvmBaseThreadingMutexWindows_TryLockMutex(
-    AqvmBaseThreadingMutexWindows_Mutex *mutex) {
+    AqvmBaseThreadingMutexWindows_Mutex* mutex) {
   if (mutex == NULL || *mutex == NULL) {
     // TODO
     return -1;
@@ -69,7 +71,7 @@ int AqvmBaseThreadingMutexWindows_TryLockMutex(
 }
 
 int AqvmBaseThreadingMutexWindows_UnlockMutex(
-    AqvmBaseThreadingMutexWindows_Mutex *mutex) {
+    AqvmBaseThreadingMutexWindows_Mutex* mutex) {
   if (mutex == NULL || *mutex == NULL) {
     // TODO
     return -1;

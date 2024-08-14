@@ -4,52 +4,45 @@
 
 #include "aqvm/base/threading/mutex/mutex.h"
 
-int AqvmBaseThreadingMutex_InitializeMutex(
-    AqvmBaseThreadingMutex_Mutex* mutex) {
-  if (mutex == NULL) {
-    // TODO
-    return -1;
-  }
-
+AqvmBaseThreadingMutex_Mutex* AqvmBaseThreadingMutex_CreateMutex() {
 #ifdef __unix__
-  if (AqvmBaseThreadingMutexUnix_InitializeMutex(mutex) != 0) {
-    // TODO
-    return -2;
-  }
-  return 0;
+  return AqvmBaseThreadingMutexUnix_CreateMutex();
 #elif _WIN32
-  if (AqvmBaseThreadingMutexWindows_InitializeMutex(mutex) != 0) {
-    // TODO
-    return -2;
-  }
-  return 0;
+  return AqvmBaseThreadingMutexWindows_CreateMutex();
 #else
   // TODO(Threading): When Threading is developed, rewrite that code.
+  AqvmBaseThreadingMutex_Mutex* mutex = (AqvmBaseThreadingMutex_Mutex*)malloc(
+      sizeof(AqvmBaseThreadingMutex_Mutex));
+  if (mutex == NULL) {
+    // TODO
+    return NULL;
+  }
   *mutex = false;
-  return 0;
+  return mutex;
 #endif
 }
 
-int AqvmBaseThreadingMutex_CloseMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
+int AqvmBaseThreadingMutex_DestroyMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
   if (mutex == NULL) {
     // TODO
     return -1;
   }
 
 #ifdef __unix__
-  if (AqvmBaseThreadingMutexUnix_CloseMutex(mutex) != 0) {
+  if (AqvmBaseThreadingMutexUnix_DestroyMutex(mutex) != 0) {
     // TODO
     return -2;
   }
   return 0;
 #elif _WIN32
-  if (AqvmBaseThreadingMutexWindows_CloseMutex(mutex) != 0) {
+  if (AqvmBaseThreadingMutexWindows_DestroyMutex(mutex) != 0) {
     // TODO
     return -2;
   }
   return 0;
 #else
   // TODO(Threading): When Threading is developed, rewrite that code.
+  free(mutex);
   return 0;
 #endif
 }
