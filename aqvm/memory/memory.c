@@ -70,7 +70,7 @@ struct AqvmMemory_Memory* AqvmMemory_InitializeMemory(void* data, void* type,
                             "Memory initialization started.", NULL);
 
   struct AqvmMemory_Memory* memory_ptr =
-      (struct AqvmMemory_Memory*)malloc(sizeof(struct AqvmMemory_Memory));
+      (struct AqvmMemory_Memory*)AqvmBaseMemory_malloc(sizeof(struct AqvmMemory_Memory));
   if (memory_ptr == NULL) {
     AqvmBaseLogging_OutputLog(
         "ERROR", "AqvmMemory_InitializeMemory_MemoryAllocationFailure",

@@ -219,12 +219,12 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
   }
 
   struct AqvmBaseFile_File* stream =
-      (struct AqvmBaseFile_File*)malloc(sizeof(struct AqvmBaseFile_File));
+      (struct AqvmBaseFile_File*)AqvmBaseMemory_malloc(sizeof(struct AqvmBaseFile_File));
   if (stream == NULL) {
     // TODO
     return NULL;
   }
-  stream->identifier = (AqvmBaseFileIdentifier_Identifier*)malloc(
+  stream->identifier = (AqvmBaseFileIdentifier_Identifier*)AqvmBaseMemory_malloc(
       sizeof(AqvmBaseFileIdentifier_Identifier));
   if (stream->identifier == NULL) {
     // TODO
@@ -507,7 +507,7 @@ int AqvmBaseFile_setvbuf(struct AqvmBaseFile_File* stream, char* buffer,
 
 struct AqvmBaseFile_File* AqvmBaseFile_tmpfile() {
   struct AqvmBaseFile_File* stream =
-      (struct AqvmBaseFile_File*)malloc(sizeof(struct AqvmBaseFile_File));
+      (struct AqvmBaseFile_File*)AqvmBaseMemory_malloc(sizeof(struct AqvmBaseFile_File));
   if (stream == NULL) {
     // TODO
     return NULL;
@@ -519,7 +519,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile() {
     // TODO
     return NULL;
   }
-  stream->identifier = (AqvmBaseFileIdentifier_Identifier*)malloc(
+  stream->identifier = (AqvmBaseFileIdentifier_Identifier*)AqvmBaseMemory_malloc(
       sizeof(AqvmBaseFileIdentifier_Identifier));
   if (stream->identifier == NULL) {
     // TODO

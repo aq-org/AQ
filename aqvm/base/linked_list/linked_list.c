@@ -15,7 +15,7 @@ int AqvmBaseLinkedList_AddNode(struct AqvmBaseLinkedList_LinkedList* list,
   }
 
   struct AqvmBaseLinkedList_Node* new_node =
-      (struct AqvmBaseLinkedList_Node*)malloc(
+      (struct AqvmBaseLinkedList_Node*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseLinkedList_Node));
   if (new_node == NULL) {
     // TODO
@@ -113,7 +113,7 @@ int AqvmBaseLinkedList_InsertNode(struct AqvmBaseLinkedList_LinkedList* list,
   }
 
   struct AqvmBaseLinkedList_Node* insert_node =
-      (struct AqvmBaseLinkedList_Node*)malloc(
+      (struct AqvmBaseLinkedList_Node*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseLinkedList_Node));
   if (insert_node == NULL) {
     // TODO
@@ -140,7 +140,7 @@ int AqvmBaseLinkedList_PrependNode(struct AqvmBaseLinkedList_LinkedList* list,
   }
 
   struct AqvmBaseLinkedList_Node* new_node =
-      (struct AqvmBaseLinkedList_Node*)malloc(
+      (struct AqvmBaseLinkedList_Node*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseLinkedList_Node));
   if (new_node == NULL) {
     // TODO

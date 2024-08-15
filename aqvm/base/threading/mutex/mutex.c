@@ -11,7 +11,7 @@ AqvmBaseThreadingMutex_Mutex* AqvmBaseThreadingMutex_CreateMutex() {
   return AqvmBaseThreadingMutexWindows_CreateMutex();
 #else
   // TODO(Threading): When Threading is developed, rewrite that code.
-  AqvmBaseThreadingMutex_Mutex* mutex = (AqvmBaseThreadingMutex_Mutex*)malloc(
+  AqvmBaseThreadingMutex_Mutex* mutex = (AqvmBaseThreadingMutex_Mutex*)AqvmBaseMemory_malloc(
       sizeof(AqvmBaseThreadingMutex_Mutex));
   if (mutex == NULL) {
     // TODO

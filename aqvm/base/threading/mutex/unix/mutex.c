@@ -7,7 +7,7 @@
 
 AqvmBaseThreadingMutexUnix_Mutex *AqvmBaseThreadingMutexUnix_CreateMutex() {
   AqvmBaseThreadingMutexUnix_Mutex *mutex =
-      (AqvmBaseThreadingMutexUnix_Mutex *)malloc(
+      (AqvmBaseThreadingMutexUnix_Mutex *)AqvmBaseMemory_malloc(
           sizeof(AqvmBaseThreadingMutexUnix_Mutex));
   if (mutex == NULL) {
     // TODO

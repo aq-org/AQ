@@ -7,7 +7,7 @@
 struct AqvmBaseFileReadWriteLock_ReadWriteLock*
 AqvmBaseFileReadWriteLock_CreateReadWriteLock() {
   struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock =
-      (struct AqvmBaseFileReadWriteLock_ReadWriteLock*)malloc(
+      (struct AqvmBaseFileReadWriteLock_ReadWriteLock*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseFileReadWriteLock_ReadWriteLock));
   if (read_write_lock == NULL) {
     // TODO

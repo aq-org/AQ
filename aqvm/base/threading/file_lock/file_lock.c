@@ -42,7 +42,7 @@ int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
   file->lock = AqvmBaseThreadingFileLock_GetFileLock(file);
   if (file->lock == NULL) {
     struct AqvmBase_Pair* file_lock_pair =
-        (struct AqvmBase_Pair*)malloc(sizeof(struct AqvmBase_Pair));
+        (struct AqvmBase_Pair*)AqvmBaseMemory_malloc(sizeof(struct AqvmBase_Pair));
     if (file_lock_pair == NULL) {
       // TODO
       return -2;

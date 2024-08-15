@@ -3,10 +3,9 @@
 # the root directory.
 
 cmake_minimum_required(VERSION 3.10)
-project(AQ C)
-enable_testing()
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-add_subdirectory(aq)
-add_subdirectory(aqvm)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/memory.c)
+
+add_library(AqvmBaseMemory STATIC ${SOURCES})

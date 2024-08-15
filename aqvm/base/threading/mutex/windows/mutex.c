@@ -11,7 +11,7 @@
 AqvmBaseThreadingMutexWindows_Mutex*
 AqvmBaseThreadingMutexWindows_CreateMutex() {
   AqvmBaseThreadingMutexWindows_Mutex* mutex =
-      (AqvmBaseThreadingMutexWindows_Mutex*)malloc(
+      (AqvmBaseThreadingMutexWindows_Mutex*)AqvmBaseMemory_malloc(
           sizeof(AqvmBaseThreadingMutexWindows_Mutex));
   if (mutex == NULL) {
     // TODO
