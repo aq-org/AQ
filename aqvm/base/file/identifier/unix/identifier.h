@@ -11,13 +11,16 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+struct AqvmBaseFile_File;
+
 typedef struct {
   dev_t st_dev;
   ino_t st_ino;
 } AqvmBaseFileIdentifierUnix_Identifier;
 
 int AqvmBaseFileIdentifierUnix_GetIdentifier(
-    const char* filename, AqvmBaseFileIdentifierUnix_Identifier* identifier);
+    const struct AqvmBaseFile_File* file,
+    AqvmBaseFileIdentifierUnix_Identifier* identifier);
 
 uint32_t AqvmBaseFileIdentifierUnix_GetIdentifierHash(
     const AqvmBaseFileIdentifierUnix_Identifier* identifier);

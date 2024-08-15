@@ -10,14 +10,14 @@
 void* AqvmBaseMemory_malloc(size_t size) {
   void* ptr = malloc(size);
   if (ptr == NULL) {
-    // TODO
+    // TODO(logging)
   }
   return ptr;
 }
 
 int AqvmBaseMemory_free(void* ptr) {
   if (ptr == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   free(ptr);

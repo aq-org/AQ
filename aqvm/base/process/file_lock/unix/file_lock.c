@@ -13,11 +13,11 @@
 
 int AqvmBaseProcessFileLockUnix_LockFile(struct AqvmBaseFile_File* file) {
   if (AqvmBaseFile_CheckStream(file) != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   if (file->file == stdin || file->file == stdout || file->file == stderr) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
@@ -40,11 +40,11 @@ int AqvmBaseProcessFileLockUnix_LockFile(struct AqvmBaseFile_File* file) {
 
 int AqvmBaseProcessFileLockUnix_UnlockFile(struct AqvmBaseFile_File* file) {
   if (AqvmBaseFile_CheckStream(file) != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   if (file->file == stdin || file->file == stdout || file->file == stderr) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
@@ -57,7 +57,7 @@ int AqvmBaseProcessFileLockUnix_UnlockFile(struct AqvmBaseFile_File* file) {
   file_lock.l_type = F_UNLCK;
 
   if (fcntl(fd, F_SETLK, &file_lock) == -1) {
-    // TODO
+    // TODO(logging)
     return -4;
   }
   return 0;

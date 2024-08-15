@@ -10,8 +10,8 @@
 #include "aqvm/base/file/identifier/identifier.h"
 #include "aqvm/base/file/read_write_lock/read_write_lock.h"
 #include "aqvm/base/hash/table/table.h"
-#include "aqvm/base/memory/memory.h"
 #include "aqvm/base/linked_list/linked_list.h"
+#include "aqvm/base/memory/memory.h"
 #include "aqvm/base/pair.h"
 
 struct AqvmBaseHashTable_HashTable AqvmBaseThreadingFileLock_fileLockTable;
@@ -19,7 +19,7 @@ struct AqvmBaseHashTable_HashTable AqvmBaseThreadingFileLock_fileLockTable;
 int AqvmBaseThreadingFileLock_CloseFileLockTable() {
   if (AqvmBaseHashTable_CloseHashTable(
           &AqvmBaseThreadingFileLock_fileLockTable) != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   return 0;
@@ -35,16 +35,17 @@ int AqvmBaseThreadingFileLock_InitializeFileLockTable() {
 
 int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
   if (file == NULL || file->identifier == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   file->lock = AqvmBaseThreadingFileLock_GetFileLock(file);
   if (file->lock == NULL) {
     struct AqvmBase_Pair* file_lock_pair =
-        (struct AqvmBase_Pair*)AqvmBaseMemory_malloc(sizeof(struct AqvmBase_Pair));
+        (struct AqvmBase_Pair*)AqvmBaseMemory_malloc(
+            sizeof(struct AqvmBase_Pair));
     if (file_lock_pair == NULL) {
-      // TODO
+      // TODO(logging)
       return -2;
     }
     file_lock_pair->key = file->identifier;
@@ -55,7 +56,7 @@ int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
                            file->identifier) %
                        1024],
             file_lock_pair) != 0) {
-      // TODO
+      // TODO(logging)
       AqvmBaseMemory_free(file_lock_pair);
       return -3;
     }
@@ -66,7 +67,7 @@ int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
 
 int AqvmBaseThreadingFileLock_RemoveFileLock(struct AqvmBaseFile_File* file) {
   if (file == NULL || file->lock == NULL || file->lock->lock_count == 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -76,12 +77,13 @@ int AqvmBaseThreadingFileLock_RemoveFileLock(struct AqvmBaseFile_File* file) {
         &AqvmBaseThreadingFileLock_fileLockTable.data,
         AqvmBaseFileIdentifier_GetIdentifierHash(file->identifier) % 1024));
   }*/
+  return 0;
 }
 
 struct AqvmBaseFileReadWriteLock_ReadWriteLock*
 AqvmBaseThreadingFileLock_GetFileLock(struct AqvmBaseFile_File* file) {
   if (file == NULL || file->identifier == NULL) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
 
@@ -106,4 +108,5 @@ AqvmBaseThreadingFileLock_GetFileLock(struct AqvmBaseFile_File* file) {
     }
     node = node->next;
   }
+  return lock;
 }

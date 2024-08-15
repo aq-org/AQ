@@ -11,7 +11,7 @@
 int AqvmBaseLinkedList_AddNode(struct AqvmBaseLinkedList_LinkedList* list,
                                void* data) {
   if (list == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -19,7 +19,7 @@ int AqvmBaseLinkedList_AddNode(struct AqvmBaseLinkedList_LinkedList* list,
       (struct AqvmBaseLinkedList_Node*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseLinkedList_Node));
   if (new_node == NULL) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   new_node->data = data;
@@ -34,7 +34,7 @@ int AqvmBaseLinkedList_AddNode(struct AqvmBaseLinkedList_LinkedList* list,
 int AqvmBaseLinkedList_CloseLinkedList(
     struct AqvmBaseLinkedList_LinkedList* list) {
   if (list == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -52,14 +52,14 @@ int AqvmBaseLinkedList_CloseLinkedList(
 int AqvmBaseLinkedList_DeleteNode(struct AqvmBaseLinkedList_LinkedList* list,
                                   size_t index) {
   if (list == NULL || index >= list->capacity) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   struct AqvmBaseLinkedList_Node* delete_node = list->head;
   for (size_t i = 0; i != index; ++i) delete_node = delete_node->next;
   if (delete_node == NULL) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   if (list->head == delete_node) list->head = delete_node->next;
@@ -74,14 +74,14 @@ int AqvmBaseLinkedList_DeleteNode(struct AqvmBaseLinkedList_LinkedList* list,
 void* AqvmBaseLinkedList_GetData(struct AqvmBaseLinkedList_LinkedList* list,
                                  size_t index) {
   if (list == NULL || index >= list->capacity) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
 
   struct AqvmBaseLinkedList_Node* get_node = list->head;
   for (size_t i = 0; i != index; ++i) get_node = get_node->next;
   if (get_node == NULL) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
   return get_node->data;
@@ -90,7 +90,7 @@ void* AqvmBaseLinkedList_GetData(struct AqvmBaseLinkedList_LinkedList* list,
 int AqvmBaseLinkedList_InitializeLinkedList(
     struct AqvmBaseLinkedList_LinkedList* linked_list) {
   if (linked_list == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   linked_list->head = NULL;
@@ -102,14 +102,14 @@ int AqvmBaseLinkedList_InitializeLinkedList(
 int AqvmBaseLinkedList_InsertNode(struct AqvmBaseLinkedList_LinkedList* list,
                                   size_t index, void* data) {
   if (list == NULL || index >= list->capacity) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   struct AqvmBaseLinkedList_Node* prev_node = list->head;
   for (size_t i = 0; i != index; ++i) prev_node = prev_node->next;
   if (prev_node == NULL) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
@@ -117,7 +117,7 @@ int AqvmBaseLinkedList_InsertNode(struct AqvmBaseLinkedList_LinkedList* list,
       (struct AqvmBaseLinkedList_Node*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseLinkedList_Node));
   if (insert_node == NULL) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
   insert_node->data = data;
@@ -136,7 +136,7 @@ int AqvmBaseLinkedList_InsertNode(struct AqvmBaseLinkedList_LinkedList* list,
 int AqvmBaseLinkedList_PrependNode(struct AqvmBaseLinkedList_LinkedList* list,
                                    void* data) {
   if (list == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -144,7 +144,7 @@ int AqvmBaseLinkedList_PrependNode(struct AqvmBaseLinkedList_LinkedList* list,
       (struct AqvmBaseLinkedList_Node*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseLinkedList_Node));
   if (new_node == NULL) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   new_node->data = data;
@@ -163,14 +163,14 @@ int AqvmBaseLinkedList_PrependNode(struct AqvmBaseLinkedList_LinkedList* list,
 int AqvmBaseLinkedList_SetData(struct AqvmBaseLinkedList_LinkedList* list,
                                size_t index, void* data) {
   if (list == NULL || index >= list->capacity) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   struct AqvmBaseLinkedList_Node* set_node = list->head;
   for (size_t i = 0; i != index; ++i) set_node = set_node->next;
   if (set_node == NULL) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   set_node->data = data;

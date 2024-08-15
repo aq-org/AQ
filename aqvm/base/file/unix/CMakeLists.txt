@@ -6,10 +6,6 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/aq.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/file.c)
 
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-
-add_executable(aq ${SOURCES})
-
-target_link_libraries(aq PRIVATE Aqvm)
+add_library(AqvmBaseFileUnix STATIC ${SOURCES})

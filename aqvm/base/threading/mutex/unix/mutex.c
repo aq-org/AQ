@@ -12,12 +12,12 @@ AqvmBaseThreadingMutexUnix_Mutex *AqvmBaseThreadingMutexUnix_CreateMutex() {
       (AqvmBaseThreadingMutexUnix_Mutex *)AqvmBaseMemory_malloc(
           sizeof(AqvmBaseThreadingMutexUnix_Mutex));
   if (mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
   int result = pthread_mutex_init(mutex, NULL);
   if (result != 0) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
   return mutex;
@@ -26,14 +26,14 @@ AqvmBaseThreadingMutexUnix_Mutex *AqvmBaseThreadingMutexUnix_CreateMutex() {
 int AqvmBaseThreadingMutexUnix_DestroyMutex(
     AqvmBaseThreadingMutexUnix_Mutex *mutex) {
   if (mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   int result = pthread_mutex_destroy(mutex);
   AqvmBaseMemory_free(mutex);
   if (result != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;
@@ -42,13 +42,13 @@ int AqvmBaseThreadingMutexUnix_DestroyMutex(
 int AqvmBaseThreadingMutexUnix_LockMutex(
     AqvmBaseThreadingMutexUnix_Mutex *mutex) {
   if (mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   int result = pthread_mutex_lock(mutex);
   if (result != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;
@@ -57,13 +57,13 @@ int AqvmBaseThreadingMutexUnix_LockMutex(
 int AqvmBaseThreadingMutexUnix_TryLockMutex(
     AqvmBaseThreadingMutexUnix_Mutex *mutex) {
   if (mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   int result = pthread_mutex_trylock(mutex);
   if (result != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;
@@ -72,13 +72,13 @@ int AqvmBaseThreadingMutexUnix_TryLockMutex(
 int AqvmBaseThreadingMutexUnix_UnlockMutex(
     AqvmBaseThreadingMutexUnix_Mutex *mutex) {
   if (mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   int result = pthread_mutex_unlock(mutex);
   if (result != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;

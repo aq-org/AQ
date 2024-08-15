@@ -11,7 +11,7 @@
 
 int AqvmBase_InitilizeBase() {
   if (AqvmBaseIo_InitializeIo() != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   return 0;
@@ -19,7 +19,7 @@ int AqvmBase_InitilizeBase() {
 
 int AqvmBase_CloseBase() {
   if (AqvmBaseIo_CloseIo() != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   return 0;

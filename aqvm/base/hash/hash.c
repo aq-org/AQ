@@ -10,7 +10,7 @@
 int AqvmBaseHash_Hash(int data) {
   if (data > INT_MAX - ((5381 << 5) + 5381) ||
       data < INT_MIN + ((5381 << 5) + 5381)) {
-    // TODO
+    // TODO(logging)
     return 0;
   }
   return ((5381 << 5) + 5381) + data;
@@ -18,7 +18,7 @@ int AqvmBaseHash_Hash(int data) {
 
 uint32_t AqvmBaseHash_HashString(const char* str) {
   if (str == NULL) {
-    // TODO
+    // TODO(logging)
     return 0;
   }
   uint32_t hash = 5381;
@@ -31,7 +31,7 @@ uint32_t AqvmBaseHash_HashString(const char* str) {
 
 uint32_t AqvmBaseHash_HashUnsignedIntArray(const uint32_t* data, size_t size) {
   if (data == NULL) {
-    // TODO
+    // TODO(logging)
     return 0;
   }
   uint32_t hash = 5381;

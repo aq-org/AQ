@@ -7,20 +7,21 @@
 
 #include <windows.h>
 
+#include "aqvm/base/file/windows/file.h"
 #include "aqvm/base/hash/hash.h"
 
 int AqvmBaseFileIdentifierWindows_GetIdentifier(
-    const char* filename,
+    const struct AqvmBaseFile_File* file,
     AqvmBaseFileIdentifierWindows_Identifier* identifier) {
-  if (filename == NULL || identifier == NULL) {
-    // TODO
+  if (file == NULL || file->file == NULL || identifier == NULL) {
+    // TODO(logging)
     return -1;
   }
 
-  HANDLE handle_file = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL,
-                                  OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  HANDLE handle_file;
+  handle_file = AqvmBaseFileWindows_ConvertFileToHandle(file);
   if (handle_file == INVALID_HANDLE_VALUE) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
@@ -30,12 +31,12 @@ int AqvmBaseFileIdentifierWindows_GetIdentifier(
     identifier->nFileIndexHigh = file_info.nFileIndexHigh;
     identifier->nFileIndexLow = file_info.nFileIndexLow;
   } else {
-    // TODO
+    // TODO(logging)
     return -3;
   }
 
   if (CloseHandle(handle_file) == FALSE) {
-    // TODO
+    // TODO(logging)
     return -4;
   }
 
@@ -45,7 +46,7 @@ int AqvmBaseFileIdentifierWindows_GetIdentifier(
 uint32_t AqvmBaseFileIdentifierWindows_GetIdentifierHash(
     const AqvmBaseFileIdentifierWindows_Identifier* identifier) {
   if (identifier == NULL) {
-    // TODO
+    // TODO(logging)
     return 0;
   }
   uint32_t hash[3];
@@ -61,7 +62,7 @@ bool AqvmBaseFileIdentifierWindows_IsEqual(
     const AqvmBaseFileIdentifierWindows_Identifier* identifier1,
     const AqvmBaseFileIdentifierWindows_Identifier* identifier2) {
   if (identifier1 == NULL || identifier2 == NULL) {
-    // TODO
+    // TODO(logging)
     return false;
   }
 

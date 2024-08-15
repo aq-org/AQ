@@ -8,19 +8,20 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "aqvm/base/file/unix/file.h"
 #include "aqvm/base/hash/hash.h"
 
 int AqvmBaseFileIdentifierUnix_GetIdentifier(
-    const char* filename, AqvmBaseFileIdentifierUnix_Identifier* identifier) {
-  if (filename == NULL || identifier == NULL) {
-    // TODO
+    const struct AqvmBaseFile_File* file,
+    AqvmBaseFileIdentifierUnix_Identifier* identifier) {
+  if (file == NULL || file->file == NULL || identifier == NULL) {
+    // TODO(logging)
     return -1;
   }
 
-  struct stat st;
-
+  struct stat st = AqvmBaseFileUnix_ConvertFileToStat(file);
   if (stat(filename, &st) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
@@ -33,7 +34,7 @@ int AqvmBaseFileIdentifierUnix_GetIdentifier(
 uint32_t AqvmBaseFileIdentifierUnix_GetIdentifierHash(
     const AqvmBaseFileIdentifierUnix_Identifier* identifier) {
   if (identifier == NULL) {
-    // TODO
+    // TODO(logging)
     return 0;
   }
   uint32_t hash[2];
@@ -48,7 +49,7 @@ bool AqvmBaseFileIdentifierUnix_IsEqual(
     const AqvmBaseFileIdentifierUnix_Identifier* identifier1,
     const AqvmBaseFileIdentifierUnix_Identifier* identifier2) {
   if (identifier1 == NULL || identifier2 == NULL) {
-    // TODO
+    // TODO(logging)
     return false;
   }
 

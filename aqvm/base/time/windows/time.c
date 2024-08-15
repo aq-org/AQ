@@ -15,17 +15,17 @@
 int AqvmBaseTimeWindows_localtime(const time_t timestamp,
                                   struct AqvmBaseTime_Time* result) {
   if (timestamp == (time_t)-1 || result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   struct tm current_time;
   if (localtime_s(&current_time, &timestamp) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   if (AqvmBaseTime_ConvertTmToTime(&current_time, result) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
 
@@ -35,17 +35,17 @@ int AqvmBaseTimeWindows_localtime(const time_t timestamp,
 int AqvmBaseTimeWindows_gmtime(const time_t timestamp,
                                struct AqvmBaseTime_Time* result) {
   if (timestamp == (time_t)-1 || result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   struct tm current_time;
   if (gmtime_s(&current_time, &timestamp) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   if (AqvmBaseTime_ConvertTmToTime(&current_time, result) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
 
@@ -55,7 +55,7 @@ int AqvmBaseTimeWindows_gmtime(const time_t timestamp,
 int AqvmBaseTimeWindows_ConvertSystemtimeToTime(
     const SYSTEMTIME* time, struct AqvmBaseTime_Time* result) {
   if (time == NULL || result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -77,31 +77,31 @@ int AqvmBaseTimeWindows_ConvertSystemtimeToTime(
 
 int AqvmBaseTimeWindows_GetCurrentTime(struct AqvmBaseTime_Time* result) {
   if (result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   SYSTEMTIME st;
   GetLocalTime(&st);
   if (AqvmBaseTimeWindows_ConvertSystemtimeToTime(&st, result) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
   if (AqvmBaseTime_SetWeekday(result) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
   if (AqvmBaseTime_SetYearday(result) != 0) {
-    // TODO
+    // TODO(logging)
     return -4;
   }
   if (AqvmBaseTime_SetIsdst(result) != 0) {
-    // TODO
+    // TODO(logging)
     return -5;
   }
   if (AqvmBaseTime_SetTimezoneOffset(result) != 0) {
-    // TODO
+    // TODO(logging)
     return -6;
   }
 

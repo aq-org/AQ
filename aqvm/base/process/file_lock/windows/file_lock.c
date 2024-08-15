@@ -12,18 +12,18 @@
 
 int AqvmBaseProcessFileLockWindows_LockFile(struct AqvmBaseFile_File* file) {
   if (file == NULL || file->file == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   HANDLE handle_file = AqvmBaseFileWindows_ConvertFileToHandle(file);
   if (handle_file == INVALID_HANDLE_VALUE) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
   if (!LockFile(handle_file, 0, 0, MAXDWORD, MAXDWORD)) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
   return 0;
@@ -31,18 +31,18 @@ int AqvmBaseProcessFileLockWindows_LockFile(struct AqvmBaseFile_File* file) {
 
 int AqvmBaseProcessFileLockWindows_UnlockFile(struct AqvmBaseFile_File* file) {
   if (file == NULL || file->file == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   HANDLE handle_file = AqvmBaseFileWindows_ConvertFileToHandle(file);
   if (handle_file == INVALID_HANDLE_VALUE) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
   if (!UnlockFile(handle_file, 0, 0, MAXDWORD, MAXDWORD)) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
   return 0;

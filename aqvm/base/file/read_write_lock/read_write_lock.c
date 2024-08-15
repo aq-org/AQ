@@ -12,11 +12,11 @@ AqvmBaseFileReadWriteLock_CreateReadWriteLock() {
       (struct AqvmBaseFileReadWriteLock_ReadWriteLock*)AqvmBaseMemory_malloc(
           sizeof(struct AqvmBaseFileReadWriteLock_ReadWriteLock));
   if (read_write_lock == NULL) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
   if (AqvmBaseThreadingMutex_CreateMutex(&read_write_lock->mutex) == NULL) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
   read_write_lock->read_count = 0;
@@ -26,14 +26,14 @@ AqvmBaseFileReadWriteLock_CreateReadWriteLock() {
 int AqvmBaseFileReadWriteLock_DestroyReadWriteLock(
     struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock) {
   if (read_write_lock == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   int result = AqvmBaseThreadingMutex_DestoryMutex(&read_write_lock->mutex);
   AqvmBaseMemory_free(read_write_lock);
   if (result != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;
@@ -42,13 +42,13 @@ int AqvmBaseFileReadWriteLock_DestroyReadWriteLock(
 int AqvmBaseFileReadWriteLock_LockReadLock(
     struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock) {
   if (read_write_lock == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   if (read_write_lock->read_count == 0 &&
       AqvmBaseThreadingMutex_LockMutex(&read_write_lock->mutex) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   ++read_write_lock->read_count;
@@ -58,12 +58,12 @@ int AqvmBaseFileReadWriteLock_LockReadLock(
 int AqvmBaseFileReadWriteLock_LockWriteLock(
     struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock) {
   if (read_write_lock == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   if (AqvmBaseThreadingMutex_LockMutex(&read_write_lock->mutex) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;
@@ -72,19 +72,19 @@ int AqvmBaseFileReadWriteLock_LockWriteLock(
 int AqvmBaseFileReadWriteLock_UnlockLock(
     struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock) {
   if (read_write_lock == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   if (read_write_lock->read_count == 0 &&
       AqvmBaseThreadingMutex_UnlockMutex(&read_write_lock->mutex) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   } else {
     --read_write_lock->read_count;
     if (read_write_lock->read_count == 0 &&
         AqvmBaseThreadingMutex_UnlockMutex(&read_write_lock->mutex) != 0) {
-      // TODO
+      // TODO(logging)
       return -3;
     }
   }

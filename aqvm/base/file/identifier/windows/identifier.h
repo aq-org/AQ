@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <windows.h>
 
+struct AqvmBaseFile_File;
+
 typedef struct {
   DWORD dwVolumeSerialNumber;
   DWORD nFileIndexHigh;
@@ -17,7 +19,8 @@ typedef struct {
 } AqvmBaseFileIdentifierWindows_Identifier;
 
 int AqvmBaseFileIdentifierWindows_GetIdentifier(
-    const char* filename, AqvmBaseFileIdentifierWindows_Identifier* identifier);
+    const struct AqvmBaseFile_File* file,
+    AqvmBaseFileIdentifierWindows_Identifier* identifier);
 
 uint32_t AqvmBaseFileIdentifierWindows_GetIdentifierHash(
     const AqvmBaseFileIdentifierWindows_Identifier* identifier);

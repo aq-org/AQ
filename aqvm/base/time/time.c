@@ -18,22 +18,22 @@
 int AqvmBaseTime_localtime(const time_t timestamp,
                            struct AqvmBaseTime_Time* result) {
   if (timestamp == (time_t)-1 || result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
 #ifdef __unix__
   if (AqvmBaseTimeUnix_localtime(timestamp, result) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 #elif _WIN32
   if (AqvmBaseTimeWindows_localtime(timestamp, result) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
 #else
-  // TODO
+  // TODO(logging)
   AqvmBaseLogging_OutputLog(
       "WARNING", "AqvmBaseTime_localtime_ThreadUnsafeWarning",
       "The localtime function may cause thread unsafety.", NULL);
@@ -46,7 +46,7 @@ int AqvmBaseTime_localtime(const time_t timestamp,
 
   struct AqvmBaseTime_Time utc_time;
   if (AqvmBaseTime_gmtime(timestamp, &utc_time) != 0) {
-    // TODO
+    // TODO(logging)
     return -5;
   }
   int timezone_offset = (result->hour - utc_time.hour) * 3600 +
@@ -70,28 +70,28 @@ int AqvmBaseTime_localtime(const time_t timestamp,
 int AqvmBaseTime_gmtime(const time_t timestamp,
                         struct AqvmBaseTime_Time* result) {
   if (timestamp == (time_t)-1 || result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
 #ifdef __unix__
   if (AqvmBaseTimeUnix_gmtime(timestamp, result) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 #elif _WIN32
   if (AqvmBaseTimeWindows_gmtime(timestamp, result) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
 #else
-  // TODO
+  // TODO(logging)
   AqvmBaseLogging_OutputLog(
       "WARNING", "AqvmBaseTime_gmtime_ThreadUnsafeWarning",
       "The gmtime function may cause thread unsafety.", NULL);
   struct tm* gm_time = gmtime(&timestamp);
   if (gm_time == NULL) {
-    // TODO
+    // TODO(logging)
     return -4;
   }
   *result = *gm_time;
@@ -102,7 +102,7 @@ int AqvmBaseTime_gmtime(const time_t timestamp,
 
 time_t AqvmBaseTime_mktime(struct AqvmBaseTime_Time* time_info) {
   if (!AqvmBaseTime_IsValidTime(time_info)) {
-    // TODO
+    // TODO(logging)
     return (time_t)-1;
   }
 
@@ -114,7 +114,7 @@ time_t AqvmBaseTime_mktime(struct AqvmBaseTime_Time* time_info) {
 int AqvmBaseTime_ConvertTmToTime(const struct tm* time_info,
                                  struct AqvmBaseTime_Time* result) {
   if (time_info == NULL || result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -138,7 +138,7 @@ int AqvmBaseTime_ConvertTimeToTm(const struct AqvmBaseTime_Time* time_info,
                                  struct tm* result) {
   if (!AqvmBaseTime_IsValidTime(time_info) || time_info->year < 1900 ||
       result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   result->tm_year = time_info->year - 1900;
@@ -155,23 +155,23 @@ int AqvmBaseTime_ConvertTimeToTm(const struct AqvmBaseTime_Time* time_info,
 
 int AqvmBaseTime_GetCurrentTime(struct AqvmBaseTime_Time* result) {
   if (result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
 #ifdef __unix__
   if (AqvmBaseTimeUnix_GetCurrentTime(result) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 #elif _WIN32
   if (AqvmBaseTimeWindows_GetCurrentTime(result) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
 #else
   if (AqvmBaseTime_localtime(time(NULL), result) != 0) {
-    // TODO
+    // TODO(logging)
     return -4;
   }
 #endif
@@ -181,23 +181,23 @@ int AqvmBaseTime_GetCurrentTime(struct AqvmBaseTime_Time* result) {
 
 int AqvmBaseTime_GetCurrentTimeString(char* result) {
   if (result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   struct AqvmBaseTime_Time current_time;
   if (AqvmBaseTime_GetCurrentTime(&current_time) != 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   if (!AqvmBaseTime_IsValidTime(&current_time)) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
   char timezone_offset_string[7];
   if (AqvmBaseTime_GetTimezoneOffsetString(&current_time,
                                            timezone_offset_string) != 0) {
-    // TODO
+    // TODO(logging)
     // return -4;
   }
   if (current_time.year < 0) {
@@ -206,7 +206,7 @@ int AqvmBaseTime_GetCurrentTimeString(char* result) {
             current_time.year, current_time.month, current_time.day,
             current_time.hour, current_time.minute, current_time.second,
             current_time.millisecond, timezone_offset_string) < 0) {
-      // TODO
+      // TODO(logging)
       return -5;
     }
   } else {
@@ -215,7 +215,7 @@ int AqvmBaseTime_GetCurrentTimeString(char* result) {
             current_time.year, current_time.month, current_time.day,
             current_time.hour, current_time.minute, current_time.second,
             current_time.millisecond, timezone_offset_string) < 0) {
-      // TODO
+      // TODO(logging)
       return -6;
     }
   }
@@ -225,24 +225,24 @@ int AqvmBaseTime_GetCurrentTimeString(char* result) {
 int AqvmBaseTime_GetTimezoneOffsetString(
     const struct AqvmBaseTime_Time* time_info, char* result) {
   if (!AqvmBaseTime_IsValidTime(time_info) || result == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   if (time_info->offset_sign == 0 && AqvmBaseIo_snprintf(result, 2, "Z") < 0) {
-    // TODO
+    // TODO(logging)
     return -2;
   } else if (time_info->offset_sign > 0 &&
              AqvmBaseIo_snprintf(result, 7, "+%02d:%02d",
                                  time_info->offset_hour,
                                  time_info->offset_minute) < 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   } else if (time_info->offset_sign < 0 &&
              AqvmBaseIo_snprintf(result, 7, "-%02d:%02d",
                                  time_info->offset_hour,
                                  time_info->offset_minute) < 0) {
-    // TODO
+    // TODO(logging)
     return -4;
   }
   return 0;
@@ -250,7 +250,7 @@ int AqvmBaseTime_GetTimezoneOffsetString(
 
 bool AqvmBaseTime_IsLeapYear(const struct AqvmBaseTime_Time* time_info) {
   if (!AqvmBaseTime_IsValidTime(time_info)) {
-    // TODO
+    // TODO(logging)
     return false;
   }
 
@@ -260,51 +260,51 @@ bool AqvmBaseTime_IsLeapYear(const struct AqvmBaseTime_Time* time_info) {
 
 bool AqvmBaseTime_IsValidTime(const struct AqvmBaseTime_Time* time_info) {
   if (time_info == NULL) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->year == 0) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->month > 12) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->day > 31) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->hour > 23) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->minute > 59) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->second > 60) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->millisecond > 999) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->weekday > 6) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->yearday > 366) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->offset_hour > 23) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   if (time_info->offset_minute > 59) {
-    // TODO
+    // TODO(logging)
     return false;
   }
   return true;
@@ -312,18 +312,18 @@ bool AqvmBaseTime_IsValidTime(const struct AqvmBaseTime_Time* time_info) {
 
 int AqvmBaseTime_SetIsdst(struct AqvmBaseTime_Time* time_info) {
   if (!AqvmBaseTime_IsValidTime(time_info)) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   time_t timestamp = AqvmBaseTime_mktime(time_info);
   if (timestamp == (time_t)-1) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   struct AqvmBaseTime_Time local_time;
   if (AqvmBaseTime_localtime(timestamp, &local_time) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
   time_info->isdst = local_time.isdst;
@@ -332,18 +332,18 @@ int AqvmBaseTime_SetIsdst(struct AqvmBaseTime_Time* time_info) {
 
 int AqvmBaseTime_SetTimezoneOffset(struct AqvmBaseTime_Time* time_info) {
   if (!AqvmBaseTime_IsValidTime(time_info)) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   time_t timestamp = AqvmBaseTime_mktime(time_info);
   if (timestamp == (time_t)-1) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   struct AqvmBaseTime_Time local_time;
   if (AqvmBaseTime_localtime(timestamp, &local_time) != 0) {
-    // TODO
+    // TODO(logging)
     return -3;
   }
   time_info->offset_sign = local_time.offset_sign;
@@ -354,7 +354,7 @@ int AqvmBaseTime_SetTimezoneOffset(struct AqvmBaseTime_Time* time_info) {
 
 int AqvmBaseTime_SetWeekday(struct AqvmBaseTime_Time* time_info) {
   if (!AqvmBaseTime_IsValidTime(time_info)) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -365,7 +365,7 @@ int AqvmBaseTime_SetWeekday(struct AqvmBaseTime_Time* time_info) {
 
   if (time_info->year == 1582 && time_info->month == 10 && time_info->day > 4 &&
       time_info->day < 15) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
 
@@ -389,7 +389,7 @@ int AqvmBaseTime_SetWeekday(struct AqvmBaseTime_Time* time_info) {
 
 int AqvmBaseTime_SetYearday(struct AqvmBaseTime_Time* time_info) {
   if (!AqvmBaseTime_IsValidTime(time_info)) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 

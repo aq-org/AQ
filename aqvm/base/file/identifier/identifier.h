@@ -23,8 +23,11 @@ typedef AqvmBaseFileIdentifierWindows_Identifier
 typedef void AqvmBaseFileIdentifier_Identifier;
 #endif
 
+struct AqvmBaseFile_File;
+
 int AqvmBaseFileIdentifier_GetIdentifier(
-    const char* filename, AqvmBaseFileIdentifier_Identifier* identifier);
+    const struct AqvmBaseFile_File* file,
+    AqvmBaseFileIdentifier_Identifier* identifier);
 
 uint32_t AqvmBaseFileIdentifier_GetIdentifierHash(
     const AqvmBaseFileIdentifier_Identifier* identifier);

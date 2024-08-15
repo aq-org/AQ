@@ -15,24 +15,25 @@
 #endif
 
 int AqvmBaseFileIdentifier_GetIdentifier(
-    const char* filename, AqvmBaseFileIdentifier_Identifier* identifier) {
-  if (filename == NULL || identifier == NULL) {
-    // TODO
+    const struct AqvmBaseFile_File* file,
+    AqvmBaseFileIdentifier_Identifier* identifier) {
+  if (file == NULL || file->file == NULL || identifier == NULL) {
+    // TODO(logging)
     return -1;
   }
 
 #ifdef __unix__
-  if (AqvmBaseFileIdentifierUnix_GetIdentifier(filename, identifier) != 0) {
-    // TODO
+  if (AqvmBaseFileIdentifierUnix_GetIdentifier(file, identifier) != 0) {
+    // TODO(logging)
     return -2;
   }
 #elif _WIN32
-  if (AqvmBaseFileIdentifierWindows_GetIdentifier(filename, identifier) != 0) {
-    // TODO
+  if (AqvmBaseFileIdentifierWindows_GetIdentifier(file, identifier) != 0) {
+    // TODO(logging)
     return -3;
   }
 #else
-  // TODO
+  // TODO(logging)
   return -4;
 #endif
 
@@ -43,6 +44,7 @@ uint32_t AqvmBaseFileIdentifier_GetIdentifierHash(
     const AqvmBaseFileIdentifier_Identifier* identifier) {
   if (identifier == NULL) {
     // TODO
+    printf("%s %d\n", __FILE__, __LINE__);
     return 0;
   }
 
@@ -51,7 +53,7 @@ uint32_t AqvmBaseFileIdentifier_GetIdentifierHash(
 #elif _WIN32
   return AqvmBaseFileIdentifierWindows_GetIdentifierHash(identifier);
 #else
-  // TODO
+  // TODO(logging)
   return 0;
 #endif
 }
@@ -60,7 +62,7 @@ bool AqvmBaseFileIdentifier_IsEqual(
     const AqvmBaseFileIdentifier_Identifier* identifier1,
     const AqvmBaseFileIdentifier_Identifier* identifier2) {
   if (identifier1 == NULL || identifier2 == NULL) {
-    // TODO
+    // TODO(logging)
     return false;
   }
 
@@ -69,7 +71,7 @@ bool AqvmBaseFileIdentifier_IsEqual(
 #elif _WIN32
   return AqvmBaseFileIdentifierWindows_IsEqual(identifier1, identifier2);
 #else
-  // TODO
+  // TODO(logging)
   return false;
 #endif
 }

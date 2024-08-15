@@ -16,26 +16,26 @@ AqvmBaseThreadingMutexWindows_CreateMutex() {
       (AqvmBaseThreadingMutexWindows_Mutex*)AqvmBaseMemory_malloc(
           sizeof(AqvmBaseThreadingMutexWindows_Mutex));
   if (mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
   *mutex = CreateMutex(NULL, FALSE, NULL);
   if (*mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return NULL;
   }
-  return 0;
+  return mutex;
 }
 
 int AqvmBaseThreadingMutexWindows_DestroyMutex(
     AqvmBaseThreadingMutexWindows_Mutex* mutex) {
   if (mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   if (*mutex != NULL && !CloseHandle(*mutex)) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   AqvmBaseMemory_free(mutex);
@@ -45,13 +45,13 @@ int AqvmBaseThreadingMutexWindows_DestroyMutex(
 int AqvmBaseThreadingMutexWindows_LockMutex(
     AqvmBaseThreadingMutexWindows_Mutex* mutex) {
   if (mutex == NULL || *mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   DWORD result = WaitForSingleObject(*mutex, INFINITE);
   if (result != WAIT_OBJECT_0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;
@@ -60,13 +60,13 @@ int AqvmBaseThreadingMutexWindows_LockMutex(
 int AqvmBaseThreadingMutexWindows_TryLockMutex(
     AqvmBaseThreadingMutexWindows_Mutex* mutex) {
   if (mutex == NULL || *mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   DWORD result = WaitForSingleObject(*mutex, 0);
   if (result != WAIT_OBJECT_0) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;
@@ -75,12 +75,12 @@ int AqvmBaseThreadingMutexWindows_TryLockMutex(
 int AqvmBaseThreadingMutexWindows_UnlockMutex(
     AqvmBaseThreadingMutexWindows_Mutex* mutex) {
   if (mutex == NULL || *mutex == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
   if (!ReleaseMutex(*mutex)) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   return 0;

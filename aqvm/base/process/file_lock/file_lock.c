@@ -15,18 +15,18 @@
 int AqvmBaseProcessFileLock_LockFile(struct AqvmBaseFile_File* file) {
 #ifdef __unix__
   if (AqvmBaseProcessFileLockUnix_LockFile(file) != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   return 0;
 #elif _WIN32
   if (AqvmBaseProcessFileLockWindows_LockFile(file) != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   return 0;
 #else
-  // TODO
+  // TODO(logging)
   return -2;
 #endif
 }
@@ -34,18 +34,18 @@ int AqvmBaseProcessFileLock_LockFile(struct AqvmBaseFile_File* file) {
 int AqvmBaseProcessFileLock_UnlockFile(struct AqvmBaseFile_File* file) {
 #ifdef __unix__
   if (AqvmBaseProcessFileLockUnix_UnlockFile(file) != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   return 0;
 #elif _WIN32
   if (AqvmBaseProcessFileLockWindows_UnlockFile(file) != 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
   return 0;
 #else
-  // TODO
+  // TODO(logging)
   return -2;
 #endif
 }

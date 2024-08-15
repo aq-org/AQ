@@ -12,7 +12,7 @@
 int AqvmBaseHashTable_CloseHashTable(
     struct AqvmBaseHashTable_HashTable* hash_table) {
   if (hash_table == NULL) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -29,7 +29,7 @@ int AqvmBaseHashTable_CloseHashTable(
 int AqvmBaseHashTable_InitializeHashTable(
     struct AqvmBaseHashTable_HashTable* hash_table, size_t capacity) {
   if (hash_table == NULL || capacity == 0) {
-    // TODO
+    // TODO(logging)
     return -1;
   }
 
@@ -38,12 +38,12 @@ int AqvmBaseHashTable_InitializeHashTable(
   hash_table->data = (struct AqvmBaseLinkedList_LinkedList*)AqvmBaseMemory_malloc(
       sizeof(struct AqvmBaseLinkedList_LinkedList) * capacity);
   if (hash_table->data == NULL) {
-    // TODO
+    // TODO(logging)
     return -2;
   }
   for (size_t i = 0; i < capacity; i++) {
     if (AqvmBaseLinkedList_InitializeLinkedList(&hash_table->data[i])!=0) {
-      // TODO
+      // TODO(logging)
       return -3;
     }
   }
