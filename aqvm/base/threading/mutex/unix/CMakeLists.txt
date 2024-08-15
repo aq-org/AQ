@@ -9,3 +9,5 @@ include_directories(${PROJECT_SOURCE_DIR})
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/mutex.c)
 
 add_library(AqvmBaseThreadingMutexUnix STATIC ${SOURCES})
+
+target_link_libraries(AqvmBaseThreadingMutexUnix PRIVATE AqvmBaseMemory)

@@ -16,6 +16,7 @@ endif()
 
 add_library(AqvmBaseThreadingMutex STATIC ${SOURCES})
 
+target_link_libraries(AqvmBaseThreadingMutex PRIVATE AqvmBaseMemory)
 if (UNIX)
   target_link_libraries(AqvmBaseThreadingMutex PRIVATE AqvmBaseThreadingMutexUnix)
 elseif (WIN32)

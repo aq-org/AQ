@@ -4,6 +4,8 @@
 
 #include "aqvm/base/threading/mutex/mutex.h"
 
+#include "aqvm/base/memory/memory.h"
+
 AqvmBaseThreadingMutex_Mutex* AqvmBaseThreadingMutex_CreateMutex() {
 #ifdef __unix__
   return AqvmBaseThreadingMutexUnix_CreateMutex();
@@ -11,8 +13,9 @@ AqvmBaseThreadingMutex_Mutex* AqvmBaseThreadingMutex_CreateMutex() {
   return AqvmBaseThreadingMutexWindows_CreateMutex();
 #else
   // TODO(Threading): When Threading is developed, rewrite that code.
-  AqvmBaseThreadingMutex_Mutex* mutex = (AqvmBaseThreadingMutex_Mutex*)AqvmBaseMemory_malloc(
-      sizeof(AqvmBaseThreadingMutex_Mutex));
+  AqvmBaseThreadingMutex_Mutex* mutex =
+      (AqvmBaseThreadingMutex_Mutex*)AqvmBaseMemory_malloc(
+          sizeof(AqvmBaseThreadingMutex_Mutex));
   if (mutex == NULL) {
     // TODO
     return NULL;
@@ -42,7 +45,7 @@ int AqvmBaseThreadingMutex_DestroyMutex(AqvmBaseThreadingMutex_Mutex* mutex) {
   return 0;
 #else
   // TODO(Threading): When Threading is developed, rewrite that code.
-  free(mutex);
+  AqvmBaseMemory_free(mutex);
   return 0;
 #endif
 }

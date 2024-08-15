@@ -5,6 +5,8 @@
 
 #include "aqvm/base/threading/mutex/unix/mutex.h"
 
+#include "aqvm/base/memory/memory.h"
+
 AqvmBaseThreadingMutexUnix_Mutex *AqvmBaseThreadingMutexUnix_CreateMutex() {
   AqvmBaseThreadingMutexUnix_Mutex *mutex =
       (AqvmBaseThreadingMutexUnix_Mutex *)AqvmBaseMemory_malloc(
@@ -29,7 +31,7 @@ int AqvmBaseThreadingMutexUnix_DestroyMutex(
   }
 
   int result = pthread_mutex_destroy(mutex);
-  free(mutex);
+  AqvmBaseMemory_free(mutex);
   if (result != 0) {
     // TODO
     return -2;

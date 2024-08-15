@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "aqvm/base/logging/logging.h"
+#include "aqvm/base/memory/memory.h"
 #include "aqvm/memory/types.h"
 
 int AqvmMemory_CheckMemoryConditions() {
@@ -70,7 +71,8 @@ struct AqvmMemory_Memory* AqvmMemory_InitializeMemory(void* data, void* type,
                             "Memory initialization started.", NULL);
 
   struct AqvmMemory_Memory* memory_ptr =
-      (struct AqvmMemory_Memory*)AqvmBaseMemory_malloc(sizeof(struct AqvmMemory_Memory));
+      (struct AqvmMemory_Memory*)AqvmBaseMemory_malloc(
+          sizeof(struct AqvmMemory_Memory));
   if (memory_ptr == NULL) {
     AqvmBaseLogging_OutputLog(
         "ERROR", "AqvmMemory_InitializeMemory_MemoryAllocationFailure",
@@ -89,7 +91,7 @@ void AqvmMemory_FreeMemory(struct AqvmMemory_Memory* memory_ptr) {
   AqvmBaseLogging_OutputLog("INFO", "AqvmMemory_FreeMemory_Start",
                             "Memory deallocation started.", NULL);
 
-  free(memory_ptr);
+  AqvmBaseMemory_free(memory_ptr);
 }
 
 int AqvmMemory_SetType(const struct AqvmMemory_Memory* memory, size_t index,

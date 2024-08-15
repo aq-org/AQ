@@ -5,9 +5,9 @@
 #include "aqvm/base/hash/table/table.h"
 
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "aqvm/base/linked_list/linked_list.h"
+#include "aqvm/base/memory/memory.h"
 
 int AqvmBaseHashTable_CloseHashTable(
     struct AqvmBaseHashTable_HashTable* hash_table) {
@@ -19,7 +19,7 @@ int AqvmBaseHashTable_CloseHashTable(
   for (size_t i = 0; i < hash_table->capacity; i++) {
     AqvmBaseLinkedList_CloseLinkedList(&hash_table->data[i]);
   }
-  free(hash_table->data);
+  AqvmBaseMemory_free(hash_table->data);
   hash_table->data = NULL;
   hash_table->capacity = 0;
   hash_table->size = 0;
@@ -35,7 +35,7 @@ int AqvmBaseHashTable_InitializeHashTable(
 
   hash_table->capacity = capacity;
   hash_table->size = 0;
-  hash_table->data = (struct AqvmBaseLinkedList_LinkedList*)malloc(
+  hash_table->data = (struct AqvmBaseLinkedList_LinkedList*)AqvmBaseMemory_malloc(
       sizeof(struct AqvmBaseLinkedList_LinkedList) * capacity);
   if (hash_table->data == NULL) {
     // TODO

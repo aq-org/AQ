@@ -5,12 +5,12 @@
 #include "aqvm/base/threading/file_lock/file_lock.h"
 
 #include <stddef.h>
-#include <stdlib.h>
 
 #include "aqvm/base/file/file.h"
 #include "aqvm/base/file/identifier/identifier.h"
 #include "aqvm/base/file/read_write_lock/read_write_lock.h"
 #include "aqvm/base/hash/table/table.h"
+#include "aqvm/base/memory/memory.h"
 #include "aqvm/base/linked_list/linked_list.h"
 #include "aqvm/base/pair.h"
 
@@ -56,7 +56,7 @@ int AqvmBaseThreadingFileLock_AddFileLock(struct AqvmBaseFile_File* file) {
                        1024],
             file_lock_pair) != 0) {
       // TODO
-      free(file_lock_pair);
+      AqvmBaseMemory_free(file_lock_pair);
       return -3;
     }
   }

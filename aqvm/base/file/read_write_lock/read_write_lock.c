@@ -4,6 +4,8 @@
 
 #include "aqvm/base/file/read_write_lock/read_write_lock.h"
 
+#include "aqvm/base/memory/memory.h"
+
 struct AqvmBaseFileReadWriteLock_ReadWriteLock*
 AqvmBaseFileReadWriteLock_CreateReadWriteLock() {
   struct AqvmBaseFileReadWriteLock_ReadWriteLock* read_write_lock =
@@ -29,7 +31,7 @@ int AqvmBaseFileReadWriteLock_DestroyReadWriteLock(
   }
 
   int result = AqvmBaseThreadingMutex_DestoryMutex(&read_write_lock->mutex);
-  free(read_write_lock);
+  AqvmBaseMemory_free(read_write_lock);
   if (result != 0) {
     // TODO
     return -2;

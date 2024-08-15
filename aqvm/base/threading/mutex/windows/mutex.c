@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <windows.h>
 
+#include "aqvm/base/memory/memory.h"
+
 AqvmBaseThreadingMutexWindows_Mutex*
 AqvmBaseThreadingMutexWindows_CreateMutex() {
   AqvmBaseThreadingMutexWindows_Mutex* mutex =
@@ -36,7 +38,7 @@ int AqvmBaseThreadingMutexWindows_DestroyMutex(
     // TODO
     return -2;
   }
-  free(mutex);
+  AqvmBaseMemory_free(mutex);
   return 0;
 }
 

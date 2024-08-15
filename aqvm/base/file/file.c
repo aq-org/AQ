@@ -6,9 +6,9 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "aqvm/base/io/io.h"
+#include "aqvm/base/memory/memory.h"
 #include "aqvm/base/process/file_lock/file_lock.h"
 #include "aqvm/base/threading/file_lock/file_lock.h"
 #include "aqvm/base/threading/mutex/mutex.h"
@@ -124,13 +124,13 @@ int AqvmBaseFile_fclose(struct AqvmBaseFile_File* stream) {
   }
 
   int result = fclose(stream->file);
-  free(stream->identifier);
+  AqvmBaseMemory_free(stream->identifier);
   if (AqvmBaseThreadingFileLock_RemoveFileLock(stream) != 0) {
     // TODO
-    free(stream);
+    AqvmBaseMemory_free(stream);
     return -2;
   }
-  free(stream);
+  AqvmBaseMemory_free(stream);
 
   if (result != 0) {
     // TODO
@@ -228,14 +228,14 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
       sizeof(AqvmBaseFileIdentifier_Identifier));
   if (stream->identifier == NULL) {
     // TODO
-    free(stream);
+    AqvmBaseMemory_free(stream);
     return NULL;
   }
 
   stream->file = fopen(filename, mode);
   if (stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
-    free(stream->identifier);
-    free(stream);
+    AqvmBaseMemory_free(stream->identifier);
+    AqvmBaseMemory_free(stream);
     // TODO
     return NULL;
   }
@@ -244,15 +244,15 @@ struct AqvmBaseFile_File* AqvmBaseFile_fopen(const char* filename,
       0) {
     // TODO
     fclose(stream->file);
-    free(stream->identifier);
-    free(stream);
+    AqvmBaseMemory_free(stream->identifier);
+    AqvmBaseMemory_free(stream);
     return NULL;
   }
 
   if (AqvmBaseThreadingFileLock_AddFileLock(stream) != 0) {
     fclose(stream->file);
-    free(stream->identifier);
-    free(stream);
+    AqvmBaseMemory_free(stream->identifier);
+    AqvmBaseMemory_free(stream);
     return NULL;
   }
 
@@ -515,7 +515,7 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile() {
 
   stream->file = tmpfile();
   if (stream->file == NULL || AqvmBaseFile_ferror(stream) != 0) {
-    free(stream);
+    AqvmBaseMemory_free(stream);
     // TODO
     return NULL;
   }
@@ -524,14 +524,14 @@ struct AqvmBaseFile_File* AqvmBaseFile_tmpfile() {
   if (stream->identifier == NULL) {
     // TODO
     fclose(stream->file);
-    free(stream);
+    AqvmBaseMemory_free(stream);
     return NULL;
   }
   if (AqvmBaseThreadingFileLock_AddFileLock(stream) != 0) {
     // TODO
     fclose(stream->file);
-    free(stream->identifier);
-    free(stream);
+    AqvmBaseMemory_free(stream->identifier);
+    AqvmBaseMemory_free(stream);
     return NULL;
   }
   return stream;

@@ -9,3 +9,5 @@ include_directories(${PROJECT_SOURCE_DIR})
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/linked_list.c)
 
 add_library(AqvmBaseLinkedList STATIC ${SOURCES})
+
+target_link_libraries(AqvmBaseLinkedList PRIVATE AqvmBaseMemory)

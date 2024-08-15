@@ -5,7 +5,8 @@
 #include "aqvm/base/linked_list/linked_list.h"
 
 #include <stddef.h>
-#include <stdlib.h>
+
+#include "aqvm/base/memory/memory.h"
 
 int AqvmBaseLinkedList_AddNode(struct AqvmBaseLinkedList_LinkedList* list,
                                void* data) {
@@ -41,7 +42,7 @@ int AqvmBaseLinkedList_CloseLinkedList(
   struct AqvmBaseLinkedList_Node* next_node = NULL;
   while (list->capacity > 0) {
     next_node = delete_node->next;
-    free(delete_node);
+    AqvmBaseMemory_free(delete_node);
     delete_node = next_node;
     --list->capacity;
   }
@@ -65,7 +66,7 @@ int AqvmBaseLinkedList_DeleteNode(struct AqvmBaseLinkedList_LinkedList* list,
   if (list->tail == delete_node) list->tail = delete_node->prev;
   if (delete_node->prev != NULL) delete_node->prev->next = delete_node->next;
   if (delete_node->next != NULL) delete_node->next->prev = delete_node->prev;
-  free(delete_node);
+  AqvmBaseMemory_free(delete_node);
   --list->capacity;
   return 0;
 }

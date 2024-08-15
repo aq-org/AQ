@@ -7,7 +7,7 @@
 
 #include <stddef.h>
 
-void* AqvmBaseMemory_AqvmBaseMemory_malloc(size_t size);
+void* AqvmBaseMemory_malloc(size_t size);
 
 int AqvmBaseMemory_free(void* ptr);
 

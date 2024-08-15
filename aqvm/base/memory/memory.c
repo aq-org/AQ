@@ -5,8 +5,15 @@
 #include "aqvm/base/memory/memory.h"
 
 #include <stddef.h>
+#include <stdlib.h>
 
-void* AqvmBaseMemory_AqvmBaseMemory_malloc(size_t size) { return AqvmBaseMemory_malloc(size); }
+void* AqvmBaseMemory_malloc(size_t size) {
+  void* ptr = malloc(size);
+  if (ptr == NULL) {
+    // TODO
+  }
+  return ptr;
+}
 
 int AqvmBaseMemory_free(void* ptr) {
   if (ptr == NULL) {

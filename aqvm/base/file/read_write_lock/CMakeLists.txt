@@ -9,3 +9,5 @@ include_directories(${PROJECT_SOURCE_DIR})
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/read_write_lock.c)
 
 add_library(AqvmBaseFileReadWriteLock STATIC ${SOURCES})
+
+target_link_libraries(AqvmBaseFileReadWriteLock PRIVATE AqvmBaseMemory)

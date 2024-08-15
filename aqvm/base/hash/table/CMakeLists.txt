@@ -9,3 +9,5 @@ include_directories(${PROJECT_SOURCE_DIR})
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/table.c)
 
 add_library(AqvmBaseHashTable STATIC ${SOURCES})
+
+target_link_libraries(AqvmBaseHashTable PRIVATE AqvmBaseMemory)
