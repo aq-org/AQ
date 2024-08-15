@@ -52,7 +52,7 @@ bool AqvmBaseFileIdentifierUnix_IsEqual(
     return false;
   }
 
-  if (identifier1->st_dev == identifier2->st_dev ||
+  if (identifier1->st_dev == identifier2->st_dev &&
       identifier1->st_ino == identifier2->st_ino) {
     return true;
   }

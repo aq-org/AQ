@@ -65,8 +65,8 @@ bool AqvmBaseFileIdentifierWindows_IsEqual(
     return false;
   }
 
-  if (identifier1->dwVolumeSerialNumber == identifier2->dwVolumeSerialNumber ||
-      identifier1->nFileIndexHigh == identifier2->nFileIndexHigh ||
+  if (identifier1->dwVolumeSerialNumber == identifier2->dwVolumeSerialNumber &&
+      identifier1->nFileIndexHigh == identifier2->nFileIndexHigh &&
       identifier1->nFileIndexLow == identifier2->nFileIndexLow) {
     return true;
   }
