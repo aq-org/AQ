@@ -6,9 +6,9 @@ cmake_minimum_required(VERSION 3.10)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/aq.c)
-
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/aq.c)
 
 add_executable(aq ${SOURCES})
 
