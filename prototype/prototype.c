@@ -7,6 +7,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+struct Memory* memory;
+
+#define GET_SIZE(x)  \
+  ((x) == 0x00   ? 0 \
+   : (x) == 0x01 ? 1 \
+   : (x) == 0x02 ? 4 \
+   : (x) == 0x03 ? 8 \
+   : (x) == 0x04 ? 4 \
+   : (x) == 0x02 ? 8 \
+                 : 0)
+
+#define GET_TYPED_PTR(type_code, ptr)     \
+  ((type_code) == 0x00   ? (void*)(ptr)   \
+   : (type_code) == 0x01 ? (int8_t*)(ptr) \
+   : (type_code) == 0x02 ? (int*)(ptr)    \
+   : (type_code) == 0x03 ? (long*)(ptr)   \
+   : (type_code) == 0x04 ? (float*)(ptr)  \
+   : (type_code) == 0x05 ? (double*)(ptr) \
+                         : ptr)
+
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);
@@ -20,6 +40,7 @@ int main(int argc, char* argv[]) {
   }
 
   fseek(bytecode, 0, SEEK_END);
+
   void* bytecode_file = malloc(ftell(bytecode));
   fread(bytecode_file, 1, ftell(bytecode), bytecode);
   fseek(bytecode, 0, SEEK_SET);
@@ -38,7 +59,7 @@ int main(int argc, char* argv[]) {
   bytecode = (void*)((uintptr_t)bytecode_file + memory_size / 2);
   void* data = bytecode_file;
   bytecode = (void*)((uintptr_t)bytecode_file + memory_size);
-  struct Memory* memory = InitializeMemory(data, type, memory_size);
+  memory = InitializeMemory(data, type, memory_size);
 
   switch (*(uint8_t*)bytecode_file) {
     case 0x00:
@@ -51,30 +72,118 @@ int main(int argc, char* argv[]) {
       break;
     case 0x02:
       size_t first, second;
-      bytecode_file = Get3Parament(bytecode_file, &first, &second);
+      bytecode_file = Get2Parament(bytecode_file, &first, &second);
       STORE(first, second);
       break;
     case 0x03:
+      size_t first, second;
+      bytecode_file = Get2Parament(bytecode_file, &first, &second);
+      NEW(first, second);
+      break;
     case 0x04:
+      size_t first, second;
+      bytecode_file = Get2Parament(bytecode_file, &first, &second);
+      FREE(first, second);
+      break;
     case 0x05:
+      SIZE();
+      break;
     case 0x06:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      ADD(result, operand1, operand2);
+      break;
     case 0x07:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      SUB(result, operand1, operand2);
+      break;
     case 0x08:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      MUL(result, operand1, operand2);
+      break;
     case 0x09:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      DIV(result, operand1, operand2);
+      break;
+    case 0x0A:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      REM(result, operand1, operand2);
+      break;
+    case 0x0B:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      NEG(result, operand1, operand2);
+      break;
+    case 0x0C:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      SHL(result, operand1, operand2);
+      break;
+    case 0x0D:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      SHR(result, operand1, operand2);
+      break;
+    case 0x0E:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      SAR(result, operand1, operand2);
+      break;
+    case 0x0F:
+      IF();
+      break;
     case 0x10:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      AND(result, operand1, operand2);
+      break;
     case 0x11:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      OR(result, operand1, operand2);
+      break;
     case 0x12:
+      size_t result, operand1, operand2;
+      bytecode_file =
+          Get3Parament(bytecode_file, &result, &operand1, &operand2);
+      XOR(result, operand1, operand2);
+      break;
     case 0x13:
+      size_t result, opcode, operand1, operand2;
+      bytecode_file =
+          Get4Parament(bytecode_file, &result, &opcode, &operand1, &operand2);
+      CMP(result, opcode, operand1, operand2);
+      break;
     case 0x14:
+      INVOKE();
+      break;
     case 0x15:
+      RETURN();
+      break;
     case 0x16:
+      GOTO();
+      break;
     case 0x17:
-    case 0x20:
-    case 0x21:
-    case 0x22:
-    case 0x23:
-    case 0x24:
+      THROW();
+      break;
     case 0xFF:
+      WIDE();
+      break;
     default:
   }
 };
@@ -110,6 +219,14 @@ int WriteData(struct Memory* memory, size_t index, void* data_ptr,
   memcpy((void*)((uintptr_t)memory->data + index), data_ptr, size);
 
   return 0;
+}
+
+uint8_t GetType(const struct Memory* memory, size_t index) {
+  if (index % 2 != 0) {
+    return memory->type[index / 2] & 0x0F;
+  } else {
+    return (memory->type[index / 2] & 0xF0) >> 4;
+  }
 }
 
 void* Get2Parament(void* ptr, size_t* first, size_t* second) {
@@ -171,8 +288,13 @@ void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
 }
 
 int NOP() {}
-int LOAD(size_t ptr, size_t operand) {}
-int STORE(size_t ptr, size_t operand) {}
+int LOAD(size_t ptr, size_t operand) {
+  WriteData(memory, operand, (void*)((uintptr_t)memory->data + ptr),
+            GET_SIZE(GetType(memory, operand)));
+}
+int STORE(size_t ptr, size_t operand) {
+    memcpy((void*)((uintptr_t)memory->data + ptr), (void*)((uintptr_t)memory->data + operand), size);
+}
 int NEW(size_t ptr, size_t size) {}
 int FREE(size_t ptr, size_t size) {}
 int SIZE() {}
