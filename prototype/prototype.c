@@ -408,7 +408,6 @@ int main(int argc, char* argv[]) {
 
   fseek(bytecode, 0, SEEK_END);
   size_t bytecode_size = ftell(bytecode);
-  printf("Bytecode size: %zu\n", bytecode_size);
   void* bytecode_file = malloc(bytecode_size + 1);
   void* bytecode_begin = bytecode_file;
   void* bytecode_end = (void*)((uintptr_t)bytecode_file + bytecode_size);
@@ -418,8 +417,6 @@ int main(int argc, char* argv[]) {
 
   if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
       ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
-    printf("%i%i%i%i\n", ((char*)bytecode_file)[0], ((char*)bytecode_file)[1],
-           ((char*)bytecode_file)[2], ((char*)bytecode_file)[3]);
     printf("Error: Invalid bytecode file\n");
     return -3;
   }
