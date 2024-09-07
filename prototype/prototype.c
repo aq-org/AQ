@@ -2,6 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -9,6 +10,8 @@
 #include <string.h>
 
 struct Memory* memory;
+
+struct LinkedList name_table[1024];
 
 #define GET_SIZE(x)  \
   ((x) == 0x00   ? 0 \
@@ -27,11 +30,65 @@ struct Memory* memory;
    : (type_code) == 0x05 ? (double*)(ptr) \
                          : (int8_t*)(ptr))
 
+typedef void (*func_ptr)(void);
+
 struct Memory {
   uint8_t* type;
   void* data;
   size_t size;
 };
+
+struct Pair {
+  char* first;
+  func_ptr second;
+};
+
+struct LinkedList {
+  struct Pair pair;
+  struct LinkedList* next;
+};
+
+unsigned int hash(const char* str) {
+  unsigned long hash = 5381;
+  int c;
+  while (c = *str++) {
+    hash = ((hash << 5) + hash) + c;
+  }
+  return hash;
+}
+
+void InitializeNameTable(struct LinkedList* list) {
+  unsigned int name_hash = hash("print");
+  struct LinkedList* table = &name_table[name_hash];
+  while (table != NULL) {
+    table = table->next;
+  }
+  name_table[name_hash].pair.first = "print";
+  name_table[name_hash].pair.second = (func_ptr)printf;
+  name_table[name_hash].next =
+      (struct LinkedList*)malloc(sizeof(struct LinkedList));
+}
+
+func_ptr GetFunction(const char* name) {
+  unsigned int name_hash = hash(name);
+  struct LinkedList* table = &name_table[name_hash];
+  while (table != NULL) {
+    if (strcmp(table->pair.first, name) == 0) {
+      return table->pair.second;
+    }
+    table = table->next;
+  }
+  return NULL;
+}
+
+void DeinitializeNameTable(struct LinkedList* list) {
+  unsigned int name_hash = hash("print");
+  struct LinkedList* table = &name_table[name_hash].next;
+  while (table != NULL) {
+    table = table->next;
+    free(table);
+  }
+}
 
 struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   struct Memory* memory_ptr = (struct Memory*)malloc(sizeof(struct Memory));
@@ -182,6 +239,55 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
     ptr = (void*)((uintptr_t)ptr + 1);
     ++size;
   }
+  return ptr;
+}
+
+void* GetUnknownConutParamentAndINVOKE(void* ptr, size_t* return_value,
+                                       size_t* arg_conut, ...) {
+  int state = 0;
+  int size = 0;
+  size_t func;
+  while (state == 0) {
+    if (*(size_t*)ptr < 255) {
+      func = 255 * size + *(size_t*)ptr;
+      state = 1;
+    }
+    ptr = (void*)((uintptr_t)ptr + 1);
+    ++size;
+  }
+
+  state = 0;
+  size = 0;
+  while (state == 0) {
+    if (*(size_t*)ptr < 255) {
+      *arg_conut = 255 * size + *(size_t*)ptr;
+      state = 1;
+    }
+    ptr = (void*)((uintptr_t)ptr + 1);
+    ++size;
+  }
+
+  va_list args;
+  va_start(args, arg_conut);
+  size_t read_arg = 0;
+  while (read_arg < *(GET_TYPE(GetType(memory, *arg_conut),
+                               (void*)(uintptr_t)memory->data + *arg_conut))) {
+    size_t* arg = va_arg(args, size_t*);
+    state = 0;
+    size = 0;
+    while (state == 0) {
+      if (*(size_t*)ptr < 255) {
+        *arg = 255 * size + *(size_t*)ptr;
+        state = 1;
+      }
+      ptr = (void*)((uintptr_t)ptr + 1);
+      ++size;
+    }
+  }
+
+  INVOKE(func, return_value, arg_conut, args);
+
+  va_end(args);
   return ptr;
 }
 
@@ -383,8 +489,12 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-// TODO: IMPORTANT.
-int INVOKE() { return 0; }
+int INVOKE(size_t* func, size_t* return_value, size_t* arg_count,
+           va_list args) {
+  func_ptr function = GetFunction(*(GET_TYPE(
+      GetType(memory, func), (void*)((uintptr_t)memory->data + func))));
+  // TODO
+}
 int RETURN() { return 0; }
 void* GOTO(void* ptr, size_t offset) {
   return (void*)((uintptr_t)ptr +
@@ -432,7 +542,8 @@ int main(int argc, char* argv[]) {
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
 
-  size_t first, second, result, operand1, operand2, opcode;
+  size_t first, second, result, operand1, operand2, opcode, arg_count,
+      return_value;
   while (bytecode_file < bytecode_end) {
     switch (*(uint8_t*)bytecode_file) {
       case 0x00:
@@ -549,7 +660,8 @@ int main(int argc, char* argv[]) {
         break;
       case 0x14:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        INVOKE();
+        GetUnknownConutParamentAndINVOKE(bytecode_file, &return_value,
+                                         &arg_count);
         break;
       case 0x15:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
