@@ -521,10 +521,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
 }
 int INVOKE(size_t* func, size_t* return_value, size_t* arg_count,
            va_list args) {
-  if (strcmp((char*)((uintptr_t)memory->data + *func),"print")==0 ) {
+  // TODO
+  /*if (strcmp((char*)((uintptr_t)memory->data + *func),"print")==0 ) {
 
     printf(va_arg(args,char*));
-  }
+  }*/
   return 0;
 }
 int RETURN() { return 0; }
