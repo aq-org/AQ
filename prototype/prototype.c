@@ -36,6 +36,20 @@ struct Memory {
   size_t size;
 };
 
+typedef struct {
+  size_t size;
+  size_t* index;
+} Object;
+
+typedef void (*func_ptr)(Object, Object);
+
+void print(Object args, Object return_value) {
+  *(GET_TYPE(GetType(memory, *return_value.index),
+             (void*)((uintptr_t)memory->data + *return_value.index))) =
+      printf((GET_TYPE(GetType(memory, *args.index),
+                       (void*)((uintptr_t)memory->data + *args.index))));
+}
+
 /*typedef union {
   int (*int_func)(...);
   void* (*void_func)(...);
