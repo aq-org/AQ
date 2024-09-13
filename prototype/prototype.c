@@ -11,7 +11,7 @@
 
 struct Memory* memory;
 
-// struct LinkedList name_table[1024];
+struct LinkedList name_table[1024];
 
 #define GET_SIZE(x)  \
   ((x) == 0x00   ? 0 \
@@ -41,30 +41,19 @@ typedef struct {
   size_t* index;
 } Object;
 
+/*typedef struct {
+  void* ptr;
+  uint8_t type;
+} Ptr;*/
+
 typedef void (*func_ptr)(Object, Object);
 
 void print(Object args, Object return_value) {
   *(GET_TYPE(GetType(memory, *return_value.index),
              (void*)((uintptr_t)memory->data + *return_value.index))) =
-      printf((GET_TYPE(GetType(memory, *args.index),
+      printf((char*)*(GET_TYPE(GetType(memory, *args.index),
                        (void*)((uintptr_t)memory->data + *args.index))));
 }
-
-/*typedef union {
-  int (*int_func)(...);
-  void* (*void_func)(...);
-  float (*float_func)(...);
-  double (*double_func)(...);
-  long (*long_func)(...);
-  char (*char_func)(...);
-} func_ptr;
-
-int (*int_func)(...);
-void* (*void_func)(...);
-float (*float_func)(...);
-double (*double_func)(...);
-long (*long_func)(...);
-char (*char_func)(...);
 
 struct Pair {
   char* first;
@@ -94,8 +83,7 @@ void InitializeNameTable(struct LinkedList* list) {
   }
   name_table[name_hash].pair.first = "print";
   name_table[name_hash].pair.type = 0x02;
-  name_table[name_hash].pair.second.int_func =
-      (int (*)(const char*, ...))printf;
+  name_table[name_hash].pair.second = print;
   name_table[name_hash].next =
       (struct LinkedList*)malloc(sizeof(struct LinkedList));
 }
@@ -131,7 +119,7 @@ void DeinitializeNameTable(struct LinkedList* list) {
     table = table->next;
     free(table);
   }
-}*/
+}
 
 struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   struct Memory* memory_ptr = (struct Memory*)malloc(sizeof(struct Memory));
@@ -285,8 +273,8 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
-void* GetUnknownConutParamentAndINVOKE(void* ptr, size_t* return_value,
-                                       size_t* arg_count, ...) {
+void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
+                                       size_t* arg_count) {
   int state = 0;
   int size = 0;
   size_t func;
@@ -303,6 +291,19 @@ void* GetUnknownConutParamentAndINVOKE(void* ptr, size_t* return_value,
   size = 0;
   while (state == 0) {
     if (*(size_t*)ptr < 255) {
+      *return_value = 255 * size + *(size_t*)ptr;
+      state = 1;
+    }
+    ptr = (void*)((uintptr_t)ptr + 1);
+    ++size;
+  }
+
+  Object return_obj = {1, return_value};
+
+  state = 0;
+  size = 0;
+  while (state == 0) {
+    if (*(size_t*)ptr < 255) {
       *arg_count = 255 * size + *(size_t*)ptr;
       state = 1;
     }
@@ -310,18 +311,24 @@ void* GetUnknownConutParamentAndINVOKE(void* ptr, size_t* return_value,
     ++size;
   }
 
-  va_list args;
-  va_start(args, arg_count);
+  Object args_obj = {*(GET_TYPE(GetType(memory, *arg_count),
+                                (void*)((uintptr_t)memory->data + *arg_count))),
+                     NULL};
+
+  size_t* args =
+      malloc(*(GET_TYPE(GetType(memory, *arg_count),
+                        (void*)((uintptr_t)memory->data + *arg_count))) *
+             sizeof(size_t));
+
   size_t read_arg = 0;
   while (read_arg <
          *(GET_TYPE(GetType(memory, *arg_count),
                     (void*)((uintptr_t)memory->data + *arg_count)))) {
-    size_t* arg = va_arg(args, size_t*);
     state = 0;
     size = 0;
     while (state == 0) {
       if (*(size_t*)ptr < 255) {
-        *arg = 255 * size + *(size_t*)ptr;
+        *(args + read_arg) = 255 * size + *(size_t*)ptr;
         state = 1;
       }
       ptr = (void*)((uintptr_t)ptr + 1);
@@ -329,9 +336,12 @@ void* GetUnknownConutParamentAndINVOKE(void* ptr, size_t* return_value,
     }
   }
 
-  INVOKE(func, return_value, arg_count, args);
+  args_obj.index = args;
 
-  va_end(args);
+  INVOKE(func, return_obj, args_obj);
+
+  free(args);
+
   return ptr;
 }
 
@@ -533,13 +543,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int INVOKE(size_t* func, size_t* return_value, size_t* arg_count,
-           va_list args) {
-  // TODO
-  /*if (strcmp((char*)((uintptr_t)memory->data + *func),"print")==0 ) {
-
-    printf(va_arg(args,char*));
-  }*/
+int INVOKE(size_t* func, Object return_value, Object args) {
+  GetFunction((char*)((uintptr_t)memory->data + *func))(args, return_value);
   return 0;
 }
 int RETURN() { return 0; }
@@ -589,7 +594,7 @@ int main(int argc, char* argv[]) {
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
 
-  // InitializeNameTable(name_table);
+  InitializeNameTable(name_table);
 
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
@@ -709,7 +714,7 @@ int main(int argc, char* argv[]) {
         break;
       case 0x14:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        GetUnknownConutParamentAndINVOKE(bytecode_file, &return_value,
+        GetUnknownCountParamentAndINVOKE(bytecode_file, &return_value,
                                          &arg_count);
         break;
       case 0x15:
@@ -735,7 +740,7 @@ int main(int argc, char* argv[]) {
   }
 
   printf("Program finished");
-  // DeinitializeNameTable(name_table);
+  DeinitializeNameTable(name_table);
   FreeMemory(memory);
   free(bytecode_begin);
   return 0;
