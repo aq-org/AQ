@@ -9,6 +9,32 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef void (*func_ptr)(Object, Object);
+
+struct Pair {
+  char* first;
+  func_ptr second;
+  uint8_t type;
+};
+
+struct LinkedList {
+  struct Pair pair;
+  struct LinkedList* next;
+};
+
+struct Memory {
+  uint8_t* type;
+  void* data;
+  size_t size;
+};
+
+typedef struct {
+  size_t size;
+  size_t* index;
+} Object;
+
+func_ptr GetFunction(const char* name);
+
 struct Memory* memory;
 
 struct LinkedList name_table[1024];
@@ -30,96 +56,10 @@ struct LinkedList name_table[1024];
    : (type_code) == 0x05 ? (double*)(ptr) \
                          : (int8_t*)(ptr))
 
-struct Memory {
-  uint8_t* type;
-  void* data;
-  size_t size;
-};
-
-typedef struct {
-  size_t size;
-  size_t* index;
-} Object;
-
 /*typedef struct {
   void* ptr;
   uint8_t type;
 } Ptr;*/
-
-typedef void (*func_ptr)(Object, Object);
-
-void print(Object args, Object return_value) {
-  *(GET_TYPE(GetType(memory, *return_value.index),
-             (void*)((uintptr_t)memory->data + *return_value.index))) =
-      printf((char*)*(GET_TYPE(GetType(memory, *args.index),
-                       (void*)((uintptr_t)memory->data + *args.index))));
-}
-
-struct Pair {
-  char* first;
-  func_ptr second;
-  uint8_t type;
-};
-
-struct LinkedList {
-  struct Pair pair;
-  struct LinkedList* next;
-};
-
-unsigned int hash(const char* str) {
-  unsigned long hash = 5381;
-  int c;
-  while (c = *str++) {
-    hash = ((hash << 5) + hash) + c;
-  }
-  return hash;
-}
-
-void InitializeNameTable(struct LinkedList* list) {
-  unsigned int name_hash = hash("print");
-  struct LinkedList* table = &name_table[name_hash];
-  while (table != NULL) {
-    table = table->next;
-  }
-  name_table[name_hash].pair.first = "print";
-  name_table[name_hash].pair.type = 0x02;
-  name_table[name_hash].pair.second = print;
-  name_table[name_hash].next =
-      (struct LinkedList*)malloc(sizeof(struct LinkedList));
-}
-
-uint8_t GetFuncType(const char* name) {
-  unsigned int name_hash = hash(name);
-  struct LinkedList* table = &name_table[name_hash];
-  while (table != NULL) {
-    if (strcmp(table->pair.first, name) == 0) {
-      return table->pair.type;
-    }
-    table = table->next;
-  }
-  return 0;
-}
-
-func_ptr GetFunction(const char* name) {
-  unsigned int name_hash = hash(name);
-  struct LinkedList* table = &name_table[name_hash];
-  while (table != NULL) {
-    if (strcmp(table->pair.first, name) == 0) {
-      return table->pair.second;
-    }
-    table = table->next;
-  }
-  return (func_ptr)NULL;
-}
-
-void DeinitializeNameTable(struct LinkedList* list) {
-  unsigned int name_hash = hash("print");
-  struct LinkedList* table = &name_table[name_hash].next;
-  while (table != NULL) {
-    table = table->next;
-    free(table);
-  }
-}
 
 struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   struct Memory* memory_ptr = (struct Memory*)malloc(sizeof(struct Memory));
@@ -544,7 +484,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   return 0;
 }
 int INVOKE(size_t* func, Object return_value, Object args) {
-  GetFunction((char*)((uintptr_t)memory->data + *func))(args, return_value);
+  func_ptr invoke_func = GetFunction((char*)((uintptr_t)memory->data + *func));
+  invoke_func(args, return_value);
   return 0;
 }
 int RETURN() { return 0; }
@@ -555,6 +496,69 @@ void* GOTO(void* ptr, size_t offset) {
 }
 int THROW() { return 0; }
 int WIDE() { return 0; }
+
+void print(Object args, Object return_value) {
+  *(GET_TYPE(GetType(memory, *return_value.index),
+             (void*)((uintptr_t)memory->data + *return_value.index))) =
+      printf(
+          (char*)*(GET_TYPE(GetType(memory, *args.index),
+                            (void*)((uintptr_t)memory->data + *args.index))));
+}
+
+unsigned int hash(const char* str) {
+  unsigned long hash = 5381;
+  int c;
+  while (c = *str++) {
+    hash = ((hash << 5) + hash) + c;
+  }
+  return hash;
+}
+
+void InitializeNameTable(struct LinkedList* list) {
+  unsigned int name_hash = hash("print");
+  struct LinkedList* table = &name_table[name_hash];
+  while (table != NULL) {
+    table = table->next;
+  }
+  name_table[name_hash].pair.first = "print";
+  name_table[name_hash].pair.type = 0x02;
+  name_table[name_hash].pair.second = print;
+  name_table[name_hash].next =
+      (struct LinkedList*)malloc(sizeof(struct LinkedList));
+}
+
+uint8_t GetFuncType(const char* name) {
+  unsigned int name_hash = hash(name);
+  struct LinkedList* table = &name_table[name_hash];
+  while (table != NULL) {
+    if (strcmp(table->pair.first, name) == 0) {
+      return table->pair.type;
+    }
+    table = table->next;
+  }
+  return 0;
+}
+
+func_ptr GetFunction(const char* name) {
+  unsigned int name_hash = hash(name);
+  struct LinkedList* table = &name_table[name_hash];
+  while (table != NULL) {
+    if (strcmp(table->pair.first, name) == 0) {
+      return table->pair.second;
+    }
+    table = table->next;
+  }
+  return (func_ptr)NULL;
+}
+
+void DeinitializeNameTable(struct LinkedList* list) {
+  unsigned int name_hash = hash("print");
+  struct LinkedList* table = &name_table[name_hash].next;
+  while (table != NULL) {
+    table = table->next;
+    free(table);
+  }
+}
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
