@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct {
+  size_t size;
+  size_t* index;
+} Object;
+
 typedef void (*func_ptr)(Object, Object);
 
 struct Pair {
@@ -28,11 +33,6 @@ struct Memory {
   size_t size;
 };
 
-typedef struct {
-  size_t size;
-  size_t* index;
-} Object;
-
 func_ptr GetFunction(const char* name);
 
 struct Memory* memory;
@@ -48,13 +48,28 @@ struct LinkedList name_table[1024];
    : (x) == 0x02 ? 8 \
                  : 0)
 
-#define GET_TYPE(type_code, ptr)          \
-  ((type_code) == 0x01   ? (int8_t*)(ptr) \
-   : (type_code) == 0x02 ? (int*)(ptr)    \
-   : (type_code) == 0x03 ? (long*)(ptr)   \
-   : (type_code) == 0x04 ? (float*)(ptr)  \
-   : (type_code) == 0x05 ? (double*)(ptr) \
-                         : (int8_t*)(ptr))
+#define GET_TYPE(type_code, ptr) \
+  ({                             \
+    switch (type_code) {         \
+      case 0x01:                 \
+        (int8_t*)ptr;            \
+        break;                   \
+      case 0x02:                 \
+        (int*)ptr;               \
+        break;                   \
+      case 0x03:                 \
+        (long*)ptr;              \
+        break;                   \
+      case 0x04:                 \
+        (float*)ptr;             \
+        break;                   \
+      case 0x05:                 \
+        (double*)ptr;            \
+        break;                   \
+      default:                   \
+        (int8_t*)ptr;            \
+    }                            \
+  })
 
 /*typedef struct {
   void* ptr;
