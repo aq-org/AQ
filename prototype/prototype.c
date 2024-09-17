@@ -48,29 +48,6 @@ struct LinkedList name_table[1024];
    : (x) == 0x02 ? 8 \
                  : 0)
 
-#define GET_TYPE(type_code, ptr) \
-  ({                             \
-    switch (type_code) {         \
-      case 0x01:                 \
-        (int8_t*)ptr;            \
-        break;                   \
-      case 0x02:                 \
-        (int*)ptr;               \
-        break;                   \
-      case 0x03:                 \
-        (long*)ptr;              \
-        break;                   \
-      case 0x04:                 \
-        (float*)ptr;             \
-        break;                   \
-      case 0x05:                 \
-        (double*)ptr;            \
-        break;                   \
-      default:                   \
-        (int8_t*)ptr;            \
-    }                            \
-  })
-
 /*typedef struct {
   void* ptr;
   uint8_t type;
@@ -108,6 +85,104 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
     return memory->type[index / 2] & 0x0F;
   } else {
     return (memory->type[index / 2] & 0xF0) >> 4;
+  }
+}
+
+void* GetPtrData(size_t index) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      return (void*)(*(int8_t*)((uintptr_t)memory->data + index));
+    case 0x02:
+      return (void*)(*(int*)((uintptr_t)memory->data + index));
+    case 0x03:
+      return (void*)(*(long*)((uintptr_t)memory->data + index));
+    default:
+      return *(void**)((uintptr_t)memory->data + index);
+  }
+}
+
+int8_t GetByteData(size_t index) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      return (int8_t)(*(int8_t*)((uintptr_t)memory->data + index));
+    case 0x02:
+      return (int8_t)(*(int*)((uintptr_t)memory->data + index));
+    case 0x03:
+      return (int8_t)(*(long*)((uintptr_t)memory->data + index));
+    case 0x04:
+      return (int8_t)(*(float*)((uintptr_t)memory->data + index));
+    case 0x05:
+      return (int8_t)(*(double*)((uintptr_t)memory->data + index));
+    default:
+      return 0;
+  }
+}
+
+int GetIntData(size_t index) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      return (int)(*(int8_t*)((uintptr_t)memory->data + index));
+    case 0x02:
+      return (int)(*(int*)((uintptr_t)memory->data + index));
+    case 0x03:
+      return (int)(*(long*)((uintptr_t)memory->data + index));
+    case 0x04:
+      return (int)(*(float*)((uintptr_t)memory->data + index));
+    case 0x05:
+      return (int)(*(double*)((uintptr_t)memory->data + index));
+    default:
+      return 0;
+  }
+}
+
+long GetLongData(size_t index) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      return (long)(*(int8_t*)((uintptr_t)memory->data + index));
+    case 0x02:
+      return (long)(*(int*)((uintptr_t)memory->data + index));
+    case 0x03:
+      return (long)(*(long*)((uintptr_t)memory->data + index));
+    case 0x04:
+      return (long)(*(float*)((uintptr_t)memory->data + index));
+    case 0x05:
+      return (long)(*(double*)((uintptr_t)memory->data + index));
+    default:
+      return 0;
+  }
+}
+
+float GetFloatData(size_t index) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      return (float)(*(int8_t*)((uintptr_t)memory->data + index));
+    case 0x02:
+      return (float)(*(int*)((uintptr_t)memory->data + index));
+    case 0x03:
+      return (float)(*(long*)((uintptr_t)memory->data + index));
+    case 0x04:
+      return (float)(*(float*)((uintptr_t)memory->data + index));
+    case 0x05:
+      return (float)(*(double*)((uintptr_t)memory->data + index));
+    default:
+      return 0;
+  }
+}
+
+double GetDoubleData(size_t index) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      return (double)(*(int8_t*)((uintptr_t)memory->data + index));
+    case 0x02:
+      return (double)(*(int*)((uintptr_t)memory->data + index));
+    case 0x03:
+      return (double)(*(long*)((uintptr_t)memory->data + index));
+    case 0x04:
+      return (double)(*(float*)((uintptr_t)memory->data + index));
+    case 0x05:
+      return (double)(*(double*)((uintptr_t)memory->data + index));
+    default:
+      return 0;
   }
 }
 
@@ -313,59 +388,584 @@ int STORE(size_t ptr, size_t operand) {
   return 0;
 }
 int NEW(size_t ptr, size_t size) {
-  void* data = malloc((size_t)(*(GET_TYPE(
-      GetType(memory, size), (void*)((uintptr_t)memory->data + size)))));
-  WriteData(memory, ptr, &data, GET_SIZE(GetType(memory, size)));
+  size_t size_value = 0;
+  switch (GetType(memory, size)) {
+    case 0x01:
+      size_value = (size_t)(*(int8_t*)((uintptr_t)memory->data + size));
+      break;
+    case 0x02:
+      size_value = (size_t)(*(int*)((uintptr_t)memory->data + size));
+      break;
+    case 0x03:
+      size_value = (size_t)(*(long*)((uintptr_t)memory->data + size));
+      break;
+    case 0x04:
+      size_value = (size_t)(*(float*)((uintptr_t)memory->data + size));
+      break;
+    case 0x05:
+      size_value = (size_t)(*(double*)((uintptr_t)memory->data + size));
+      break;
+    default:
+      size_value = (size_t)(*(void**)((uintptr_t)memory->data + size));
+      break;
+  }
+  void* data = malloc(size_value);
+  WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
 int FREE(size_t ptr) {
-  free(*((void**)((uintptr_t)memory->data + ptr)));
+  void* free_ptr;
+  switch (GetType(memory, ptr)) {
+    case 0x01:
+      free_ptr = (void*)(*(int8_t*)((uintptr_t)memory->data + ptr));
+      break;
+    case 0x02:
+      free_ptr = (void*)(*(int*)((uintptr_t)memory->data + ptr));
+      break;
+    case 0x03:
+      free_ptr = (void*)(*(long*)((uintptr_t)memory->data + ptr));
+      break;
+    default:
+      free_ptr = *(void**)((uintptr_t)memory->data + ptr);
+      break;
+  }
+  free(free_ptr);
   return 0;
 }
 int SIZE() { return 0; }
 int ADD(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) +
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) + GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) + GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) + GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) + GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) + GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) + GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) + GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) + GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) + GetFloatData(operand2));
+        break;
+      /*case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetFloatData(operand1) + GetFloatData(operand2));
+        break;*/
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) + GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) + GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) + GetLongData(operand2));
+        break;
+      /*case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetLongData(operand1) + GetLongData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetLongData(operand1) + GetLongData(operand2));
+        break;*/
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) + GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) + GetIntData(operand2));
+        break;
+      /*case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetIntData(operand1) + GetIntData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetIntData(operand1) + GetIntData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetIntData(operand1) + GetIntData(operand2));
+        break;*/
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) + GetByteData(operand2));
+        break;
+      /*case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetByteData(operand1) + GetByteData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetByteData(operand1) + GetByteData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetByteData(operand1) + GetByteData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetByteData(operand1) + GetByteData(operand2));
+        break;*/
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int SUB(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) -
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) - GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) - GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) - GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) - GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) - GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) - GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) - GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) - GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) - GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) - GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) - GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) - GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) - GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) - GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) - GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int MUL(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) *
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) * GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) * GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) * GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) * GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) * GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) * GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) * GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) * GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) * GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) * GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) * GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) * GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) * GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) * GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) * GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int DIV(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) /
-      (*(GET_TYPE(GetType(memory, operand2),
-                  (void*)((uintptr_t)memory->data + operand2))));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) / GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) / GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) / GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) / GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) / GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) / GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) / GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) / GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) / GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) / GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) / GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) / GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) / GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) / GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) / GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int REM(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) %
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) % GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) % GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) % GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) % GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) % GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) % GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) % GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) % GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) % GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) % GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) % GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) % GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) % GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) % GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) % GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int NEG(size_t result, size_t operand1, size_t operand2) {
@@ -376,30 +976,300 @@ int NEG(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SHL(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1)))
-      << *(GET_TYPE(GetType(memory, operand2),
-                    (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) << GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) << GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) << GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) << GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) << GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) << GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) << GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) << GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) << GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) << GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) << GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) << GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) << GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) << GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) << GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int SHR(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) >>
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) >> GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) >> GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) >> GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) >> GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) >> GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) >> GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int SAR(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) >>
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) >> GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) >> GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) >> GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) >> GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) >> GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) >> GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) >> GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) >> GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 void* IF(void* ptr, size_t condition, size_t true_branche,
@@ -416,82 +1286,897 @@ void* IF(void* ptr, size_t condition, size_t true_branche,
   }
 }
 int AND(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) &
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) & GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) & GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) & GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) & GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) & GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) & GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) & GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) & GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) & GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) & GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) & GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) & GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) & GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) & GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) & GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int OR(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) |
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) | GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) | GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) | GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) | GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) | GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) | GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) | GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) | GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) | GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) | GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) | GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) | GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) | GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) | GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) | GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int XOR(size_t result, size_t operand1, size_t operand2) {
-  *(GET_TYPE(GetType(memory, result),
-             (void*)((uintptr_t)memory->data + result))) =
-      *(GET_TYPE(GetType(memory, operand1),
-                 (void*)((uintptr_t)memory->data + operand1))) ^
-      *(GET_TYPE(GetType(memory, operand2),
-                 (void*)((uintptr_t)memory->data + operand2)));
+  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
+      GetType(memory, operand2) == 0x05) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetDoubleData(operand1) ^ GetDoubleData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetDoubleData(operand1) ^ GetDoubleData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetDoubleData(operand1) ^ GetDoubleData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetDoubleData(operand1) ^ GetDoubleData(operand2));
+        break;
+      case 0x05:
+        *(double*)((uintptr_t)memory->data + result) =
+            (double)(GetDoubleData(operand1) ^ GetDoubleData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x04 ||
+             GetType(memory, operand1) == 0x04 ||
+             GetType(memory, operand2) == 0x04) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetFloatData(operand1) ^ GetFloatData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetFloatData(operand1) ^ GetFloatData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetFloatData(operand1) ^ GetFloatData(operand2));
+        break;
+      case 0x04:
+        *(float*)((uintptr_t)memory->data + result) =
+            (float)(GetFloatData(operand1) ^ GetFloatData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetLongData(operand1) ^ GetLongData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetLongData(operand1) ^ GetLongData(operand2));
+        break;
+      case 0x03:
+        *(long*)((uintptr_t)memory->data + result) =
+            (long)(GetLongData(operand1) ^ GetLongData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x02 ||
+             GetType(memory, operand1) == 0x02 ||
+             GetType(memory, operand2) == 0x02) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetIntData(operand1) ^ GetIntData(operand2));
+        break;
+      case 0x02:
+        *(int*)((uintptr_t)memory->data + result) =
+            (int)(GetIntData(operand1) ^ GetIntData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x01 ||
+             GetType(memory, operand1) == 0x01 ||
+             GetType(memory, operand2) == 0x01) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        *(uint8_t*)((uintptr_t)memory->data + result) =
+            (uint8_t)(GetByteData(operand1) ^ GetByteData(operand2));
+        break;
+      default:
+        break;
+    }
+  } else {
+  }
   return 0;
 }
 int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
-  switch (*(GET_TYPE(GetType(memory, opcode),
-                     (void*)((uintptr_t)memory->data + opcode)))) {
+  switch (GetByteData(opcode)) {
     case 0x00:
-      *(GET_TYPE(GetType(memory, result),
-                 (void*)((uintptr_t)memory->data + result))) =
-          *(GET_TYPE(GetType(memory, operand1),
-                     (void*)((uintptr_t)memory->data + operand1))) ==
-          *(GET_TYPE(GetType(memory, operand2),
-                     (void*)((uintptr_t)memory->data + operand2)));
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetDoubleData(operand1) == GetDoubleData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetDoubleData(operand1) == GetDoubleData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetDoubleData(operand1) == GetDoubleData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetDoubleData(operand1) == GetDoubleData(operand2));
+            break;
+          case 0x05:
+            *(double*)((uintptr_t)memory->data + result) =
+                (double)(GetDoubleData(operand1) == GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetFloatData(operand1) == GetFloatData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetFloatData(operand1) == GetFloatData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetFloatData(operand1) == GetFloatData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetFloatData(operand1) == GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetLongData(operand1) == GetLongData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetLongData(operand1) == GetLongData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetLongData(operand1) == GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetIntData(operand1) == GetIntData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetIntData(operand1) == GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetByteData(operand1) == GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
       break;
     case 0x01:
-      *(GET_TYPE(GetType(memory, result),
-                 (void*)((uintptr_t)memory->data + result))) =
-          *(GET_TYPE(GetType(memory, operand1),
-                     (void*)((uintptr_t)memory->data + operand1))) !=
-          *(GET_TYPE(GetType(memory, operand2),
-                     (void*)((uintptr_t)memory->data + operand2)));
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetDoubleData(operand1) != GetDoubleData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetDoubleData(operand1) != GetDoubleData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetDoubleData(operand1) != GetDoubleData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetDoubleData(operand1) != GetDoubleData(operand2));
+            break;
+          case 0x05:
+            *(double*)((uintptr_t)memory->data + result) =
+                (double)(GetDoubleData(operand1) != GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetFloatData(operand1) != GetFloatData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetFloatData(operand1) != GetFloatData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetFloatData(operand1) != GetFloatData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetFloatData(operand1) != GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetLongData(operand1) != GetLongData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetLongData(operand1) != GetLongData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetLongData(operand1) != GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetIntData(operand1) != GetIntData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetIntData(operand1) != GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetByteData(operand1) != GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
       break;
     case 0x02:
-      *(GET_TYPE(GetType(memory, result),
-                 (void*)((uintptr_t)memory->data + result))) =
-          *(GET_TYPE(GetType(memory, operand1),
-                     (void*)((uintptr_t)memory->data + operand1))) <
-          *(GET_TYPE(GetType(memory, operand2),
-                     (void*)((uintptr_t)memory->data + operand2)));
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x05:
+            *(double*)((uintptr_t)memory->data + result) =
+                (double)(GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetLongData(operand1) < GetLongData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetLongData(operand1) < GetLongData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetLongData(operand1) < GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetIntData(operand1) < GetIntData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetIntData(operand1) < GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetByteData(operand1) < GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
       break;
     case 0x03:
-      *(GET_TYPE(GetType(memory, result),
-                 (void*)((uintptr_t)memory->data + result))) =
-          *(GET_TYPE(GetType(memory, operand1),
-                     (void*)((uintptr_t)memory->data + operand1))) <=
-          *(GET_TYPE(GetType(memory, operand2),
-                     (void*)((uintptr_t)memory->data + operand2)));
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x05:
+            *(double*)((uintptr_t)memory->data + result) =
+                (double)(GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetIntData(operand1) <= GetIntData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetIntData(operand1) <= GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetByteData(operand1) <= GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
       break;
     case 0x04:
-      *(GET_TYPE(GetType(memory, result),
-                 (void*)((uintptr_t)memory->data + result))) =
-          *(GET_TYPE(GetType(memory, operand1),
-                     (void*)((uintptr_t)memory->data + operand1))) >
-          *(GET_TYPE(GetType(memory, operand2),
-                     (void*)((uintptr_t)memory->data + operand2)));
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetDoubleData(operand1) > GetDoubleData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetDoubleData(operand1) > GetDoubleData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetDoubleData(operand1) > GetDoubleData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetDoubleData(operand1) > GetDoubleData(operand2));
+            break;
+          case 0x05:
+            *(double*)((uintptr_t)memory->data + result) =
+                (double)(GetDoubleData(operand1) > GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetFloatData(operand1) > GetFloatData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetFloatData(operand1) > GetFloatData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetFloatData(operand1) > GetFloatData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetFloatData(operand1) > GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetLongData(operand1) > GetLongData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetLongData(operand1) > GetLongData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetLongData(operand1) > GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetIntData(operand1) > GetIntData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetIntData(operand1) > GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetByteData(operand1) > GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
       break;
     case 0x05:
-      *(GET_TYPE(GetType(memory, result),
-                 (void*)((uintptr_t)memory->data + result))) =
-          *(GET_TYPE(GetType(memory, operand1),
-                     (void*)((uintptr_t)memory->data + operand1))) >=
-          *(GET_TYPE(GetType(memory, operand2),
-                     (void*)((uintptr_t)memory->data + operand2)));
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetDoubleData(operand1) >= GetDoubleData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetDoubleData(operand1) >= GetDoubleData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetDoubleData(operand1) >= GetDoubleData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetDoubleData(operand1) >= GetDoubleData(operand2));
+            break;
+          case 0x05:
+            *(double*)((uintptr_t)memory->data + result) =
+                (double)(GetDoubleData(operand1) >= GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetFloatData(operand1) >= GetFloatData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetFloatData(operand1) >= GetFloatData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetFloatData(operand1) >= GetFloatData(operand2));
+            break;
+          case 0x04:
+            *(float*)((uintptr_t)memory->data + result) =
+                (float)(GetFloatData(operand1) >= GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetLongData(operand1) >= GetLongData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetLongData(operand1) >= GetLongData(operand2));
+            break;
+          case 0x03:
+            *(long*)((uintptr_t)memory->data + result) =
+                (long)(GetLongData(operand1) >= GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetIntData(operand1) >= GetIntData(operand2));
+            break;
+          case 0x02:
+            *(int*)((uintptr_t)memory->data + result) =
+                (int)(GetIntData(operand1) >= GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            *(uint8_t*)((uintptr_t)memory->data + result) =
+                (uint8_t)(GetByteData(operand1) >= GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
       break;
     default:
       break;
