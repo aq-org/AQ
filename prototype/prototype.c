@@ -341,19 +341,14 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
     ++size;
   }
 
-  Object args_obj = {*(GET_TYPE(GetType(memory, *arg_count),
-                                (void*)((uintptr_t)memory->data + *arg_count))),
-                     NULL};
+  size_t arg_count_num = GetLongData(*arg_count);
 
-  size_t* args =
-      malloc(*(GET_TYPE(GetType(memory, *arg_count),
-                        (void*)((uintptr_t)memory->data + *arg_count))) *
-             sizeof(size_t));
+  Object args_obj = {arg_count_num, NULL};
+
+  size_t* args = malloc(arg_count_num * sizeof(size_t));
 
   size_t read_arg = 0;
-  while (read_arg <
-         *(GET_TYPE(GetType(memory, *arg_count),
-                    (void*)((uintptr_t)memory->data + *arg_count)))) {
+  while (read_arg < arg_count_num) {
     state = 0;
     size = 0;
     while (state == 0) {
