@@ -90,12 +90,12 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
 
 void* GetPtrData(size_t index) {
   switch (GetType(memory, index)) {
-    case 0x01:
+    /*case 0x01:
       return (void*)(*(int8_t*)((uintptr_t)memory->data + index));
     case 0x02:
       return (void*)(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
-      return (void*)(*(long*)((uintptr_t)memory->data + index));
+      return (void*)(*(long*)((uintptr_t)memory->data + index));*/
     default:
       return *(void**)((uintptr_t)memory->data + index);
   }
@@ -188,7 +188,7 @@ double GetDoubleData(size_t index) {
 
 void SetPtrData(size_t index, void* ptr) {
   switch (GetType(memory, index)) {
-    case 0x01:
+    /*case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = ptr;
       break;
     case 0x02:
@@ -196,7 +196,7 @@ void SetPtrData(size_t index, void* ptr) {
       break;
     case 0x03:
       *(long*)((uintptr_t)memory->data + index) = ptr;
-      break;
+      break;*/
     default:
       *(void**)((uintptr_t)memory->data + index) = ptr;
   }
@@ -429,6 +429,8 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
+int INVOKE(size_t* func, Object return_value, Object args);
+
 void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
   int state = 0;
@@ -489,7 +491,7 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
 
   args_obj.index = args;
 
-  INVOKE(func, return_obj, args_obj);
+  INVOKE(&func, return_obj, args_obj);
 
   free(args);
 
@@ -537,7 +539,7 @@ int NEW(size_t ptr, size_t size) {
 int FREE(size_t ptr) {
   void* free_ptr;
   switch (GetType(memory, ptr)) {
-    case 0x01:
+    /*case 0x01:
       free_ptr = (void*)(*(int8_t*)((uintptr_t)memory->data + ptr));
       break;
     case 0x02:
@@ -545,7 +547,7 @@ int FREE(size_t ptr) {
       break;
     case 0x03:
       free_ptr = (void*)(*(long*)((uintptr_t)memory->data + ptr));
-      break;
+      break;*/
     default:
       free_ptr = *(void**)((uintptr_t)memory->data + ptr);
       break;
@@ -2109,7 +2111,7 @@ func_ptr GetFunction(const char* name) {
 
 void DeinitializeNameTable(struct LinkedList* list) {
   unsigned int name_hash = hash("print");
-  struct LinkedList* table = &name_table[name_hash].next;
+  struct LinkedList* table = name_table[name_hash].next;
   while (table != NULL) {
     table = table->next;
     free(table);
@@ -2245,7 +2247,7 @@ int main(int argc, char* argv[]) {
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
         bytecode_file =
             Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        IF(run_code, &result, &operand1, &operand2);
+        IF(run_code, result, operand1, operand2);
         break;
       case 0x10:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
@@ -2283,7 +2285,7 @@ int main(int argc, char* argv[]) {
       case 0x16:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
         bytecode_file = Get1Parament(bytecode_file, &operand1);
-        bytecode_file = GOTO(run_code, &operand1);
+        bytecode_file = GOTO(run_code, operand1);
         break;
       case 0x17:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
