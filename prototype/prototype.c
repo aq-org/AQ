@@ -2010,16 +2010,7 @@ int INVOKE(size_t* func, Object return_value, Object args) {
 }
 int RETURN() { return 0; }
 void* GOTO(void* ptr, size_t offset) {
-  size_t offset_num;
-  if (GetType(memory, offset) == 0x03) {
-    offset_num = GetLongData(offset);
-  } else if (GetType(memory, offset) == 0x02) {
-    offset_num = GetIntData(offset);
-  } else if (GetType(memory, offset) == 0x01) {
-    offset_num = GetByteData(offset);
-  } else {
-  }
-  return (void*)((uintptr_t)ptr + offset_num);
+  return (void*)((uintptr_t)ptr + GetLongData(offset));
 }
 int THROW() { return 0; }
 int WIDE() { return 0; }
@@ -2077,9 +2068,11 @@ func_ptr GetFunction(const char* name) {
 void DeinitializeNameTable(struct LinkedList* list) {
   unsigned int name_hash = hash("print");
   struct LinkedList* table = name_table[name_hash].next;
+  struct LinkedList* next;
   while (table != NULL) {
-    table = table->next;
+    next = table->next;
     free(table);
+    table = next;
   }
 }
 
