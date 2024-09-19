@@ -186,6 +186,132 @@ double GetDoubleData(size_t index) {
   }
 }
 
+void SetPtrData(size_t index, void* ptr) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      *(int8_t*)((uintptr_t)memory->data + index) = ptr;
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + index) = ptr;
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + index) = ptr;
+      break;
+    default:
+      *(void**)((uintptr_t)memory->data + index) = ptr;
+  }
+}
+
+void SetByteData(size_t index, int8_t value) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x04:
+      *(float*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x05:
+      *(double*)((uintptr_t)memory->data + index) = value;
+      break;
+    default:
+      break;
+  }
+}
+
+void SetIntData(size_t index, int value) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x04:
+      *(float*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x05:
+      *(double*)((uintptr_t)memory->data + index) = value;
+      break;
+    default:
+      break;
+  }
+}
+
+void SetLongData(size_t index, long value) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x04:
+      *(float*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x05:
+      *(double*)((uintptr_t)memory->data + index) = value;
+      break;
+    default:
+      break;
+  }
+}
+
+void SetFloatData(size_t index, float value) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x04:
+      *(float*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x05:
+      *(double*)((uintptr_t)memory->data + index) = value;
+      break;
+    default:
+      break;
+  }
+}
+
+void SetDoubleData(size_t index, double value) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x04:
+      *(float*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x05:
+      *(double*)((uintptr_t)memory->data + index) = value;
+      break;
+    default:
+      break;
+  }
+}
+
 void* Get1Parament(void* ptr, size_t* first) {
   int state = 0;
   int size = 0;
@@ -1156,15 +1282,10 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
 }
 void* IF(void* ptr, size_t condition, size_t true_branche,
          size_t false_branche) {
-  if (*(GET_TYPE(GetType(memory, condition),
-                 (void*)((uintptr_t)memory->data + condition)))) {
-    return (void*)((uintptr_t)ptr + *(GET_TYPE(GetType(memory, true_branche),
-                                               (void*)((uintptr_t)memory->data +
-                                                       true_branche))));
+  if (GetByteData(condition) != 0) {
+    return (void*)((uintptr_t)ptr + GetLongData(true_branche));
   } else {
-    return (void*)((uintptr_t)ptr + *(GET_TYPE(GetType(memory, false_branche),
-                                               (void*)((uintptr_t)memory->data +
-                                                       false_branche))));
+    return (void*)((uintptr_t)ptr + GetLongData(false_branche));
   }
 }
 int AND(size_t result, size_t operand1, size_t operand2) {
@@ -1937,11 +2058,7 @@ int THROW() { return 0; }
 int WIDE() { return 0; }
 
 void print(Object args, Object return_value) {
-  *(GET_TYPE(GetType(memory, *return_value.index),
-             (void*)((uintptr_t)memory->data + *return_value.index))) =
-      printf(
-          (char*)*(GET_TYPE(GetType(memory, *args.index),
-                            (void*)((uintptr_t)memory->data + *args.index))));
+  SetIntData(*return_value.index, printf((char*)GetPtrData(*args.index)));
 }
 
 unsigned int hash(const char* str) {
