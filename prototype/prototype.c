@@ -535,7 +535,10 @@ int FREE(size_t ptr) {
   free(free_ptr);
   return 0;
 }
-int SIZE() { return 0; }
+int PTR(size_t index, size_t ptr) {
+  SetPtrData(ptr, (void*)(uintptr_t)memory->data + index);
+  return 0;
+}
 int ADD(size_t result, size_t operand1, size_t operand2) {
   if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
       GetType(memory, operand2) == 0x05) {
@@ -2146,7 +2149,8 @@ int main(int argc, char* argv[]) {
         break;
       case 0x05:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        SIZE();
+        bytecode_file = Get2Parament(bytecode_file, &first, &second);
+        PTR(first, second);
         break;
       case 0x06:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
