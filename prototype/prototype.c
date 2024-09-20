@@ -19,7 +19,6 @@ typedef void (*func_ptr)(Object, Object);
 struct Pair {
   char* first;
   func_ptr second;
-  uint8_t type;
 };
 
 struct LinkedList {
@@ -2028,7 +2027,7 @@ unsigned int hash(const char* str) {
   while (c = *str++) {
     hash = ((hash << 5) + hash) + c;
   }
-  return hash;
+  return hash % 1024;
 }
 
 void InitializeNameTable(struct LinkedList* list) {
@@ -2038,22 +2037,9 @@ void InitializeNameTable(struct LinkedList* list) {
     table = table->next;
   }
   name_table[name_hash].pair.first = "print";
-  name_table[name_hash].pair.type = 0x02;
   name_table[name_hash].pair.second = print;
   name_table[name_hash].next =
       (struct LinkedList*)malloc(sizeof(struct LinkedList));
-}
-
-uint8_t GetFuncType(const char* name) {
-  unsigned int name_hash = hash(name);
-  struct LinkedList* table = &name_table[name_hash];
-  while (table != NULL) {
-    if (strcmp(table->pair.first, name) == 0) {
-      return table->pair.type;
-    }
-    table = table->next;
-  }
-  return 0;
 }
 
 func_ptr GetFunction(const char* name) {
@@ -2070,7 +2056,7 @@ func_ptr GetFunction(const char* name) {
 
 void DeinitializeNameTable(struct LinkedList* list) {
   unsigned int name_hash = hash("print");
-  struct LinkedList* table = name_table[name_hash].next;
+  struct LinkedList* table = &name_table[name_hash];
   struct LinkedList* next;
   while (table != NULL) {
     next = table->next;
