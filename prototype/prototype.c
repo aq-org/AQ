@@ -2056,7 +2056,7 @@ func_ptr GetFunction(const char* name) {
 
 void DeinitializeNameTable(struct LinkedList* list) {
   unsigned int name_hash = hash("print");
-  struct LinkedList* table = &name_table[name_hash];
+  struct LinkedList* table = name_table[name_hash].next;
   struct LinkedList* next;
   while (table != NULL) {
     next = table->next;
