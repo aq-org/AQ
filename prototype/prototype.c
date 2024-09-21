@@ -81,9 +81,13 @@ int WriteData(struct Memory* memory, size_t index, void* data_ptr,
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index % 2 != 0) {
-    return memory->type[index / 2] & 0x0F;
+    fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)) & 0x0F);
+    return *(memory->type + (index / 2)) & 0x0F;
   } else {
-    return (memory->type[index / 2] & 0xF0) >> 4;
+    fprintf(stderr, "index: %zu\n",
+            (*(memory->type + (index / 2)) & 0xF0) >> 4);
+    fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)));
+    return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
 }
 
@@ -315,8 +319,8 @@ void* Get1Parament(void* ptr, size_t* first) {
   int state = 0;
   int size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *first = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *first = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -329,8 +333,8 @@ void* Get2Parament(void* ptr, size_t* first, size_t* second) {
   int state = 0;
   int size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *first = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *first = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -339,8 +343,8 @@ void* Get2Parament(void* ptr, size_t* first, size_t* second) {
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *second = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *second = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -353,8 +357,8 @@ void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
   int state = 0;
   int size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *first = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *first = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -363,8 +367,8 @@ void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *second = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *second = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -373,8 +377,8 @@ void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *third = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *third = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -388,8 +392,8 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   int state = 0;
   int size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *first = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *first = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -398,8 +402,8 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *second = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *second = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -408,8 +412,8 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *third = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *third = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -418,8 +422,8 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *fourth = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *fourth = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -436,8 +440,8 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
   int size = 0;
   size_t func;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      func = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      func = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -447,8 +451,8 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *return_value = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *return_value = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -460,8 +464,8 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
   state = 0;
   size = 0;
   while (state == 0) {
-    if (*(size_t*)ptr < 255) {
-      *arg_count = 255 * size + *(size_t*)ptr;
+    if (*(uint8_t*)ptr < 255) {
+      *arg_count = 255 * size + *(uint8_t*)ptr;
       state = 1;
     }
     ptr = (void*)((uintptr_t)ptr + 1);
@@ -479,13 +483,14 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
     state = 0;
     size = 0;
     while (state == 0) {
-      if (*(size_t*)ptr < 255) {
-        *(args + read_arg) = 255 * size + *(size_t*)ptr;
+      if (*(uint8_t*)ptr < 255) {
+        *(args + read_arg) = 255 * size + *(uint8_t*)ptr;
         state = 1;
       }
       ptr = (void*)((uintptr_t)ptr + 1);
       ++size;
     }
+    read_arg++;
   }
 
   args_obj.index = args;
@@ -2006,7 +2011,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   return 0;
 }
 int INVOKE(size_t* func, Object return_value, Object args) {
-  func_ptr invoke_func = GetFunction((char*)((uintptr_t)memory->data + *func));
+  char* func_name_ptr = (char*)GetPtrData(*func);
+  func_ptr invoke_func = GetFunction(func_name_ptr);
   invoke_func(args, return_value);
   return 0;
 }
@@ -2018,7 +2024,9 @@ int THROW() { return 0; }
 int WIDE() { return 0; }
 
 void print(Object args, Object return_value) {
-  SetIntData(*return_value.index, printf((char*)GetPtrData(*args.index)));
+  printf("PRINT\n");
+  int return_value_num = printf((char*)GetPtrData(*args.index));
+  SetIntData(*return_value.index, return_value_num);
 }
 
 unsigned int hash(const char* str) {
@@ -2071,7 +2079,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  FILE* bytecode = fopen(argv[1], "r");
+  FILE* bytecode = fopen(argv[1], "rb");
   if (bytecode == NULL) {
     printf("Error: Could not open file %s\n", argv[1]);
     return -2;
@@ -2079,7 +2087,7 @@ int main(int argc, char* argv[]) {
 
   fseek(bytecode, 0, SEEK_END);
   size_t bytecode_size = ftell(bytecode);
-  void* bytecode_file = malloc(bytecode_size + 1);
+  void* bytecode_file = malloc(bytecode_size);
   void* bytecode_begin = bytecode_file;
   void* bytecode_end = (void*)((uintptr_t)bytecode_file + bytecode_size);
   fseek(bytecode, 0, SEEK_SET);
@@ -2094,20 +2102,30 @@ int main(int argc, char* argv[]) {
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
-  size_t memory_size = *(size_t*)bytecode_file;
+  uint64_t temp;
+  memcpy(&temp, bytecode_file, sizeof(uint64_t));
+  temp = __builtin_bswap64(temp);
+  size_t memory_size = temp;
+  fprintf(stderr, "Memory size: %zu\n", memory_size);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-  void* type = bytecode_file;
-  bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2);
   void* data = bytecode_file;
   bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size);
+  void* type = bytecode_file;
+  fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x", *(int8_t*)bytecode_file,
+          *((int8_t*)bytecode_file + 1), *((int8_t*)bytecode_file + 2),
+          *((int8_t*)bytecode_file + 3), *((int8_t*)bytecode_file + 4),
+          *((int8_t*)bytecode_file + 5), *((int8_t*)bytecode_file + 6),
+          *((int8_t*)bytecode_file + 7));
+  bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2);
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
 
   InitializeNameTable(name_table);
-
+  fprintf(stderr, "Program started.\n");
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
   while (bytecode_file < bytecode_end) {
+    fprintf(stderr, "Current operand: %02x\n", *(uint8_t*)bytecode_file);
     switch (*(uint8_t*)bytecode_file) {
       case 0x00:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
@@ -2223,7 +2241,7 @@ int main(int argc, char* argv[]) {
         break;
       case 0x14:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        GetUnknownCountParamentAndINVOKE(bytecode_file, &return_value,
+        bytecode_file = GetUnknownCountParamentAndINVOKE(bytecode_file, &return_value,
                                          &arg_count);
         break;
       case 0x15:
@@ -2248,9 +2266,13 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  printf("Program finished");
-  DeinitializeNameTable(name_table);
+  printf("Program finished%i %i", (uintptr_t)bytecode_file,
+         (uintptr_t)bytecode_end);
+  // DeinitializeNameTable(name_table);
+  printf("1 finished");
   FreeMemory(memory);
+  printf("2 finished");
   free(bytecode_begin);
+  printf("3 finished");
   return 0;
 }
