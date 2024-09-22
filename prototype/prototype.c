@@ -2010,8 +2010,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   return 0;
 }
 int INVOKE(size_t* func, Object return_value, Object args) {
-  char* func_name_ptr = (char*)GetPtrData(*func);
-  func_ptr invoke_func = GetFunction(func_name_ptr);
+  func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
   invoke_func(args, return_value);
   return 0;
 }
@@ -2113,7 +2112,7 @@ int main(int argc, char* argv[]) {
   // *((int8_t*)bytecode_file + 2), *((int8_t*)bytecode_file + 3),
   // *((int8_t*)bytecode_file + 4), *((int8_t*)bytecode_file + 5),
   // *((int8_t*)bytecode_file + 6), *((int8_t*)bytecode_file + 7));
-  bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2);
+  bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2 + 1);
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
 
