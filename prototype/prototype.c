@@ -81,12 +81,11 @@ int WriteData(struct Memory* memory, size_t index, void* data_ptr,
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index % 2 != 0) {
-    fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)) & 0x0F);
+    // fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)) & 0x0F);
     return *(memory->type + (index / 2)) & 0x0F;
   } else {
-    fprintf(stderr, "index: %zu\n",
-            (*(memory->type + (index / 2)) & 0xF0) >> 4);
-    fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)));
+    // fprintf(stderr, "index: %zu\n", (*(memory->type + (index / 2)) & 0xF0) >>
+    // 4); fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)));
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
 }
@@ -2024,9 +2023,7 @@ int THROW() { return 0; }
 int WIDE() { return 0; }
 
 void print(Object args, Object return_value) {
-  printf("PRINT\n");
-  int return_value_num = printf((char*)GetPtrData(*args.index));
-  SetIntData(*return_value.index, return_value_num);
+  SetIntData(*return_value.index, printf((char*)GetPtrData(*args.index)));
 }
 
 unsigned int hash(const char* str) {
@@ -2106,26 +2103,27 @@ int main(int argc, char* argv[]) {
   memcpy(&temp, bytecode_file, sizeof(uint64_t));
   temp = __builtin_bswap64(temp);
   size_t memory_size = temp;
-  fprintf(stderr, "Memory size: %zu\n", memory_size);
+  // fprintf(stderr, "Memory size: %zu\n", memory_size);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
   void* data = bytecode_file;
   bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size);
   void* type = bytecode_file;
-  fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x", *(int8_t*)bytecode_file,
-          *((int8_t*)bytecode_file + 1), *((int8_t*)bytecode_file + 2),
-          *((int8_t*)bytecode_file + 3), *((int8_t*)bytecode_file + 4),
-          *((int8_t*)bytecode_file + 5), *((int8_t*)bytecode_file + 6),
-          *((int8_t*)bytecode_file + 7));
+  // fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x",
+  // *(int8_t*)bytecode_file, *((int8_t*)bytecode_file + 1),
+  // *((int8_t*)bytecode_file + 2), *((int8_t*)bytecode_file + 3),
+  // *((int8_t*)bytecode_file + 4), *((int8_t*)bytecode_file + 5),
+  // *((int8_t*)bytecode_file + 6), *((int8_t*)bytecode_file + 7));
   bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2);
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
 
   InitializeNameTable(name_table);
-  fprintf(stderr, "Program started.\n");
+  printf("\nProgram started.\n");
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
   while (bytecode_file < bytecode_end) {
-    fprintf(stderr, "Current operand: %02x\n", *(uint8_t*)bytecode_file);
+    // fprintf(stderr, "Current operand: %02x\n",
+    // *(uint8_t*)bytecode_file);
     switch (*(uint8_t*)bytecode_file) {
       case 0x00:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
@@ -2241,8 +2239,8 @@ int main(int argc, char* argv[]) {
         break;
       case 0x14:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = GetUnknownCountParamentAndINVOKE(bytecode_file, &return_value,
-                                         &arg_count);
+        bytecode_file = GetUnknownCountParamentAndINVOKE(
+            bytecode_file, &return_value, &arg_count);
         break;
       case 0x15:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
@@ -2266,13 +2264,9 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  printf("Program finished%i %i", (uintptr_t)bytecode_file,
-         (uintptr_t)bytecode_end);
+  printf("\nProgram finished\n");
   // DeinitializeNameTable(name_table);
-  printf("1 finished");
   FreeMemory(memory);
-  printf("2 finished");
   free(bytecode_begin);
-  printf("3 finished");
   return 0;
 }
