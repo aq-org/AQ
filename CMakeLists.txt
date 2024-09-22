@@ -8,8 +8,6 @@ enable_testing()
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-
 set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/prototype.c)
 
 add_executable(aq ${SOURCES})
