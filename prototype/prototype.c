@@ -150,10 +150,11 @@ int WriteData(struct Memory* memory, size_t index, void* data_ptr,
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index % 2 != 0) {
-    fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)) & 0x0F);
+    // fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)) & 0x0F);
     return *(memory->type + (index / 2)) & 0x0F;
   } else {
-    fprintf(stderr, "index: %zu\n", (*(memory->type + (index / 2)) & 0xF0) >> 4); fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)));
+    // fprintf(stderr, "index: %zu\n", (*(memory->type + (index / 2)) & 0xF0) >>
+    // 4); //fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)));
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
 }
@@ -189,79 +190,99 @@ int8_t GetByteData(size_t index) {
 }
 
 int GetIntData(size_t index) {
-  int result = 0;
   switch (GetType(memory, index)) {
     case 0x01:
-      result = *(int8_t*)((uintptr_t)memory->data + index);
+      return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
-      result = *(int*)((uintptr_t)memory->data + index);
+      return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
-      result = *(long*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
-      result = *(float*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
-      result = *(double*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
-  return is_big_endian ? result : SwapInt(result);
 }
 
 long GetLongData(size_t index) {
-  long result = 0;
   switch (GetType(memory, index)) {
     case 0x01:
-      result = *(int8_t*)((uintptr_t)memory->data + index);
+      return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
-      result = *(int*)((uintptr_t)memory->data + index);
+      return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
-      result = *(long*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
-      result = *(float*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
-      result = *(double*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
-  return is_big_endian ? result : SwapLong(result);
 }
 
 float GetFloatData(size_t index) {
-  float result = 0;
   switch (GetType(memory, index)) {
     case 0x01:
-      result = *(int8_t*)((uintptr_t)memory->data + index);
+      return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
-      result = *(int*)((uintptr_t)memory->data + index);
+      return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
-      result = *(long*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
-      result = *(float*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
-      result = *(double*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
-  return is_big_endian ? result : SwapFloat(result);
 }
 
 double GetDoubleData(size_t index) {
-  double result = 0;
   switch (GetType(memory, index)) {
     case 0x01:
-      result = *(int8_t*)((uintptr_t)memory->data + index);
+      return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
-      result = *(int*)((uintptr_t)memory->data + index);
+      return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
-      result = *(long*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
-      result = *(float*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
-      result = *(double*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
-  return is_big_endian ? result : SwapDouble(result);
 }
 
 void SetPtrData(size_t index, void* ptr) {
@@ -2054,12 +2075,16 @@ int main(int argc, char* argv[]) {
   memcpy(&temp, bytecode_file, sizeof(uint64_t));
   temp = SwapUint64t(temp);
   size_t memory_size = temp;
-  fprintf(stderr, "Memory size: %zu\n", memory_size);
+  // fprintf(stderr, "Memory size: %zu\n", memory_size);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
   void* data = bytecode_file;
   bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size);
   void* type = bytecode_file;
-  fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x", *(int8_t*)bytecode_file, *((int8_t*)bytecode_file + 1), *((int8_t*)bytecode_file + 2), *((int8_t*)bytecode_file + 3), *((int8_t*)bytecode_file + 4), *((int8_t*)bytecode_file + 5), *((int8_t*)bytecode_file + 6), *((int8_t*)bytecode_file + 7));
+  // fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x",
+  // *(int8_t*)bytecode_file, *((int8_t*)bytecode_file + 1),
+  // *((int8_t*)bytecode_file + 2), *((int8_t*)bytecode_file + 3),
+  // *((int8_t*)bytecode_file + 4), *((int8_t*)bytecode_file + 5),
+  // *((int8_t*)bytecode_file + 6), *((int8_t*)bytecode_file + 7));
   bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2 + 1);
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
@@ -2069,7 +2094,7 @@ int main(int argc, char* argv[]) {
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
   while (bytecode_file < bytecode_end) {
-    fprintf(stderr, "Current operand: %02x\n", *(uint8_t*)bytecode_file);
+    // fprintf(stderr, "Current operand: %02x\n", *(uint8_t*)bytecode_file);
     switch (*(uint8_t*)bytecode_file) {
       case 0x00:
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
