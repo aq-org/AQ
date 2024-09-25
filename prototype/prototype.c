@@ -1998,14 +1998,16 @@ unsigned int hash(const char* str) {
 
 void InitializeNameTable(struct LinkedList* list) {
   unsigned int name_hash = hash("print");
-  struct LinkedList* table = &name_table[name_hash];
-  while (table != NULL) {
+  struct LinkedList* table = &list[name_hash];
+  while (table->next != NULL) {
     table = table->next;
   }
-  name_table[name_hash].pair.first = "print";
-  name_table[name_hash].pair.second = print;
-  name_table[name_hash].next =
-      (struct LinkedList*)malloc(sizeof(struct LinkedList));
+  table->pair.first = "print";
+  table->pair.second = print;
+  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
+  table->next->next = NULL;
+  table->next->pair.first = NULL;
+  table->next->pair.second = NULL;
 }
 
 func_ptr GetFunction(const char* name) {
@@ -2022,7 +2024,7 @@ func_ptr GetFunction(const char* name) {
 
 void DeinitializeNameTable(struct LinkedList* list) {
   unsigned int name_hash = hash("print");
-  struct LinkedList* table = name_table[name_hash].next;
+  struct LinkedList* table = list[name_hash].next;
   struct LinkedList* next;
   while (table != NULL) {
     next = table->next;
@@ -2233,7 +2235,7 @@ int main(int argc, char* argv[]) {
   }
 
   printf("\nProgram finished\n");
-  // DeinitializeNameTable(name_table);
+  DeinitializeNameTable(name_table);
   FreeMemory(memory);
   free(bytecode_begin);
 
