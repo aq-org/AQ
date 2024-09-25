@@ -571,14 +571,12 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
     ++size;
   }
 
-  size_t arg_count_num = GetLongData(*arg_count);
+  Object args_obj = {*arg_count, NULL};
 
-  Object args_obj = {arg_count_num, NULL};
-
-  size_t* args = malloc(arg_count_num * sizeof(size_t));
+  size_t* args = malloc(*arg_count * sizeof(size_t));
 
   size_t read_arg = 0;
-  while (read_arg < arg_count_num) {
+  while (read_arg < *arg_count) {
     state = 0;
     size = 0;
     while (state == 0) {
