@@ -637,7 +637,7 @@ int FREE(size_t ptr) {
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
-  SetPtrData(ptr, (void*)(uintptr_t)memory->data + index);
+  SetPtrData(ptr, (void*)((uintptr_t)memory->data + index));
   return 0;
 }
 int ADD(size_t result, size_t operand1, size_t operand2) {
