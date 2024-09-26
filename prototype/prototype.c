@@ -323,22 +323,25 @@ void SetByteData(size_t index, int8_t value) {
 }
 
 void SetIntData(size_t index, int value) {
-  value = is_big_endian ? value : SwapInt(value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
-      *(int*)((uintptr_t)memory->data + index) = value;
+      *(int*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
-      *(long*)((uintptr_t)memory->data + index) = value;
+      *(long*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
-      *(float*)((uintptr_t)memory->data + index) = value;
+      *(float*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
-      *(double*)((uintptr_t)memory->data + index) = value;
+      *(double*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapDouble(value);
       break;
     default:
       break;
@@ -346,22 +349,25 @@ void SetIntData(size_t index, int value) {
 }
 
 void SetLongData(size_t index, long value) {
-  value = is_big_endian ? value : SwapLong(value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
-      *(int*)((uintptr_t)memory->data + index) = value;
+      *(int*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
-      *(long*)((uintptr_t)memory->data + index) = value;
+      *(long*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
-      *(float*)((uintptr_t)memory->data + index) = value;
+      *(float*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
-      *(double*)((uintptr_t)memory->data + index) = value;
+      *(double*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapDouble(value);
       break;
     default:
       break;
@@ -369,22 +375,25 @@ void SetLongData(size_t index, long value) {
 }
 
 void SetFloatData(size_t index, float value) {
-  value = is_big_endian ? value : SwapFloat(value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
-      *(int*)((uintptr_t)memory->data + index) = value;
+      *(int*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
-      *(long*)((uintptr_t)memory->data + index) = value;
+      *(long*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
-      *(float*)((uintptr_t)memory->data + index) = value;
+      *(float*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
-      *(double*)((uintptr_t)memory->data + index) = value;
+      *(double*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapDouble(value);
       break;
     default:
       break;
@@ -392,22 +401,25 @@ void SetFloatData(size_t index, float value) {
 }
 
 void SetDoubleData(size_t index, double value) {
-  value = is_big_endian ? value : SwapDouble(value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
-      *(int*)((uintptr_t)memory->data + index) = value;
+      *(int*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
-      *(long*)((uintptr_t)memory->data + index) = value;
+      *(long*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
-      *(float*)((uintptr_t)memory->data + index) = value;
+      *(float*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
-      *(double*)((uintptr_t)memory->data + index) = value;
+      *(double*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapDouble(value);
       break;
     default:
       break;
