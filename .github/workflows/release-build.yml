@@ -22,6 +22,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake gcc-multilib g++-multilib
+
       - name: Install dependencies (Windows)
         if: matrix.os == 'windows-latest'
         run: |
@@ -29,6 +30,7 @@ jobs:
           if [ "${{ matrix.arch }}" == "x86" ]; then
             choco install mingw --version=8.1.0 --x86 --no-progress
           fi
+
       - name: Install dependencies (macOS)
         if: matrix.os == 'macos-latest'
         run: brew install cmake
@@ -40,9 +42,9 @@ jobs:
         run: |
           cd build
           if [ "${{ matrix.arch }}" == "x86" ]; then
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-m32 -O3" -DCMAKE_CXX_FLAGS="-m32 -O3" # 32 位编译 + O3 优化
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-m32 -O3" -DCMAKE_CXX_FLAGS="-m32 -O3"
           else
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3" # O3 优化
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
           fi
           cmake --build . --config Release
 
@@ -69,14 +71,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            build-ubuntu-latest-x64/your_project
-            build-ubuntu-latest-arm64/your_project
-            build-ubuntu-latest-x86/your_project
-            build-windows-latest-x64/your_project.exe
-            build-windows-latest-arm64/your_project.exe
-            build-windows-latest-x86/your_project.exe
-            build-macos-latest-x64/your_project
-            build-macos-latest-arm64/your_project
-            build-macos-latest-x86/your_project
+            build-${{ matrix.os }}-${{ matrix.arch }}/your_project
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
