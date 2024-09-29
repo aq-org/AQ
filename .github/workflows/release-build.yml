@@ -2,7 +2,7 @@ name: Build and Attach Release
 
 on:
   release:
-    types: [published]
+    types: [created, published, updated, edited, deleted, prereleased, unpublished]
 
 jobs:
   build:
