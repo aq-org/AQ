@@ -1,0 +1,82 @@
+name: Build and Attach Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x64, arm64, x86]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcc-multilib g++-multilib
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' --no-progress
+          if [ "${{ matrix.arch }}" == "x86" ]; then
+            choco install mingw --version=8.1.0 --x86 --no-progress
+          fi
+      - name: Install dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install cmake
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Run CMake
+        run: |
+          cd build
+          if [ "${{ matrix.arch }}" == "x86" ]; then
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-m32 -O3" -DCMAKE_CXX_FLAGS="-m32 -O3" # 32 位编译 + O3 优化
+          else
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3" # O3 优化
+          fi
+          cmake --build . --config Release
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.os }}-${{ matrix.arch }}
+          path: build/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Download all builds
+        uses: actions/download-artifact@v3
+        with:
+          name: build-${{ matrix.os }}-${{ matrix.arch }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build-ubuntu-latest-x64/your_project
+            build-ubuntu-latest-arm64/your_project
+            build-ubuntu-latest-x86/your_project
+            build-windows-latest-x64/your_project.exe
+            build-windows-latest-arm64/your_project.exe
+            build-windows-latest-x86/your_project.exe
+            build-macos-latest-x64/your_project
+            build-macos-latest-arm64/your_project
+            build-macos-latest-x86/your_project
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
