@@ -1,135 +1,53 @@
-name: Build and Attach Release
+name: Build and Release
 
 on:
   release:
-    types: [created, published, updated, edited, deleted, prereleased, unpublished]
+    types: [published, deleted]
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        arch: [x64, arm64, x86]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x86_64, arm64]
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
-      - name: Create build directory
-        run: mkdir build
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.18.1'
 
-      - name: Run CMake
+      - name: Set up dependencies
         run: |
-          cd build
-          if [ "${{ matrix.arch }}" == "x86" ]; then
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-m32 -O3" -DCMAKE_CXX_FLAGS="-m32 -O3"
-          else
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
+          if [ $RUNNER_OS == 'Linux' ]; then
+            sudo apt-get update
+            sudo apt-get install -y build-essential
+          elif [ $RUNNER_OS == 'macOS' ]; then
+            brew update
+            brew install cmake
           fi
-          cmake --build . --config Release
 
-      - name: Package Linux build into a ZIP file
-        run: |
-          cd build
-          zip -r ../aq-${{ github.ref_name }}-linux-${{ matrix.arch }}.zip *
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="-O3"
 
-      - name: Upload Linux build artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: aq-${{ github.ref_name }}-linux-${{ matrix.arch }}
-          path: aq-${{ github.ref_name }}-linux-${{ matrix.arch }}.zip
+      - name: Build
+        run: cmake --build build --config Release
 
-  build-windows:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        arch: [x64, arm64, x86]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Create build directory
-        run: mkdir build
-
-      - name: Run CMake for Windows
-        run: |
-          cd build
-          if [ "${{ matrix.arch }}" == "x86" ]; then
-            cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/share/mingw/toolchain-x86.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
-          else
-            cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/share/mingw/toolchain-${{ matrix.arch }}.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
-          fi
-          cmake --build . --config Release
-
-      - name: Package Windows build into a ZIP file
-        run: |
-          cd build
-          zip -r ../aq-${{ github.ref_name }}-windows-${{ matrix.arch }}.zip *
-
-      - name: Upload Windows build artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: aq-${{ github.ref_name }}-windows-${{ matrix.arch }}
-          path: aq-${{ github.ref_name }}-windows-${{ matrix.arch }}.zip
-
-  build-macos:
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: |
-          brew update
-          brew install cmake
-
-      - name: Create build directory
-        run: mkdir build
-
-      - name: Run CMake for macOS
-        run: |
-          cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
-          cmake --build . --config Release
-
-      - name: Package macOS build into a ZIP file
-        run: |
-          cd build
-          zip -r ../aq-${{ github.ref_name }}-macos-x64.zip *
-
-      - name: Upload macOS build artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: aq-${{ github.ref_name }}-macos-x64
-          path: aq-${{ github.ref_name }}-macos-x64.zip
-
-  release:
-    needs: [build-linux, build-windows, build-macos]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Download all builds
-        uses: actions/download-artifact@v3
-        with:
-          name: '**'
-
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            aq-${{ github.ref_name }}-linux-x64.zip
-            aq-${{ github.ref_name }}-linux-arm64.zip
-            aq-${{ github.ref_name }}-linux-x86.zip
-            aq-${{ github.ref_name }}-windows-x64.zip
-            aq-${{ github.ref_name }}-windows-arm64.zip
-            aq-${{ github.ref_name }}-windows-x86.zip
-            aq-${{ github.ref_name }}-macos-x64.zip
+      - name: Package
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.release.tag_name }}
+          OS: ${{ matrix.os }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          zip -r aq-$VERSION-$OS-$ARCH.zip build/*
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
+          path: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
