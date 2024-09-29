@@ -5,37 +5,21 @@ on:
     types: [created, published, updated, edited, deleted, prereleased, unpublished]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+  build-linux:
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         arch: [x64, arm64, x86]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y cmake gcc g++
-
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' --no-progress
-          if [ "${{ matrix.arch }}" == "x86" ]; then
-            choco install mingw --version=8.1.0 --x86 --no-progress
-          fi
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          brew install cmake
 
       - name: Create build directory
         run: mkdir build
@@ -50,14 +34,91 @@ jobs:
           fi
           cmake --build . --config Release
 
-      - name: Upload build artifacts
+      - name: Package Linux build into a ZIP file
+        run: |
+          cd build
+          zip -r ../aq-${{ github.ref_name }}-linux-${{ matrix.arch }}.zip *
+
+      - name: Upload Linux build artifact
         uses: actions/upload-artifact@v3
         with:
-          name: build-${{ matrix.os }}-${{ matrix.arch }}
-          path: build/*
+          name: aq-${{ github.ref_name }}-linux-${{ matrix.arch }}
+          path: aq-${{ github.ref_name }}-linux-${{ matrix.arch }}.zip
+
+  build-windows:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        arch: [x64, arm64, x86]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake mingw-w64
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Run CMake for Windows
+        run: |
+          cd build
+          if [ "${{ matrix.arch }}" == "x86" ]; then
+            cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/share/mingw/toolchain-x86.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
+          else
+            cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/share/mingw/toolchain-${{ matrix.arch }}.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
+          fi
+          cmake --build . --config Release
+
+      - name: Package Windows build into a ZIP file
+        run: |
+          cd build
+          zip -r ../aq-${{ github.ref_name }}-windows-${{ matrix.arch }}.zip *
+
+      - name: Upload Windows build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: aq-${{ github.ref_name }}-windows-${{ matrix.arch }}
+          path: aq-${{ github.ref_name }}-windows-${{ matrix.arch }}.zip
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install cmake
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Run CMake for macOS
+        run: |
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS="-O3" -DCMAKE_CXX_FLAGS="-O3"
+          cmake --build . --config Release
+
+      - name: Package macOS build into a ZIP file
+        run: |
+          cd build
+          zip -r ../aq-${{ github.ref_name }}-macos-x64.zip *
+
+      - name: Upload macOS build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: aq-${{ github.ref_name }}-macos-x64
+          path: aq-${{ github.ref_name }}-macos-x64.zip
 
   release:
-    needs: build
+    needs: [build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
 
     steps:
@@ -73,14 +134,12 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            build-ubuntu-latest-x64/AQ
-            build-ubuntu-latest-arm64/AQ
-            build-ubuntu-latest-x86/AQ
-            build-windows-latest-x64/AQ.exe
-            build-windows-latest-arm64/AQ.exe
-            build-windows-latest-x86/AQ.exe
-            build-macos-latest-x64/AQ
-            build-macos-latest-arm64/AQ
-            build-macos-latest-x86/AQ
+            aq-${{ github.ref_name }}-linux-x64.zip
+            aq-${{ github.ref_name }}-linux-arm64.zip
+            aq-${{ github.ref_name }}-linux-x86.zip
+            aq-${{ github.ref_name }}-windows-x64.zip
+            aq-${{ github.ref_name }}-windows-arm64.zip
+            aq-${{ github.ref_name }}-windows-x86.zip
+            aq-${{ github.ref_name }}-macos-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
