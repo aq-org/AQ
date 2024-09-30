@@ -76,7 +76,7 @@ jobs:
         echo "windows" >> $GITHUB_ENV
 
     - name: Set OS name (macOS)
-      if: matrix.os == 'macos-latest"
+      if: matrix.os == 'macos-latest'
       run: |
         echo "macos" >> $GITHUB_ENV
 
