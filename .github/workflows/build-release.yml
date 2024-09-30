@@ -65,26 +65,30 @@ jobs:
       run: |
         git clone ${{ github.repository_url }} source-code
 
+    - name: Set OS name
+      id: set_os_name
+      run: echo "OS_NAME=${{ matrix.os/-latest/ }}" >> $GITHUB_ENV
+
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}
+        name: aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}
         path: build/*
 
     - name: Compress Release Asset (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip build
+        zip -r aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip build
 
     - name: Compress Release Asset (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        powershell Compress-Archive -Path build\* -DestinationPath aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip
+        powershell Compress-Archive -Path build\* -DestinationPath aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip
 
     - name: Compress Release Asset (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip build
+        zip -r aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip build
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
@@ -92,6 +96,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip
-        asset_name: aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip
+        asset_path: aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip
+        asset_name: aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip
         asset_content_type: application/zip
