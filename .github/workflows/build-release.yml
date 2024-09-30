@@ -26,11 +26,11 @@ jobs:
             cpp_compiler: clang++
         exclude:
           - os: ubuntu-latest
-            c_compiler: clang, cl
+            c_compiler: gcc
           - os: windows-latest
-            c_compiler: gcc, clang
+            c_compiler: cl
           - os: macos-latest
-            c_compiler: gcc, cl
+            c_compiler: clang
 
     steps:
     - uses: actions/checkout@v3
