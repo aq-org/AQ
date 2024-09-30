@@ -67,7 +67,7 @@ jobs:
 
     - name: Set OS name
       id: set_os_name
-      run: echo "OS_NAME=${{ matrix.os/-latest/ }}" >> $GITHUB_ENV
+      run: echo "OS_NAME=${{ matrix.os }}" | sed 's/-latest//' >> $GITHUB_ENV
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
