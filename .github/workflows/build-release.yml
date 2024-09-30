@@ -65,48 +65,71 @@ jobs:
       run: |
         git clone --depth 1 https://github.com/aq-org/AQ.git src
 
-    - name: Set OS name (Linux)
+    - name: Upload artifact (Linux)
       if: matrix.os == 'ubuntu-latest'
-      run: |
-        echo "OS_NAME=linux" >> $GITHUB_ENV
-
-    - name: Set OS name (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        echo "OS_NAME=windows" >> $GITHUB_ENV
-
-    - name: Set OS name (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        echo "OS_NAME=macos" >> $GITHUB_ENV
-
-    - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}
+        name: aq-${{ github.event.release.tag_name }}-linux-${{ matrix.arch }}
         path: build/*
 
-    - name: Compress Release Asset (Ubuntu)
+    - name: Upload artifact (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: aq-${{ github.event.release.tag_name }}-windows-${{ matrix.arch }}
+        path: build/*
+
+    - name: Upload artifact (macOS)
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: aq-${{ github.event.release.tag_name }}-macos-${{ matrix.arch }}
+        path: build/*
+
+    - name: Compress Release Asset (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        zip -r aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip build
+        zip -r aq-${{ github.event.release.tag_name }}-linux-${{ matrix.arch }}.zip build
 
     - name: Compress Release Asset (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        powershell Compress-Archive -Path build\* -DestinationPath aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip
+        powershell Compress-Archive -Path build\* -DestinationPath aq-${{ github.event.release.tag_name }}-windows-${{ matrix.arch }}.zip
 
     - name: Compress Release Asset (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        zip -r aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip build
+        zip -r aq-${{ github.event.release.tag_name }}-macos-${{ matrix.arch }}.zip build
 
-    - name: Upload Release Asset
+    - name: Upload Release Asset (Linux)
+      if: matrix.os == 'linux-latest'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip
-        asset_name: aq-${{ github.event.release.tag_name }}-${{ env.OS_NAME }}-${{ matrix.arch }}.zip
+        asset_path: aq-${{ github.event.release.tag_name }}-linux-${{ matrix.arch }}.zip
+        asset_name: aq-${{ github.event.release.tag_name }}-linux-${{ matrix.arch }}.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: aq-${{ github.event.release.tag_name }}-windows-${{ matrix.arch }}.zip
+        asset_name: aq-${{ github.event.release.tag_name }}-windows-${{ matrix.arch }}.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset (macOS)
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: aq-${{ github.event.release.tag_name }}-macos-${{ matrix.arch }}.zip
+        asset_name: aq-${{ github.event.release.tag_name }}-macos-${{ matrix.arch }}.zip
         asset_content_type: application/zip
