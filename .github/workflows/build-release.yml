@@ -55,11 +55,20 @@ jobs:
         name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}
         path: build/*
 
-    - name: Download artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}
-        path: ./
+    - name: Compress Release Asset (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip build
+
+    - name: Compress Release Asset (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        powershell Compress-Archive -Path build\* -DestinationPath aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
+
+    - name: Compress Release Asset (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip build
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
