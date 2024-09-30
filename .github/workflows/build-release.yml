@@ -48,16 +48,8 @@ jobs:
     - name: Build
       run: cmake --build build --config ${{ matrix.build_type }}
 
-    - name: Package
-      env:
-        VERSION: ${{ github.event.release.tag_name }}
-        OS: ${{ matrix.os }}
-      run: |
-        zip -r aq-$VERSION-$OS.zip build/*
-      shell: bash
-
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
         name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}.zip
-        path: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}.zip
+        path: build/*
