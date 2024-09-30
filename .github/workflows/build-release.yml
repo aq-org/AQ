@@ -61,6 +61,10 @@ jobs:
     - name: Build
       run: cmake --build build --config Release
 
+    - name: Download Source Code
+      run: |
+        git clone ${{ github.repository_url }} source-code
+
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
