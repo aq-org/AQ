@@ -63,7 +63,7 @@ jobs:
 
     - name: Download Source Code
       run: |
-        git clone ${{ github.repository_url }}
+        git clone --depth 1 https://github.com/aq-org/AQ.git src
 
     - name: Set OS name
       id: set_os_name
