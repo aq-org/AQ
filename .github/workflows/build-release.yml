@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        arch: [x86, x64]
+        arch: [x86, x64, arm64]
         include:
           - os: ubuntu-latest
             arch: x86
@@ -22,12 +22,20 @@ jobs:
             arch: x64
             c_compiler: gcc
             cpp_compiler: g++
+          - os: ubuntu-latest
+            arch: arm64
+            c_compiler: gcc
+            cpp_compiler: g++
           - os: windows-latest
             arch: x86
             c_compiler: cl
             cpp_compiler: cl
           - os: windows-latest
             arch: x64
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: windows-latest
+            arch: arm64
             c_compiler: cl
             cpp_compiler: cl
           - os: macos-latest
@@ -36,6 +44,10 @@ jobs:
             cpp_compiler: clang++
           - os: macos-latest
             arch: x64
+            c_compiler: clang
+            cpp_compiler: clang++
+          - os: macos-latest
+            arch: arm64
             c_compiler: clang
             cpp_compiler: clang++
 
@@ -58,17 +70,17 @@ jobs:
     - name: Compress Release Asset (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip build
+        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip build
 
     - name: Compress Release Asset (Windows)
       if: matrix.os == 'windows-latest'
       run: |
-        powershell Compress-Archive -Path build\* -DestinationPath aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
+        powershell Compress-Archive -Path build\* -DestinationPath aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip
 
     - name: Compress Release Asset (macOS)
       if: matrix.os == 'macos-latest'
       run: |
-        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip build
+        zip -r aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip build
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
@@ -76,6 +88,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
-        asset_name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}
+        asset_path: aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip
+        asset_name: aq-${{ github.event.release.tag_name }}-${{ matrix.os/'-latest'/'' }}-${{ matrix.arch }}.zip
         asset_content_type: application/zip
