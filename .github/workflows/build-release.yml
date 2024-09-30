@@ -65,9 +65,20 @@ jobs:
       run: |
         git clone --depth 1 https://github.com/aq-org/AQ.git src
 
-    - name: Set OS name
-      id: set_os_name
-      run: echo "OS_NAME=${{ matrix.os }}" | sed 's/-latest//' >> $GITHUB_ENV
+    - name: Set OS name (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        echo "linux" >> $GITHUB_ENV
+
+    - name: Set OS name (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        echo "windows" >> $GITHUB_ENV
+
+    - name: Set OS name (macOS)
+      if: matrix.os == 'macos-latest"
+      run: |
+        echo "macos" >> $GITHUB_ENV
 
     - name: Upload artifact
       uses: actions/upload-artifact@v3
