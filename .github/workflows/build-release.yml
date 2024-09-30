@@ -63,7 +63,7 @@ jobs:
 
     - name: Download Source Code
       run: |
-        git clone ${{ github.repository_url }} source-code
+        git clone ${{ github.repository_url }}
 
     - name: Set OS name
       id: set_os_name
