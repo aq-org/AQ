@@ -1,0 +1,44 @@
+name: Build and Release
+on:
+  release:
+    types: [created, published, updated, edited, deleted, prereleased, unpublished]
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [x86_64, arm64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up CMake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: '3.18.1'
+      - name: Set up dependencies
+        run: |
+          if [ $RUNNER_OS == 'Linux' ]; then
+            sudo apt-get update
+            sudo apt-get install -y build-essential
+          elif [ $RUNNER_OS == 'macOS' ]; then
+            brew update
+            brew install cmake
+          fi
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="-O3"
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Package
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+          OS: ${{ matrix.os }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          zip -r aq-$VERSION-$OS-$ARCH.zip build/*
+        shell: bash
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
+          path: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
