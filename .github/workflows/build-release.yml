@@ -63,7 +63,7 @@ jobs:
 
     - name: Download Source Code
       run: |
-        git clone --depth 1 https://github.com/aq-org/AQ.git src
+        git clone --depth 1 https://github.com/aq-org/AQ.git build
 
     - name: Upload artifact (Linux)
       if: matrix.os == 'ubuntu-latest'
