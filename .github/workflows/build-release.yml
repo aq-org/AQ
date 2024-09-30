@@ -55,12 +55,18 @@ jobs:
         name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}
         path: build/*
 
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}
+        path: ./
+
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: build/*
+        asset_path: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}.zip
         asset_name: aq-${{ github.event.release.tag_name }}-${{ matrix.os }}-${{ matrix.arch }}
         asset_content_type: application/zip
