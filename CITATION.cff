@@ -1,0 +1,47 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: AQ
+message: >-
+  AQ is an interpreted programming language. It is fast,
+  small, simple and safe. At the same time, programs written
+  in AQ can also be compiled. Maybe a great piece of work.
+type: software
+authors:
+  - given-names: Zicong
+    family-names: Xie
+    email: ax-6@outlook.com
+    orcid: 'https://orcid.org/0009-0001-4704-6626'
+  - name: AQ ORG
+    email: admin@axa6.com
+    website: 'https://www.axa6.com'
+identifiers:
+  - type: url
+    value: 'https://www.axa6.com'
+    description: Official Website
+  - type: url
+    value: 'https://github.com/aq-org/AQ'
+    description: Github
+repository-code: 'https://github.com/aq-org/AQ'
+url: 'https://www.axa6.com'
+abstract: >-
+  AQ is an interpreted programming language. It is fast,
+  small, simple and safe. At the same time, programs written
+  in AQ can also be compiled. Maybe a great piece of work.
+keywords:
+  - AQ
+  - Programming language
+  - Virtual Machine
+  - Software
+  - Compiler
+  - fast
+  - safe
+  - small
+  - easy
+  - program
+  - simple
+license: AGPL-3.0
+commit: 'https://github.com/aq-org/AQ/releases/tag/Prototype'
+version: Prototype Preview
+date-released: '2024-09-28'
