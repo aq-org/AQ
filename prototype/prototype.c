@@ -12,9 +12,9 @@
 typedef struct {
   size_t size;
   size_t* index;
-} Object;
+} InternalObject;
 
-typedef void (*func_ptr)(Object, Object);
+typedef void (*func_ptr)(InternalObject, size_t);
 
 struct Pair {
   char* first;
@@ -543,7 +543,7 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
-int INVOKE(size_t* func, Object return_value, Object args);
+int INVOKE(size_t* func, size_t return_value, InternalObject args);
 
 void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
@@ -570,8 +570,6 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
     ++size;
   }
 
-  Object return_obj = {1, return_value};
-
   state = 0;
   size = 0;
   while (state == 0) {
@@ -583,7 +581,7 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
     ++size;
   }
 
-  Object args_obj = {*arg_count, NULL};
+  InternalObject args_obj = {*arg_count, NULL};
 
   size_t* args = malloc(*arg_count * sizeof(size_t));
 
@@ -604,7 +602,7 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
 
   args_obj.index = args;
 
-  INVOKE(&func, return_obj, args_obj);
+  INVOKE(&func, *return_value, args_obj);
 
   free(args);
 
@@ -1983,7 +1981,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int INVOKE(size_t* func, Object return_value, Object args) {
+int INVOKE(size_t* func, size_t return_value, InternalObject args) {
   func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
   invoke_func(args, return_value);
   return 0;
@@ -1995,8 +1993,8 @@ void* GOTO(void* ptr, size_t offset) {
 int THROW() { return 0; }
 int WIDE() { return 0; }
 
-void print(Object args, Object return_value) {
-  SetIntData(*return_value.index, printf((char*)GetPtrData(*args.index)));
+void print(InternalObject args, size_t return_value) {
+  SetIntData(return_value, printf((char*)GetPtrData(*args.index)));
 }
 
 unsigned int hash(const char* str) {
