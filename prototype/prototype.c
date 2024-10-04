@@ -12,9 +12,9 @@
 typedef struct {
   size_t size;
   size_t* index;
-} InternalObject;
+} Object;
 
-typedef void (*func_ptr)(InternalObject, size_t);
+typedef void (*func_ptr)(Object, Object);
 
 struct Pair {
   char* first;
@@ -543,7 +543,7 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
-int INVOKE(size_t* func, size_t return_value, InternalObject args);
+int INVOKE(size_t* func, Object return_value, Object args);
 
 void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
@@ -570,6 +570,8 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
     ++size;
   }
 
+  Object return_obj = {1, return_value};
+
   state = 0;
   size = 0;
   while (state == 0) {
@@ -581,7 +583,7 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
     ++size;
   }
 
-  InternalObject args_obj = {*arg_count, NULL};
+  Object args_obj = {*arg_count, NULL};
 
   size_t* args = malloc(*arg_count * sizeof(size_t));
 
@@ -602,7 +604,7 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
 
   args_obj.index = args;
 
-  INVOKE(&func, *return_value, args_obj);
+  INVOKE(&func, return_obj, args_obj);
 
   free(args);
 
@@ -1613,191 +1615,6 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
         switch (GetType(memory, result)) {
           case 0x01:
             SetByteData(result,
-                        GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x04 ||
-                 GetType(memory, operand1) == 0x04 ||
-                 GetType(memory, operand2) == 0x04) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x03 ||
-                 GetType(memory, operand1) == 0x03 ||
-                 GetType(memory, operand2) == 0x03) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetLongData(operand1) < GetLongData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result, GetLongData(operand1) < GetLongData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x02 ||
-                 GetType(memory, operand1) == 0x02 ||
-                 GetType(memory, operand2) == 0x02) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetIntData(operand1) < GetIntData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetIntData(operand1) < GetIntData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x01 ||
-                 GetType(memory, operand1) == 0x01 ||
-                 GetType(memory, operand2) == 0x01) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetByteData(operand1) < GetByteData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else {
-      }
-      break;
-    case 0x03:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x04 ||
-                 GetType(memory, operand1) == 0x04 ||
-                 GetType(memory, operand2) == 0x04) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x03 ||
-                 GetType(memory, operand1) == 0x03 ||
-                 GetType(memory, operand2) == 0x03) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetLongData(operand1) <= GetLongData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result, GetLongData(operand1) <= GetLongData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x02 ||
-                 GetType(memory, operand1) == 0x02 ||
-                 GetType(memory, operand2) == 0x02) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetIntData(operand1) <= GetIntData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetIntData(operand1) <= GetIntData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else if (GetType(memory, result) == 0x01 ||
-                 GetType(memory, operand1) == 0x01 ||
-                 GetType(memory, operand2) == 0x01) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
-            break;
-          default:
-            break;
-        }
-      } else {
-      }
-      break;
-    case 0x04:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
                         GetDoubleData(operand1) > GetDoubleData(operand2));
             break;
           case 0x02:
@@ -1883,7 +1700,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       } else {
       }
       break;
-    case 0x05:
+    case 0x03:
       if (GetType(memory, result) == 0x05 ||
           GetType(memory, operand1) == 0x05 ||
           GetType(memory, operand2) == 0x05) {
@@ -1976,12 +1793,197 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       } else {
       }
       break;
+    case 0x04:
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result, GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetFloatData(operand1) < GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result, GetLongData(operand1) < GetLongData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result, GetLongData(operand1) < GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result, GetIntData(operand1) < GetIntData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result, GetIntData(operand1) < GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result, GetByteData(operand1) < GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
+      break;
+    case 0x05:
+      if (GetType(memory, result) == 0x05 ||
+          GetType(memory, operand1) == 0x05 ||
+          GetType(memory, operand2) == 0x05) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x04 ||
+                 GetType(memory, operand1) == 0x04 ||
+                 GetType(memory, operand2) == 0x04) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetFloatData(operand1) <= GetFloatData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x03 ||
+                 GetType(memory, operand1) == 0x03 ||
+                 GetType(memory, operand2) == 0x03) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result, GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result, GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x02 ||
+                 GetType(memory, operand1) == 0x02 ||
+                 GetType(memory, operand2) == 0x02) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result, GetIntData(operand1) <= GetIntData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result, GetIntData(operand1) <= GetIntData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x01 ||
+                 GetType(memory, operand1) == 0x01 ||
+                 GetType(memory, operand2) == 0x01) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
+            break;
+          default:
+            break;
+        }
+      } else {
+      }
+      break;
     default:
       break;
   }
   return 0;
 }
-int INVOKE(size_t* func, size_t return_value, InternalObject args) {
+int INVOKE(size_t* func, Object return_value, Object args) {
   func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
   invoke_func(args, return_value);
   return 0;
@@ -1993,8 +1995,8 @@ void* GOTO(void* ptr, size_t offset) {
 int THROW() { return 0; }
 int WIDE() { return 0; }
 
-void print(InternalObject args, size_t return_value) {
-  SetIntData(return_value, printf((char*)GetPtrData(*args.index)));
+void print(Object args, Object return_value) {
+  SetIntData(*return_value.index, printf((char*)GetPtrData(*args.index)));
 }
 
 unsigned int hash(const char* str) {
