@@ -38,6 +38,20 @@ struct Memory* memory;
 
 struct LinkedList name_table[1024];
 
+struct LinkedList func_table[1024];
+
+typedef struct {
+  const char* name;
+  void* location;
+  size_t all_size;
+  void* return_value;
+  size_t memory_size;
+  void* memory;
+  void* types;
+  size_t commands_size;
+  void* commands;
+} FuncInfo;
+
 bool is_big_endian;
 
 #define GET_SIZE(x)  \
@@ -2020,6 +2034,12 @@ void InitializeNameTable(struct LinkedList* list) {
   table->next->pair.second = NULL;
 }
 
+void AddFunction(const char* name, void* location, size_t all_size,
+                 void* return_value, size_t memory_size, void* memory,
+                 void* types, void* commands) {
+                  
+                 }
+
 func_ptr GetFunction(const char* name) {
   unsigned int name_hash = hash(name);
   struct LinkedList* table = &name_table[name_hash];
@@ -2033,13 +2053,14 @@ func_ptr GetFunction(const char* name) {
 }
 
 void DeinitializeNameTable(struct LinkedList* list) {
-  unsigned int name_hash = hash("print");
-  struct LinkedList* table = list[name_hash].next;
-  struct LinkedList* next;
-  while (table != NULL) {
-    next = table->next;
-    free(table);
-    table = next;
+  for (int i = 0; i < 1024; i++) {
+    struct LinkedList* table = list[i].next;
+    struct LinkedList* next;
+    while (table != NULL) {
+      next = table->next;
+      free(table);
+      table = next;
+    }
   }
 }
 
