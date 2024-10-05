@@ -21,9 +21,29 @@ struct Pair {
   func_ptr second;
 };
 
+typedef struct {
+  const char* name;
+  void* location;
+  size_t memory_size;
+  void* memory;
+  void* types;
+  size_t commands_size;
+  void* commands;
+} FuncInfo;
+
+struct FuncPair {
+  char* first;
+  FuncInfo second;
+};
+
 struct LinkedList {
   struct Pair pair;
   struct LinkedList* next;
+};
+
+struct FuncList {
+  struct FuncPair pair;
+  struct FuncList* next;
 };
 
 struct Memory {
@@ -38,19 +58,7 @@ struct Memory* memory;
 
 struct LinkedList name_table[1024];
 
-struct LinkedList func_table[1024];
-
-typedef struct {
-  const char* name;
-  void* location;
-  size_t all_size;
-  void* return_value;
-  size_t memory_size;
-  void* memory;
-  void* types;
-  size_t commands_size;
-  void* commands;
-} FuncInfo;
+struct FuncList func_table[1024];
 
 bool is_big_endian;
 
@@ -2034,11 +2042,15 @@ void InitializeNameTable(struct LinkedList* list) {
   table->next->pair.second = NULL;
 }
 
-void AddFunction(const char* name, void* location, size_t all_size,
-                 void* return_value, size_t memory_size, void* memory,
-                 void* types, void* commands) {
-                  
-                 }
+void AddFunction(void* location) {
+  struct FuncList* table = &func_table[hash(location)];
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.first = location;
+  table->pair.second.name = location;
+  table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
+}
 
 func_ptr GetFunction(const char* name) {
   unsigned int name_hash = hash(name);
