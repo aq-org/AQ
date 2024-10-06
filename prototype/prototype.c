@@ -21,9 +21,29 @@ struct Pair {
   func_ptr second;
 };
 
+typedef struct {
+  const char* name;
+  void* location;
+  size_t memory_size;
+  void* memory;
+  void* types;
+  size_t commands_size;
+  void* commands;
+} FuncInfo;
+
+struct FuncPair {
+  char* first;
+  FuncInfo second;
+};
+
 struct LinkedList {
   struct Pair pair;
   struct LinkedList* next;
+};
+
+struct FuncList {
+  struct FuncPair pair;
+  struct FuncList* next;
 };
 
 struct Memory {
@@ -37,6 +57,8 @@ func_ptr GetFunction(const char* name);
 struct Memory* memory;
 
 struct LinkedList name_table[1024];
+
+struct FuncList func_table[1024];
 
 bool is_big_endian;
 
@@ -2020,6 +2042,27 @@ void InitializeNameTable(struct LinkedList* list) {
   table->next->pair.second = NULL;
 }
 
+void AddFunction(void* location) {
+  size_t all_size = *(size_t*)location;
+  struct FuncList* table = &func_table[hash(location)];
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.first = location;
+  table->pair.second.name = location;
+  table->pair.second.location = location;
+  while (*(char*)location != '\0') (uintptr_t) location++;
+  (uintptr_t) location++;
+  table->pair.second.memory_size = *(size_t*)location;
+  location = (void*)(uintptr_t)location + 8;
+  table->pair.second.memory = location;
+  location = (void*)(uintptr_t)location + table->pair.second.memory_size;
+  table->pair.second.types = location;
+  location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+  table->pair.second.commands = location;
+  table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
+}
+
 func_ptr GetFunction(const char* name) {
   unsigned int name_hash = hash(name);
   struct LinkedList* table = &name_table[name_hash];
@@ -2033,13 +2076,14 @@ func_ptr GetFunction(const char* name) {
 }
 
 void DeinitializeNameTable(struct LinkedList* list) {
-  unsigned int name_hash = hash("print");
-  struct LinkedList* table = list[name_hash].next;
-  struct LinkedList* next;
-  while (table != NULL) {
-    next = table->next;
-    free(table);
-    table = next;
+  for (int i = 0; i < 1024; i++) {
+    struct LinkedList* table = list[i].next;
+    struct LinkedList* next;
+    while (table != NULL) {
+      next = table->next;
+      free(table);
+      table = next;
+    }
   }
 }
 
@@ -2094,7 +2138,11 @@ int main(int argc, char* argv[]) {
   // *((int8_t*)bytecode_file + 2), *((int8_t*)bytecode_file + 3),
   // *((int8_t*)bytecode_file + 4), *((int8_t*)bytecode_file + 5),
   // *((int8_t*)bytecode_file + 6), *((int8_t*)bytecode_file + 7));
-  bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2 + 1);
+  if (memory_size % 2 != 0) {
+    bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2 + 1);
+  } else {
+    bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2);
+  }
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
 
