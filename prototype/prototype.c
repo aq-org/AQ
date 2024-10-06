@@ -2043,12 +2043,23 @@ void InitializeNameTable(struct LinkedList* list) {
 }
 
 void AddFunction(void* location) {
+  size_t all_size = *(size_t*)location;
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
     table = table->next;
   }
   table->pair.first = location;
   table->pair.second.name = location;
+  table->pair.second.location = location;
+  while (*(char*)location != '\0') (uintptr_t) location++;
+  (uintptr_t) location++;
+  table->pair.second.memory_size = *(size_t*)location;
+  location = (void*)(uintptr_t)location + 8;
+  table->pair.second.memory = location;
+  location = (void*)(uintptr_t)location + table->pair.second.memory_size;
+  table->pair.second.types = location;
+  location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+  table->pair.second.commands = location;
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
 }
 
@@ -2127,7 +2138,11 @@ int main(int argc, char* argv[]) {
   // *((int8_t*)bytecode_file + 2), *((int8_t*)bytecode_file + 3),
   // *((int8_t*)bytecode_file + 4), *((int8_t*)bytecode_file + 5),
   // *((int8_t*)bytecode_file + 6), *((int8_t*)bytecode_file + 7));
-  bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2 + 1);
+  if (memory_size % 2 != 0) {
+    bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2 + 1);
+  } else {
+    bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2);
+  }
   memory = InitializeMemory(data, type, memory_size);
   void* run_code = bytecode_file;
 
