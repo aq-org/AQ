@@ -2043,23 +2043,39 @@ void InitializeNameTable(struct LinkedList* list) {
 }
 
 void AddFunction(void* location) {
-  size_t all_size = *(size_t*)location;
+  size_t commands_size = *(size_t*)location;
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
     table = table->next;
   }
+  commands_size -= 8;
+  location = (void*)(uintptr_t)location + 8;
   table->pair.first = location;
   table->pair.second.name = location;
   table->pair.second.location = location;
-  while (*(char*)location != '\0') (uintptr_t) location++;
+  while (*(char*)location != '\0') {
+    (uintptr_t) location++;
+    commands_size--;
+  }
   (uintptr_t) location++;
+  commands_size--;
   table->pair.second.memory_size = *(size_t*)location;
+  commands_size -= 8;
   location = (void*)(uintptr_t)location + 8;
   table->pair.second.memory = location;
+  commands_size -= table->pair.second.memory_size;
   location = (void*)(uintptr_t)location + table->pair.second.memory_size;
   table->pair.second.types = location;
-  location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+  if (table->pair.second.memory_size % 2 != 0) {
+    commands_size -= table->pair.second.memory_size / 2 + 1;
+    location =
+        (void*)(uintptr_t)location + table->pair.second.memory_size / 2 + 1;
+  } else {
+    commands_size -= table->pair.second.memory_size / 2;
+    location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+  }
   table->pair.second.commands = location;
+  table->pair.second.commands_size = commands_size;
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
 }
 
