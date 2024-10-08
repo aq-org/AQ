@@ -565,7 +565,7 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
-int INVOKE(size_t* func, size_t return_value, InternalObject args);
+int INVOKE(const size_t* func, const size_t return_value, const InternalObject args);
 
 void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
@@ -2088,7 +2088,7 @@ FuncInfo GetCustomFunction(const char* name) {
     }
     table = table->next;
   }
-  return FuncInfo{NULL,NULL,0,NULL,NULL,0,NULL};
+  return (FuncInfo){NULL,NULL,0,NULL,NULL,0,NULL};
 }
 
 func_ptr GetFunction(const char* name) {
@@ -2115,7 +2115,7 @@ void DeinitializeNameTable(const struct LinkedList* list) {
   }
 }
 
-void DeinitializeFuncTable(const struct FuncList* list) {
+void DeleteFuncTable(const struct FuncList* list) {
   for (int i = 0; i < 1024; i++) {
     struct FuncList* table = list[i].next;
     struct FuncList* next;
@@ -2187,6 +2187,8 @@ int main(int argc, char* argv[]) {
   void* run_code = bytecode_file;
 
   InitializeNameTable(name_table);
+  void* new_function = bytecode_file + memory_size;
+
   printf("\nProgram started.\n");
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
@@ -2333,6 +2335,7 @@ int main(int argc, char* argv[]) {
   }
 
   printf("\nProgram finished\n");
+  DeleteFuncTable(func_table);
   DeinitializeNameTable(name_table);
   FreeMemory(memory);
   free(bytecode_begin);
