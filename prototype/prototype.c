@@ -162,8 +162,8 @@ int SetType(const struct Memory* memory, size_t index, uint8_t type) {
   }
 }
 
-int WriteData(struct Memory* memory, size_t index, void* data_ptr,
-              size_t size) {
+int WriteData(const struct Memory* memory, const size_t index, const void* data_ptr,
+              const size_t size) {
   memcpy((void*)((uintptr_t)memory->data + index), data_ptr, size);
 
   return 0;
@@ -565,7 +565,7 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
-int INVOKE(size_t* func, size_t return_value, InternalObject args);
+int INVOKE(const size_t* func, const size_t return_value, const InternalObject args);
 
 void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
@@ -2003,7 +2003,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int INVOKE(size_t* func, size_t return_value, InternalObject args) {
+int INVOKE(const size_t* func, const size_t return_value, const InternalObject args) {
   func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
   invoke_func(args, return_value);
   return 0;
@@ -2029,7 +2029,7 @@ unsigned int hash(const char* str) {
 }
 
 void InitializeNameTable(struct LinkedList* list) {
-  unsigned int name_hash = hash("print");
+  const unsigned int name_hash = hash("print");
   struct LinkedList* table = &list[name_hash];
   while (table->next != NULL) {
     table = table->next;
@@ -2043,29 +2043,57 @@ void InitializeNameTable(struct LinkedList* list) {
 }
 
 void AddFunction(void* location) {
-  size_t all_size = *(size_t*)location;
+  size_t commands_size = *(size_t*)location;
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
     table = table->next;
   }
+  commands_size -= 8;
+  location = (void*)(uintptr_t)location + 8;
   table->pair.first = location;
   table->pair.second.name = location;
   table->pair.second.location = location;
-  while (*(char*)location != '\0') (uintptr_t) location++;
+  while (*(char*)location != '\0') {
+    (uintptr_t) location++;
+    commands_size--;
+  }
   (uintptr_t) location++;
+  commands_size--;
   table->pair.second.memory_size = *(size_t*)location;
+  commands_size -= 8;
   location = (void*)(uintptr_t)location + 8;
   table->pair.second.memory = location;
+  commands_size -= table->pair.second.memory_size;
   location = (void*)(uintptr_t)location + table->pair.second.memory_size;
   table->pair.second.types = location;
-  location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+  if (table->pair.second.memory_size % 2 != 0) {
+    commands_size -= table->pair.second.memory_size / 2 + 1;
+    location =
+        (void*)(uintptr_t)location + table->pair.second.memory_size / 2 + 1;
+  } else {
+    commands_size -= table->pair.second.memory_size / 2;
+    location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+  }
   table->pair.second.commands = location;
+  table->pair.second.commands_size = commands_size;
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
 }
 
+FuncInfo GetCustomFunction(const char* name) {
+  const unsigned int name_hash = hash(name);
+  const struct FuncList* table = &func_table[name_hash];
+  while (table != NULL) {
+    if (strcmp(table->pair.first, name) == 0) {
+      return table->pair.second;
+    }
+    table = table->next;
+  }
+  return (FuncInfo){NULL,NULL,0,NULL,NULL,0,NULL};
+}
+
 func_ptr GetFunction(const char* name) {
-  unsigned int name_hash = hash(name);
-  struct LinkedList* table = &name_table[name_hash];
+  const unsigned int name_hash = hash(name);
+  const struct LinkedList* table = &name_table[name_hash];
   while (table != NULL) {
     if (strcmp(table->pair.first, name) == 0) {
       return table->pair.second;
@@ -2075,10 +2103,22 @@ func_ptr GetFunction(const char* name) {
   return (func_ptr)NULL;
 }
 
-void DeinitializeNameTable(struct LinkedList* list) {
+void DeinitializeNameTable(const struct LinkedList* list) {
   for (int i = 0; i < 1024; i++) {
     struct LinkedList* table = list[i].next;
     struct LinkedList* next;
+    while (table != NULL) {
+      next = table->next;
+      free(table);
+      table = next;
+    }
+  }
+}
+
+void DeleteFuncTable(const struct FuncList* list) {
+  for (int i = 0; i < 1024; i++) {
+    struct FuncList* table = list[i].next;
+    struct FuncList* next;
     while (table != NULL) {
       next = table->next;
       free(table);
@@ -2147,6 +2187,8 @@ int main(int argc, char* argv[]) {
   void* run_code = bytecode_file;
 
   InitializeNameTable(name_table);
+  void* new_function = bytecode_file + memory_size;
+
   printf("\nProgram started.\n");
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
@@ -2293,6 +2335,7 @@ int main(int argc, char* argv[]) {
   }
 
   printf("\nProgram finished\n");
+  DeleteFuncTable(func_table);
   DeinitializeNameTable(name_table);
   FreeMemory(memory);
   free(bytecode_begin);
