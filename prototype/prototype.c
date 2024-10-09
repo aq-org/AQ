@@ -53,6 +53,7 @@ struct Memory {
 };
 
 func_ptr GetFunction(const char* name);
+FuncInfo GetCustomFunction(const char* name);
 
 struct Memory* memory;
 
@@ -162,8 +163,8 @@ int SetType(const struct Memory* memory, size_t index, uint8_t type) {
   }
 }
 
-int WriteData(const struct Memory* memory, const size_t index, const void* data_ptr,
-              const size_t size) {
+int WriteData(const struct Memory* memory, const size_t index,
+              const void* data_ptr, const size_t size) {
   memcpy((void*)((uintptr_t)memory->data + index), data_ptr, size);
 
   return 0;
@@ -565,7 +566,8 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
-int INVOKE(const size_t* func, const size_t return_value, const InternalObject args);
+int INVOKE(const size_t* func, const size_t return_value,
+           const InternalObject args);
 
 void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
@@ -2003,9 +2005,191 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int INVOKE(const size_t* func, const size_t return_value, const InternalObject args) {
+int RETURN();
+void* GOTO(void* ptr, size_t offset);
+int THROW();
+int WIDE();
+int INVOKE(const size_t* func, const size_t return_value,
+           const InternalObject args) {
   func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
-  invoke_func(args, return_value);
+  if (invoke_func != NULL) {
+    invoke_func(args, return_value);
+    return 0;
+  }
+
+  FuncInfo func_info = GetCustomFunction((char*)GetPtrData(*func));
+  void* temp_memory = malloc(func_info.memory_size);
+  void* temp_types = NULL;
+  if (func_info.memory_size % 2 != 0) {
+    temp_types = malloc(func_info.memory_size / 2 + 1);
+  } else {
+    temp_types = malloc(func_info.memory_size / 2);
+  }
+  if (temp_memory == NULL || temp_types == NULL) {
+    return -1;
+  }
+  memcpy(temp_memory, func_info.memory, func_info.memory_size);
+  if (func_info.memory_size % 2 != 0) {
+    memcpy(temp_types, func_info.types, func_info.memory_size / 2 + 1);
+  } else {
+    memcpy(temp_types, func_info.types, func_info.memory_size / 2);
+  }
+  struct Memory* memory_info =
+      InitializeMemory(temp_memory, temp_types, func_info.memory_size);
+  memory = memory_info;
+
+  void* run_code = func_info.commands;
+  size_t first, second, result, operand1, operand2, opcode, arg_count,
+      return_value;
+  while (func_info.commands <
+         (void*)(uintptr_t)func_info.commands + func_info.commands_size) {
+    // fprintf(stderr, "Current operand: %02x\n",
+    // *(uint8_t*)func_info.commands);
+    switch (*(uint8_t*)func_info.commands) {
+      case 0x00:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        NOP();
+        break;
+      case 0x01:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        LOAD(first, second);
+        break;
+      case 0x02:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        STORE(first, second);
+        break;
+      case 0x03:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        NEW(first, second);
+        break;
+      case 0x04:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = Get1Parament(func_info.commands, &first);
+        FREE(first);
+        break;
+      case 0x05:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        PTR(first, second);
+        break;
+      case 0x06:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        ADD(result, operand1, operand2);
+        break;
+      case 0x07:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        SUB(result, operand1, operand2);
+        break;
+      case 0x08:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        MUL(result, operand1, operand2);
+        break;
+      case 0x09:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        DIV(result, operand1, operand2);
+        break;
+      case 0x0A:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        REM(result, operand1, operand2);
+        break;
+      case 0x0B:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get2Parament(func_info.commands, &result, &operand1);
+        NEG(result, operand1);
+        break;
+      case 0x0C:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        SHL(result, operand1, operand2);
+        break;
+      case 0x0D:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        SHR(result, operand1, operand2);
+        break;
+      case 0x0E:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        SAR(result, operand1, operand2);
+        break;
+      case 0x0F:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        IF(run_code, result, operand1, operand2);
+        break;
+      case 0x10:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        AND(result, operand1, operand2);
+        break;
+      case 0x11:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        OR(result, operand1, operand2);
+        break;
+      case 0x12:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands =
+            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        XOR(result, operand1, operand2);
+        break;
+      case 0x13:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = Get4Parament(func_info.commands, &result, &opcode,
+                                          &operand1, &operand2);
+        CMP(result, opcode, operand1, operand2);
+        break;
+      case 0x14:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = GetUnknownCountParamentAndINVOKE(
+            func_info.commands, &return_value, &arg_count);
+        memory = memory_info;
+        break;
+      case 0x15:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        RETURN();
+        break;
+      case 0x16:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        func_info.commands = Get1Parament(func_info.commands, &operand1);
+        func_info.commands = GOTO(run_code, operand1);
+        break;
+      case 0x17:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        THROW();
+        break;
+      case 0xFF:
+        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        WIDE();
+        break;
+      default:
+        break;
+    }
+  }
+  FreeMemory(memory_info);
+  free(temp_types);
+  free(temp_memory);
+  memory = NULL;
   return 0;
 }
 int RETURN() { return 0; }
@@ -2042,24 +2226,26 @@ void InitializeNameTable(struct LinkedList* list) {
   table->next->pair.second = NULL;
 }
 
-void AddFunction(void* location) {
-  size_t commands_size = *(size_t*)location;
+void* AddFunction(void* location) {
+  void* origin_location = location;
+  size_t all_size = SwapUint64t(*(uint64_t*)location);
+  size_t commands_size = all_size;
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
     table = table->next;
   }
   commands_size -= 8;
+  table->pair.second.location = location;
   location = (void*)(uintptr_t)location + 8;
   table->pair.first = location;
   table->pair.second.name = location;
-  table->pair.second.location = location;
   while (*(char*)location != '\0') {
     (uintptr_t) location++;
     commands_size--;
   }
   (uintptr_t) location++;
   commands_size--;
-  table->pair.second.memory_size = *(size_t*)location;
+  table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
   commands_size -= 8;
   location = (void*)(uintptr_t)location + 8;
   table->pair.second.memory = location;
@@ -2077,6 +2263,7 @@ void AddFunction(void* location) {
   table->pair.second.commands = location;
   table->pair.second.commands_size = commands_size;
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
+  return (void*)(uintptr_t)location + all_size;
 }
 
 FuncInfo GetCustomFunction(const char* name) {
@@ -2088,7 +2275,7 @@ FuncInfo GetCustomFunction(const char* name) {
     }
     table = table->next;
   }
-  return (FuncInfo){NULL,NULL,0,NULL,NULL,0,NULL};
+  return (FuncInfo){NULL, NULL, 0, NULL, NULL, 0, NULL};
 }
 
 func_ptr GetFunction(const char* name) {
