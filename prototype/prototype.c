@@ -2087,7 +2087,7 @@ void* AddFunction(void* location) {
    *((int8_t*)location + 2), *((int8_t*)location + 3),
    *((int8_t*)location + 4), *((int8_t*)location + 5),
    *((int8_t*)location + 6), *((int8_t*)location + 7));*/
-  location = (void*)(uintptr_t)location + 8;
+  location = (void*)((uintptr_t)location + 8);
   // fprintf(stderr, "%p", location);
   struct FuncList* table = &func_table[hash(location)];
   // struct FuncList* table = &func_table[0]; //TODO: fix this
@@ -2112,24 +2112,24 @@ void* AddFunction(void* location) {
   commands_size--;
   table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
   commands_size -= 8;
-  location = (void*)(uintptr_t)location + 8;
+  location = (void*)((uintptr_t)location + 8);
   table->pair.second.memory = location;
   commands_size -= table->pair.second.memory_size;
-  location = (void*)(uintptr_t)location + table->pair.second.memory_size;
+  location = (void*)((uintptr_t)location + table->pair.second.memory_size);
   table->pair.second.types = location;
   if (table->pair.second.memory_size % 2 != 0) {
     commands_size -= table->pair.second.memory_size / 2 + 1;
     location =
-        (void*)(uintptr_t)location + table->pair.second.memory_size / 2 + 1;
+        (void*)((uintptr_t)location + table->pair.second.memory_size / 2 + 1);
   } else {
     commands_size -= table->pair.second.memory_size / 2;
-    location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+    location = (void*)((uintptr_t)location + table->pair.second.memory_size / 2);
   }
   table->pair.second.commands = location;
   table->pair.second.commands_size = commands_size;
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
   AddFreePtr(table->next);
-  return (void*)(uintptr_t)location + all_size;
+  return (void*)((uintptr_t)location + all_size);
 }
 
 FuncInfo GetCustomFunction(const char* name) {
@@ -2210,7 +2210,7 @@ int InvokeCustomFunction(const char* name) {
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
   while (func_info.commands <
-         (void*)(uintptr_t)run_code + func_info.commands_size) {
+         (void*)((uintptr_t)run_code + func_info.commands_size)) {
     // fprintf(stderr, "Current operand: %02x\n",
     // *(uint8_t*)func_info.commands);
     switch (*(uint8_t*)func_info.commands) {
@@ -2398,7 +2398,7 @@ int main(int argc, char* argv[]) {
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
   /*fprintf(stderr, "%p %p 0x%02x%02x%02x%02x%02x%02x%02x%02x\n", bytecode_file,
-          (void*)(uintptr_t)bytecode_file + 8, *(int8_t*)bytecode_file + 8,
+          (void*)((uintptr_t)bytecode_file + 8, *(int8_t*)bytecode_file + 8,
           *((int8_t*)bytecode_file + 9), *((int8_t*)bytecode_file + 10),
           *((int8_t*)bytecode_file + 11), *((int8_t*)bytecode_file + 12),
           *((int8_t*)bytecode_file + 13), *((int8_t*)bytecode_file + 14),
