@@ -41,6 +41,11 @@ struct LinkedList {
   struct LinkedList* next;
 };
 
+struct FreeList {
+  struct FreeList* next;
+  void* ptr;
+};
+
 struct FuncList {
   struct FuncPair pair;
   struct FuncList* next;
@@ -61,6 +66,8 @@ struct LinkedList name_table[1024];
 
 struct FuncList func_table[1024];
 
+struct FreeList* free_list;
+
 bool is_big_endian;
 
 #define GET_SIZE(x)  \
@@ -76,6 +83,24 @@ bool is_big_endian;
   void* ptr;
   uint8_t type;
 } Ptr;*/
+
+void AddFreePtr(void* ptr) {
+  struct FreeList* new_free_list =
+      (struct FreeList*)malloc(sizeof(struct FreeList));
+  new_free_list->ptr = ptr;
+  new_free_list->next = free_list;
+  free_list = new_free_list;
+}
+
+void FreeAllPtr() {
+  struct FreeList* current = free_list;
+  while (current != NULL) {
+    struct FreeList* next = current->next;
+    free(current->ptr);
+    free(current);
+    current = next;
+  }
+}
 
 void IsBigEndian() {
   uint16_t test_data = 0x0011;
@@ -2005,10 +2030,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int RETURN();
-void* GOTO(void* ptr, size_t offset);
-int THROW();
-int WIDE();
+int InvokeCustomFunction(const char* name);
 int INVOKE(const size_t* func, const size_t return_value,
            const InternalObject args) {
   func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
@@ -2017,7 +2039,153 @@ int INVOKE(const size_t* func, const size_t return_value,
     return 0;
   }
 
-  FuncInfo func_info = GetCustomFunction((char*)GetPtrData(*func));
+  return InvokeCustomFunction((char*)GetPtrData(*func));
+}
+int RETURN() { return 0; }
+void* GOTO(void* ptr, size_t offset) {
+  return (void*)((uintptr_t)ptr + GetLongData(offset));
+}
+int THROW() { return 0; }
+int WIDE() { return 0; }
+
+void print(InternalObject args, size_t return_value) {
+  SetIntData(return_value, printf((char*)GetPtrData(*args.index)));
+}
+
+unsigned int hash(const char* str) {
+  unsigned long hash = 5381;
+  int c;
+  while (c = *str++) {
+    hash = ((hash << 5) + hash) + c;
+  }
+  return hash % 1024;
+}
+
+void InitializeNameTable(struct LinkedList* list) {
+  const unsigned int name_hash = hash("print");
+  struct LinkedList* table = &list[name_hash];
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.first = "print";
+  table->pair.second = print;
+  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
+  AddFreePtr(table->next);
+  table->next->next = NULL;
+  table->next->pair.first = NULL;
+  table->next->pair.second = NULL;
+}
+
+void* AddFunction(void* location) {
+  void* origin_location = location;
+  // fprintf(stderr, "%p", location);
+  size_t all_size = SwapUint64t(*(uint64_t*)location);
+  size_t commands_size = all_size;
+  commands_size -= 8;
+  /*  fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x",
+   *(int8_t*)location, *((int8_t*)location + 1),
+   *((int8_t*)location + 2), *((int8_t*)location + 3),
+   *((int8_t*)location + 4), *((int8_t*)location + 5),
+   *((int8_t*)location + 6), *((int8_t*)location + 7));*/
+  location = (void*)(uintptr_t)location + 8;
+  // fprintf(stderr, "%p", location);
+  struct FuncList* table = &func_table[hash(location)];
+  // struct FuncList* table = &func_table[0]; //TODO: fix this
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.second.location = origin_location;
+  table->pair.first = location;
+  table->pair.second.name = location;
+
+  /*fprintf(stderr, "%p 0x%02x%02x%02x%02x%02x%02x%02x%02x\n", location,
+          *(int8_t*)location, *((int8_t*)location + 1),
+          *((int8_t*)location + 2), *((int8_t*)location + 3),
+          *((int8_t*)location + 4), *((int8_t*)location + 5),
+          *((int8_t*)location + 6), *((int8_t*)location + 7));
+  fprintf(stderr, "%s", (char*)location);*/
+  while (*(char*)location != '\0') {
+    (uintptr_t) location++;
+    commands_size--;
+  }
+  (uintptr_t) location++;
+  commands_size--;
+  table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
+  commands_size -= 8;
+  location = (void*)(uintptr_t)location + 8;
+  table->pair.second.memory = location;
+  commands_size -= table->pair.second.memory_size;
+  location = (void*)(uintptr_t)location + table->pair.second.memory_size;
+  table->pair.second.types = location;
+  if (table->pair.second.memory_size % 2 != 0) {
+    commands_size -= table->pair.second.memory_size / 2 + 1;
+    location =
+        (void*)(uintptr_t)location + table->pair.second.memory_size / 2 + 1;
+  } else {
+    commands_size -= table->pair.second.memory_size / 2;
+    location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
+  }
+  table->pair.second.commands = location;
+  table->pair.second.commands_size = commands_size;
+  table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
+  AddFreePtr(table->next);
+  return (void*)(uintptr_t)location + all_size;
+}
+
+FuncInfo GetCustomFunction(const char* name) {
+  const unsigned int name_hash = hash(name);
+  const struct FuncList* table = &func_table[name_hash];
+  while (table != NULL && table->pair.first != NULL) {
+    if (strcmp(table->pair.first, name) == 0) {
+      return table->pair.second;
+    }
+    table = table->next;
+  }
+  return (FuncInfo){NULL, NULL, 0, NULL, NULL, 0, NULL};
+}
+
+func_ptr GetFunction(const char* name) {
+  const unsigned int name_hash = hash(name);
+  const struct LinkedList* table = &name_table[name_hash];
+  while (table->pair.first != NULL) {
+    if (strcmp(table->pair.first, name) == 0) {
+      return table->pair.second;
+    }
+    table = table->next;
+  }
+  return (func_ptr)NULL;
+}
+
+void DeinitializeNameTable(const struct LinkedList* list) {
+  for (int i = 0; i < 1024; i++) {
+    struct LinkedList* table = list[i].next;
+    struct LinkedList* next;
+    while (table != NULL) {
+      next = table->next;
+      free(table);
+      table = next;
+    }
+  }
+}
+
+void DeleteFuncTable(const struct FuncList* list) {
+  for (int i = 0; i < 1024; i++) {
+    struct FuncList* table = list[i].next;
+    struct FuncList* next;
+    while (table != NULL) {
+      next = table->next;
+      free(table);
+      table = next;
+    }
+  }
+}
+
+int RETURN();
+void* GOTO(void* ptr, size_t offset);
+int THROW();
+int WIDE();
+int InvokeCustomFunction(const char* name) {
+  FuncInfo func_info = GetCustomFunction(name);
   void* temp_memory = malloc(func_info.memory_size);
   void* temp_types = NULL;
   if (func_info.memory_size % 2 != 0) {
@@ -2042,7 +2210,7 @@ int INVOKE(const size_t* func, const size_t return_value,
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       return_value;
   while (func_info.commands <
-         (void*)(uintptr_t)func_info.commands + func_info.commands_size) {
+         (void*)(uintptr_t)run_code + func_info.commands_size) {
     // fprintf(stderr, "Current operand: %02x\n",
     // *(uint8_t*)func_info.commands);
     switch (*(uint8_t*)func_info.commands) {
@@ -2192,127 +2360,6 @@ int INVOKE(const size_t* func, const size_t return_value,
   memory = NULL;
   return 0;
 }
-int RETURN() { return 0; }
-void* GOTO(void* ptr, size_t offset) {
-  return (void*)((uintptr_t)ptr + GetLongData(offset));
-}
-int THROW() { return 0; }
-int WIDE() { return 0; }
-
-void print(InternalObject args, size_t return_value) {
-  SetIntData(return_value, printf((char*)GetPtrData(*args.index)));
-}
-
-unsigned int hash(const char* str) {
-  unsigned long hash = 5381;
-  int c;
-  while (c = *str++) {
-    hash = ((hash << 5) + hash) + c;
-  }
-  return hash % 1024;
-}
-
-void InitializeNameTable(struct LinkedList* list) {
-  const unsigned int name_hash = hash("print");
-  struct LinkedList* table = &list[name_hash];
-  while (table->next != NULL) {
-    table = table->next;
-  }
-  table->pair.first = "print";
-  table->pair.second = print;
-  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
-  table->next->next = NULL;
-  table->next->pair.first = NULL;
-  table->next->pair.second = NULL;
-}
-
-void* AddFunction(void* location) {
-  void* origin_location = location;
-  size_t all_size = SwapUint64t(*(uint64_t*)location);
-  size_t commands_size = all_size;
-  struct FuncList* table = &func_table[hash(location)];
-  while (table->next != NULL) {
-    table = table->next;
-  }
-  commands_size -= 8;
-  table->pair.second.location = location;
-  location = (void*)(uintptr_t)location + 8;
-  table->pair.first = location;
-  table->pair.second.name = location;
-  while (*(char*)location != '\0') {
-    (uintptr_t) location++;
-    commands_size--;
-  }
-  (uintptr_t) location++;
-  commands_size--;
-  table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
-  commands_size -= 8;
-  location = (void*)(uintptr_t)location + 8;
-  table->pair.second.memory = location;
-  commands_size -= table->pair.second.memory_size;
-  location = (void*)(uintptr_t)location + table->pair.second.memory_size;
-  table->pair.second.types = location;
-  if (table->pair.second.memory_size % 2 != 0) {
-    commands_size -= table->pair.second.memory_size / 2 + 1;
-    location =
-        (void*)(uintptr_t)location + table->pair.second.memory_size / 2 + 1;
-  } else {
-    commands_size -= table->pair.second.memory_size / 2;
-    location = (void*)(uintptr_t)location + table->pair.second.memory_size / 2;
-  }
-  table->pair.second.commands = location;
-  table->pair.second.commands_size = commands_size;
-  table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
-  return (void*)(uintptr_t)location + all_size;
-}
-
-FuncInfo GetCustomFunction(const char* name) {
-  const unsigned int name_hash = hash(name);
-  const struct FuncList* table = &func_table[name_hash];
-  while (table != NULL) {
-    if (strcmp(table->pair.first, name) == 0) {
-      return table->pair.second;
-    }
-    table = table->next;
-  }
-  return (FuncInfo){NULL, NULL, 0, NULL, NULL, 0, NULL};
-}
-
-func_ptr GetFunction(const char* name) {
-  const unsigned int name_hash = hash(name);
-  const struct LinkedList* table = &name_table[name_hash];
-  while (table != NULL) {
-    if (strcmp(table->pair.first, name) == 0) {
-      return table->pair.second;
-    }
-    table = table->next;
-  }
-  return (func_ptr)NULL;
-}
-
-void DeinitializeNameTable(const struct LinkedList* list) {
-  for (int i = 0; i < 1024; i++) {
-    struct LinkedList* table = list[i].next;
-    struct LinkedList* next;
-    while (table != NULL) {
-      next = table->next;
-      free(table);
-      table = next;
-    }
-  }
-}
-
-void DeleteFuncTable(const struct FuncList* list) {
-  for (int i = 0; i < 1024; i++) {
-    struct FuncList* table = list[i].next;
-    struct FuncList* next;
-    while (table != NULL) {
-      next = table->next;
-      free(table);
-      table = next;
-    }
-  }
-}
 
 int main(int argc, char* argv[]) {
   /*LARGE_INTEGER frequency;
@@ -2350,8 +2397,28 @@ int main(int argc, char* argv[]) {
   }
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+  /*fprintf(stderr, "%p %p 0x%02x%02x%02x%02x%02x%02x%02x%02x\n", bytecode_file,
+          (void*)(uintptr_t)bytecode_file + 8, *(int8_t*)bytecode_file + 8,
+          *((int8_t*)bytecode_file + 9), *((int8_t*)bytecode_file + 10),
+          *((int8_t*)bytecode_file + 11), *((int8_t*)bytecode_file + 12),
+          *((int8_t*)bytecode_file + 13), *((int8_t*)bytecode_file + 14),
+          *((int8_t*)bytecode_file + 15));
+  fprintf(stderr, "%s", (char*)bytecode_file + 8);*/
 
-  uint64_t temp;
+  while (bytecode_file < bytecode_end) {
+    // fprintf(stderr, "AddFunction %p\n", bytecode_file);
+    bytecode_file = AddFunction(bytecode_file);
+  }
+
+  free_list = NULL;
+
+  InitializeNameTable(name_table);
+  printf("\nProgram started.\n");
+
+  // fprintf(stderr, "InvokeCustomFunction(\"main\");\n");
+  InvokeCustomFunction("main");
+
+  /*uint64_t temp;
   memcpy(&temp, bytecode_file, sizeof(uint64_t));
   temp = SwapUint64t(temp);
   size_t memory_size = temp;
@@ -2519,11 +2586,12 @@ int main(int argc, char* argv[]) {
       default:
         break;
     }
-  }
+  }*/
 
   printf("\nProgram finished\n");
-  DeleteFuncTable(func_table);
-  DeinitializeNameTable(name_table);
+  // DeleteFuncTable(func_table);
+  // DeinitializeNameTable(name_table);
+  FreeAllPtr();
   FreeMemory(memory);
   free(bytecode_begin);
 
