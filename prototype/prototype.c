@@ -22,6 +22,12 @@ struct Pair {
 };
 
 typedef struct {
+  void* ptr;
+  size_t size;
+  uint8_t* types;
+} Object;
+
+typedef struct {
   const char* name;
   void* location;
   size_t memory_size;
