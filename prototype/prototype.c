@@ -2668,10 +2668,10 @@ void* AddFunction(void* location) {
           *((int8_t*)location + 6), *((int8_t*)location + 7));
   fprintf(stderr, "%s", (char*)location);*/
   while (*(char*)location != '\0') {
-    (uintptr_t) location++;
+    location = (void*)((uintptr_t)location + 1);
     commands_size--;
   }
-  (uintptr_t) location++;
+  location = (void*)((uintptr_t)location + 1);
   commands_size--;
   table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
   commands_size -= 8;
