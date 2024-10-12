@@ -230,13 +230,24 @@ int8_t GetByteData(size_t index) {
     case 0x01:
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
-      return *(int*)((uintptr_t)memory->data + index);
+      return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
-      return *(long*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
-      return *(float*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
-      return *(double*)((uintptr_t)memory->data + index);
+      return is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index));
+    case 0x06:
+      return is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
@@ -261,6 +272,10 @@ int GetIntData(size_t index) {
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
+    case 0x06:
+      return is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
@@ -285,6 +300,10 @@ long GetLongData(size_t index) {
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
+    case 0x06:
+      return is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
@@ -309,6 +328,10 @@ float GetFloatData(size_t index) {
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
+    case 0x06:
+      return is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
@@ -333,6 +356,38 @@ double GetDoubleData(size_t index) {
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
+    case 0x06:
+      return is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
+    default:
+      return 0;
+  }
+}
+
+uint64_t GetUint64tData(size_t index) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      return *(int8_t*)((uintptr_t)memory->data + index);
+    case 0x02:
+      return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index));
+    case 0x03:
+      return is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index));
+    case 0x04:
+      return is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index));
+    case 0x05:
+      return is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index));
+    case 0x06:
+      return is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
       return 0;
   }
@@ -360,17 +415,24 @@ void SetByteData(size_t index, int8_t value) {
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
-      *(int*)((uintptr_t)memory->data + index) = value;
+      *(int*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
-      *(long*)((uintptr_t)memory->data + index) = value;
+      *(long*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
-      *(float*)((uintptr_t)memory->data + index) = value;
+      *(float*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
-      *(double*)((uintptr_t)memory->data + index) = value;
+      *(double*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapDouble(value);
       break;
+    case 0x06:
+      *(uint64_t*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapUint64t(value);
     default:
       break;
   }
@@ -397,6 +459,9 @@ void SetIntData(size_t index, int value) {
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
+    case 0x06:
+      *(uint64_t*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapUint64t(value);
     default:
       break;
   }
@@ -423,6 +488,9 @@ void SetLongData(size_t index, long value) {
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
+    case 0x06:
+      *(uint64_t*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapUint64t(value);
     default:
       break;
   }
@@ -449,6 +517,9 @@ void SetFloatData(size_t index, float value) {
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
+    case 0x06:
+      *(uint64_t*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapUint64t(value);
     default:
       break;
   }
@@ -475,6 +546,38 @@ void SetDoubleData(size_t index, double value) {
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
+    case 0x06:
+      *(uint64_t*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapUint64t(value);
+    default:
+      break;
+  }
+}
+
+void SetUint64tData(size_t index, uint64_t value) {
+  switch (GetType(memory, index)) {
+    case 0x01:
+      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapInt(value);
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapLong(value);
+      break;
+    case 0x04:
+      *(float*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapFloat(value);
+      break;
+    case 0x05:
+      *(double*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapDouble(value);
+      break;
+    case 0x06:
+      *(uint64_t*)((uintptr_t)memory->data + index) =
+          is_big_endian ? value : SwapUint64t(value);
     default:
       break;
   }
@@ -706,8 +809,37 @@ int PTR(size_t index, size_t ptr) {
   return 0;
 }
 int ADD(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
-      GetType(memory, operand2) == 0x05) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) + GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) + GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) + GetUint64tData(operand2));
+        break;
+      case 0x04:
+        SetFloatData(result,
+                     GetUint64tData(operand1) + GetUint64tData(operand2));
+        break;
+      case 0x05:
+        SetDoubleData(result,
+                      GetUint64tData(operand1) + GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) + GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x05 ||
+             GetType(memory, operand1) == 0x05 ||
+             GetType(memory, operand2) == 0x05) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
@@ -831,8 +963,37 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SUB(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
-      GetType(memory, operand2) == 0x05) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) - GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) - GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) - GetUint64tData(operand2));
+        break;
+      case 0x04:
+        SetFloatData(result,
+                     GetUint64tData(operand1) - GetUint64tData(operand2));
+        break;
+      case 0x05:
+        SetDoubleData(result,
+                      GetUint64tData(operand1) - GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) - GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x05 ||
+             GetType(memory, operand1) == 0x05 ||
+             GetType(memory, operand2) == 0x05) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetDoubleData(operand1) - GetDoubleData(operand2));
@@ -916,8 +1077,37 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int MUL(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
-      GetType(memory, operand2) == 0x05) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) * GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) * GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) * GetUint64tData(operand2));
+        break;
+      case 0x04:
+        SetFloatData(result,
+                     GetUint64tData(operand1) * GetUint64tData(operand2));
+        break;
+      case 0x05:
+        SetDoubleData(result,
+                      GetUint64tData(operand1) * GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) * GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x05 ||
+             GetType(memory, operand1) == 0x05 ||
+             GetType(memory, operand2) == 0x05) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetDoubleData(operand1) * GetDoubleData(operand2));
@@ -1001,8 +1191,37 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int DIV(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05 ||
-      GetType(memory, operand2) == 0x05) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) / GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) / GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) / GetUint64tData(operand2));
+        break;
+      case 0x04:
+        SetFloatData(result,
+                     GetUint64tData(operand1) / GetUint64tData(operand2));
+        break;
+      case 0x05:
+        SetDoubleData(result,
+                      GetUint64tData(operand1) / GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) / GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x05 ||
+             GetType(memory, operand1) == 0x05 ||
+             GetType(memory, operand2) == 0x05) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetDoubleData(operand1) / GetDoubleData(operand2));
@@ -1086,8 +1305,37 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int REM(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x03 || GetType(memory, operand1) == 0x03 ||
-      GetType(memory, operand2) == 0x03) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) % GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) % GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) % GetUint64tData(operand2));
+        break;
+      case 0x04:
+        SetFloatData(result,
+                     GetUint64tData(operand1) % GetUint64tData(operand2));
+        break;
+      case 0x05:
+        SetDoubleData(result,
+                      GetUint64tData(operand1) % GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) % GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetLongData(operand1) % GetLongData(operand2));
@@ -1208,8 +1456,30 @@ int NEG(size_t result, size_t operand1) {
   return 0;
 }
 int SHL(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x03 || GetType(memory, operand1) == 0x03 ||
-      GetType(memory, operand2) == 0x03) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result, GetUint64tData(operand1)
+                                << GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1)
+                               << GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result, GetUint64tData(operand1)
+                                << GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result, GetUint64tData(operand1)
+                                   << GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetLongData(operand1) << GetLongData(operand2));
@@ -1251,8 +1521,30 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SHR(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x03 || GetType(memory, operand1) == 0x03 ||
-      GetType(memory, operand2) == 0x03) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) >> GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result,
+                   GetUint64tData(operand1) >> GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) >> GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) >> GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetLongData(operand1) >> GetLongData(operand2));
@@ -1294,8 +1586,30 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SAR(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x03 || GetType(memory, operand1) == 0x03 ||
-      GetType(memory, operand2) == 0x03) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) >> GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result,
+                   GetUint64tData(operand1) >> GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) >> GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) >> GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetLongData(operand1) >> GetLongData(operand2));
@@ -1345,8 +1659,29 @@ void* IF(void* ptr, size_t condition, size_t true_branche,
   }
 }
 int AND(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x03 || GetType(memory, operand1) == 0x03 ||
-      GetType(memory, operand2) == 0x03) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) & GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) & GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) & GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) & GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetLongData(operand1) & GetLongData(operand2));
@@ -1388,8 +1723,29 @@ int AND(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int OR(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x03 || GetType(memory, operand1) == 0x03 ||
-      GetType(memory, operand2) == 0x03) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) | GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) | GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) | GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) | GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetLongData(operand1) | GetLongData(operand2));
@@ -1431,8 +1787,29 @@ int OR(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int XOR(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x03 || GetType(memory, operand1) == 0x03 ||
-      GetType(memory, operand2) == 0x03) {
+  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
+      GetType(memory, operand2) == 0x06) {
+    switch (GetType(memory, result)) {
+      case 0x01:
+        SetByteData(result,
+                    GetUint64tData(operand1) ^ GetUint64tData(operand2));
+        break;
+      case 0x02:
+        SetIntData(result, GetUint64tData(operand1) ^ GetUint64tData(operand2));
+        break;
+      case 0x03:
+        SetLongData(result,
+                    GetUint64tData(operand1) ^ GetUint64tData(operand2));
+        break;
+      case 0x06:
+        SetUint64tData(result,
+                       GetUint64tData(operand1) ^ GetUint64tData(operand2));
+      default:
+        break;
+    }
+  } else if (GetType(memory, result) == 0x03 ||
+             GetType(memory, operand1) == 0x03 ||
+             GetType(memory, operand2) == 0x03) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result, GetLongData(operand1) ^ GetLongData(operand2));
@@ -1476,9 +1853,39 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
 int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   switch (GetByteData(opcode)) {
     case 0x00:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
+      if (GetType(memory, result) == 0x06 ||
+          GetType(memory, operand1) == 0x06 ||
+          GetType(memory, operand2) == 0x06) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetUint64tData(operand1) == GetUint64tData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetUint64tData(operand1) == GetUint64tData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetUint64tData(operand1) == GetUint64tData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetUint64tData(operand1) == GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetUint64tData(operand1) == GetUint64tData(operand2));
+            break;
+          case 0x06:
+            SetUint64tData(
+                result, GetUint64tData(operand1) == GetUint64tData(operand2));
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x05 ||
+                 GetType(memory, operand1) == 0x05 ||
+                 GetType(memory, operand2) == 0x05) {
         switch (GetType(memory, result)) {
           case 0x01:
             SetByteData(result,
@@ -1569,9 +1976,39 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x01:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
+      if (GetType(memory, result) == 0x06 ||
+          GetType(memory, operand1) == 0x06 ||
+          GetType(memory, operand2) == 0x06) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetUint64tData(operand1) != GetUint64tData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetUint64tData(operand1) != GetUint64tData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetUint64tData(operand1) != GetUint64tData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetUint64tData(operand1) != GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetUint64tData(operand1) != GetUint64tData(operand2));
+            break;
+          case 0x06:
+            SetUint64tData(
+                result, GetUint64tData(operand1) != GetUint64tData(operand2));
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x05 ||
+                 GetType(memory, operand1) == 0x05 ||
+                 GetType(memory, operand2) == 0x05) {
         switch (GetType(memory, result)) {
           case 0x01:
             SetByteData(result,
@@ -1662,9 +2099,39 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x02:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
+      if (GetType(memory, result) == 0x06 ||
+          GetType(memory, operand1) == 0x06 ||
+          GetType(memory, operand2) == 0x06) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetUint64tData(operand1) > GetUint64tData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetUint64tData(operand1) > GetUint64tData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetUint64tData(operand1) > GetUint64tData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetUint64tData(operand1) > GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetUint64tData(operand1) > GetUint64tData(operand2));
+            break;
+          case 0x06:
+            SetUint64tData(result,
+                           GetUint64tData(operand1) > GetUint64tData(operand2));
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x05 ||
+                 GetType(memory, operand1) == 0x05 ||
+                 GetType(memory, operand2) == 0x05) {
         switch (GetType(memory, result)) {
           case 0x01:
             SetByteData(result,
@@ -1754,9 +2221,39 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x03:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
+      if (GetType(memory, result) == 0x06 ||
+          GetType(memory, operand1) == 0x06 ||
+          GetType(memory, operand2) == 0x06) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetUint64tData(operand1) >= GetUint64tData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetUint64tData(operand1) >= GetUint64tData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetUint64tData(operand1) >= GetUint64tData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetUint64tData(operand1) >= GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetUint64tData(operand1) >= GetUint64tData(operand2));
+            break;
+          case 0x06:
+            SetUint64tData(
+                result, GetUint64tData(operand1) >= GetUint64tData(operand2));
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x05 ||
+                 GetType(memory, operand1) == 0x05 ||
+                 GetType(memory, operand2) == 0x05) {
         switch (GetType(memory, result)) {
           case 0x01:
             SetByteData(result,
@@ -1847,9 +2344,39 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x04:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
+      if (GetType(memory, result) == 0x06 ||
+          GetType(memory, operand1) == 0x06 ||
+          GetType(memory, operand2) == 0x06) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetUint64tData(operand1) < GetUint64tData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetUint64tData(operand1) < GetUint64tData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetUint64tData(operand1) < GetUint64tData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetUint64tData(operand1) < GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetUint64tData(operand1) < GetUint64tData(operand2));
+            break;
+          case 0x06:
+            SetUint64tData(result,
+                           GetUint64tData(operand1) < GetUint64tData(operand2));
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x05 ||
+                 GetType(memory, operand1) == 0x05 ||
+                 GetType(memory, operand2) == 0x05) {
         switch (GetType(memory, result)) {
           case 0x01:
             SetByteData(result,
@@ -1939,9 +2466,39 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x05:
-      if (GetType(memory, result) == 0x05 ||
-          GetType(memory, operand1) == 0x05 ||
-          GetType(memory, operand2) == 0x05) {
+      if (GetType(memory, result) == 0x06 ||
+          GetType(memory, operand1) == 0x06 ||
+          GetType(memory, operand2) == 0x06) {
+        switch (GetType(memory, result)) {
+          case 0x01:
+            SetByteData(result,
+                        GetUint64tData(operand1) <= GetUint64tData(operand2));
+            break;
+          case 0x02:
+            SetIntData(result,
+                       GetUint64tData(operand1) <= GetUint64tData(operand2));
+            break;
+          case 0x03:
+            SetLongData(result,
+                        GetUint64tData(operand1) <= GetUint64tData(operand2));
+            break;
+          case 0x04:
+            SetFloatData(result,
+                         GetUint64tData(operand1) <= GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetDoubleData(result,
+                          GetUint64tData(operand1) <= GetUint64tData(operand2));
+            break;
+          case 0x06:
+            SetUint64tData(
+                result, GetUint64tData(operand1) <= GetUint64tData(operand2));
+          default:
+            break;
+        }
+      } else if (GetType(memory, result) == 0x05 ||
+                 GetType(memory, operand1) == 0x05 ||
+                 GetType(memory, operand2) == 0x05) {
         switch (GetType(memory, result)) {
           case 0x01:
             SetByteData(result,
@@ -2129,7 +2686,8 @@ void* AddFunction(void* location) {
         (void*)((uintptr_t)location + table->pair.second.memory_size / 2 + 1);
   } else {
     commands_size -= table->pair.second.memory_size / 2;
-    location = (void*)((uintptr_t)location + table->pair.second.memory_size / 2);
+    location =
+        (void*)((uintptr_t)location + table->pair.second.memory_size / 2);
   }
   table->pair.second.commands = location;
   table->pair.second.commands_size = commands_size;
