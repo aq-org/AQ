@@ -70,22 +70,6 @@ struct FreeList* free_list;
 
 bool is_big_endian;
 
-/*#define GET_SIZE(x)  \
-  ((x) == 0x00   ? 0 \
-   : (x) == 0x01 ? 1 \
-   : (x) == 0x02 ? 4 \
-   : (x) == 0x03 ? 8 \
-   : (x) == 0x04 ? 4 \
-   : (x) == 0x05 ? 8 \
-   : (x) == 0x06 ? 8 \
-   : (x) == 0x0F ? 8 \
-                 : 0)*/
-
-/*typedef struct {
-  void* ptr;
-  uint8_t type;
-} Ptr;*/
-
 void AddFreePtr(void* ptr) {
   struct FreeList* new_free_list =
       (struct FreeList*)malloc(sizeof(struct FreeList));
@@ -108,12 +92,6 @@ void IsBigEndian() {
   uint16_t test_data = 0x0011;
   is_big_endian = (*(uint8_t*)&test_data == 0x00);
 }
-
-/*int16_t Swap16(int16_t x) {
-    uint16_t ux = (uint16_t)x;
-    ux = (ux << 8) | (ux >> 8);
-    return (int16_t)ux;
-}*/
 
 int SwapInt(int x) {
   uint32_t ux = (uint32_t)x;
@@ -199,26 +177,14 @@ int WriteData(const struct Memory* memory, const size_t index,
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index % 2 != 0) {
-    // fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)) & 0x0F);
     return *(memory->type + (index / 2)) & 0x0F;
   } else {
-    // fprintf(stderr, "index: %zu\n", (*(memory->type + (index / 2)) & 0xF0) >>
-    // 4); //fprintf(stderr, "index: %zu\n", *(memory->type + (index / 2)));
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
 }
 
 void* GetPtrData(size_t index) {
-  switch (GetType(memory, index)) {
-    /*case 0x01:
-      return (void*)(*(int8_t*)((uintptr_t)memory->data + index));
-    case 0x02:
-      return (void*)(*(int*)((uintptr_t)memory->data + index));
-    case 0x03:
-      return (void*)(*(long*)((uintptr_t)memory->data + index));*/
-    default:
-      return *(void**)((uintptr_t)memory->data + index);
-  }
+  return *(void**)((uintptr_t)memory->data + index);
 }
 
 int8_t GetByteData(size_t index) {
@@ -390,19 +356,7 @@ uint64_t GetUint64tData(size_t index) {
 }
 
 void SetPtrData(size_t index, void* ptr) {
-  switch (GetType(memory, index)) {
-    /*case 0x01:
-      *(int8_t*)((uintptr_t)memory->data + index) = ptr;
-      break;
-    case 0x02:
-      *(int*)((uintptr_t)memory->data + index) = ptr;
-      break;
-    case 0x03:
-      *(long*)((uintptr_t)memory->data + index) = ptr;
-      break;*/
-    default:
-      *(void**)((uintptr_t)memory->data + index) = ptr;
-  }
+  *(void**)((uintptr_t)memory->data + index) = ptr;
 }
 
 void SetByteData(size_t index, int8_t value) {
@@ -832,22 +786,7 @@ int NEW(size_t ptr, size_t size) {
   return 0;
 }
 int FREE(size_t ptr) {
-  void* free_ptr;
-  switch (GetType(memory, ptr)) {
-    /*case 0x01:
-      free_ptr = (void*)(*(int8_t*)((uintptr_t)memory->data + ptr));
-      break;
-    case 0x02:
-      free_ptr = (void*)(*(int*)((uintptr_t)memory->data + ptr));
-      break;
-    case 0x03:
-      free_ptr = (void*)(*(long*)((uintptr_t)memory->data + ptr));
-      break;*/
-    default:
-      free_ptr = *(void**)((uintptr_t)memory->data + ptr);
-      break;
-  }
-  free(free_ptr);
+  free(*(void**)((uintptr_t)memory->data + ptr));
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
@@ -932,10 +871,6 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
       case 0x04:
         SetFloatData(result, GetFloatData(operand1) + GetFloatData(operand2));
         break;
-      /*case 0x05:
-        SetDoubleData(result,
-            GetFloatData(operand1) + GetFloatData(operand2));
-        break;*/
       default:
         break;
     }
@@ -952,14 +887,6 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
       case 0x03:
         SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
         break;
-      /*case 0x04:
-        SetFloatData(result,
-            GetLongData(operand1) + GetLongData(operand2));
-        break;
-      case 0x05:
-        SetDoubleData(result,
-            GetLongData(operand1) + GetLongData(operand2));
-        break;*/
       default:
         break;
     }
@@ -973,18 +900,6 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
       case 0x02:
         SetIntData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
-      /*case 0x03:
-        SetLongData(result,
-            GetIntData(operand1) + GetIntData(operand2));
-        break;
-      case 0x04:
-        SetFloatData(result,
-            GetIntData(operand1) + GetIntData(operand2));
-        break;
-      case 0x05:
-        SetDoubleData(result,
-            GetIntData(operand1) + GetIntData(operand2));
-        break;*/
       default:
         break;
     }
@@ -995,22 +910,6 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
       case 0x01:
         SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
         break;
-      /*case 0x02:
-        SetIntData(result,
-            GetByteData(operand1) + GetByteData(operand2));
-        break;
-      case 0x03:
-        SetLongData(result,
-            GetByteData(operand1) + GetByteData(operand2));
-        break;
-      case 0x04:
-        SetFloatData(result,
-            GetByteData(operand1) + GetByteData(operand2));
-        break;
-      case 0x05:
-        SetDoubleData(result,
-            GetByteData(operand1) + GetByteData(operand2));
-        break;*/
       default:
         break;
     }
@@ -2711,32 +2610,17 @@ void InitializeNameTable(struct LinkedList* list) {
 
 void* AddFunction(void* location) {
   void* origin_location = location;
-  // fprintf(stderr, "%p", location);
   size_t all_size = SwapUint64t(*(uint64_t*)location);
   size_t commands_size = all_size;
   commands_size -= 8;
-  /*  fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x",
-   *(int8_t*)location, *((int8_t*)location + 1),
-   *((int8_t*)location + 2), *((int8_t*)location + 3),
-   *((int8_t*)location + 4), *((int8_t*)location + 5),
-   *((int8_t*)location + 6), *((int8_t*)location + 7));*/
   location = (void*)((uintptr_t)location + 8);
-  // fprintf(stderr, "%p", location);
   struct FuncList* table = &func_table[hash(location)];
-  // struct FuncList* table = &func_table[0]; //TODO: fix this
   while (table->next != NULL) {
     table = table->next;
   }
   table->pair.second.location = origin_location;
   table->pair.first = location;
   table->pair.second.name = location;
-
-  /*fprintf(stderr, "%p 0x%02x%02x%02x%02x%02x%02x%02x%02x\n", location,
-          *(int8_t*)location, *((int8_t*)location + 1),
-          *((int8_t*)location + 2), *((int8_t*)location + 3),
-          *((int8_t*)location + 4), *((int8_t*)location + 5),
-          *((int8_t*)location + 6), *((int8_t*)location + 7));
-  fprintf(stderr, "%s", (char*)location);*/
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
     commands_size--;
@@ -2790,30 +2674,6 @@ func_ptr GetFunction(const char* name) {
   return (func_ptr)NULL;
 }
 
-void DeinitializeNameTable(const struct LinkedList* list) {
-  for (int i = 0; i < 1024; i++) {
-    struct LinkedList* table = list[i].next;
-    struct LinkedList* next;
-    while (table != NULL) {
-      next = table->next;
-      free(table);
-      table = next;
-    }
-  }
-}
-
-void DeleteFuncTable(const struct FuncList* list) {
-  for (int i = 0; i < 1024; i++) {
-    struct FuncList* table = list[i].next;
-    struct FuncList* next;
-    while (table != NULL) {
-      next = table->next;
-      free(table);
-      table = next;
-    }
-  }
-}
-
 int RETURN();
 void* GOTO(void* ptr, size_t offset);
 int THROW();
@@ -2845,8 +2705,6 @@ int InvokeCustomFunction(const char* name) {
       return_value;
   while (func_info.commands <
          (void*)((uintptr_t)run_code + func_info.commands_size)) {
-    // fprintf(stderr, "Current operand: %02x\n",
-    // *(uint8_t*)func_info.commands);
     switch (*(uint8_t*)func_info.commands) {
       case 0x00:
         func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
@@ -2996,12 +2854,6 @@ int InvokeCustomFunction(const char* name) {
 }
 
 int main(int argc, char* argv[]) {
-  /*LARGE_INTEGER frequency;
-  LARGE_INTEGER start, end;
-  double elapsedTime;
-  QueryPerformanceFrequency(&frequency);
-  QueryPerformanceCounter(&start);*/
-
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);
     return -1;
@@ -3031,16 +2883,8 @@ int main(int argc, char* argv[]) {
   }
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-  /*fprintf(stderr, "%p %p 0x%02x%02x%02x%02x%02x%02x%02x%02x\n", bytecode_file,
-          (void*)((uintptr_t)bytecode_file + 8, *(int8_t*)bytecode_file + 8,
-          *((int8_t*)bytecode_file + 9), *((int8_t*)bytecode_file + 10),
-          *((int8_t*)bytecode_file + 11), *((int8_t*)bytecode_file + 12),
-          *((int8_t*)bytecode_file + 13), *((int8_t*)bytecode_file + 14),
-          *((int8_t*)bytecode_file + 15));
-  fprintf(stderr, "%s", (char*)bytecode_file + 8);*/
 
   while (bytecode_file < bytecode_end) {
-    // fprintf(stderr, "AddFunction %p\n", bytecode_file);
     bytecode_file = AddFunction(bytecode_file);
   }
 
@@ -3049,189 +2893,12 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   printf("\nProgram started.\n");
 
-  // fprintf(stderr, "InvokeCustomFunction(\"main\");\n");
   InvokeCustomFunction("main");
 
-  /*uint64_t temp;
-  memcpy(&temp, bytecode_file, sizeof(uint64_t));
-  temp = SwapUint64t(temp);
-  size_t memory_size = temp;
-  // fprintf(stderr, "Memory size: %zu\n", memory_size);
-  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-  void* data = bytecode_file;
-  bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size);
-  void* type = bytecode_file;
-  // fprintf(stderr, "0x%02x%02x%02x%02x%02x%02x%02x%02x",
-  // *(int8_t*)bytecode_file, *((int8_t*)bytecode_file + 1),
-  // *((int8_t*)bytecode_file + 2), *((int8_t*)bytecode_file + 3),
-  // *((int8_t*)bytecode_file + 4), *((int8_t*)bytecode_file + 5),
-  // *((int8_t*)bytecode_file + 6), *((int8_t*)bytecode_file + 7));
-  if (memory_size % 2 != 0) {
-    bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2 + 1);
-  } else {
-    bytecode_file = (void*)((uintptr_t)bytecode_file + memory_size / 2);
-  }
-  memory = InitializeMemory(data, type, memory_size);
-  void* run_code = bytecode_file;
-
-  InitializeNameTable(name_table);
-  void* new_function = bytecode_file + memory_size;
-
-  printf("\nProgram started.\n");
-  size_t first, second, result, operand1, operand2, opcode, arg_count,
-      return_value;
-  while (bytecode_file < bytecode_end) {
-    // fprintf(stderr, "Current operand: %02x\n", *(uint8_t*)bytecode_file);
-    switch (*(uint8_t*)bytecode_file) {
-      case 0x00:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        NOP();
-        break;
-      case 0x01:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = Get2Parament(bytecode_file, &first, &second);
-        LOAD(first, second);
-        break;
-      case 0x02:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = Get2Parament(bytecode_file, &first, &second);
-        STORE(first, second);
-        break;
-      case 0x03:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = Get2Parament(bytecode_file, &first, &second);
-        NEW(first, second);
-        break;
-      case 0x04:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = Get1Parament(bytecode_file, &first);
-        FREE(first);
-        break;
-      case 0x05:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = Get2Parament(bytecode_file, &first, &second);
-        PTR(first, second);
-        break;
-      case 0x06:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        ADD(result, operand1, operand2);
-        break;
-      case 0x07:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        SUB(result, operand1, operand2);
-        break;
-      case 0x08:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        MUL(result, operand1, operand2);
-        break;
-      case 0x09:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        DIV(result, operand1, operand2);
-        break;
-      case 0x0A:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        REM(result, operand1, operand2);
-        break;
-      case 0x0B:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = Get2Parament(bytecode_file, &result, &operand1);
-        NEG(result, operand1);
-        break;
-      case 0x0C:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        SHL(result, operand1, operand2);
-        break;
-      case 0x0D:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        SHR(result, operand1, operand2);
-        break;
-      case 0x0E:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        SAR(result, operand1, operand2);
-        break;
-      case 0x0F:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        IF(run_code, result, operand1, operand2);
-        break;
-      case 0x10:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        AND(result, operand1, operand2);
-        break;
-      case 0x11:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        OR(result, operand1, operand2);
-        break;
-      case 0x12:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get3Parament(bytecode_file, &result, &operand1, &operand2);
-        XOR(result, operand1, operand2);
-        break;
-      case 0x13:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file =
-            Get4Parament(bytecode_file, &result, &opcode, &operand1, &operand2);
-        CMP(result, opcode, operand1, operand2);
-        break;
-      case 0x14:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = GetUnknownCountParamentAndINVOKE(
-            bytecode_file, &return_value, &arg_count);
-        break;
-      case 0x15:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        RETURN();
-        break;
-      case 0x16:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        bytecode_file = Get1Parament(bytecode_file, &operand1);
-        bytecode_file = GOTO(run_code, operand1);
-        break;
-      case 0x17:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        THROW();
-        break;
-      case 0xFF:
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-        WIDE();
-        break;
-      default:
-        break;
-    }
-  }*/
-
   printf("\nProgram finished\n");
-  // DeleteFuncTable(func_table);
-  // DeinitializeNameTable(name_table);
   FreeAllPtr();
   FreeMemory(memory);
   free(bytecode_begin);
-
-  /*QueryPerformanceCounter(&end);
-  elapsedTime = (double)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
-  printf("Elapsed time: %f seconds\n", elapsedTime);*/
 
   return 0;
 }
