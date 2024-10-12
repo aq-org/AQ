@@ -78,6 +78,7 @@ bool is_big_endian;
    : (x) == 0x04 ? 4 \
    : (x) == 0x05 ? 8 \
    : (x) == 0x06 ? 8 \
+   : (x) == 0x0F ? 8 \
                  : 0)
 
 /*typedef struct {
@@ -804,8 +805,18 @@ int PTR(size_t index, size_t ptr) {
   return 0;
 }
 int ADD(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
-      GetType(memory, operand2) == 0x06) {
+  if (GetType(memory, result) == 0x0F && (GetType(memory, operand1) == 0x0F ||
+                                          GetType(memory, operand2) == 0x0F)) {
+    if (GetType(memory, operand1) == 0x0F) {
+      SetPtrData(result, (void*)((uintptr_t)GetPtrData(operand1) +
+                                 GetLongData(operand2)));
+    } else if (GetType(memory, operand2) == 0x0F) {
+      SetPtrData(result, (void*)((uintptr_t)GetPtrData(operand2) +
+                                 GetLongData(operand1)));
+    }
+  } else if (GetType(memory, result) == 0x06 ||
+             GetType(memory, operand1) == 0x06 ||
+             GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result,
@@ -958,8 +969,22 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SUB(size_t result, size_t operand1, size_t operand2) {
-  if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
-      GetType(memory, operand2) == 0x06) {
+  if (GetType(memory, result) == 0x0F && (GetType(memory, operand1) == 0x0F ||
+                                          GetType(memory, operand2) == 0x0F)) {
+    if (GetType(memory, operand1) == 0x0F) {
+      SetPtrData(result, (void*)((uintptr_t)GetPtrData(operand1) -
+                                 GetLongData(operand2)));
+    } else if (GetType(memory, operand2) == 0x0F) {
+      SetPtrData(result, (void*)((uintptr_t)GetPtrData(operand2) -
+                                 GetLongData(operand1)));
+    }
+  } else if (GetType(memory, operand1) == 0x0F &&
+             GetType(memory, operand2) == 0x0F) {
+    SetLongData(result, (uintptr_t)GetPtrData(operand1) -
+                            (uintptr_t)GetPtrData(operand2));
+  } else if (GetType(memory, result) == 0x06 ||
+             GetType(memory, operand1) == 0x06 ||
+             GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
       case 0x01:
         SetByteData(result,
