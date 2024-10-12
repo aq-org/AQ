@@ -24,6 +24,7 @@ struct Pair {
 typedef struct {
   void* ptr;
   size_t size;
+  size_t offset;
   uint8_t* types;
 } Object;
 
@@ -82,7 +83,8 @@ bool is_big_endian;
    : (x) == 0x02 ? 4 \
    : (x) == 0x03 ? 8 \
    : (x) == 0x04 ? 4 \
-   : (x) == 0x02 ? 8 \
+   : (x) == 0x05 ? 8 \
+   : (x) == 0x06 ? 8 \
                  : 0)
 
 /*typedef struct {
@@ -771,6 +773,17 @@ int NOP() { return 0; }
 int LOAD(size_t ptr, size_t operand) {
   WriteData(memory, operand, (void*)((uintptr_t)memory->data + ptr),
             GET_SIZE(GetType(memory, operand)));
+
+  Object* object = (Object*)((uintptr_t)memory->data + ptr);
+  switch (GetType(memory, operand)) {
+    case 0x01:
+      if (object->types == NULL) {
+        SetByteData(operand, object->size);
+      }
+      break;
+    case 0x02:
+    default:
+  }
   return 0;
 }
 int STORE(size_t ptr, size_t operand) {
@@ -780,32 +793,58 @@ int STORE(size_t ptr, size_t operand) {
   return 0;
 }
 int NEW(size_t ptr, size_t size) {
-  size_t size_value = GetLongData(size);
-  void* data = malloc(size_value);
-  WriteData(memory, ptr, &data, sizeof(data));
+  size_t size_value = GetUint64tData(size);
+  Object* object = (Object*)malloc(sizeof(Object));
+  if (object == NULL) {
+    return -1;
+  }
+  object->ptr = malloc(size_value);
+  if (object->ptr == NULL) {
+    free(object);
+    return -1;
+  }
+  if (size_value % 2 != 0) {
+    object->types = malloc(size_value / 2 + 1);
+  } else {
+    object->types = malloc(size_value / 2);
+  }
+  if (object->types == NULL) {
+    free(object->ptr);
+    free(object);
+    return -1;
+  }
+  object->offset = 0;
+  object->size = size_value;
+  WriteData(memory, ptr, object, sizeof(object));
   return 0;
 }
 int FREE(size_t ptr) {
-  void* free_ptr;
-  switch (GetType(memory, ptr)) {
-    /*case 0x01:
-      free_ptr = (void*)(*(int8_t*)((uintptr_t)memory->data + ptr));
-      break;
-    case 0x02:
-      free_ptr = (void*)(*(int*)((uintptr_t)memory->data + ptr));
-      break;
-    case 0x03:
-      free_ptr = (void*)(*(long*)((uintptr_t)memory->data + ptr));
-      break;*/
-    default:
-      free_ptr = *(void**)((uintptr_t)memory->data + ptr);
-      break;
-  }
-  free(free_ptr);
+  Object* free_object = (Object*)((uintptr_t)memory->data + ptr);
+  free(free_object->ptr);
+  free(free_object->types);
+  free(free_object);
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
-  SetPtrData(ptr, (void*)((uintptr_t)memory->data + index));
+  Object* object = (Object*)malloc(sizeof(Object));
+  if (object == NULL) {
+    return -1;
+  }
+  object->ptr = (void*)((uintptr_t)memory->data + index);
+  if (object->ptr == NULL) {
+    free(object);
+    return -1;
+  }
+
+  object->size = memory->size - index;
+  if (index % 2 != 0) {
+    object->offset = 1;
+    object->types = memory->type + index / 2;
+  } else {
+    object->offset = 0;
+    object->types = memory->type + index / 2;
+  }
+  // SetPtrData(ptr, (void*)((uintptr_t)memory->data + index));
   return 0;
 }
 int ADD(size_t result, size_t operand1, size_t operand2) {
