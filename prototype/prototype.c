@@ -70,7 +70,7 @@ struct FreeList* free_list;
 
 bool is_big_endian;
 
-#define GET_SIZE(x)  \
+/*#define GET_SIZE(x)  \
   ((x) == 0x00   ? 0 \
    : (x) == 0x01 ? 1 \
    : (x) == 0x02 ? 4 \
@@ -79,7 +79,7 @@ bool is_big_endian;
    : (x) == 0x05 ? 8 \
    : (x) == 0x06 ? 8 \
    : (x) == 0x0F ? 8 \
-                 : 0)
+                 : 0)*/
 
 /*typedef struct {
   void* ptr;
@@ -765,14 +765,64 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
 
 int NOP() { return 0; }
 int LOAD(size_t ptr, size_t operand) {
-  WriteData(memory, operand, (void*)((uintptr_t)memory->data + ptr),
-            GET_SIZE(GetType(memory, operand)));
+  switch (GetType(memory, operand)) {
+    case 0x01:
+      SetByteData(operand,
+                  GetByteData(*(int8_t*)((uintptr_t)memory->data + ptr)));
+      break;
+    case 0x02:
+      SetIntData(operand, GetIntData(*(int*)((uintptr_t)memory->data + ptr)));
+      break;
+    case 0x03:
+      SetLongData(operand,
+                  GetLongData(*(long*)((uintptr_t)memory->data + ptr)));
+      break;
+    case 0x04:
+      SetFloatData(operand,
+                   GetFloatData(*(float*)((uintptr_t)memory->data + ptr)));
+      break;
+    case 0x05:
+      SetDoubleData(operand,
+                    GetDoubleData(*(double*)((uintptr_t)memory->data + ptr)));
+      break;
+    case 0x06:
+      SetUint64tData(
+          operand, GetUint64tData(*(uint64_t*)((uintptr_t)memory->data + ptr)));
+      break;
+    case 0x0F:
+      SetPtrData(operand, GetPtrData(*(void**)((uintptr_t)memory->data + ptr)));
+      break;
+    default:
+      break;
+  }
   return 0;
 }
 int STORE(size_t ptr, size_t operand) {
-  memcpy(*((void**)((uintptr_t)memory->data + ptr)),
-         (void*)((uintptr_t)memory->data + operand),
-         GET_SIZE(GetType(memory, operand)));
+  switch (GetType(memory, operand)) {
+    case 0x01:
+      *(uint64_t*)((uintptr_t)memory->data + ptr) = GetByteData(operand);
+      break;
+    case 0x02:
+      *(int*)((uintptr_t)memory->data + ptr) = GetIntData(operand);
+      break;
+    case 0x03:
+      *(long*)((uintptr_t)memory->data + ptr) = GetLongData(operand);
+      break;
+    case 0x04:
+      *(float*)((uintptr_t)memory->data + ptr) = GetFloatData(operand);
+      break;
+    case 0x05:
+      *(double*)((uintptr_t)memory->data + ptr) = GetDoubleData(operand);
+      break;
+    case 0x06:
+      *(uint64_t*)((uintptr_t)memory->data + ptr) = GetUint64tData(operand);
+      break;
+    case 0x0F:
+      *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
+      break;
+    default:
+      break;
+  }
   return 0;
 }
 int NEW(size_t ptr, size_t size) {
