@@ -8,6 +8,7 @@ enable_testing()
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/prototype.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/compiler.c)
+set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
 
 add_executable(aq ${SOURCES})
