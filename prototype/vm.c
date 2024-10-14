@@ -721,30 +721,28 @@ int NOP() { return 0; }
 int LOAD(size_t ptr, size_t operand) {
   switch (GetType(memory, operand)) {
     case 0x01:
-      SetByteData(operand,
-                  GetByteData(*(int8_t*)((uintptr_t)memory->data + ptr)));
+      SetByteData(operand, *(int8_t*)((uintptr_t)memory->data + ptr));
       break;
     case 0x02:
-      SetIntData(operand, GetIntData(*(int*)((uintptr_t)memory->data + ptr)));
+      SetIntData(operand, SwapInt(*(int*)((uintptr_t)memory->data + ptr)));
       break;
     case 0x03:
-      SetLongData(operand,
-                  GetLongData(*(long*)((uintptr_t)memory->data + ptr)));
+      SetLongData(operand, SwapLong(*(long*)((uintptr_t)memory->data + ptr)));
       break;
     case 0x04:
       SetFloatData(operand,
-                   GetFloatData(*(float*)((uintptr_t)memory->data + ptr)));
+                   SwapFloat(*(float*)((uintptr_t)memory->data + ptr)));
       break;
     case 0x05:
       SetDoubleData(operand,
-                    GetDoubleData(*(double*)((uintptr_t)memory->data + ptr)));
+                    SwapDouble(*(double*)((uintptr_t)memory->data + ptr)));
       break;
     case 0x06:
-      SetUint64tData(
-          operand, GetUint64tData(*(uint64_t*)((uintptr_t)memory->data + ptr)));
+      SetUint64tData(operand,
+                     SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + ptr)));
       break;
     case 0x0F:
-      SetPtrData(operand, GetPtrData(*(void**)((uintptr_t)memory->data + ptr)));
+      SetPtrData(operand, *(void**)((uintptr_t)memory->data + ptr));
       break;
     default:
       break;
@@ -2562,7 +2560,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int InvokeCustomFunction(const char* name);
+int InvokeCustomFunction(const char* name, size_t return_value,
+                         InternalObject args);
 int INVOKE(const size_t* func, const size_t return_value,
            const InternalObject args) {
   func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
@@ -2571,7 +2570,7 @@ int INVOKE(const size_t* func, const size_t return_value,
     return 0;
   }
 
-  return InvokeCustomFunction((char*)GetPtrData(*func));
+  return InvokeCustomFunction((char*)GetPtrData(*func), return_value, args);
 }
 int RETURN() { return 0; }
 void* GOTO(void* ptr, size_t offset) {
@@ -2678,7 +2677,8 @@ int RETURN();
 void* GOTO(void* ptr, size_t offset);
 int THROW();
 int WIDE();
-int InvokeCustomFunction(const char* name) {
+int InvokeCustomFunction(const char* name, size_t return_value,
+                         InternalObject args) {
   FuncInfo func_info = GetCustomFunction(name);
   void* temp_memory = malloc(func_info.memory_size);
   void* temp_types = NULL;
@@ -2698,11 +2698,70 @@ int InvokeCustomFunction(const char* name) {
   }
   struct Memory* memory_info =
       InitializeMemory(temp_memory, temp_types, func_info.memory_size);
+
+  struct Memory* old_memory = memory;
   memory = memory_info;
+  size_t arg_index = 1;
+  for (size_t i = 0; i < args.size; i++) {
+    while (GetType(memory, arg_index) != 0x00) arg_index++;
+    int8_t byte_data;
+    int int_data;
+    long long_data;
+    float float_data;
+    double double_data;
+    uint64_t uint64t_data;
+    void* ptr_data;
+    switch (GetType(memory, arg_index)) {
+      case 0x01:
+        memory = old_memory;
+        byte_data = GetByteData(args.index[i]);
+        memory = memory_info;
+        SetByteData(arg_index, byte_data);
+        break;
+      case 0x02:
+        memory = old_memory;
+        int_data = GetIntData(args.index[i]);
+        memory = memory_info;
+        SetIntData(arg_index, int_data);
+        break;
+      case 0x03:
+        memory = old_memory;
+        long_data = GetLongData(args.index[i]);
+        memory = memory_info;
+        SetLongData(arg_index, long_data);
+        break;
+      case 0x04:
+        memory = old_memory;
+        float_data = GetFloatData(args.index[i]);
+        memory = memory_info;
+        SetFloatData(arg_index, float_data);
+        break;
+      case 0x05:
+        memory = old_memory;
+        double_data = GetDoubleData(args.index[i]);
+        memory = memory_info;
+        SetDoubleData(arg_index, double_data);
+        break;
+      case 0x06:
+        memory = old_memory;
+        uint64t_data = GetUint64tData(args.index[i]);
+        memory = memory_info;
+        SetUint64tData(arg_index, uint64t_data);
+        break;
+      case 0x0F:
+        memory = old_memory;
+        ptr_data = GetPtrData(args.index[i]);
+        memory = memory_info;
+        SetPtrData(arg_index, ptr_data);
+        break;
+      default:
+        break;
+    }
+  }
 
   void* run_code = func_info.commands;
   size_t first, second, result, operand1, operand2, opcode, arg_count,
-      return_value;
+      returnvalue;
   while (func_info.commands <
          (void*)((uintptr_t)run_code + func_info.commands_size)) {
     switch (*(uint8_t*)func_info.commands) {
@@ -2822,7 +2881,7 @@ int InvokeCustomFunction(const char* name) {
       case 0x14:
         func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
         func_info.commands = GetUnknownCountParamentAndINVOKE(
-            func_info.commands, &return_value, &arg_count);
+            func_info.commands, &returnvalue, &arg_count);
         memory = memory_info;
         break;
       case 0x15:
@@ -2841,6 +2900,61 @@ int InvokeCustomFunction(const char* name) {
       case 0xFF:
         func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
         WIDE();
+        break;
+      default:
+        break;
+    }
+  }
+  if (GetType(memory, return_value) != 0x00) {
+    int8_t bytedata;
+    int intdata;
+    long longdata;
+    float floatdata;
+    double doubledata;
+    uint64_t uint64tdata;
+    void* ptrdata;
+    switch (GetType(memory, return_value)) {
+      case 0x01:
+        bytedata = GetByteData(return_value);
+        memory = old_memory;
+        SetByteData(return_value, bytedata);
+        memory = memory_info;
+        break;
+      case 0x02:
+        intdata = GetIntData(return_value);
+        memory = old_memory;
+        SetIntData(return_value, intdata);
+        memory = memory_info;
+        break;
+      case 0x03:
+        longdata = GetLongData(return_value);
+        memory = old_memory;
+        SetLongData(return_value, longdata);
+        memory = memory_info;
+        break;
+      case 0x04:
+        floatdata = GetFloatData(return_value);
+        memory = old_memory;
+        SetFloatData(return_value, floatdata);
+        memory = memory_info;
+        break;
+      case 0x05:
+        doubledata = GetDoubleData(return_value);
+        memory = old_memory;
+        SetDoubleData(return_value, doubledata);
+        memory = memory_info;
+        break;
+      case 0x06:
+        uint64tdata = GetUint64tData(return_value);
+        memory = old_memory;
+        SetUint64tData(return_value, uint64tdata);
+        memory = memory_info;
+        break;
+      case 0x0F:
+        ptrdata = GetPtrData(return_value);
+        memory = old_memory;
+        SetPtrData(return_value, ptrdata);
+        memory = memory_info;
         break;
       default:
         break;
@@ -2893,7 +3007,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   printf("\nProgram started.\n");
 
-  InvokeCustomFunction("main");
+  InvokeCustomFunction("main", 0, (InternalObject){0, NULL});
 
   printf("\nProgram finished\n");
   FreeAllPtr();
