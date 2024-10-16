@@ -552,14 +552,31 @@ LexStart:
 
   // Start lexical analysis.
   switch (*read_ptr) {
+    case '(':
+    case ')':
+    case '[':
+    case ']':
+    case '{':
+    case '}':
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::OPERATOR;
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
+      }
+
     // General operators.
     case '!':
     case '#':
     case '$':
     case '%':
     case '&':
-    case '(':
-    case ')':
     case '*':
     case ':':
     case '<':
@@ -567,13 +584,9 @@ LexStart:
     case '>':
     case '?':
     case '@':
-    case '[':
-    case ']':
     case '^':
     case '`':
-    case '{':
     case '|':
-    case '}':
     case '~':
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::OPERATOR;
@@ -874,10 +887,10 @@ LexEnd:
     Token::ValueStr value;
     value.location = location;
     value.length = length;
-    
+
     // DEBUG/TEST CODE
     std::cout << std::string(location, length) << std::endl;
-    
+
     switch (return_token.type) {
       case Token::Type::IDENTIFIER:
         return_token.value.keyword =
