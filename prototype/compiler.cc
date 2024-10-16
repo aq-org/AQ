@@ -10,582 +10,339 @@
 #include <string>
 #include <vector>
 
-namespace Aq {
-template <typename T1, typename T2>
-struct Pair {
-  T1 first;
-  T2 second;
-
-  Pair(T1 _first, T2 _second);
-};
-
-template <typename T1, typename T2>
-Pair<T1, T2>::Pair(T1 _first, T2 _second) : first(first), second(second) {}
-
-template <typename DataType>
-class LinkedList {
+namespace Aq::Compiler {
+// A hash table for the lexer. Used to find special definitions such as compiler
+// keywords.
+template <typename T>
+class LexMap {
  public:
-  LinkedList();
-  ~LinkedList();
+  // Construct a LexMap class, and the default hash table memory size is 1024.
+  // Do not modify it unless necessary.
+  LexMap() {
+    std::size_t init_capacity = 1024;
+    pair_list_ = new PairList[init_capacity];
+    if (!pair_list_) {
+      pair_list_ = new PairList[1];
+    }
+    capacity_ = init_capacity;
+  };
+  ~LexMap() { delete[] pair_list_; };
 
-  LinkedList(const LinkedList&) = delete;
-  LinkedList(LinkedList&&) noexcept = delete;
-  LinkedList& operator=(const LinkedList&) = delete;
-  LinkedList& operator=(LinkedList&&) noexcept = delete;
+  LexMap(const LexMap&) = default;
+  LexMap(LexMap&&) noexcept = default;
+  LexMap& operator=(const LexMap&) = default;
+  LexMap& operator=(LexMap&&) noexcept = default;
 
-  struct Node {
-    Pair<Node*, Node*> location;
+  // Insert a new pair into the hash table.
+  void Insert(std::string key, T value) {
+    unsigned int hash = Hash(key);
 
-    DataType data;
+    // Increase the size of the hash table.
+    size_++;
+    if (size_ / capacity_ > 0.8) {
+      Resize();
+    }
+
+    // Create key-value pairs and insert them into the linked list.
+    Pair pair;
+    pair.key = key;
+    pair.value = value;
+    pair_list_[hash].Prepend(pair);
   };
 
-  class Iterator {
+  // Find the value of a key.
+  T Find(std::string key) {
+    unsigned int hash = Hash(key);
+    return pair_list_[hash].Find(key);
+  };
+
+ private:
+  struct Pair {
+    std::string key;
+    T value;
+  };
+
+  // A linked list of Pair type, used to resolve hash conflicts.
+  class PairList {
    public:
-    Iterator(Node* node);
-    ~Iterator();
+    // Construct a PairList class.
+    PairList() = default;
+    ~PairList() {
+      while (head_ptr_ != nullptr) {
+        Node* temp = head_ptr_;
+        head_ptr_ = head_ptr_->next;
+        delete temp;
+      }
+    };
 
-    Iterator(const Iterator&) = default;
-    Iterator(Iterator&&) noexcept = default;
-    Iterator& operator=(const Iterator&) = default;
-    Iterator& operator=(Iterator&&) noexcept = default;
+    PairList(const PairList&) = default;
+    PairList(PairList&&) noexcept = default;
+    PairList& operator=(const PairList&) = default;
+    PairList& operator=(PairList&&) noexcept = default;
 
-    DataType& operator*() const;
-    Iterator& operator++();
-    Iterator& operator--();
-    Iterator operator++(int);
-    Iterator operator--(int);
-    Iterator& operator+=(std::size_t n);
-    Iterator& operator-=(std::size_t n);
-    Iterator operator+(std::size_t n) const;
-    Iterator operator-(std::size_t n) const;
-    bool operator==(const Iterator& other) const;
-    bool operator!=(const Iterator& other) const;
+    // Prepend a new pair to the list.
+    void Prepend(Pair value) {
+      Node* new_node = new Node(value);
+      new_node->next = head_ptr_;
+      head_ptr_ = new_node;
+    };
+
+    // Copy all the data in the linked list to |new_list|.
+    void CopyDataToNewList(PairList* new_list, size_t new_capacity) {
+      PairList::Node* temp_node = head_ptr_;
+      while (temp_node != nullptr) {
+        unsigned int hash = 5381;
+        for (char character : temp_node->data.key) {
+          // hash = hash * 33 + static_cast<unsigned int>(character)
+          hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
+        }
+        hash = hash % new_capacity;
+        new_list[hash].Append(temp_node->data);
+        temp_node = temp_node->next;
+      }
+    };
+
+    // Append a new pair to the list. It is not recommended to use it when
+    // dealing with large amounts of data.
+    void Append(Pair value) {
+      if (head_ptr_ == nullptr) {
+        head_ptr_ = new Node(value);
+      } else {
+        // Find the last node and append the new node.
+        Node* temp = head_ptr_;
+        while (temp->next != nullptr) {
+          temp = temp->next;
+        }
+        temp->next = new Node(value);
+      }
+    };
+
+    // Find the value of a key.
+    T Find(std::string key) {
+      Node* temp = head_ptr_;
+
+      // Compare keys one by one to find the corresponding value.
+      while (temp != nullptr) {
+        if (key == temp->data.key) {
+          return temp->data.value;
+        };
+        temp = temp->next;
+      }
+
+      // Key not found, return nullptr.
+      return static_cast<T>(0);
+    };
 
    private:
-    Node* node_ = nullptr;
+    // A node type of the linked list.
+    struct Node {
+      Pair data;
+      Node* next = nullptr;
+      Node(Pair pair) : data(pair) {};
+    };
+
+    // The head pointer of the linked list.
+    Node* head_ptr_ = nullptr;
   };
 
-  void Insert(Iterator prev_node, DataType new_data);
+  // The memory size of the hash table.
+  std::size_t capacity_ = 1;
 
-  void Remove(Iterator* delete_node);
-
-  void Clear();
-
-  Iterator Begin() const;
-
-  Iterator End() const;
-
- private:
-  Node* head_ = nullptr;
-
-  Node* tail_ = nullptr;
-};
-
-template <typename DataType>
-LinkedList<DataType>::LinkedList() : head_(nullptr), tail_(nullptr) {}
-template <typename DataType>
-LinkedList<DataType>::~LinkedList() {
-  while (head_ != nullptr) {
-    Node* temp = head_;
-    head_ = head_->location.second;
-    delete temp;
-  }
-}
-
-template <typename DataType>
-LinkedList<DataType>::Iterator::Iterator(Node* node) : node_(node) {}
-template <typename DataType>
-LinkedList<DataType>::Iterator::~Iterator() = default;
-template <typename DataType>
-DataType& LinkedList<DataType>::Iterator::operator*() const {
-  return node_->data;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator&
-LinkedList<DataType>::Iterator::operator++() {
-  node_ = node_->location.second;
-  return *this;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator&
-LinkedList<DataType>::Iterator::operator--() {
-  node_ = node_->location.first;
-  return *this;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator
-LinkedList<DataType>::Iterator::operator++(int) {
-  Iterator temp(*this);
-  ++(*this);
-  return temp;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator
-LinkedList<DataType>::Iterator::operator--(int) {
-  Iterator temp(*this);
-  --(*this);
-  return temp;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator&
-LinkedList<DataType>::Iterator::operator+=(std::size_t n) {
-  for (std::size_t i = 0; i < n; ++i) {
-    if (node_ == nullptr) {
-    }
-    node_ = node_->location.second;
-  }
-  return *this;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator&
-LinkedList<DataType>::Iterator::operator-=(std::size_t n) {
-  for (std::size_t i = 0; i < n; ++i) {
-    node_ = node_->location.first;
-  }
-  return *this;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator
-LinkedList<DataType>::Iterator::operator+(std::size_t n) const {
-  Iterator new_iterator(*this);
-  new_iterator += n;
-  return new_iterator;
-}
-template <typename DataType>
-typename LinkedList<DataType>::Iterator
-LinkedList<DataType>::Iterator::operator-(std::size_t n) const {
-  Iterator new_iterator(*this);
-  new_iterator -= n;
-  return new_iterator;
-}
-template <typename DataType>
-bool LinkedList<DataType>::Iterator::operator==(const Iterator& other) const {
-  return *this->node_ == other.node_;
-}
-template <typename DataType>
-bool LinkedList<DataType>::Iterator::operator!=(const Iterator& other) const {
-  return !(*this->node_ == other->node_);
-}
-
-template <typename DataType>
-void LinkedList<DataType>::Insert(Iterator prev_node, DataType new_data) {
-  if (prev_node.node_ == nullptr) {
-    head_ = new Node(nullptr, head_, new_data);
-    if (!head_) {
-    }
-  } else {
-    prev_node.node_->location.second =
-        new Node(prev_node.node_, prev_node->node_->location.second, new_data);
-    if (!prev_node.node_->location.second) {
-    }
-  }
-}
-
-template <typename DataType>
-void LinkedList<DataType>::Remove(Iterator* delete_node) {
-  if (delete_node->node_ == nullptr) {
-    return;
-  }
-  if (delete_node->node_->location.first == nullptr) {
-    head_ = delete_node->node_->location.second;
-  } else {
-    delete_node->node_->location.first->location.second =
-        delete_node->node_->location.second;
-  }
-  if (delete_node->node_->location.second == nullptr) {
-    tail_ = delete_node->node_->location.first;
-  } else {
-    delete_node->node_->location.second->location.first =
-        delete_node->node_->location.first;
-  }
-  delete delete_node->node_;
-}
-
-template <typename DataType>
-void LinkedList<DataType>::Clear() {
-  while (head_ != nullptr) {
-    Node* temp = head_;
-    head_ = head_->location.second;
-    delete temp;
-  }
-}
-
-template <typename DataType>
-typename LinkedList<DataType>::Iterator LinkedList<DataType>::Begin() const {
-  return Iterator(head_);
-}
-
-template <typename DataType>
-typename LinkedList<DataType>::Iterator LinkedList<DataType>::End() const {
-  return Iterator(tail_);
-}
-
-template <typename ArrayType>
-class DynArray {
- public:
-  DynArray(std::size_t InitCapacity = 1);
-  ~DynArray();
-
-  DynArray(const DynArray&) = default;
-  DynArray(DynArray&&) noexcept = default;
-  DynArray& operator=(const DynArray&) = default;
-  DynArray& operator=(DynArray&&) noexcept = default;
-
-  ArrayType& operator[](std::size_t index);
-
-  void Insert(ArrayType data);
-
-  void Remove(std::size_t index);
-
-  int Resize(std::size_t new_capacity = 0);
-
-  std::size_t Size() const;
-
-  void Clear();
-
-  class Iterator {
-   public:
-    using iterator_category = std::random_access_iterator_tag;
-
-    Iterator operator+(std::size_t size) const;
-    Iterator& operator++();
-    Iterator operator++(int);
-    Iterator operator-(std::size_t size) const;
-    std::size_t operator-(const Iterator& other) const;
-    Iterator& operator--();
-    Iterator operator--(int);
-    Iterator& operator+=(std::size_t size);
-    Iterator& operator-=(std::size_t size);
-    ArrayType& operator*() const;
-    ArrayType* operator->() const;
-    bool operator==(const Iterator& other) const;
-    bool operator!=(const Iterator& other) const;
-    bool operator<(const Iterator& other) const;
-    bool operator<=(const Iterator& other) const;
-    bool operator>(const Iterator& other) const;
-    bool operator>=(const Iterator& other) const;
-
-   private:
-    Iterator(DynArray<ArrayType>* array, std::size_t index = 0);
-
-    ~Iterator();
-
-    DynArray<ArrayType>* array_;
-
-    std::size_t index_;
-  };
-
-  Iterator Begin();
-
-  Iterator End();
-
- private:
-  ArrayType* data_;
-
-  std::size_t capacity_;
-
-  std::size_t size_;
-};
-
-template <typename ArrayType>
-DynArray<ArrayType>::DynArray(std::size_t InitCapacity) {
-  data_ = new ArrayType[InitCapacity];
-  if (data_ != nullptr) {
-    capacity_ = InitCapacity;
-  } else {
-    capacity_ = 0;
-  }
-  size_ = 0;
-}
-
-template <typename ArrayType>
-DynArray<ArrayType>::~DynArray() {
-  delete[] data_;
-}
-
-template <typename ArrayType>
-ArrayType& DynArray<ArrayType>::operator[](std::size_t index) {
-  return data_[index];
-}
-
-template <typename ArrayType>
-void DynArray<ArrayType>::Insert(ArrayType data) {
-  if (capacity_ == 0 && Resize(1) == -1) {
-    return;
-  }
-  if (size_ > capacity_) {
-    return;
-  }
-  if (size_ == capacity_) {
-    if (Resize(capacity_ * 2) != 0) {
-      return;
-    }
-  }
-  data_[size_] = data;
-  ++size_;
-}
-
-template <typename ArrayType>
-int DynArray<ArrayType>::Resize(std::size_t new_capacity) {
-  if (new_capacity == 0) {
-    ++capacity_;
-  } else {
-    capacity_ = new_capacity;
-  }
-  ArrayType* new_data = new ArrayType[capacity_];
-  if (new_data == nullptr) {
-    return -1;
-  }
-  for (std::size_t i = 0; i < size_ && i < capacity_; ++i) {
-    new_data[i] = data_[i];
-  }
-  delete[] data_;
-  data_ = new_data;
-  return 0;
-}
-
-template <typename ArrayType>
-std::size_t DynArray<ArrayType>::Size() const {
-  return size_;
-}
-
-template <typename ArrayType>
-void DynArray<ArrayType>::Remove(std::size_t index) {
-  for (std::size_t i = index; i < size_ - 1; ++i) {
-    data_[i] = data_[i + 1];
-  }
-  --size_;
-}
-
-template <typename ArrayType>
-void DynArray<ArrayType>::Clear() {
-  delete[] data_;
-  data_ = nullptr;
-  capacity_ = 0;
-  size_ = 0;
-}
-
-template <typename ArrayType>
-DynArray<ArrayType>::Iterator::Iterator(DynArray<ArrayType>* array,
-                                        std::size_t index)
-    : array_(array), index_(index) {
-  if (index_ >= array_->size_) {
-  }
-}
-template <typename ArrayType>
-DynArray<ArrayType>::Iterator::~Iterator() = default;
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator DynArray<ArrayType>::Iterator::operator+(
-    std::size_t size) const {
-  return Iterator(array_, index_ + size);
-}
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator&
-DynArray<ArrayType>::Iterator::operator++() {
-  ++index_;
-  if (index_ >= array_->size_) {
-  }
-  return *this;
-}
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator
-DynArray<ArrayType>::Iterator::operator++(int) {
-  Iterator temp(*this);
-  ++(*this);
-  return temp;
-}
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator DynArray<ArrayType>::Iterator::operator-(
-    std::size_t size) const {
-  return Iterator(array_, index_ - size);
-}
-template <typename ArrayType>
-std::size_t DynArray<ArrayType>::Iterator::operator-(
-    const Iterator& other) const {
-  return static_cast<std::size_t>(index_) -
-         static_cast<std::size_t>(other.index_);
-}
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator&
-DynArray<ArrayType>::Iterator::operator--() {
-  --index_;
-  if (index_ < 0) {
-  }
-  return *this;
-}
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator
-DynArray<ArrayType>::Iterator::operator--(int) {
-  Iterator temp(*this);
-  --(*this);
-  return temp;
-}
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator&
-DynArray<ArrayType>::Iterator::operator+=(std::size_t size) {
-  index_ += size;
-  if (index_ >= array_->size_) {
-  }
-  return *this;
-}
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator&
-DynArray<ArrayType>::Iterator::operator-=(std::size_t size) {
-  index_ -= size;
-  if (index_ < 0) {
-  }
-  return *this;
-}
-template <typename ArrayType>
-ArrayType& DynArray<ArrayType>::Iterator::operator*() const {
-  if (index_ >= array_->size_) {
-  }
-  return (*array_)[index_];
-}
-template <typename ArrayType>
-ArrayType* DynArray<ArrayType>::Iterator::operator->() const {
-  return &(operator*());
-}
-template <typename ArrayType>
-bool DynArray<ArrayType>::Iterator::operator==(const Iterator& other) const {
-  return array_ == other.array_ && index_ == other.index_;
-}
-template <typename ArrayType>
-bool DynArray<ArrayType>::Iterator::operator!=(const Iterator& other) const {
-  return !(*this == other);
-}
-template <typename ArrayType>
-bool DynArray<ArrayType>::Iterator::operator<(const Iterator& other) const {
-  return index_ < other.index_;
-}
-template <typename ArrayType>
-bool DynArray<ArrayType>::Iterator::operator<=(const Iterator& other) const {
-  return index_ <= other.index_;
-}
-template <typename ArrayType>
-bool DynArray<ArrayType>::Iterator::operator>(const Iterator& other) const {
-  return index_ > other.index_;
-}
-template <typename ArrayType>
-bool DynArray<ArrayType>::Iterator::operator>=(const Iterator& other) const {
-  return index_ >= other.index_;
-}
-
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator DynArray<ArrayType>::Begin() {
-  return Iterator(this, 0);
-}
-
-template <typename ArrayType>
-typename DynArray<ArrayType>::Iterator DynArray<ArrayType>::End() {
-  return Iterator(this, size_);
-}
-
-template <typename ValueType>
-class HashTable {
- public:
-  HashTable(std::size_t init_capacity = 1024);
-  ~HashTable();
-
-  HashTable(const HashTable&) = default;
-  HashTable(HashTable&&) noexcept = default;
-  HashTable& operator=(const HashTable&) = default;
-  HashTable& operator=(HashTable&&) noexcept = default;
-
-  void Insert(std::string key, ValueType value);
-
-  bool Find(std::string key, ValueType& value);
-
- private:
-  std::size_t capacity_ = 0;
-
+  // The number of elements in the hash table.
   std::size_t size_ = 0;
 
-  DynArray<LinkedList<Pair<std::string, std::string>>>* pair_list_ = nullptr;
+  // The data collection of the hash table is stored in a linked list of type
+  // PairList.
+  PairList* pair_list_ = nullptr;
 
-  unsigned int Hash(std::string key) const;
+  // The hash function. Based on DJB2 hashing algorithm.
+  unsigned int Hash(std::string key) const {
+    unsigned int hash = 5381;
+    for (char character : key) {
+      // hash = hash * 33 + static_cast<unsigned int>(character)
+      hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
+    }
+    hash = hash % capacity_;
+    return hash;
+  };
 
-  int Resize();
+  // Re-allocate the memory of the hash table.
+  int Resize() {
+    PairList* temp = pair_list_;
+    std::size_t new_capacity = capacity_ * 1.5;
+    pair_list_ = new PairList[new_capacity];
+
+    // Memory allocation failed.
+    if (!pair_list_) {
+      return -1;
+    }
+
+    // Copy data.
+    for (int i = 0; i < capacity_; i++) {
+      temp[i].CopyDataToNewList(pair_list_, new_capacity);
+    }
+
+    // Release the memory of the original linked list.
+    delete[] temp;
+
+    capacity_ = new_capacity;
+    return 0;
+  };
 };
 
-template <typename ValueType>
-HashTable<ValueType>::HashTable(std::size_t init_capacity) {
-  pair_list_ = new DynArray<ValueType>(init_capacity);
-  if (!pair_list_) {
-    return;
-  }
-  capacity_ = init_capacity;
-}
-template <typename ValueType>
-HashTable<ValueType>::~HashTable() {
-  delete pair_list_;
-}
+struct Token {
+  enum class Type {
+    NONE,
+    START,
+    KEYWORD,
+    IDENTIFIER,
+    OPERATOR,
+    NUMBER,
+    CHARACTER,
+    STRING,
+    COMMENT
+  };
+  enum class KeywordType {
+    NONE = 0,
+    Auto,
+    And,
+    Bitand,
+    Bitor,
+    Bool,
+    Break,
+    Case,
+    Catch,
+    Char,
+    Class,
+    Const,
+    Continue,
+    Default,
+    Do,
+    Double,
+    Else,
+    Enum,
+    Export,
+    Extern,
+    False,
+    Float,
+    For,
+    Friend,
+    Goto,
+    Import,
+    Inline,
+    Int,
+    Long,
+    Namespace,
+    New,
+    Not,
+    Number,
+    Operator,
+    Or,
+    Private,
+    Protected,
+    Public,
+    Return,
+    Short,
+    Signed,
+    Sizeof,
+    Static,
+    String,
+    Struct,
+    Switch,
+    Template,
+    This,
+    Thread,
+    True,
+    Try,
+    Typedef,
+    Typeid,
+    Typename,
+    Union,
+    Unsigned,
+    Using,
+    Virtual,
+    Void,
+    Wchar_t,
+    While,
+    Xor,
+  };
+  enum class OperatorType {
+    // TODO: Add more operators.
+    NONE = 0,
+    l_square,
+    r_square,
+    l_paren,
+    r_paren,
+    l_brace,
+    r_brace,
+    period,
+    ellipsis,
+    amp,
+    ampamp,
+    ampequal,
+    star,
+    starequal,
+    plus,
+    plusplus,
+    plusequal,
+    minus,
+    arrow,
+    minusminus,
+    minusequal,
+    tilde,
+    exclaim,
+    exclaimequal,
+    slash,
+    slashequal,
+    percent,
+    percentequal,
+    less,
+    lessless,
+    lessequal,
+    lesslessequal,
+    spaceship,
+    greater,
+    greatergreater,
+    greaterequal,
+    greatergreaterequal,
+    caret,
+    caretequal,
+    pipe,
+    pipepipe,
+    pipeequal,
+    question,
+    colon,
+    semi,
+    equal,
+    equalequal,
+    comma,
+    hash,
+    hashhash,
+    hashat,
+    periodstar,
+    arrowstar,
+    coloncolon,
+    at,
+    lesslessless,
+    greatergreatergreater,
+    caretcaret,
+  };
+  struct ValueStr {
+    char* location;
+    size_t length;
+  };
+  union Value {
+    ValueStr number;
+    KeywordType keyword;
+    ValueStr identifier;
+    OperatorType _operator;
+    ValueStr character;
+    ValueStr string;
+  };
 
-template <typename ValueType>
-void HashTable<ValueType>::Insert(std::string key, ValueType value) {
-  auto hash = static_cast<std::size_t>(Hash(key));
-  ++size_;
-  if (size_ / capacity_ > 0.8) {
-    Resize();
-  }
-  LinkedList<Pair<std::string, std::string>> insert_list = pair_list_[hash];
-  insert_list.Insert(insert_list.End(), {key, value});
-}
+  Type type = Type::START;
+  Value value;
 
-template <typename ValueType>
-bool HashTable<ValueType>::Find(std::string key, ValueType& value) {
-  auto hash = static_cast<std::size_t>(Hash(key));
-  LinkedList<Pair<std::string, std::string>> find_list = pair_list_[hash];
-  typename LinkedList<Pair<std::string, ValueType>>::Iterator temp_node =
-      find_list.Begin();
-  while (temp_node != find_list.End()) {
-    if (key == *temp_node.first) {
-      value = *temp_node.second;
-      return true;
-    }
-    ++temp_node;
-  }
-
-  return false;
-}
-
-template <typename ValueType>
-unsigned int HashTable<ValueType>::Hash(std::string key) const {
-  unsigned int hash = 5381;
-  for (char character : key) {
-    hash = ((hash << 5) + hash) + static_cast<unsigned int>(character);
-  }
-  hash = hash % capacity_;
-  return hash;
-};
-
-template <typename ValueType>
-int HashTable<ValueType>::Resize() {
-  DynArray<LinkedList<Pair<std::string, std::string>>>* temp = pair_list_;
-  std::size_t new_capacity = capacity_ * 1.5;
-  pair_list_ =
-      new DynArray<LinkedList<Pair<std::string, std::string>>>[new_capacity];
-  if (!pair_list_) {
-    return -1;
-  }
-  for (std::size_t i = 0; i < capacity_; ++i) {
-    LinkedList<Pair<std::string, ValueType>>& origin_list = temp[i];
-    typename LinkedList<Pair<std::string, ValueType>>::Iterator temp_node =
-        origin_list.Begin();
-    while (temp_node != origin_list.End()) {
-      auto hash = static_cast<std::size_t>(Hash(*temp_node.first));
-      LinkedList<Pair<std::string, ValueType>>& insert_list = pair_list_[hash];
-      insert_list.Insert(insert_list.End(), *temp_node);
-      ++temp_node;
-    }
-  }
-  delete[] temp;
-  capacity_ = new_capacity;
-  return 0;
-}
-
-class Token {
- public:
   Token();
   ~Token();
 
@@ -593,176 +350,15 @@ class Token {
   Token(Token&&) noexcept = default;
   Token& operator=(const Token&) = default;
   Token& operator=(Token&&) noexcept = default;
-
-  enum class Kind;
-
-  void SetKind(Kind kind);
-  Kind GetKind() const;
-  void SetDataPtr(void* data_ptr);
-  void* GetDataPtr() const;
-
- private:
-  Kind kind_;
-  void* data_ptr_;
 };
-
-enum class Token::Kind {
-  UNKNOWN,
-  KEYWORD,
-  kAuto,
-  kAnd,
-  kBitand,
-  kBitor,
-  kBool,
-  kBreak,
-  kCase,
-  kCatch,
-  kChar,
-  kClass,
-  kConst,
-  kContinue,
-  kDefault,
-  kDo,
-  kDouble,
-  kElse,
-  kEnum,
-  kExport,
-  kExtern,
-  kFalse,
-  kFloat,
-  kFor,
-  kFriend,
-  kGoto,
-  kImport,
-  kInline,
-  kInt,
-  kLong,
-  kNamespace,
-  kNew,
-  kNot,
-  kNumber,
-  kOperator,
-  kOr,
-  kPrivate,
-  kProtected,
-  kPublic,
-  kReturn,
-  kShort,
-  kSigned,
-  kSizeof,
-  kStatic,
-  kString,
-  kStruct,
-  kSwitch,
-  kTemplate,
-  kThis,
-  kThread,
-  kTrue,
-  kTry,
-  kTypedef,
-  kTypeid,
-  kTypename,
-  kUnion,
-  kUnsigned,
-  kUsing,
-  kVirtual,
-  kVoid,
-  kWcharT,
-  kWhile,
-  kXor,
-  IDENTIFIER,
-  OPERATOR,
-  kLSquare,
-  kRSquare,
-  kLParen,
-  kRParen,
-  kLBrace,
-  kRBrace,
-  kPeriod,
-  kEllipsis,
-  kAmp,
-  kAmpAmp,
-  kAmpEqual,
-  kStar,
-  kStarEqual,
-  kPlus,
-  kPlusPlus,
-  kPlusEqual,
-  kMinus,
-  kArrow,
-  kMinusMinus,
-  kMinusEqual,
-  kTilde,
-  kExclaim,
-  kExclaimEqual,
-  kSlash,
-  kSlashEqual,
-  kPercent,
-  kPercentEqual,
-  kLess,
-  kLessLess,
-  kLessEqual,
-  kLessLessEqual,
-  kSpaceship,
-  kGreater,
-  kGreaterGreater,
-  kGreaterEqual,
-  kGreaterGreaterEqual,
-  kCaret,
-  kCaretEqual,
-  kPipe,
-  kPipePipe,
-  kPipeEqual,
-  kQuestion,
-  kColon,
-  kSemi,
-  kEqual,
-  kEqualEqual,
-  kComma,
-  kHash,
-  kHashHash,
-  kHashAt,
-  kPeriodStar,
-  kArrowStar,
-  kColonColon,
-  kAt,
-  kLessLessLess,
-  kGreaterGreaterGreater,
-  kCaretCaret,
-  NUMBER,
-  CHARACTER,
-  STRING,
-  COMMENT
-};
-
-Token::Token() = default;
-Token::~Token() = default;
-
-void Token::SetKind(Kind kind) { this->kind_ = kind; }
-
-Token::Kind Token::GetKind() const { return kind_; }
-
-void Token::SetDataPtr(void* data_ptr) { this->data_ptr_ = data_ptr; }
-
-void* Token::GetDataPtr() const { return data_ptr_; }
-
-Token::Token() = default;
-Token::~Token() = default;
-
-void Token::SetKind(Kind kind) { this->kind_ = kind; }
-
-Token::Kind Token::GetKind() const { return kind_; }
-
-void Token::SetDataPtr(void* data_ptr) { this->data_ptr_ = data_ptr; }
-
-void* Token::GetDataPtr() const { return data_ptr_; }
 
 class TokenMap {
  public:
   TokenMap();
   ~TokenMap();
 
-  Token::Kind GetKind(std::string key);
+  Token::KeywordType GetKeywordValue(std::string keyword);
+  Token::OperatorType GetOperatorValue(std::string _operator);
 
   TokenMap(const TokenMap&) = default;
   TokenMap(TokenMap&&) noexcept = default;
@@ -770,177 +366,193 @@ class TokenMap {
   TokenMap& operator=(TokenMap&&) noexcept = default;
 
  private:
-  HashTable<Token::Kind> token_map_;
+  LexMap<Token::KeywordType> keyword_map;
+  LexMap<Token::OperatorType> operator_map;
 };
-TokenMap::TokenMap() {
-  token_map_.Insert("auto", Token::Kind::kAuto);
-  token_map_.Insert("and", Token::Kind::kAnd);
-  token_map_.Insert("bitand", Token::Kind::kBitand);
-  token_map_.Insert("bitor", Token::Kind::kBitor);
-  token_map_.Insert("bool", Token::Kind::kBool);
-  token_map_.Insert("break", Token::Kind::kBreak);
-  token_map_.Insert("case", Token::Kind::kCase);
-  token_map_.Insert("catch", Token::Kind::kCatch);
-  token_map_.Insert("char", Token::Kind::kChar);
-  token_map_.Insert("class", Token::Kind::kClass);
-  token_map_.Insert("const", Token::Kind::kConst);
-  token_map_.Insert("continue", Token::Kind::kContinue);
-  token_map_.Insert("default", Token::Kind::kDefault);
-  token_map_.Insert("do", Token::Kind::kDo);
-  token_map_.Insert("double", Token::Kind::kDouble);
-  token_map_.Insert("else", Token::Kind::kElse);
-  token_map_.Insert("enum", Token::Kind::kEnum);
-  token_map_.Insert("export", Token::Kind::kExport);
-  token_map_.Insert("extern", Token::Kind::kExtern);
-  token_map_.Insert("false", Token::Kind::kFalse);
-  token_map_.Insert("float", Token::Kind::kFloat);
-  token_map_.Insert("for", Token::Kind::kFor);
-  token_map_.Insert("friend", Token::Kind::kFriend);
-  token_map_.Insert("goto", Token::Kind::kGoto);
-  token_map_.Insert("import", Token::Kind::kImport);
-  token_map_.Insert("inline", Token::Kind::kInline);
-  token_map_.Insert("int", Token::Kind::kInt);
-  token_map_.Insert("long", Token::Kind::kLong);
-  token_map_.Insert("namespace", Token::Kind::kNamespace);
-  token_map_.Insert("new", Token::Kind::kNew);
-  token_map_.Insert("not", Token::Kind::kNot);
-  token_map_.Insert("number", Token::Kind::kNumber);
-  token_map_.Insert("operator", Token::Kind::kOperator);
-  token_map_.Insert("or", Token::Kind::kOr);
-  token_map_.Insert("private", Token::Kind::kPrivate);
-  token_map_.Insert("protected", Token::Kind::kProtected);
-  token_map_.Insert("public", Token::Kind::kPublic);
-  token_map_.Insert("return", Token::Kind::kReturn);
-  token_map_.Insert("short", Token::Kind::kShort);
-  token_map_.Insert("signed", Token::Kind::kSigned);
-  token_map_.Insert("sizeof", Token::Kind::kSizeof);
-  token_map_.Insert("static", Token::Kind::kStatic);
-  token_map_.Insert("string", Token::Kind::kString);
-  token_map_.Insert("struct", Token::Kind::kStruct);
-  token_map_.Insert("switch", Token::Kind::kSwitch);
-  token_map_.Insert("template", Token::Kind::kTemplate);
-  token_map_.Insert("this", Token::Kind::kThis);
-  token_map_.Insert("thread", Token::Kind::kThread);
-  token_map_.Insert("true", Token::Kind::kTrue);
-  token_map_.Insert("try", Token::Kind::kTry);
-  token_map_.Insert("typedef", Token::Kind::kTypedef);
-  token_map_.Insert("typeid", Token::Kind::kTypeid);
-  token_map_.Insert("typename", Token::Kind::kTypename);
-  token_map_.Insert("union", Token::Kind::kUnion);
-  token_map_.Insert("unsigned", Token::Kind::kUnsigned);
-  token_map_.Insert("using", Token::Kind::kUsing);
-  token_map_.Insert("virtual", Token::Kind::kVirtual);
-  token_map_.Insert("void", Token::Kind::kVoid);
-  token_map_.Insert("wchar_t", Token::Kind::kWcharT);
-  token_map_.Insert("while", Token::Kind::kWhile);
-  token_map_.Insert("xor", Token::Kind::kXor);
 
-  token_map_.Insert("[", Token::Kind::kLSquare);
-  token_map_.Insert("]", Token::Kind::kRSquare);
-  token_map_.Insert("(", Token::Kind::kLParen);
-  token_map_.Insert(")", Token::Kind::kRParen);
-  token_map_.Insert("{", Token::Kind::kLBrace);
-  token_map_.Insert("}", Token::Kind::kRBrace);
-  token_map_.Insert(".", Token::Kind::kPeriod);
-  token_map_.Insert("...", Token::Kind::kEllipsis);
-  token_map_.Insert("&", Token::Kind::kAmp);
-  token_map_.Insert("&&", Token::Kind::kAmpAmp);
-  token_map_.Insert("&=", Token::Kind::kAmpEqual);
-  token_map_.Insert("*", Token::Kind::kStar);
-  token_map_.Insert("*=", Token::Kind::kStarEqual);
-  token_map_.Insert("+", Token::Kind::kPlus);
-  token_map_.Insert("++", Token::Kind::kPlusPlus);
-  token_map_.Insert("+=", Token::Kind::kPlusEqual);
-  token_map_.Insert("-", Token::Kind::kMinus);
-  token_map_.Insert("->", Token::Kind::kArrow);
-  token_map_.Insert("--", Token::Kind::kMinusMinus);
-  token_map_.Insert("-=", Token::Kind::kMinusEqual);
-  token_map_.Insert("~", Token::Kind::kTilde);
-  token_map_.Insert("!", Token::Kind::kExclaim);
-  token_map_.Insert("!=", Token::Kind::kExclaimEqual);
-  token_map_.Insert("/", Token::Kind::kSlash);
-  token_map_.Insert("/=", Token::Kind::kSlashEqual);
-  token_map_.Insert("%", Token::Kind::kPercent);
-  token_map_.Insert("%=", Token::Kind::kPercentEqual);
-  token_map_.Insert("<", Token::Kind::kLess);
-  token_map_.Insert("<<", Token::Kind::kLessLess);
-  token_map_.Insert("<=", Token::Kind::kLessEqual);
-  token_map_.Insert("<<=", Token::Kind::kLessLessEqual);
-  token_map_.Insert("<=>", Token::Kind::kSpaceship);
-  token_map_.Insert(">", Token::Kind::kGreater);
-  token_map_.Insert(">>", Token::Kind::kGreaterGreater);
-  token_map_.Insert(">=", Token::Kind::kGreaterEqual);
-  token_map_.Insert(">>=", Token::Kind::kGreaterGreaterEqual);
-  token_map_.Insert("^", Token::Kind::kCaret);
-  token_map_.Insert("^=", Token::Kind::kCaretEqual);
-  token_map_.Insert("|", Token::Kind::kPipe);
-  token_map_.Insert("||", Token::Kind::kPipePipe);
-  token_map_.Insert("|=", Token::Kind::kPipeEqual);
-  token_map_.Insert("?", Token::Kind::kQuestion);
-  token_map_.Insert(":", Token::Kind::kColon);
-  token_map_.Insert(";", Token::Kind::kSemi);
-  token_map_.Insert("=", Token::Kind::kEqual);
-  token_map_.Insert("==", Token::Kind::kEqualEqual);
-  token_map_.Insert(",", Token::Kind::kComma);
-  token_map_.Insert("#", Token::Kind::kHash);
-  token_map_.Insert("##", Token::Kind::kHashHash);
-  token_map_.Insert("#@", Token::Kind::kHashAt);
-  token_map_.Insert(".*", Token::Kind::kPeriodStar);
-  token_map_.Insert("->*", Token::Kind::kArrowStar);
-  token_map_.Insert("::", Token::Kind::kColonColon);
-  token_map_.Insert("@", Token::Kind::kAt);
-  token_map_.Insert("<<<", Token::Kind::kLessLessLess);
-  token_map_.Insert(">>>", Token::Kind::kGreaterGreaterGreater);
-  token_map_.Insert("^^", Token::Kind::kCaretCaret);
+Token::Token() = default;
+Token::~Token() = default;
+
+TokenMap::TokenMap() {
+  keyword_map.Insert("auto", Token::KeywordType::Auto);
+  keyword_map.Insert("and", Token::KeywordType::And);
+  keyword_map.Insert("bitand", Token::KeywordType::Bitand);
+  keyword_map.Insert("bitor", Token::KeywordType::Bitor);
+  keyword_map.Insert("bool", Token::KeywordType::Bool);
+  keyword_map.Insert("break", Token::KeywordType::Break);
+  keyword_map.Insert("case", Token::KeywordType::Case);
+  keyword_map.Insert("catch", Token::KeywordType::Catch);
+  keyword_map.Insert("char", Token::KeywordType::Char);
+  keyword_map.Insert("class", Token::KeywordType::Class);
+  keyword_map.Insert("const", Token::KeywordType::Const);
+  keyword_map.Insert("continue", Token::KeywordType::Continue);
+  keyword_map.Insert("default", Token::KeywordType::Default);
+  keyword_map.Insert("do", Token::KeywordType::Do);
+  keyword_map.Insert("double", Token::KeywordType::Double);
+  keyword_map.Insert("else", Token::KeywordType::Else);
+  keyword_map.Insert("enum", Token::KeywordType::Enum);
+  keyword_map.Insert("export", Token::KeywordType::Export);
+  keyword_map.Insert("extern", Token::KeywordType::Extern);
+  keyword_map.Insert("false", Token::KeywordType::False);
+  keyword_map.Insert("float", Token::KeywordType::Float);
+  keyword_map.Insert("for", Token::KeywordType::For);
+  keyword_map.Insert("friend", Token::KeywordType::Friend);
+  keyword_map.Insert("goto", Token::KeywordType::Goto);
+  keyword_map.Insert("import", Token::KeywordType::Import);
+  keyword_map.Insert("inline", Token::KeywordType::Inline);
+  keyword_map.Insert("int", Token::KeywordType::Int);
+  keyword_map.Insert("long", Token::KeywordType::Long);
+  keyword_map.Insert("namespace", Token::KeywordType::Namespace);
+  keyword_map.Insert("new", Token::KeywordType::New);
+  keyword_map.Insert("not", Token::KeywordType::Not);
+  keyword_map.Insert("number", Token::KeywordType::Number);
+  keyword_map.Insert("operator", Token::KeywordType::Operator);
+  keyword_map.Insert("or", Token::KeywordType::Or);
+  keyword_map.Insert("private", Token::KeywordType::Private);
+  keyword_map.Insert("protected", Token::KeywordType::Protected);
+  keyword_map.Insert("public", Token::KeywordType::Public);
+  keyword_map.Insert("return", Token::KeywordType::Return);
+  keyword_map.Insert("short", Token::KeywordType::Short);
+  keyword_map.Insert("signed", Token::KeywordType::Signed);
+  keyword_map.Insert("sizeof", Token::KeywordType::Sizeof);
+  keyword_map.Insert("static", Token::KeywordType::Static);
+  keyword_map.Insert("string", Token::KeywordType::String);
+  keyword_map.Insert("struct", Token::KeywordType::Struct);
+  keyword_map.Insert("switch", Token::KeywordType::Switch);
+  keyword_map.Insert("template", Token::KeywordType::Template);
+  keyword_map.Insert("this", Token::KeywordType::This);
+  keyword_map.Insert("thread", Token::KeywordType::Thread);
+  keyword_map.Insert("true", Token::KeywordType::True);
+  keyword_map.Insert("try", Token::KeywordType::Try);
+  keyword_map.Insert("typedef", Token::KeywordType::Typedef);
+  keyword_map.Insert("typeid", Token::KeywordType::Typeid);
+  keyword_map.Insert("typename", Token::KeywordType::Typename);
+  keyword_map.Insert("union", Token::KeywordType::Union);
+  keyword_map.Insert("unsigned", Token::KeywordType::Unsigned);
+  keyword_map.Insert("using", Token::KeywordType::Using);
+  keyword_map.Insert("virtual", Token::KeywordType::Virtual);
+  keyword_map.Insert("void", Token::KeywordType::Void);
+  keyword_map.Insert("wchar_t", Token::KeywordType::Wchar_t);
+  keyword_map.Insert("while", Token::KeywordType::While);
+  keyword_map.Insert("xor", Token::KeywordType::Xor);
+
+  operator_map.Insert("[", Token::OperatorType::l_square);
+  operator_map.Insert("]", Token::OperatorType::r_square);
+  operator_map.Insert("(", Token::OperatorType::l_paren);
+  operator_map.Insert(")", Token::OperatorType::r_paren);
+  operator_map.Insert("{", Token::OperatorType::l_brace);
+  operator_map.Insert("}", Token::OperatorType::r_brace);
+  operator_map.Insert(".", Token::OperatorType::period);
+  operator_map.Insert("...", Token::OperatorType::ellipsis);
+  operator_map.Insert("&", Token::OperatorType::amp);
+  operator_map.Insert("&&", Token::OperatorType::ampamp);
+  operator_map.Insert("&=", Token::OperatorType::ampequal);
+  operator_map.Insert("*", Token::OperatorType::star);
+  operator_map.Insert("*=", Token::OperatorType::starequal);
+  operator_map.Insert("+", Token::OperatorType::plus);
+  operator_map.Insert("++", Token::OperatorType::plusplus);
+  operator_map.Insert("+=", Token::OperatorType::plusequal);
+  operator_map.Insert("-", Token::OperatorType::minus);
+  operator_map.Insert("->", Token::OperatorType::arrow);
+  operator_map.Insert("--", Token::OperatorType::minusminus);
+  operator_map.Insert("-=", Token::OperatorType::minusequal);
+  operator_map.Insert("~", Token::OperatorType::tilde);
+  operator_map.Insert("!", Token::OperatorType::exclaim);
+  operator_map.Insert("!=", Token::OperatorType::exclaimequal);
+  operator_map.Insert("/", Token::OperatorType::slash);
+  operator_map.Insert("/=", Token::OperatorType::slashequal);
+  operator_map.Insert("%", Token::OperatorType::percent);
+  operator_map.Insert("%=", Token::OperatorType::percentequal);
+  operator_map.Insert("<", Token::OperatorType::less);
+  operator_map.Insert("<<", Token::OperatorType::lessless);
+  operator_map.Insert("<=", Token::OperatorType::lessequal);
+  operator_map.Insert("<<=", Token::OperatorType::lesslessequal);
+  operator_map.Insert("<=>", Token::OperatorType::spaceship);
+  operator_map.Insert(">", Token::OperatorType::greater);
+  operator_map.Insert(">>", Token::OperatorType::greatergreater);
+  operator_map.Insert(">=", Token::OperatorType::greaterequal);
+  operator_map.Insert(">>=", Token::OperatorType::greatergreaterequal);
+  operator_map.Insert("^", Token::OperatorType::caret);
+  operator_map.Insert("^=", Token::OperatorType::caretequal);
+  operator_map.Insert("|", Token::OperatorType::pipe);
+  operator_map.Insert("||", Token::OperatorType::pipepipe);
+  operator_map.Insert("|=", Token::OperatorType::pipeequal);
+  operator_map.Insert("?", Token::OperatorType::question);
+  operator_map.Insert(":", Token::OperatorType::colon);
+  operator_map.Insert(";", Token::OperatorType::semi);
+  operator_map.Insert("=", Token::OperatorType::equal);
+  operator_map.Insert("==", Token::OperatorType::equalequal);
+  operator_map.Insert(",", Token::OperatorType::comma);
+  operator_map.Insert("#", Token::OperatorType::hash);
+  operator_map.Insert("##", Token::OperatorType::hashhash);
+  operator_map.Insert("#@", Token::OperatorType::hashat);
+  operator_map.Insert(".*", Token::OperatorType::periodstar);
+  operator_map.Insert("->*", Token::OperatorType::arrowstar);
+  operator_map.Insert("::", Token::OperatorType::coloncolon);
+  operator_map.Insert("@", Token::OperatorType::at);
+  operator_map.Insert("<<<", Token::OperatorType::lesslessless);
+  operator_map.Insert(">>>", Token::OperatorType::greatergreatergreater);
+  operator_map.Insert("^^", Token::OperatorType::caretcaret);
 }
 TokenMap::~TokenMap() = default;
 
-Token::Kind TokenMap::GetKind(std::string key) {
-  /// TODO: Should be improved
-  /// return token_map_.Find(_operator);
+Token::KeywordType TokenMap::GetKeywordValue(std::string keyword) {
+  return keyword_map.Find(keyword);
+}
+Token::OperatorType TokenMap::GetOperatorValue(std::string _operator) {
+  return operator_map.Find(_operator);
 }
 
 class Lexer {
  public:
-  Lexer(char* source_code, size_t length);
-  ~Lexer();
+  // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
+  Lexer(char* source_code, size_t length)
+      : buffer_ptr_(source_code), buffer_end_(source_code + length - 1) {};
+  ~Lexer() = default;
 
-  Lexer(const Lexer&) = delete;
-  Lexer(Lexer&&) noexcept = delete;
-  Lexer& operator=(const Lexer&) = delete;
-  Lexer& operator=(Lexer&&) noexcept = delete;
+  Lexer(const Lexer&) = default;
+  Lexer(Lexer&&) noexcept = default;
+  Lexer& operator=(const Lexer&) = default;
+  Lexer& operator=(Lexer&&) noexcept = default;
 
-  int Lex(Token& return_token);
+  // Lexical analysis |buffer_ptr_|, and store the analyzed token into
+  // |return_token|.
+  int LexToken(Token& return_token);
 
+  // Return true if the lexer is at the end of |buffer_ptr_|.
   bool IsReadEnd() const;
 
  private:
   char* buffer_ptr_;
-
   char* buffer_end_;
-
   TokenMap token_map_;
-
-  bool ProcessToken(Token& token, Token::Kind start_kind, int next_kind_size,
-                    ...) const;
 };
 
-Lexer::Lexer(char* source_code, size_t length)
-    : buffer_ptr_(source_code), buffer_end_(source_code + length - 1) {};
-Lexer::~Lexer() = default;
+bool Lexer::IsReadEnd() const {
+  if (buffer_ptr_ >= buffer_end_) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
-int Lexer::Lex(Token& return_token) {
-  using Tok = Token::Kind;
-  return_token.SetKind(Tok::UNKNOWN);
+int Lexer::LexToken(Token& return_token) {
+  // Set the return token type to start.
+  return_token.type = Token::Type::START;
+
+  // Set the reading position pointer equal to the buffer pointer.
   char* read_ptr = buffer_ptr_;
 
 LexStart:
+  // Memory out of bounds occurred. Return an error.
   if (read_ptr > buffer_end_) {
     buffer_ptr_ = read_ptr;
     return -1;
   }
 
+  // Start lexical analysis.
   switch (*read_ptr) {
+    // General operators.
     case '!':
     case '#':
     case '$':
@@ -963,136 +575,177 @@ LexStart:
     case '|':
     case '}':
     case '~':
-      if (ProcessToken(return_token, Tok::OPERATOR, 4, Tok::OPERATOR,
-                       Tok::CHARACTER, Tok::STRING, Tok::COMMENT)) {
-        goto LexNext;
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::OPERATOR;
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::OPERATOR ||
+                 return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
       }
-
-      goto LexEnd;
 
     // The string flag.
     case '"':
-      if (ProcessToken(return_token, Tok::STRING, 2, Tok::STRING,
-                       Tok::COMMENT)) {
-        goto LexNext;
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::STRING;
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::STRING) {
+        read_ptr++;
+        goto LexEnd;
+      } else {
+        goto LexEnd;
       }
-
-      // End of string.
-      if (return_token.GetKind() == Tok::STRING) {
-        ++read_ptr;
-      }
-
-      goto LexEnd;
 
     // The character flag.
     case '\'':
-      if (ProcessToken(return_token, Tok::CHARACTER, 2, Tok::STRING,
-                       Tok::COMMENT)) {
-        goto LexNext;
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::CHARACTER;
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::CHARACTER) {
+        read_ptr++;
+        goto LexEnd;
+      } else {
+        goto LexEnd;
       }
-
-      // End of character.
-      if (return_token.GetKind() == Tok::CHARACTER) {
-        ++read_ptr;
-      }
-
-      goto LexEnd;
 
     // Escape character.
     case '\\':
-      if (ProcessToken(return_token, Tok::OPERATOR, 2, Tok::OPERATOR,
-                       Tok::COMMENT)) {
-        goto LexNext;
-      }
-
-      // Skip escape characters.
-      if (return_token.GetKind() == Tok::CHARACTER ||
-          return_token.GetKind() == Tok::STRING) {
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::OPERATOR;
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING) {
+        // Skip escape characters.
         if (read_ptr + 2 <= buffer_end_) {
-          ++read_ptr;
+          read_ptr += 2;
+          goto LexStart;
+        } else {
+          read_ptr++;
+          goto LexStart;
         }
-        goto LexNext;
+      } else if (return_token.type == Token::Type::OPERATOR ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
       }
-
-      goto LexEnd;
 
     // Positive and negative numbers.
     case '+':
     case '-':
-      // Signed numbers.
-      if (return_token.GetKind() == Tok::UNKNOWN && *(read_ptr + 1) == '0' ||
-          *(read_ptr + 1) == '1' || *(read_ptr + 1) == '2' ||
-          *(read_ptr + 1) == '3' || *(read_ptr + 1) == '4' ||
-          *(read_ptr + 1) == '5' || *(read_ptr + 1) == '6' ||
-          *(read_ptr + 1) == '7' || *(read_ptr + 1) == '8' ||
-          *(read_ptr + 1) == '9') {
-        return_token.SetKind(Tok::NUMBER);
-        goto LexNext;
+      if (return_token.type == Token::Type::START) {
+        if (*(read_ptr + 1) == '0' || *(read_ptr + 1) == '1' ||
+            *(read_ptr + 1) == '2' || *(read_ptr + 1) == '3' ||
+            *(read_ptr + 1) == '4' || *(read_ptr + 1) == '5' ||
+            *(read_ptr + 1) == '6' || *(read_ptr + 1) == '7' ||
+            *(read_ptr + 1) == '8' || *(read_ptr + 1) == '9') {
+          return_token.type = Token::Type::NUMBER;
+        } else {
+          return_token.type = Token::Type::OPERATOR;
+        }
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::NUMBER) {
+        // Dealing with scientific notation.
+        if (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e') {
+          read_ptr++;
+          goto LexStart;
+        } else {
+          goto LexEnd;
+        }
+      } else if (return_token.type == Token::Type::OPERATOR ||
+                 return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
       }
-
-      if (ProcessToken(return_token, Tok::OPERATOR, 4, Tok::OPERATOR,
-                       Tok::CHARACTER, Tok::STRING, Tok::COMMENT)) {
-        goto LexNext;
-      }
-
-      // Dealing with scientific notation.
-      if (return_token.GetKind() == Tok::NUMBER &&
-          (*(read_ptr - 1) == 'E' || *(read_ptr - 1) == 'e')) {
-        goto LexNext;
-      }
-
-      goto LexEnd;
 
     // Decimal point.
     case '.':
-      if (ProcessToken(return_token, Tok::OPERATOR, 5, Tok::OPERATOR,
-                       Tok::NUMBER, Tok::CHARACTER, Tok::STRING,
-                       Tok::COMMENT)) {
-        goto LexNext;
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::OPERATOR;
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::OPERATOR ||
+                 return_token.type == Token::Type::NUMBER ||
+                 return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
       }
-
-      goto LexEnd;
 
     // The comment flag.
     case '/':
-      // Comment start.
-      if (return_token.GetKind() == Tok::UNKNOWN && *(buffer_ptr_ + 1) == '/' ||
-          *(buffer_ptr_ + 1) == '*') {
-        return_token.SetKind(Tok::COMMENT);
-        if (read_ptr + 2 <= buffer_end_) {
-          ++read_ptr;
+      if (return_token.type == Token::Type::START) {
+        if (*(buffer_ptr_ + 1) == '/' || *(buffer_ptr_ + 1) == '*') {
+          return_token.type = Token::Type::COMMENT;
+          if (read_ptr + 2 <= buffer_end_) {
+            read_ptr += 2;
+            goto LexStart;
+          } else {
+            read_ptr++;
+            goto LexStart;
+          }
+        } else {
+          return_token.type = Token::Type::OPERATOR;
+          read_ptr++;
         }
-        goto LexNext;
-      }
-
-      if (ProcessToken(return_token, Tok::OPERATOR, 2, Tok::CHARACTER,
-                       Tok::STRING)) {
-        goto LexNext;
-      }
-
-      if (return_token.GetKind() == Tok::OPERATOR) {
-        // Comment.
+        goto LexStart;
+      } else if (return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING) {
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::OPERATOR) {
         if (*(read_ptr + 1) == '/' || *(read_ptr + 1) == '*') {
           goto LexEnd;
         } else {
-          goto LexNext;
-        }
-      }
-
-      if (return_token.GetKind() == Tok::COMMENT) {
-        if (*(buffer_ptr_ + 1) == '*' && *(read_ptr - 1) == '*') {
-          // /**/ style comments, skip all comments.
-          buffer_ptr_ = ++read_ptr;
-          return_token.SetKind(Tok::UNKNOWN);
+          read_ptr++;
           goto LexStart;
-        } else {
-          // // style comments or Non-end comment mark, continue reading until
-          // the end mark of the comment.
-          goto LexNext;
         }
+      } else if (return_token.type == Token::Type::COMMENT) {
+        if (*(buffer_ptr_ + 1) == '*') {
+          if (*(read_ptr - 1) == '*') {
+            // /**/ style comments, skip all comments.
+            buffer_ptr_ = ++read_ptr;
+            return_token.type = Token::Type::START;
+            goto LexStart;
+          } else {
+            // Non-end comment mark, continue reading until the end mark of the
+            // comment.
+            read_ptr++;
+            goto LexStart;
+          }
+        } else {
+          // // style comments, continue reading until newlines are skipped.
+          read_ptr++;
+          goto LexStart;
+        }
+      } else {
+        goto LexEnd;
       }
-
-      goto LexEnd;
 
     // Numbers.
     case '0':
@@ -1105,13 +758,20 @@ LexStart:
     case '7':
     case '8':
     case '9':
-      if (ProcessToken(return_token, Tok::NUMBER, 5, Tok::IDENTIFIER,
-                       Tok::NUMBER, Tok::CHARACTER, Tok::STRING,
-                       Tok::COMMENT)) {
-        goto LexNext;
+      if (return_token.type == Token::Type::START) {
+        read_ptr++;
+        return_token.type = Token::Type::NUMBER;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::IDENTIFIER ||
+                 return_token.type == Token::Type::NUMBER ||
+                 return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
       }
-
-      goto LexEnd;
 
     // Whitespace characters.
     case '\f':
@@ -1119,40 +779,46 @@ LexStart:
     case '\t':
     case '\v':
     case ' ':
-      if (return_token.GetKind() == Tok::UNKNOWN) {
+      if (return_token.type == Token::Type::START) {
         // Skip whitespace characters.
-        ++buffer_ptr_;
-        goto LexNext;
+        read_ptr++;
+        buffer_ptr_++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
       }
-
-      if (ProcessToken(return_token, Tok::UNKNOWN, 3, Tok::CHARACTER,
-                       Tok::STRING, Tok::COMMENT)) {
-        goto LexNext;
-      }
-
-      goto LexEnd;
 
     // Newlines.
     case '\n':
-      if (return_token.GetKind() == Tok::UNKNOWN) {
+      if (return_token.type == Token::Type::START) {
         // Skip newlines.
-        ++buffer_ptr_;
-        goto LexNext;
-      }
-
-      if (return_token.GetKind() == Tok::COMMENT && *(buffer_ptr_ + 1) == '/') {
-        // // style comments, skip all comments.
-        buffer_ptr_ = ++read_ptr;
-        return_token.SetKind(Tok::UNKNOWN);
+        read_ptr++;
+        buffer_ptr_++;
         goto LexStart;
+      } else if (return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING) {
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::COMMENT) {
+        if (*(buffer_ptr_ + 1) == '*') {
+          // /**/ style comments, continue reading until the end mark of the
+          // comment.
+          read_ptr++;
+          goto LexStart;
+        } else {
+          // // style comments, skip all comments.
+          buffer_ptr_ = ++read_ptr;
+          return_token.type = Token::Type::START;
+          goto LexStart;
+        }
+      } else {
+        goto LexEnd;
       }
-
-      if (ProcessToken(return_token, Tok::UNKNOWN, 3, Tok::CHARACTER,
-                       Tok::STRING, Tok::COMMENT)) {
-        goto LexNext;
-      }
-
-      goto LexEnd;
 
     // EOF.
     case '\0':
@@ -1161,114 +827,96 @@ LexStart:
     // Separator flag.
     case ',':
     case ';':
-      if (return_token.GetKind() == Tok::UNKNOWN) {
-        return_token.SetKind(Tok::OPERATOR);
-        ++read_ptr;
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::OPERATOR;
+        read_ptr++;
+        goto LexEnd;
+      } else if (return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
         goto LexEnd;
       }
 
-      if (ProcessToken(return_token, Tok::OPERATOR, 3, Tok::CHARACTER,
-                       Tok::STRING, Tok::COMMENT)) {
-        goto LexNext;
-      }
-
-      goto LexEnd;
-
     default:
-      if (ProcessToken(return_token, Tok::IDENTIFIER, 5, Tok::IDENTIFIER,
-                       Tok::NUMBER, Tok::CHARACTER, Tok::STRING,
-                       Tok::COMMENT)) {
-        goto LexNext;
+      if (return_token.type == Token::Type::START) {
+        return_token.type = Token::Type::IDENTIFIER;
+        read_ptr++;
+        goto LexStart;
+      } else if (return_token.type == Token::Type::IDENTIFIER ||
+                 return_token.type == Token::Type::NUMBER ||
+                 return_token.type == Token::Type::CHARACTER ||
+                 return_token.type == Token::Type::STRING ||
+                 return_token.type == Token::Type::COMMENT) {
+        read_ptr++;
+        goto LexStart;
+      } else {
+        goto LexEnd;
       }
-
-      goto LexEnd;
   }
 
-LexNext:
-  ++read_ptr;
-  goto LexStart;
-
 LexEnd:
-    // Meaningless token.
-    if (return_token.GetKind() == Tok::UNKNOWN ||
-        return_token.GetKind() == Tok::COMMENT) {
-      return_token.SetKind(Tok::UNKNOWN);
-      buffer_ptr_ = read_ptr;
-      return 0;
-    } else {
-      // Meaningful token. Determine the specific token information.
-      char* location = buffer_ptr_;
-      size_t length = read_ptr - buffer_ptr_;
-      buffer_ptr_ = read_ptr;
+  // Meaningless token.
+  if (return_token.type == Token::Type::START ||
+      return_token.type == Token::Type::COMMENT) {
+    return_token.type = Token::Type::NONE;
+    buffer_ptr_ = read_ptr;
+    return 0;
+  } else {
+    // Meaningful token. Determine the specific token information.
+    char* location = buffer_ptr_;
+    size_t length = read_ptr - buffer_ptr_;
+    buffer_ptr_ = read_ptr;
 
-      // Handle the detailed information of tokens.
-      Token::ValueStr value;
-      value.location = location;
-      value.length = length;
-      switch (return_token.GetKind()) {
-        case Tok::IDENTIFIER:
-          return_token.value.keyword =
-              token_map_.GetKeywordValue(std::string(location, length));
-          if (return_token.value.keyword == Token::Kind::UNKNOWN) {
-            return_token.value.identifier = value;
-            break;
-          }
-          return_token.SetKind(Tok::KEYWORD);
+    // Handle the detailed information of tokens.
+    Token::ValueStr value;
+    value.location = location;
+    value.length = length;
+    switch (return_token.type) {
+      case Token::Type::IDENTIFIER:
+        return_token.value.keyword =
+            token_map_.GetKeywordValue(std::string(location, length));
+        if (return_token.value.keyword == Token::KeywordType::NONE) {
+          return_token.value.identifier = value;
           break;
+        }
+        return_token.type = Token::Type::KEYWORD;
+        break;
 
-        case Tok::CHARACTER:
-          return_token.value.character = value;
-          break;
+      case Token::Type::CHARACTER:
+        return_token.value.character = value;
+        break;
 
-        case Tok::STRING:
-          return_token.value.string = value;
-          break;
+      case Token::Type::STRING:
+        return_token.value.string = value;
+        break;
 
-        case Tok::OPERATOR:
+      case Token::Type::OPERATOR:
+        return_token.value._operator =
+            token_map_.GetOperatorValue(std::string(location, length));
+        while (return_token.value._operator == Token::OperatorType::NONE &&
+               length > 1) {
+          length--;
+          buffer_ptr_--;
           return_token.value._operator =
               token_map_.GetOperatorValue(std::string(location, length));
-          while (return_token.GetKind() == Token::Kind::UNKNOWN && length > 1) {
-            length--;
-            buffer_ptr_--;
-            return_token.value._operator =
-                token_map_.GetOperatorValue(std::string(location, length));
-          }
-          break;
+        }
+        break;
 
-        case Tok::NUMBER:
-          return_token.value.number = value;
-          break;
+      case Token::Type::NUMBER:
+        return_token.value.number = value;
+        break;
 
-        default:
-          return -2;
-      }
+      default:
+        return -1;
     }
+  }
   return 0;
 }
 
-bool Lexer::IsReadEnd() const {
-  if (buffer_ptr_ >= buffer_end_) {
-    return true;
-  }
-  return false;
-}
-
-bool Lexer::ProcessToken(Token& token, Token::Kind start_kind,
-                         int next_kind_size, ...) const {
-  if (token.GetKind() == Token::Kind::UNKNOWN) {
-    token.SetKind(start_kind);
-    return true;
-  }
-  std::va_list next_kind_list;
-  va_start(next_kind_list, next_kind_size);
-  for (int i = 0; i < next_kind_size; ++i) {
-    if (token.GetKind() == va_arg(next_kind_list, Token::Kind)) {
-      return true;
-    }
-  }
-  return false;
-}
-}  // namespace Aq
+}  // namespace Aq::Compiler
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -1292,10 +940,10 @@ int main(int argc, char* argv[]) {
   code.push_back('\0');
   file.close();
   char* buffer_ptr_ = code.data();
-  Aq::Lexer lexer(buffer_ptr_, code.size());
-  Aq::Token token;
+  Aq::Compiler::Lexer lexer(buffer_ptr_, code.size());
+  Aq::Compiler::Token token;
   while (true) {
-    lexer.Lex(token);
+    lexer.LexToken(token);
     if (lexer.IsReadEnd()) {
       break;
     }
