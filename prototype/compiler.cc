@@ -874,6 +874,10 @@ LexEnd:
     Token::ValueStr value;
     value.location = location;
     value.length = length;
+    
+    // DEBUG/TEST CODE
+    std::cout << std::string(location, length) << std::endl;
+    
     switch (return_token.type) {
       case Token::Type::IDENTIFIER:
         return_token.value.keyword =
