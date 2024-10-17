@@ -933,6 +933,43 @@ LexEnd:
   return 0;
 }
 
+class Parser {
+ public:
+  Parser();
+  ~Parser();
+  void Parse(std::vector<Token> token);
+};
+
+Parser::Parser() = default;
+Parser::~Parser() = default;
+
+// TODO(Parser): NOT COMPLETE.
+void Parse(std::vector<Token> token) {
+  for (int i = 0; i < token.size(); i++) {
+    switch (token[i].type) {
+      case Token::Type::NONE:
+        break;
+      case Token::Type::START:
+        break;
+      case Token::Type::KEYWORD:
+        break;
+      case Token::Type::IDENTIFIER:
+        break;
+      case Token::Type::OPERATOR:
+        break;
+      case Token::Type::NUMBER:
+        break;
+      case Token::Type::CHARACTER:
+        break;
+      case Token::Type::STRING:
+        break;
+      case Token::Type::COMMENT:
+        break;
+      default:
+        break;
+    }
+  }
+
 }  // namespace Aq::Compiler
 
 int main(int argc, char* argv[]) {
@@ -958,9 +995,11 @@ int main(int argc, char* argv[]) {
   file.close();
   char* buffer_ptr_ = code.data();
   Aq::Compiler::Lexer lexer(buffer_ptr_, code.size());
-  Aq::Compiler::Token token;
+  std::vector<Aq::Compiler::Token> token;
   while (true) {
-    lexer.LexToken(token);
+    Aq::Compiler::Token token_buffer;
+    lexer.LexToken(token_buffer);
+    token.push_back(token_buffer);
     if (lexer.IsReadEnd()) {
       break;
     }
