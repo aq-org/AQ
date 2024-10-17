@@ -3,12 +3,13 @@
 # the root directory.
 
 cmake_minimum_required(VERSION 3.10)
-project(AQ C)
+project(AQ C CXX)
 enable_testing()
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/compiler.cc)
-set(SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
+set(COMPILER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/compiler.cc)
+set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
 
-add_executable(aq ${SOURCES})
+add_executable(aq_compiler ${COMPILER_SOURCES})
+add_executable(aq_vm ${VM_SOURCES})
