@@ -933,6 +933,140 @@ LexEnd:
   return 0;
 }
 
+class FactorNode;
+
+class ASTNode {
+ public:
+  ASTNode() = default;
+  virtual ~ASTNode() = default;
+
+ protected:
+  std::vector<FactorNode> children_;
+};
+
+class StmtNode : public ASTNode {
+ public:
+  StmtNode() = default;
+  virtual ~StmtNode() = default;
+};
+
+class ExprNode : public StmtNode {
+ public:
+  ExprNode() = default;
+  virtual ~ExprNode() = default;
+};
+
+class FactorNode : public ASTNode {
+ public:
+  FactorNode() = default;
+  FactorNode(std::vector<Token> token) {
+    type_ = Type::kToken;
+    token_ = token;
+  }
+
+  FactorNode(ExprNode expr) {
+    type_ = Type::kExpr;
+    expr_ = expr;
+  }
+
+  FactorNode(StmtNode stmt) {
+    type_ = Type::kStmt;
+    stmt_ = stmt;
+  }
+  virtual ~FactorNode() = default;
+
+ private:
+  enum class Type { kToken, kExpr, kStmt };
+  Type type_;
+  std::vector<Token> token_;
+  ExprNode expr_;
+  StmtNode stmt_;
+};
+
+class DeclNode : public StmtNode {
+ public:
+  DeclNode() = default;
+  virtual ~DeclNode() = default;
+};
+
+class VarDeclNode : public DeclNode {
+ public:
+  VarDeclNode(std::vector<Token> type, Token name) {
+    type_ = type;
+    name_ = name;
+    value_ = Token();
+    value_.type = Token::Type::NONE;
+  }
+  VarDeclNode(std::vector<Token> type, Token name, Token value) {
+    type_ = type;
+    name_ = name;
+    value_ = value;
+  }
+  virtual ~VarDeclNode() = default;
+
+ private:
+  std::vector<Token> type_;
+  Token name_;
+  Token value_;
+};
+
+class FuncDeclNode : public DeclNode {
+ public:
+  FuncDeclNode(std::vector<Token> type, Token name,
+               std::vector<FactorNode> args, std::vector<StmtNode> stmts) {
+    type_ = type;
+    name_ = name;
+    args_ = args;
+    stmts_ = stmts;
+  }
+  virtual ~FuncDeclNode() = default;
+
+ private:
+  std::vector<Token> type_;
+  Token name_;
+  std::vector<FactorNode> args_;
+  std::vector<StmtNode> stmts_;
+};
+
+class FuncInvokeNode : public StmtNode {
+ public:
+  FuncInvokeNode(Token name, std::vector<Token> args) {
+    name_ = name;
+    args_ = args;
+  }
+  virtual ~FuncInvokeNode() = default;
+
+ private:
+  Token name_;
+  std::vector<Token> args_;
+};
+
+class AssignNode : public StmtNode {
+ public:
+  AssignNode(FactorNode factor, ExprNode value) {
+    factor_ = factor;
+    value_ = value;
+  }
+
+  virtual ~AssignNode() = default;
+
+ private:
+  FactorNode factor_;
+  ExprNode value_;
+};
+
+class IfNode : public StmtNode {
+ public:
+  IfNode(ExprNode condition, std::vector<StmtNode> body) {
+    condition_ = condition;
+    body_ = body;
+  }
+
+ private:
+  ExprNode condition_;
+  std::vector<StmtNode> body_;
+};
+
 class Parser {
  public:
   Parser();
@@ -969,7 +1103,7 @@ void Parse(std::vector<Token> token) {
         break;
     }
   }
-
+}
 }  // namespace Aq::Compiler
 
 int main(int argc, char* argv[]) {
