@@ -10,7 +10,8 @@
 #include <string>
 #include <vector>
 
-namespace Aq::Compiler {
+namespace Aq {
+namespace Compiler {
 // A hash table for the lexer. Used to find special definitions such as compiler
 // keywords.
 template <typename T>
@@ -956,12 +957,77 @@ class ExprNode : public StmtNode {
   virtual ~ExprNode() = default;
 };
 
+class PrefixedUnaryNode : public ExprNode {
+ public:
+  PrefixedUnaryNode(Token operators, ExprNode expr) {
+    operators_ = operators;
+    expr_ = expr;
+  }
+  virtual ~PrefixedUnaryNode() = default;
+
+ private:
+  Token operators_;
+  ExprNode expr_;
+};
+
+class PosteriorUnaryNode : public ExprNode {
+ public:
+  PosteriorUnaryNode(ExprNode expr, Token operators) {
+    expr_ = expr;
+    operators_ = operators;
+  }
+  virtual ~PosteriorUnaryNode() = default;
+
+ private:
+  ExprNode expr_;
+  Token operators_;
+};
+
+class BinaryNode : public ExprNode {
+ public:
+  BinaryNode(ExprNode expr1, Token operators, ExprNode expr2) {
+    expr1_ = expr1;
+    operators_ = operators;
+    expr2_ = expr2;
+  }
+  virtual ~BinaryNode() = default;
+
+ private:
+  ExprNode expr1_;
+  Token operators_;
+  ExprNode expr2_;
+};
+
+class TernaryNode : public ExprNode {
+ public:
+  TernaryNode(ExprNode expr1, Token operators, ExprNode expr2, ExprNode expr3) {
+    expr1_ = expr1;
+    operators_ = operators;
+    expr2_ = expr2;
+    expr3_ = expr3;
+  }
+  virtual ~TernaryNode() = default;
+
+ private:
+  ExprNode expr1_;
+  Token operators_;
+  ExprNode expr2_;
+  ExprNode expr3_;
+};
+
 class FactorNode : public ASTNode {
  public:
   FactorNode() = default;
   FactorNode(std::vector<Token> token) {
     type_ = Type::kToken;
     token_ = token;
+  }
+
+  FactorNode(std::vector<Token> token, ExprNode expr) {
+    type_ = Type::kToken;
+    token_ = token;
+    is_array_ = true;
+    index_ = expr;
   }
 
   FactorNode(ExprNode expr) {
@@ -981,6 +1047,8 @@ class FactorNode : public ASTNode {
   std::vector<Token> token_;
   ExprNode expr_;
   StmtNode stmt_;
+  bool is_array_ = false;
+  ExprNode index_;
 };
 
 class DeclNode : public StmtNode {
@@ -994,26 +1062,36 @@ class VarDeclNode : public DeclNode {
   VarDeclNode(std::vector<Token> type, Token name) {
     type_ = type;
     name_ = name;
-    value_ = Token();
-    value_.type = Token::Type::NONE;
+    value_.push_back(ExprNode());
   }
-  VarDeclNode(std::vector<Token> type, Token name, Token value) {
+  VarDeclNode(std::vector<Token> type, Token name, ExprNode value) {
     type_ = type;
     name_ = name;
+    value_.push_back(value);
+  }
+  VarDeclNode(std::vector<Token> type, Token name, ExprNode size,
+              std::vector<ExprNode> value) {
+    type_ = type;
+    name_ = name;
+    is_array_ = true;
+    size_ = size;
     value_ = value;
   }
+
   virtual ~VarDeclNode() = default;
 
  private:
   std::vector<Token> type_;
   Token name_;
-  Token value_;
+  bool is_array_ = false;
+  ExprNode size_;
+  std::vector<ExprNode> value_;
 };
 
 class FuncDeclNode : public DeclNode {
  public:
-  FuncDeclNode(std::vector<Token> type, Token name,
-               std::vector<FactorNode> args, std::vector<StmtNode> stmts) {
+  FuncDeclNode(std::vector<Token> type, Token name, std::vector<ExprNode> args,
+               std::vector<StmtNode> stmts) {
     type_ = type;
     name_ = name;
     args_ = args;
@@ -1024,7 +1102,7 @@ class FuncDeclNode : public DeclNode {
  private:
   std::vector<Token> type_;
   Token name_;
-  std::vector<FactorNode> args_;
+  std::vector<ExprNode> args_;
   std::vector<StmtNode> stmts_;
 };
 
@@ -1043,7 +1121,7 @@ class FuncInvokeNode : public StmtNode {
 
 class AssignNode : public StmtNode {
  public:
-  AssignNode(FactorNode factor, ExprNode value) {
+  AssignNode(ExprNode factor, ExprNode value) {
     factor_ = factor;
     value_ = value;
   }
@@ -1051,7 +1129,7 @@ class AssignNode : public StmtNode {
   virtual ~AssignNode() = default;
 
  private:
-  FactorNode factor_;
+  ExprNode factor_;
   ExprNode value_;
 };
 
@@ -1071,25 +1149,176 @@ class Parser {
  public:
   Parser();
   ~Parser();
-  void Parse(std::vector<Token> token);
+  std::vector<ASTNode> Parse(std::vector<Token> token);
+
+ private:
+  bool IsDecl(Token* token, size_t length);
 };
 
 Parser::Parser() = default;
 Parser::~Parser() = default;
 
 // TODO(Parser): NOT COMPLETE.
-void Parse(std::vector<Token> token) {
-  for (int i = 0; i < token.size(); i++) {
+std::vector<ASTNode> Parser::Parse(std::vector<Token> token) {
+  for (size_t i = 0; i < token.size(); i++) {
+    if (IsDecl(token.data() + i, token.size() - i)) {
+      // Parse declaration.
+    } else {
+      // Parse expression.
+    }
+  }
+  /*enum class Type { None, Type };
+  std::vector<ASTNode> buffer;
+  std::vector<Type> type;
+  std::vector<std::vector<Token>> token_buffer;
+  for (size_t i = 0; i < token.size(); i++) {
     switch (token[i].type) {
       case Token::Type::NONE:
-        break;
       case Token::Type::START:
+      case Token::Type::COMMENT:
         break;
       case Token::Type::KEYWORD:
+        // i += ParseKeyword(buffer, token + i, length - i);
+        if (token[i].value.keyword == Token::KeywordType::Const ||
+            token[i].value.keyword == Token::KeywordType::Bool ||
+            token[i].value.keyword == Token::KeywordType::Char ||
+            token[i].value.keyword == Token::KeywordType::Double ||
+            token[i].value.keyword == Token::KeywordType::Float ||
+            token[i].value.keyword == Token::KeywordType::Int ||
+            token[i].value.keyword == Token::KeywordType::Long ||
+            token[i].value.keyword == Token::KeywordType::Void) {
+          if (type.back() == Type::Type) {
+            token_buffer.back().push_back(token[i]);
+          } else {
+            type.push_back(Type::Type);
+            token_buffer.push_back(std::vector<Token>());
+            token_buffer.back().push_back(token[i]);
+          }
+        }
         break;
       case Token::Type::IDENTIFIER:
         break;
       case Token::Type::OPERATOR:
+        switch (token[i].value._operator) {
+          case Token::OperatorType::NONE:
+            break;
+          case Token::OperatorType::l_square:
+
+            break;
+          case Token::OperatorType::r_square:
+            break;
+          case Token::OperatorType::l_paren:
+            break;
+          case Token::OperatorType::r_paren:
+            break;
+          case Token::OperatorType::l_brace:
+            break;
+          case Token::OperatorType::r_brace:
+            break;
+          case Token::OperatorType::period:
+            break;
+          case Token::OperatorType::ellipsis:
+            break;
+          case Token::OperatorType::amp:
+            break;
+          case Token::OperatorType::ampamp:
+            break;
+          case Token::OperatorType::ampequal:
+            break;
+          case Token::OperatorType::star:
+            break;
+          case Token::OperatorType::starequal:
+            break;
+          case Token::OperatorType::plus:
+            break;
+          case Token::OperatorType::plusplus:
+            break;
+          case Token::OperatorType::plusequal:
+            break;
+          case Token::OperatorType::minus:
+            break;
+          case Token::OperatorType::arrow:
+            break;
+          case Token::OperatorType::minusminus:
+            break;
+          case Token::OperatorType::minusequal:
+            break;
+          case Token::OperatorType::tilde:
+            break;
+          case Token::OperatorType::exclaim:
+            break;
+          case Token::OperatorType::exclaimequal:
+            break;
+          case Token::OperatorType::slash:
+            break;
+          case Token::OperatorType::slashequal:
+            break;
+          case Token::OperatorType::percent:
+            break;
+          case Token::OperatorType::percentequal:
+            break;
+          case Token::OperatorType::less:
+            break;
+          case Token::OperatorType::lessless:
+            break;
+          case Token::OperatorType::lessequal:
+            break;
+          case Token::OperatorType::lesslessequal:
+            break;
+          case Token::OperatorType::spaceship:
+            break;
+          case Token::OperatorType::greater:
+            break;
+          case Token::OperatorType::greatergreater:
+            break;
+          case Token::OperatorType::greaterequal:
+            break;
+          case Token::OperatorType::greatergreaterequal:
+            break;
+          case Token::OperatorType::caret:
+            break;
+          case Token::OperatorType::caretequal:
+            break;
+          case Token::OperatorType::pipe:
+            break;
+          case Token::OperatorType::pipepipe:
+            break;
+          case Token::OperatorType::pipeequal:
+            break;
+          case Token::OperatorType::question:
+            break;
+          case Token::OperatorType::colon:
+            break;
+          case Token::OperatorType::semi:
+            break;
+          case Token::OperatorType::equal:
+            break;
+          case Token::OperatorType::equalequal:
+            break;
+          case Token::OperatorType::comma:
+            break;
+          case Token::OperatorType::hash:
+            break;
+          case Token::OperatorType::hashhash:
+            break;
+          case Token::OperatorType::hashat:
+            break;
+          case Token::OperatorType::periodstar:
+            break;
+          case Token::OperatorType::arrowstar:
+            break;
+          case Token::OperatorType::coloncolon:
+            break;
+          case Token::OperatorType::at:
+            break;
+          case Token::OperatorType::lesslessless:
+            break;
+          case Token::OperatorType::greatergreatergreater:
+            break;
+          case Token::OperatorType::caretcaret:
+            break;
+            break;
+        }
         break;
       case Token::Type::NUMBER:
         break;
@@ -1097,14 +1326,53 @@ void Parse(std::vector<Token> token) {
         break;
       case Token::Type::STRING:
         break;
-      case Token::Type::COMMENT:
-        break;
       default:
         break;
     }
-  }
+  }*/
 }
-}  // namespace Aq::Compiler
+
+bool Parser::IsDecl(Token* token, size_t length) {
+  if (token[0].type == Token::Type::KEYWORD) {
+    if (token[0].value.keyword == Token::KeywordType::Auto ||
+        token[0].value.keyword == Token::KeywordType::Bool ||
+        token[0].value.keyword == Token::KeywordType::Char ||
+        token[0].value.keyword == Token::KeywordType::Double ||
+        token[0].value.keyword == Token::KeywordType::Float ||
+        token[0].value.keyword == Token::KeywordType::Int ||
+        token[0].value.keyword == Token::KeywordType::Long ||
+        token[0].value.keyword == Token::KeywordType::Void ||
+        token[0].value.keyword == Token::KeywordType::String ||
+        token[0].value.keyword == Token::KeywordType::Struct ||
+        token[0].value.keyword == Token::KeywordType::Union ||
+        token[0].value.keyword == Token::KeywordType::Enum ||
+        token[0].value.keyword == Token::KeywordType::Namespace ||
+        token[0].value.keyword == Token::KeywordType::Template ||
+        token[0].value.keyword == Token::KeywordType::Typedef ||
+        token[0].value.keyword == Token::KeywordType::Extern ||
+        token[0].value.keyword == Token::KeywordType::Class ||
+        token[0].value.keyword == Token::KeywordType::Const ||
+        token[0].value.keyword == Token::KeywordType::Friend ||
+        token[0].value.keyword == Token::KeywordType::Inline ||
+        token[0].value.keyword == Token::KeywordType::Number ||
+        token[0].value.keyword == Token::KeywordType::Short ||
+        token[0].value.keyword == Token::KeywordType::Signed ||
+        token[0].value.keyword == Token::KeywordType::Unsigned ||
+        token[0].value.keyword == Token::KeywordType::Virtual ||
+        token[0].value.keyword == Token::KeywordType::Wchar_t) {
+      return true;
+    } else {
+      return false;
+    }
+  } else if (token[0].type == Token::Type::IDENTIFIER &&
+             token[1].type == Token::Type::IDENTIFIER) {
+    return true;
+  }
+  return false;
+}
+
+}  // namespace Compiler
+}  // namespace Aq
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -1138,4 +1406,6 @@ int main(int argc, char* argv[]) {
       break;
     }
   }
+  Aq::Compiler::Parser parser;
+  parser.Parse(token);
 }
