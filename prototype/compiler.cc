@@ -1153,6 +1153,8 @@ class Parser {
 
  private:
   bool IsDecl(Token* token, size_t length);
+  bool IsFuncDecl(Token* token, size_t length);
+  size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode result);
 };
 
 Parser::Parser() = default;
@@ -1160,176 +1162,15 @@ Parser::~Parser() = default;
 
 // TODO(Parser): NOT COMPLETE.
 std::vector<ASTNode> Parser::Parse(std::vector<Token> token) {
-  for (size_t i = 0; i < token.size(); i++) {
+  for (size_t i = 0; i < token.size();) {
     if (IsDecl(token.data() + i, token.size() - i)) {
-      // Parse declaration.
+      if (IsFuncDecl(token.data() + i, token.size() - i)) {
+        ParseFuncDecl(token.data() + i, token.size() - i);
+      } else {
+      }
     } else {
-      // Parse expression.
     }
   }
-  /*enum class Type { None, Type };
-  std::vector<ASTNode> buffer;
-  std::vector<Type> type;
-  std::vector<std::vector<Token>> token_buffer;
-  for (size_t i = 0; i < token.size(); i++) {
-    switch (token[i].type) {
-      case Token::Type::NONE:
-      case Token::Type::START:
-      case Token::Type::COMMENT:
-        break;
-      case Token::Type::KEYWORD:
-        // i += ParseKeyword(buffer, token + i, length - i);
-        if (token[i].value.keyword == Token::KeywordType::Const ||
-            token[i].value.keyword == Token::KeywordType::Bool ||
-            token[i].value.keyword == Token::KeywordType::Char ||
-            token[i].value.keyword == Token::KeywordType::Double ||
-            token[i].value.keyword == Token::KeywordType::Float ||
-            token[i].value.keyword == Token::KeywordType::Int ||
-            token[i].value.keyword == Token::KeywordType::Long ||
-            token[i].value.keyword == Token::KeywordType::Void) {
-          if (type.back() == Type::Type) {
-            token_buffer.back().push_back(token[i]);
-          } else {
-            type.push_back(Type::Type);
-            token_buffer.push_back(std::vector<Token>());
-            token_buffer.back().push_back(token[i]);
-          }
-        }
-        break;
-      case Token::Type::IDENTIFIER:
-        break;
-      case Token::Type::OPERATOR:
-        switch (token[i].value._operator) {
-          case Token::OperatorType::NONE:
-            break;
-          case Token::OperatorType::l_square:
-
-            break;
-          case Token::OperatorType::r_square:
-            break;
-          case Token::OperatorType::l_paren:
-            break;
-          case Token::OperatorType::r_paren:
-            break;
-          case Token::OperatorType::l_brace:
-            break;
-          case Token::OperatorType::r_brace:
-            break;
-          case Token::OperatorType::period:
-            break;
-          case Token::OperatorType::ellipsis:
-            break;
-          case Token::OperatorType::amp:
-            break;
-          case Token::OperatorType::ampamp:
-            break;
-          case Token::OperatorType::ampequal:
-            break;
-          case Token::OperatorType::star:
-            break;
-          case Token::OperatorType::starequal:
-            break;
-          case Token::OperatorType::plus:
-            break;
-          case Token::OperatorType::plusplus:
-            break;
-          case Token::OperatorType::plusequal:
-            break;
-          case Token::OperatorType::minus:
-            break;
-          case Token::OperatorType::arrow:
-            break;
-          case Token::OperatorType::minusminus:
-            break;
-          case Token::OperatorType::minusequal:
-            break;
-          case Token::OperatorType::tilde:
-            break;
-          case Token::OperatorType::exclaim:
-            break;
-          case Token::OperatorType::exclaimequal:
-            break;
-          case Token::OperatorType::slash:
-            break;
-          case Token::OperatorType::slashequal:
-            break;
-          case Token::OperatorType::percent:
-            break;
-          case Token::OperatorType::percentequal:
-            break;
-          case Token::OperatorType::less:
-            break;
-          case Token::OperatorType::lessless:
-            break;
-          case Token::OperatorType::lessequal:
-            break;
-          case Token::OperatorType::lesslessequal:
-            break;
-          case Token::OperatorType::spaceship:
-            break;
-          case Token::OperatorType::greater:
-            break;
-          case Token::OperatorType::greatergreater:
-            break;
-          case Token::OperatorType::greaterequal:
-            break;
-          case Token::OperatorType::greatergreaterequal:
-            break;
-          case Token::OperatorType::caret:
-            break;
-          case Token::OperatorType::caretequal:
-            break;
-          case Token::OperatorType::pipe:
-            break;
-          case Token::OperatorType::pipepipe:
-            break;
-          case Token::OperatorType::pipeequal:
-            break;
-          case Token::OperatorType::question:
-            break;
-          case Token::OperatorType::colon:
-            break;
-          case Token::OperatorType::semi:
-            break;
-          case Token::OperatorType::equal:
-            break;
-          case Token::OperatorType::equalequal:
-            break;
-          case Token::OperatorType::comma:
-            break;
-          case Token::OperatorType::hash:
-            break;
-          case Token::OperatorType::hashhash:
-            break;
-          case Token::OperatorType::hashat:
-            break;
-          case Token::OperatorType::periodstar:
-            break;
-          case Token::OperatorType::arrowstar:
-            break;
-          case Token::OperatorType::coloncolon:
-            break;
-          case Token::OperatorType::at:
-            break;
-          case Token::OperatorType::lesslessless:
-            break;
-          case Token::OperatorType::greatergreatergreater:
-            break;
-          case Token::OperatorType::caretcaret:
-            break;
-            break;
-        }
-        break;
-      case Token::Type::NUMBER:
-        break;
-      case Token::Type::CHARACTER:
-        break;
-      case Token::Type::STRING:
-        break;
-      default:
-        break;
-    }
-  }*/
 }
 
 bool Parser::IsDecl(Token* token, size_t length) {
@@ -1364,12 +1205,72 @@ bool Parser::IsDecl(Token* token, size_t length) {
     } else {
       return false;
     }
-  } else if (token[0].type == Token::Type::IDENTIFIER &&
-             token[1].type == Token::Type::IDENTIFIER) {
+  } else if ((token[0].type == Token::Type::IDENTIFIER &&
+              token[1].type == Token::Type::IDENTIFIER) ||
+             (token[0].type == Token::Type::IDENTIFIER &&
+              token[1].type == Token::Type::OPERATOR &&
+              (token[1].value._operator == Token::OperatorType::star ||
+               token[1].value._operator == Token::OperatorType::amp ||
+               token[1].value._operator == Token::OperatorType::ampamp) &&
+              token[2].type == Token::Type::IDENTIFIER)) {
     return true;
   }
   return false;
 }
+
+bool Parser::IsFuncDecl(Token* token, size_t length) {
+  for (size_t i = 0; i < length; i++) {
+    if (token[i].type == Token::Type::OPERATOR &&
+        token[i].value._operator == Token::OperatorType::semi) {
+      return false;
+    }
+    if (token[i].type == Token::Type::OPERATOR &&
+        token[i].value._operator == Token::OperatorType::l_paren) {
+      return true;
+    }
+  }
+  return false;
+}
+
+size_t Parser::ParseFuncDecl(Token* token, size_t length, FuncDeclNode result) {
+  std::vector<Token> type;
+  for (size_t i = 0;
+       (token[i].type == Token::Type::KEYWORD &&
+        (token[i].value.keyword == Token::KeywordType::Auto ||
+         token[i].value.keyword == Token::KeywordType::Bool ||
+         token[i].value.keyword == Token::KeywordType::Char ||
+         token[i].value.keyword == Token::KeywordType::Double ||
+         token[i].value.keyword == Token::KeywordType::Float ||
+         token[i].value.keyword == Token::KeywordType::Int ||
+         token[i].value.keyword == Token::KeywordType::Long ||
+         token[i].value.keyword == Token::KeywordType::Void ||
+         token[i].value.keyword == Token::KeywordType::String ||
+         token[i].value.keyword == Token::KeywordType::Const ||
+         token[i].value.keyword == Token::KeywordType::Friend ||
+         token[i].value.keyword == Token::KeywordType::Inline ||
+         token[i].value.keyword == Token::KeywordType::Number ||
+         token[i].value.keyword == Token::KeywordType::Short ||
+         token[i].value.keyword == Token::KeywordType::Signed ||
+         token[i].value.keyword == Token::KeywordType::Unsigned ||
+         token[i].value.keyword == Token::KeywordType::Virtual ||
+         token[i].value.keyword == Token::KeywordType::Wchar_t)) ||
+       ((token[i].type == Token::Type::IDENTIFIER &&
+         token[i + 1].type == Token::Type::IDENTIFIER)) ||
+       (token[i].type == Token::Type::OPERATOR &&
+        (token[i].value._operator == Token::OperatorType::star ||
+         token[i].value._operator == Token::OperatorType::amp ||
+         token[i].value._operator == Token::OperatorType::ampamp) &&
+        token[i + 1].type == Token::Type::IDENTIFIER);
+       i++) {
+    type.push_back(token[i]);
+  }
+
+  /*for (size_t i = 0; token[i].type != Token::Type::IDENTIFIER ||
+                     (token[i].type == Token::Type::IDENTIFIER &&
+                      token[i + 1].type == Token::Type::IDENTIFIER);
+       i++) {
+    type.push_back(token[i]);
+  }*/
 
 }  // namespace Compiler
 }  // namespace Aq
