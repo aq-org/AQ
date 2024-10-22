@@ -934,144 +934,146 @@ LexEnd:
   return 0;
 }
 
-class FactorNode;
-
-class ASTNode {
+class StmtNode {
  public:
-  ASTNode() = default;
-  virtual ~ASTNode() = default;
+  StmtNode() { type_ = StmtType::kStmt; }
+  virtual ~StmtNode() = default;
+
+  enum class StmtType {
+    kStmt,
+    kDecl,
+    kExpr,
+    kFuncDecl,
+    kVarDecl,
+    kFuncInvoke,
+    kAssign,
+    kIf,
+    kNumber,
+    kVar,
+    kUnary,
+    kBinary,
+    kConditional,
+    kFunc
+  };
+
+  StmtType GetType() { return type_; }
 
  protected:
-  std::vector<FactorNode> children_;
-};
-
-class StmtNode : public ASTNode {
- public:
-  StmtNode() = default;
-  virtual ~StmtNode() = default;
+  StmtType type_;
+  std::vector<StmtNode> stmts_;
 };
 
 class ExprNode : public StmtNode {
  public:
-  ExprNode() = default;
+  ExprNode() { type_ = StmtType::kExpr; }
   virtual ~ExprNode() = default;
 };
 
-class PrefixedUnaryNode : public ExprNode {
+class NumberNode : public ExprNode {
  public:
-  PrefixedUnaryNode(Token operators, ExprNode expr) {
-    operators_ = operators;
-    expr_ = expr;
-  }
-  virtual ~PrefixedUnaryNode() = default;
+  NumberNode() { type_ = StmtType::kNumber; }
+  void SetNumberNode(Token value) { value_ = value; }
+  virtual ~NumberNode() = default;
 
  private:
-  Token operators_;
-  ExprNode expr_;
+  Token value_;
 };
 
-class PosteriorUnaryNode : public ExprNode {
+class UnaryNode : public ExprNode {
  public:
-  PosteriorUnaryNode(ExprNode expr, Token operators) {
+  UnaryNode() { type_ = StmtType::kUnary; }
+  void SetUnaryNode(bool is_prefix, Token op, ExprNode expr) {
+    is_prefix_ = is_prefix;
+    op_ = op;
     expr_ = expr;
-    operators_ = operators;
   }
-  virtual ~PosteriorUnaryNode() = default;
+  virtual ~UnaryNode() = default;
 
  private:
+  bool is_prefix_ = true;
+  Token op_;
   ExprNode expr_;
-  Token operators_;
 };
 
 class BinaryNode : public ExprNode {
  public:
-  BinaryNode(ExprNode expr1, Token operators, ExprNode expr2) {
-    expr1_ = expr1;
-    operators_ = operators;
-    expr2_ = expr2;
+  BinaryNode() { type_ = StmtType::kBinary; }
+  void SetBinaryNode(Token op, ExprNode left, ExprNode right) {
+    op_ = op;
+    left_ = left;
+    right_ = right;
   }
   virtual ~BinaryNode() = default;
 
  private:
-  ExprNode expr1_;
-  Token operators_;
-  ExprNode expr2_;
+  Token op_;
+  ExprNode left_;
+  ExprNode right_;
 };
 
-class TernaryNode : public ExprNode {
+class ConditionalNode : public ExprNode {
  public:
-  TernaryNode(ExprNode expr1, Token operators, ExprNode expr2, ExprNode expr3) {
-    expr1_ = expr1;
-    operators_ = operators;
-    expr2_ = expr2;
-    expr3_ = expr3;
+  ConditionalNode() { type_ = StmtType::kConditional; }
+  void SetConditionalNode(ExprNode condition, ExprNode true_expr,
+                          ExprNode false_expr) {
+    condition_ = condition;
+    true_expr_ = true_expr;
+    false_expr_ = false_expr;
   }
-  virtual ~TernaryNode() = default;
+  virtual ~ConditionalNode() = default;
 
  private:
-  ExprNode expr1_;
-  Token operators_;
-  ExprNode expr2_;
-  ExprNode expr3_;
+  ExprNode condition_;
+  ExprNode true_expr_;
+  ExprNode false_expr_;
 };
 
-class FactorNode : public ASTNode {
+class FuncNode : public ExprNode {
  public:
-  FactorNode() = default;
-  FactorNode(std::vector<Token> token) {
-    type_ = Type::kToken;
-    token_ = token;
+  FuncNode() { type_ = StmtType::kFunc; }
+  void SetFuncNode(Token name, std::vector<ExprNode> params) {
+    name_ = name;
+    params_ = params;
   }
-
-  FactorNode(std::vector<Token> token, ExprNode expr) {
-    type_ = Type::kToken;
-    token_ = token;
-    is_array_ = true;
-    index_ = expr;
-  }
-
-  FactorNode(ExprNode expr) {
-    type_ = Type::kExpr;
-    expr_ = expr;
-  }
-
-  FactorNode(StmtNode stmt) {
-    type_ = Type::kStmt;
-    stmt_ = stmt;
-  }
-  virtual ~FactorNode() = default;
+  virtual ~FuncNode() = default;
 
  private:
-  enum class Type { kToken, kExpr, kStmt };
-  Type type_;
-  std::vector<Token> token_;
-  ExprNode expr_;
-  StmtNode stmt_;
-  bool is_array_ = false;
-  ExprNode index_;
+  Token name_;
+  std::vector<ExprNode> params_;
+};
+
+class VarNode : public ExprNode {
+ public:
+  VarNode() { type_ = StmtType::kVar; }
+  void SetVarNode(Token name) { name_ = name; }
+  virtual ~VarNode() = default;
+
+ private:
+  Token name_;
 };
 
 class DeclNode : public StmtNode {
  public:
-  DeclNode() = default;
+  DeclNode() { type_ = StmtType::kDecl; }
   virtual ~DeclNode() = default;
 };
 
 class VarDeclNode : public DeclNode {
  public:
-  VarDeclNode(std::vector<Token> type, Token name) {
-    type_ = type;
+  VarDeclNode() { type_ = StmtType::kVarDecl; }
+  void SetVarDeclNode(std::vector<Token> type, Token name) {
+    var_type_ = type;
     name_ = name;
     value_.push_back(ExprNode());
   }
-  VarDeclNode(std::vector<Token> type, Token name, ExprNode value) {
-    type_ = type;
+  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode value) {
+    var_type_ = type;
     name_ = name;
     value_.push_back(value);
   }
-  VarDeclNode(std::vector<Token> type, Token name, ExprNode size,
-              std::vector<ExprNode> value) {
-    type_ = type;
+  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode size,
+                      std::vector<ExprNode> value) {
+    var_type_ = type;
     name_ = name;
     is_array_ = true;
     size_ = size;
@@ -1081,7 +1083,7 @@ class VarDeclNode : public DeclNode {
   virtual ~VarDeclNode() = default;
 
  private:
-  std::vector<Token> type_;
+  std::vector<Token> var_type_;
   Token name_;
   bool is_array_ = false;
   ExprNode size_;
@@ -1090,9 +1092,11 @@ class VarDeclNode : public DeclNode {
 
 class FuncDeclNode : public DeclNode {
  public:
-  FuncDeclNode(std::vector<Token> type, Token name, std::vector<ExprNode> args,
-               std::vector<StmtNode> stmts) {
-    type_ = type;
+  FuncDeclNode() { type_ = StmtType::kFuncDecl; }
+  void SetFuncDeclNode(std::vector<Token> type, Token name,
+                       std::vector<ExprNode> args,
+                       std::vector<StmtNode> stmts) {
+    return_type_ = type;
     name_ = name;
     args_ = args;
     stmts_ = stmts;
@@ -1100,15 +1104,16 @@ class FuncDeclNode : public DeclNode {
   virtual ~FuncDeclNode() = default;
 
  private:
-  std::vector<Token> type_;
+  std::vector<Token> return_type_;
   Token name_;
   std::vector<ExprNode> args_;
   std::vector<StmtNode> stmts_;
 };
 
-class FuncInvokeNode : public StmtNode {
+class FuncInvokeNode : public ExprNode {
  public:
-  FuncInvokeNode(Token name, std::vector<Token> args) {
+  FuncInvokeNode() { type_ = StmtType::kFuncInvoke; }
+  void SetFuncInvokeNode(Token name, std::vector<ExprNode> args) {
     name_ = name;
     args_ = args;
   }
@@ -1116,12 +1121,13 @@ class FuncInvokeNode : public StmtNode {
 
  private:
   Token name_;
-  std::vector<Token> args_;
+  std::vector<ExprNode> args_;
 };
 
 class AssignNode : public StmtNode {
  public:
-  AssignNode(ExprNode factor, ExprNode value) {
+  AssignNode() { type_ = StmtType::kAssign; }
+  void SetAssignNode(ExprNode factor, ExprNode value) {
     factor_ = factor;
     value_ = value;
   }
@@ -1135,7 +1141,8 @@ class AssignNode : public StmtNode {
 
 class IfNode : public StmtNode {
  public:
-  IfNode(ExprNode condition, std::vector<StmtNode> body) {
+  IfNode() { type_ = StmtType::kIf; }
+  void SetIfNode(ExprNode condition, std::vector<StmtNode> body) {
     condition_ = condition;
     body_ = body;
   }
@@ -1149,23 +1156,25 @@ class Parser {
  public:
   Parser();
   ~Parser();
-  std::vector<ASTNode> Parse(std::vector<Token> token);
+  std::vector<StmtNode> Parse(std::vector<Token> token);
 
  private:
   bool IsDecl(Token* token, size_t length);
   bool IsFuncDecl(Token* token, size_t length);
-  size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode result);
+  size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode& result);
+  size_t ParseExpr(Token* token, size_t length, ExprNode& result);
 };
 
 Parser::Parser() = default;
 Parser::~Parser() = default;
 
 // TODO(Parser): NOT COMPLETE.
-std::vector<ASTNode> Parser::Parse(std::vector<Token> token) {
+std::vector<StmtNode> Parser::Parse(std::vector<Token> token) {
   for (size_t i = 0; i < token.size();) {
     if (IsDecl(token.data() + i, token.size() - i)) {
       if (IsFuncDecl(token.data() + i, token.size() - i)) {
-        ParseFuncDecl(token.data() + i, token.size() - i);
+        FuncDeclNode result;
+        ParseFuncDecl(token.data() + i, token.size() - i, result);
       } else {
       }
     } else {
@@ -1232,45 +1241,51 @@ bool Parser::IsFuncDecl(Token* token, size_t length) {
   return false;
 }
 
-size_t Parser::ParseFuncDecl(Token* token, size_t length, FuncDeclNode result) {
+size_t Parser::ParseFuncDecl(Token* token, size_t length,
+                             FuncDeclNode& result) {
   std::vector<Token> type;
-  for (size_t i = 0;
-       (token[i].type == Token::Type::KEYWORD &&
-        (token[i].value.keyword == Token::KeywordType::Auto ||
-         token[i].value.keyword == Token::KeywordType::Bool ||
-         token[i].value.keyword == Token::KeywordType::Char ||
-         token[i].value.keyword == Token::KeywordType::Double ||
-         token[i].value.keyword == Token::KeywordType::Float ||
-         token[i].value.keyword == Token::KeywordType::Int ||
-         token[i].value.keyword == Token::KeywordType::Long ||
-         token[i].value.keyword == Token::KeywordType::Void ||
-         token[i].value.keyword == Token::KeywordType::String ||
-         token[i].value.keyword == Token::KeywordType::Const ||
-         token[i].value.keyword == Token::KeywordType::Friend ||
-         token[i].value.keyword == Token::KeywordType::Inline ||
-         token[i].value.keyword == Token::KeywordType::Number ||
-         token[i].value.keyword == Token::KeywordType::Short ||
-         token[i].value.keyword == Token::KeywordType::Signed ||
-         token[i].value.keyword == Token::KeywordType::Unsigned ||
-         token[i].value.keyword == Token::KeywordType::Virtual ||
-         token[i].value.keyword == Token::KeywordType::Wchar_t)) ||
-       ((token[i].type == Token::Type::IDENTIFIER &&
-         token[i + 1].type == Token::Type::IDENTIFIER)) ||
-       (token[i].type == Token::Type::OPERATOR &&
-        (token[i].value._operator == Token::OperatorType::star ||
-         token[i].value._operator == Token::OperatorType::amp ||
-         token[i].value._operator == Token::OperatorType::ampamp) &&
-        token[i + 1].type == Token::Type::IDENTIFIER);
-       i++) {
-    type.push_back(token[i]);
+  size_t index = 0;
+  while ((token[index].type == Token::Type::KEYWORD &&
+          (token[index].value.keyword == Token::KeywordType::Auto ||
+           token[index].value.keyword == Token::KeywordType::Bool ||
+           token[index].value.keyword == Token::KeywordType::Char ||
+           token[index].value.keyword == Token::KeywordType::Double ||
+           token[index].value.keyword == Token::KeywordType::Float ||
+           token[index].value.keyword == Token::KeywordType::Int ||
+           token[index].value.keyword == Token::KeywordType::Long ||
+           token[index].value.keyword == Token::KeywordType::Void ||
+           token[index].value.keyword == Token::KeywordType::String ||
+           token[index].value.keyword == Token::KeywordType::Const ||
+           token[index].value.keyword == Token::KeywordType::Friend ||
+           token[index].value.keyword == Token::KeywordType::Inline ||
+           token[index].value.keyword == Token::KeywordType::Number ||
+           token[index].value.keyword == Token::KeywordType::Short ||
+           token[index].value.keyword == Token::KeywordType::Signed ||
+           token[index].value.keyword == Token::KeywordType::Unsigned ||
+           token[index].value.keyword == Token::KeywordType::Virtual ||
+           token[index].value.keyword == Token::KeywordType::Wchar_t)) ||
+         ((token[index].type == Token::Type::IDENTIFIER &&
+           token[index + 1].type == Token::Type::IDENTIFIER)) ||
+         (token[index].type == Token::Type::IDENTIFIER &&
+          token[index + 1].type == Token::Type::OPERATOR &&
+          (token[index + 1].value._operator == Token::OperatorType::star ||
+           token[index + 1].value._operator == Token::OperatorType::amp ||
+           token[index + 1].value._operator == Token::OperatorType::ampamp) &&
+          token[index + 2].type == Token::Type::IDENTIFIER) ||
+         (token[index].type == Token::Type::OPERATOR &&
+          (token[index].value._operator == Token::OperatorType::star ||
+           token[index].value._operator == Token::OperatorType::amp ||
+           token[index].value._operator == Token::OperatorType::ampamp) &&
+          token[index + 1].type == Token::Type::IDENTIFIER)) {
+    type.push_back(token[index]);
+    index++;
   }
 
-  /*for (size_t i = 0; token[i].type != Token::Type::IDENTIFIER ||
-                     (token[i].type == Token::Type::IDENTIFIER &&
-                      token[i + 1].type == Token::Type::IDENTIFIER);
-       i++) {
-    type.push_back(token[i]);
-  }*/
+  result.SetFuncDeclNode(type, token[index], std::vector<ExprNode>(),
+                         std::vector<StmtNode>());
+}
+
+size_t ParseExpr(Token* token, size_t length, ExprNode& result) {}
 
 }  // namespace Compiler
 }  // namespace Aq
