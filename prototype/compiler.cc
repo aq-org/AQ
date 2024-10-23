@@ -934,6 +934,71 @@ LexEnd:
   return 0;
 }
 
+class Type {
+ public:
+  enum class TypeType { kBase, kPointer, kArray };
+
+  enum class BaseType {
+    kVoid,
+    kBool,
+    kChar,
+    kShort,
+    kInt,
+    kLong,
+    kFloat,
+    kDouble,
+    kStruct,
+    kUnion,
+    kEnum,
+    kPointer,
+    kArray,
+    kFunction,
+    kTypedef,
+    kAuto
+  };
+
+  Type() { type_ = TypeType::kBase; }
+  virtual void SetType(BaseType type) { type_data_ = type; }
+  virtual ~Type() = default;
+
+  TypeType GetType() { return type_; }
+
+ protected:
+  TypeType type_;
+ private:
+  BaseType type_data_;
+};
+
+class PointerType : public Type {
+ public:
+  PointerType() { type_ = TypeType::kPointer; }
+  virtual void SetType(Type type) {
+    type_ = TypeType::kPointer;
+    type_data_ = type;
+  }
+  virtual ~PointerType() = default;
+
+ private:
+  Type type_data_;
+};
+
+class ArrayType : public Type {
+ public:
+  ArrayType() { type_ = TypeType::kArray; }
+  virtual void SetType(Type type, int size) {
+    type_ = TypeType::kArray;
+    type_data_ = type;
+    size_ = size;
+  }
+  virtual ~ArrayType() = default;
+
+  int GetSize() { return size_; }
+
+ private:
+  int size_;
+  Type type_data_;
+};
+
 class StmtNode {
  public:
   StmtNode() { type_ = StmtType::kStmt; }
@@ -953,7 +1018,8 @@ class StmtNode {
     kUnary,
     kBinary,
     kConditional,
-    kFunc
+    kFunc,
+    kCast
   };
 
   StmtType GetType() { return type_; }
@@ -981,24 +1047,68 @@ class NumberNode : public ExprNode {
 
 class UnaryNode : public ExprNode {
  public:
+  enum class Operator {
+    kPostInc,
+    kPostDec,
+    kPreInc,
+    kPreDec,
+    kAddrOf,
+    kDeref,
+    kPlus,
+    kMinus,
+    kNot,
+    kLNot,
+  };
+
   UnaryNode() { type_ = StmtType::kUnary; }
-  void SetUnaryNode(bool is_prefix, Token op, ExprNode expr) {
-    is_prefix_ = is_prefix;
+  void SetUnaryNode(Operator op, ExprNode expr) {
     op_ = op;
     expr_ = expr;
   }
   virtual ~UnaryNode() = default;
 
  private:
-  bool is_prefix_ = true;
-  Token op_;
+  Operator op_;
   ExprNode expr_;
 };
 
 class BinaryNode : public ExprNode {
  public:
+  enum class Operator {
+    kAdd,
+    kSub,
+    kMul,
+    kDiv,
+    kRem,
+    kAnd,
+    kOr,
+    kXor,
+    kShl,
+    kShr,
+    kLT,
+    kGT,
+    kLE,
+    kGE,
+    kEQ,
+    kNE,
+    kLAnd,
+    kLOr,
+    kAssign,
+    kAddAssign,
+    kSubAssign,
+    kMulAssign,
+    kDivAssign,
+    kRemAssign,
+    kAndAssign,
+    kOrAssign,
+    kXorAssign,
+    kShlAssign,
+    kShrAssign,
+    kComma
+  };
+
   BinaryNode() { type_ = StmtType::kBinary; }
-  void SetBinaryNode(Token op, ExprNode left, ExprNode right) {
+  void SetBinaryNode(Operator op, ExprNode left, ExprNode right) {
     op_ = op;
     left_ = left;
     right_ = right;
@@ -1006,7 +1116,7 @@ class BinaryNode : public ExprNode {
   virtual ~BinaryNode() = default;
 
  private:
-  Token op_;
+  Operator op_;
   ExprNode left_;
   ExprNode right_;
 };
@@ -1124,21 +1234,6 @@ class FuncInvokeNode : public ExprNode {
   std::vector<ExprNode> args_;
 };
 
-class AssignNode : public StmtNode {
- public:
-  AssignNode() { type_ = StmtType::kAssign; }
-  void SetAssignNode(ExprNode factor, ExprNode value) {
-    factor_ = factor;
-    value_ = value;
-  }
-
-  virtual ~AssignNode() = default;
-
- private:
-  ExprNode factor_;
-  ExprNode value_;
-};
-
 class IfNode : public StmtNode {
  public:
   IfNode() { type_ = StmtType::kIf; }
@@ -1150,6 +1245,20 @@ class IfNode : public StmtNode {
  private:
   ExprNode condition_;
   std::vector<StmtNode> body_;
+};
+
+class CastNode : public ExprNode {
+ public:
+  CastNode() { type_ = StmtType::kCast; }
+  void SetCastNode(std::vector<Token> type, ExprNode expr) {
+    cast_type_ = type;
+    expr_ = expr;
+  }
+  virtual ~CastNode() = default;
+
+ private:
+  std::vector<Token> cast_type_;
+  ExprNode expr_;
 };
 
 class Parser {
