@@ -934,335 +934,336 @@ LexEnd:
   return 0;
 }
 
-class Type {
- public:
-  enum class TypeType { kBase, kPointer, kArray };
-
-  enum class BaseType {
-    kVoid,
-    kBool,
-    kChar,
-    kShort,
-    kInt,
-    kLong,
-    kFloat,
-    kDouble,
-    kStruct,
-    kUnion,
-    kEnum,
-    kPointer,
-    kArray,
-    kFunction,
-    kTypedef,
-    kAuto
-  };
-
-  Type() { type_ = TypeType::kBase; }
-  virtual void SetType(BaseType type) { type_data_ = type; }
-  virtual ~Type() = default;
-
-  TypeType GetType() { return type_; }
-
- protected:
-  TypeType type_;
- private:
-  BaseType type_data_;
-};
-
-class PointerType : public Type {
- public:
-  PointerType() { type_ = TypeType::kPointer; }
-  virtual void SetType(Type type) {
-    type_ = TypeType::kPointer;
-    type_data_ = type;
-  }
-  virtual ~PointerType() = default;
-
- private:
-  Type type_data_;
-};
-
-class ArrayType : public Type {
- public:
-  ArrayType() { type_ = TypeType::kArray; }
-  virtual void SetType(Type type, int size) {
-    type_ = TypeType::kArray;
-    type_data_ = type;
-    size_ = size;
-  }
-  virtual ~ArrayType() = default;
-
-  int GetSize() { return size_; }
-
- private:
-  int size_;
-  Type type_data_;
-};
-
-class StmtNode {
- public:
-  StmtNode() { type_ = StmtType::kStmt; }
-  virtual ~StmtNode() = default;
-
-  enum class StmtType {
-    kStmt,
-    kDecl,
-    kExpr,
-    kFuncDecl,
-    kVarDecl,
-    kFuncInvoke,
-    kAssign,
-    kIf,
-    kNumber,
-    kVar,
-    kUnary,
-    kBinary,
-    kConditional,
-    kFunc,
-    kCast
-  };
-
-  StmtType GetType() { return type_; }
-
- protected:
-  StmtType type_;
-  std::vector<StmtNode> stmts_;
-};
-
-class ExprNode : public StmtNode {
- public:
-  ExprNode() { type_ = StmtType::kExpr; }
-  virtual ~ExprNode() = default;
-};
-
-class NumberNode : public ExprNode {
- public:
-  NumberNode() { type_ = StmtType::kNumber; }
-  void SetNumberNode(Token value) { value_ = value; }
-  virtual ~NumberNode() = default;
-
- private:
-  Token value_;
-};
-
-class UnaryNode : public ExprNode {
- public:
-  enum class Operator {
-    kPostInc,
-    kPostDec,
-    kPreInc,
-    kPreDec,
-    kAddrOf,
-    kDeref,
-    kPlus,
-    kMinus,
-    kNot,
-    kLNot,
-  };
-
-  UnaryNode() { type_ = StmtType::kUnary; }
-  void SetUnaryNode(Operator op, ExprNode expr) {
-    op_ = op;
-    expr_ = expr;
-  }
-  virtual ~UnaryNode() = default;
-
- private:
-  Operator op_;
-  ExprNode expr_;
-};
-
-class BinaryNode : public ExprNode {
- public:
-  enum class Operator {
-    kAdd,
-    kSub,
-    kMul,
-    kDiv,
-    kRem,
-    kAnd,
-    kOr,
-    kXor,
-    kShl,
-    kShr,
-    kLT,
-    kGT,
-    kLE,
-    kGE,
-    kEQ,
-    kNE,
-    kLAnd,
-    kLOr,
-    kAssign,
-    kAddAssign,
-    kSubAssign,
-    kMulAssign,
-    kDivAssign,
-    kRemAssign,
-    kAndAssign,
-    kOrAssign,
-    kXorAssign,
-    kShlAssign,
-    kShrAssign,
-    kComma
-  };
-
-  BinaryNode() { type_ = StmtType::kBinary; }
-  void SetBinaryNode(Operator op, ExprNode left, ExprNode right) {
-    op_ = op;
-    left_ = left;
-    right_ = right;
-  }
-  virtual ~BinaryNode() = default;
-
- private:
-  Operator op_;
-  ExprNode left_;
-  ExprNode right_;
-};
-
-class ConditionalNode : public ExprNode {
- public:
-  ConditionalNode() { type_ = StmtType::kConditional; }
-  void SetConditionalNode(ExprNode condition, ExprNode true_expr,
-                          ExprNode false_expr) {
-    condition_ = condition;
-    true_expr_ = true_expr;
-    false_expr_ = false_expr;
-  }
-  virtual ~ConditionalNode() = default;
-
- private:
-  ExprNode condition_;
-  ExprNode true_expr_;
-  ExprNode false_expr_;
-};
-
-class FuncNode : public ExprNode {
- public:
-  FuncNode() { type_ = StmtType::kFunc; }
-  void SetFuncNode(Token name, std::vector<ExprNode> params) {
-    name_ = name;
-    params_ = params;
-  }
-  virtual ~FuncNode() = default;
-
- private:
-  Token name_;
-  std::vector<ExprNode> params_;
-};
-
-class VarNode : public ExprNode {
- public:
-  VarNode() { type_ = StmtType::kVar; }
-  void SetVarNode(Token name) { name_ = name; }
-  virtual ~VarNode() = default;
-
- private:
-  Token name_;
-};
-
-class DeclNode : public StmtNode {
- public:
-  DeclNode() { type_ = StmtType::kDecl; }
-  virtual ~DeclNode() = default;
-};
-
-class VarDeclNode : public DeclNode {
- public:
-  VarDeclNode() { type_ = StmtType::kVarDecl; }
-  void SetVarDeclNode(std::vector<Token> type, Token name) {
-    var_type_ = type;
-    name_ = name;
-    value_.push_back(ExprNode());
-  }
-  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode value) {
-    var_type_ = type;
-    name_ = name;
-    value_.push_back(value);
-  }
-  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode size,
-                      std::vector<ExprNode> value) {
-    var_type_ = type;
-    name_ = name;
-    is_array_ = true;
-    size_ = size;
-    value_ = value;
-  }
-
-  virtual ~VarDeclNode() = default;
-
- private:
-  std::vector<Token> var_type_;
-  Token name_;
-  bool is_array_ = false;
-  ExprNode size_;
-  std::vector<ExprNode> value_;
-};
-
-class FuncDeclNode : public DeclNode {
- public:
-  FuncDeclNode() { type_ = StmtType::kFuncDecl; }
-  void SetFuncDeclNode(std::vector<Token> type, Token name,
-                       std::vector<ExprNode> args,
-                       std::vector<StmtNode> stmts) {
-    return_type_ = type;
-    name_ = name;
-    args_ = args;
-    stmts_ = stmts;
-  }
-  virtual ~FuncDeclNode() = default;
-
- private:
-  std::vector<Token> return_type_;
-  Token name_;
-  std::vector<ExprNode> args_;
-  std::vector<StmtNode> stmts_;
-};
-
-class FuncInvokeNode : public ExprNode {
- public:
-  FuncInvokeNode() { type_ = StmtType::kFuncInvoke; }
-  void SetFuncInvokeNode(Token name, std::vector<ExprNode> args) {
-    name_ = name;
-    args_ = args;
-  }
-  virtual ~FuncInvokeNode() = default;
-
- private:
-  Token name_;
-  std::vector<ExprNode> args_;
-};
-
-class IfNode : public StmtNode {
- public:
-  IfNode() { type_ = StmtType::kIf; }
-  void SetIfNode(ExprNode condition, std::vector<StmtNode> body) {
-    condition_ = condition;
-    body_ = body;
-  }
-
- private:
-  ExprNode condition_;
-  std::vector<StmtNode> body_;
-};
-
-class CastNode : public ExprNode {
- public:
-  CastNode() { type_ = StmtType::kCast; }
-  void SetCastNode(std::vector<Token> type, ExprNode expr) {
-    cast_type_ = type;
-    expr_ = expr;
-  }
-  virtual ~CastNode() = default;
-
- private:
-  std::vector<Token> cast_type_;
-  ExprNode expr_;
-};
-
 class Parser {
  public:
+  class Type {
+   public:
+    enum class TypeType { kBase, kPointer, kArray };
+
+    enum class BaseType {
+      kVoid,
+      kBool,
+      kChar,
+      kShort,
+      kInt,
+      kLong,
+      kFloat,
+      kDouble,
+      kStruct,
+      kUnion,
+      kEnum,
+      kPointer,
+      kArray,
+      kFunction,
+      kTypedef,
+      kAuto
+    };
+
+    Type() { type_ = TypeType::kBase; }
+    virtual void SetType(BaseType type) { type_data_ = type; }
+    virtual ~Type() = default;
+
+    TypeType GetType() { return type_; }
+
+   protected:
+    TypeType type_;
+
+   private:
+    BaseType type_data_;
+  };
+
+  class PointerType : public Type {
+   public:
+    PointerType() { type_ = TypeType::kPointer; }
+    virtual void SetType(Type type) {
+      type_ = TypeType::kPointer;
+      type_data_ = type;
+    }
+    virtual ~PointerType() = default;
+
+   private:
+    Type type_data_;
+  };
+
+  class ArrayType : public Type {
+   public:
+    ArrayType() { type_ = TypeType::kArray; }
+    virtual void SetType(Type type, int size) {
+      type_ = TypeType::kArray;
+      type_data_ = type;
+      size_ = size;
+    }
+    virtual ~ArrayType() = default;
+
+    int GetSize() { return size_; }
+
+   private:
+    int size_;
+    Type type_data_;
+  };
+
+  class StmtNode {
+   public:
+    StmtNode() { type_ = StmtType::kStmt; }
+    virtual ~StmtNode() = default;
+
+    enum class StmtType {
+      kStmt,
+      kDecl,
+      kExpr,
+      kFuncDecl,
+      kVarDecl,
+      kFuncInvoke,
+      kAssign,
+      kIf,
+      kNumber,
+      kVar,
+      kUnary,
+      kBinary,
+      kConditional,
+      kFunc,
+      kCast
+    };
+
+    StmtType GetType() { return type_; }
+
+   protected:
+    StmtType type_;
+    std::vector<StmtNode> stmts_;
+  };
+
+  class ExprNode : public StmtNode {
+   public:
+    ExprNode() { type_ = StmtType::kExpr; }
+    virtual ~ExprNode() = default;
+  };
+
+  class NumberNode : public ExprNode {
+   public:
+    NumberNode() { type_ = StmtType::kNumber; }
+    void SetNumberNode(Token value) { value_ = value; }
+    virtual ~NumberNode() = default;
+
+   private:
+    Token value_;
+  };
+
+  class UnaryNode : public ExprNode {
+   public:
+    enum class Operator {
+      kPostInc,
+      kPostDec,
+      kPreInc,
+      kPreDec,
+      kAddrOf,
+      kDeref,
+      kPlus,
+      kMinus,
+      kNot,
+      kLNot,
+    };
+
+    UnaryNode() { type_ = StmtType::kUnary; }
+    void SetUnaryNode(Operator op, ExprNode expr) {
+      op_ = op;
+      expr_ = expr;
+    }
+    virtual ~UnaryNode() = default;
+
+   private:
+    Operator op_;
+    ExprNode expr_;
+  };
+
+  class BinaryNode : public ExprNode {
+   public:
+    enum class Operator {
+      kAdd,
+      kSub,
+      kMul,
+      kDiv,
+      kRem,
+      kAnd,
+      kOr,
+      kXor,
+      kShl,
+      kShr,
+      kLT,
+      kGT,
+      kLE,
+      kGE,
+      kEQ,
+      kNE,
+      kLAnd,
+      kLOr,
+      kAssign,
+      kAddAssign,
+      kSubAssign,
+      kMulAssign,
+      kDivAssign,
+      kRemAssign,
+      kAndAssign,
+      kOrAssign,
+      kXorAssign,
+      kShlAssign,
+      kShrAssign,
+      kComma
+    };
+
+    BinaryNode() { type_ = StmtType::kBinary; }
+    void SetBinaryNode(Operator op, ExprNode left, ExprNode right) {
+      op_ = op;
+      left_ = left;
+      right_ = right;
+    }
+    virtual ~BinaryNode() = default;
+
+   private:
+    Operator op_;
+    ExprNode left_;
+    ExprNode right_;
+  };
+
+  class ConditionalNode : public ExprNode {
+   public:
+    ConditionalNode() { type_ = StmtType::kConditional; }
+    void SetConditionalNode(ExprNode condition, ExprNode true_expr,
+                            ExprNode false_expr) {
+      condition_ = condition;
+      true_expr_ = true_expr;
+      false_expr_ = false_expr;
+    }
+    virtual ~ConditionalNode() = default;
+
+   private:
+    ExprNode condition_;
+    ExprNode true_expr_;
+    ExprNode false_expr_;
+  };
+
+  class FuncNode : public ExprNode {
+   public:
+    FuncNode() { type_ = StmtType::kFunc; }
+    void SetFuncNode(Token name, std::vector<ExprNode> params) {
+      name_ = name;
+      params_ = params;
+    }
+    virtual ~FuncNode() = default;
+
+   private:
+    Token name_;
+    std::vector<ExprNode> params_;
+  };
+
+  class VarNode : public ExprNode {
+   public:
+    VarNode() { type_ = StmtType::kVar; }
+    void SetVarNode(Token name) { name_ = name; }
+    virtual ~VarNode() = default;
+
+   private:
+    Token name_;
+  };
+
+  class DeclNode : public StmtNode {
+   public:
+    DeclNode() { type_ = StmtType::kDecl; }
+    virtual ~DeclNode() = default;
+  };
+
+  class VarDeclNode : public DeclNode {
+   public:
+    VarDeclNode() { type_ = StmtType::kVarDecl; }
+    void SetVarDeclNode(std::vector<Token> type, Token name) {
+      var_type_ = type;
+      name_ = name;
+      value_.push_back(ExprNode());
+    }
+    void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode value) {
+      var_type_ = type;
+      name_ = name;
+      value_.push_back(value);
+    }
+    void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode size,
+                        std::vector<ExprNode> value) {
+      var_type_ = type;
+      name_ = name;
+      is_array_ = true;
+      size_ = size;
+      value_ = value;
+    }
+
+    virtual ~VarDeclNode() = default;
+
+   private:
+    std::vector<Token> var_type_;
+    Token name_;
+    bool is_array_ = false;
+    ExprNode size_;
+    std::vector<ExprNode> value_;
+  };
+
+  class FuncDeclNode : public DeclNode {
+   public:
+    FuncDeclNode() { type_ = StmtType::kFuncDecl; }
+    void SetFuncDeclNode(std::vector<Token> type, Token name,
+                         std::vector<ExprNode> args,
+                         std::vector<StmtNode> stmts) {
+      return_type_ = type;
+      name_ = name;
+      args_ = args;
+      stmts_ = stmts;
+    }
+    virtual ~FuncDeclNode() = default;
+
+   private:
+    std::vector<Token> return_type_;
+    Token name_;
+    std::vector<ExprNode> args_;
+    std::vector<StmtNode> stmts_;
+  };
+
+  class FuncInvokeNode : public ExprNode {
+   public:
+    FuncInvokeNode() { type_ = StmtType::kFuncInvoke; }
+    void SetFuncInvokeNode(Token name, std::vector<ExprNode> args) {
+      name_ = name;
+      args_ = args;
+    }
+    virtual ~FuncInvokeNode() = default;
+
+   private:
+    Token name_;
+    std::vector<ExprNode> args_;
+  };
+
+  class IfNode : public StmtNode {
+   public:
+    IfNode() { type_ = StmtType::kIf; }
+    void SetIfNode(ExprNode condition, std::vector<StmtNode> body) {
+      condition_ = condition;
+      body_ = body;
+    }
+
+   private:
+    ExprNode condition_;
+    std::vector<StmtNode> body_;
+  };
+
+  class CastNode : public ExprNode {
+   public:
+    CastNode() { type_ = StmtType::kCast; }
+    void SetCastNode(std::vector<Token> type, ExprNode expr) {
+      cast_type_ = type;
+      expr_ = expr;
+    }
+    virtual ~CastNode() = default;
+
+   private:
+    std::vector<Token> cast_type_;
+    ExprNode expr_;
+  };
+
   Parser();
   ~Parser();
   std::vector<StmtNode> Parse(std::vector<Token> token);
