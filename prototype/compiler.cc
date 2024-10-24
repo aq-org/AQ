@@ -965,6 +965,7 @@ class Type {
 
  protected:
   TypeType type_;
+
  private:
   BaseType type_data_;
 };
@@ -972,20 +973,20 @@ class Type {
 class PointerType : public Type {
  public:
   PointerType() { type_ = TypeType::kPointer; }
-  virtual void SetType(Type type) {
+  virtual void SetType(Type* type) {
     type_ = TypeType::kPointer;
     type_data_ = type;
   }
   virtual ~PointerType() = default;
 
  private:
-  Type type_data_;
+  Type* type_data_;
 };
 
 class ArrayType : public Type {
  public:
   ArrayType() { type_ = TypeType::kArray; }
-  virtual void SetType(Type type, int size) {
+  virtual void SetType(Type* type, int size) {
     type_ = TypeType::kArray;
     type_data_ = type;
     size_ = size;
@@ -996,7 +997,7 @@ class ArrayType : public Type {
 
  private:
   int size_;
-  Type type_data_;
+  Type* type_data_;
 };
 
 class StmtNode {
@@ -1026,7 +1027,7 @@ class StmtNode {
 
  protected:
   StmtType type_;
-  std::vector<StmtNode> stmts_;
+  std::vector<StmtNode*> stmts_;
 };
 
 class ExprNode : public StmtNode {
@@ -1061,7 +1062,7 @@ class UnaryNode : public ExprNode {
   };
 
   UnaryNode() { type_ = StmtType::kUnary; }
-  void SetUnaryNode(Operator op, ExprNode expr) {
+  void SetUnaryNode(Operator op, ExprNode* expr) {
     op_ = op;
     expr_ = expr;
   }
@@ -1069,7 +1070,7 @@ class UnaryNode : public ExprNode {
 
  private:
   Operator op_;
-  ExprNode expr_;
+  ExprNode* expr_;
 };
 
 class BinaryNode : public ExprNode {
@@ -1108,7 +1109,7 @@ class BinaryNode : public ExprNode {
   };
 
   BinaryNode() { type_ = StmtType::kBinary; }
-  void SetBinaryNode(Operator op, ExprNode left, ExprNode right) {
+  void SetBinaryNode(Operator op, ExprNode* left, ExprNode* right) {
     op_ = op;
     left_ = left;
     right_ = right;
@@ -1117,15 +1118,15 @@ class BinaryNode : public ExprNode {
 
  private:
   Operator op_;
-  ExprNode left_;
-  ExprNode right_;
+  ExprNode* left_;
+  ExprNode* right_;
 };
 
 class ConditionalNode : public ExprNode {
  public:
   ConditionalNode() { type_ = StmtType::kConditional; }
-  void SetConditionalNode(ExprNode condition, ExprNode true_expr,
-                          ExprNode false_expr) {
+  void SetConditionalNode(ExprNode* condition, ExprNode* true_expr,
+                          ExprNode* false_expr) {
     condition_ = condition;
     true_expr_ = true_expr;
     false_expr_ = false_expr;
@@ -1133,15 +1134,15 @@ class ConditionalNode : public ExprNode {
   virtual ~ConditionalNode() = default;
 
  private:
-  ExprNode condition_;
-  ExprNode true_expr_;
-  ExprNode false_expr_;
+  ExprNode* condition_;
+  ExprNode* true_expr_;
+  ExprNode* false_expr_;
 };
 
 class FuncNode : public ExprNode {
  public:
   FuncNode() { type_ = StmtType::kFunc; }
-  void SetFuncNode(Token name, std::vector<ExprNode> params) {
+  void SetFuncNode(Token name, std::vector<ExprNode*> params) {
     name_ = name;
     params_ = params;
   }
@@ -1149,7 +1150,7 @@ class FuncNode : public ExprNode {
 
  private:
   Token name_;
-  std::vector<ExprNode> params_;
+  std::vector<ExprNode*> params_;
 };
 
 class VarNode : public ExprNode {
@@ -1174,15 +1175,15 @@ class VarDeclNode : public DeclNode {
   void SetVarDeclNode(std::vector<Token> type, Token name) {
     var_type_ = type;
     name_ = name;
-    value_.push_back(ExprNode());
+    value_.push_back(new ExprNode());
   }
-  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode value) {
+  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode* value) {
     var_type_ = type;
     name_ = name;
     value_.push_back(value);
   }
-  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode size,
-                      std::vector<ExprNode> value) {
+  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode* size,
+                      std::vector<ExprNode*> value) {
     var_type_ = type;
     name_ = name;
     is_array_ = true;
@@ -1196,16 +1197,16 @@ class VarDeclNode : public DeclNode {
   std::vector<Token> var_type_;
   Token name_;
   bool is_array_ = false;
-  ExprNode size_;
-  std::vector<ExprNode> value_;
+  ExprNode* size_;
+  std::vector<ExprNode*> value_;
 };
 
 class FuncDeclNode : public DeclNode {
  public:
   FuncDeclNode() { type_ = StmtType::kFuncDecl; }
   void SetFuncDeclNode(std::vector<Token> type, Token name,
-                       std::vector<ExprNode> args,
-                       std::vector<StmtNode> stmts) {
+                       std::vector<ExprNode*> args,
+                       std::vector<StmtNode*> stmts) {
     return_type_ = type;
     name_ = name;
     args_ = args;
@@ -1216,14 +1217,14 @@ class FuncDeclNode : public DeclNode {
  private:
   std::vector<Token> return_type_;
   Token name_;
-  std::vector<ExprNode> args_;
-  std::vector<StmtNode> stmts_;
+  std::vector<ExprNode*> args_;
+  std::vector<StmtNode*> stmts_;
 };
 
 class FuncInvokeNode : public ExprNode {
  public:
   FuncInvokeNode() { type_ = StmtType::kFuncInvoke; }
-  void SetFuncInvokeNode(Token name, std::vector<ExprNode> args) {
+  void SetFuncInvokeNode(Token name, std::vector<ExprNode*> args) {
     name_ = name;
     args_ = args;
   }
@@ -1231,26 +1232,26 @@ class FuncInvokeNode : public ExprNode {
 
  private:
   Token name_;
-  std::vector<ExprNode> args_;
+  std::vector<ExprNode*> args_;
 };
 
 class IfNode : public StmtNode {
  public:
   IfNode() { type_ = StmtType::kIf; }
-  void SetIfNode(ExprNode condition, std::vector<StmtNode> body) {
+  void SetIfNode(ExprNode condition, std::vector<StmtNode*> body) {
     condition_ = condition;
     body_ = body;
   }
 
  private:
   ExprNode condition_;
-  std::vector<StmtNode> body_;
+  std::vector<StmtNode*> body_;
 };
 
 class CastNode : public ExprNode {
  public:
   CastNode() { type_ = StmtType::kCast; }
-  void SetCastNode(std::vector<Token> type, ExprNode expr) {
+  void SetCastNode(std::vector<Token> type, ExprNode* expr) {
     cast_type_ = type;
     expr_ = expr;
   }
@@ -1258,7 +1259,7 @@ class CastNode : public ExprNode {
 
  private:
   std::vector<Token> cast_type_;
-  ExprNode expr_;
+  ExprNode* expr_;
 };
 
 class Parser {
@@ -1394,7 +1395,30 @@ size_t Parser::ParseFuncDecl(Token* token, size_t length,
                          std::vector<StmtNode>());
 }
 
-size_t ParseExpr(Token* token, size_t length, ExprNode& result) {}
+size_t ParseExpr(Token* token, size_t length, ExprNode& result) {
+  size_t index = 0;
+  std::vector<ExprNode> buffer;
+  while (index >= length) {
+    if (token[index].type == Token::Type::OPERATOR) {
+      switch (token[index].value._operator) {
+        case Token::OperatorType::amp:
+        case Token::OperatorType::star:
+        case Token::OperatorType::plus:
+        case Token::OperatorType::plusplus:
+        case Token::OperatorType::minus:
+        case Token::OperatorType::minusminus:
+        case Token::OperatorType::tilde:
+        case Token::OperatorType::exclaim:
+        default:
+          break;
+      }
+    } else if (token[index].type == Token::Type::IDENTIFIER) {
+      VarNode varnode;
+      varnode.SetVarNode(token[index]);
+      buffer.push_back(varnode);
+    }
+  }
+}
 
 }  // namespace Compiler
 }  // namespace Aq
