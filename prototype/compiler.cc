@@ -7,6 +7,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -973,22 +974,22 @@ class Type {
 class PointerType : public Type {
  public:
   PointerType() { type_ = TypeType::kPointer; }
-  virtual void SetType(Type* type) {
+  virtual void SetType(std::unique_ptr<Type> type) {
     type_ = TypeType::kPointer;
-    type_data_ = type;
+    type_data_ = std::move(type);
   }
   virtual ~PointerType() = default;
 
  private:
-  Type* type_data_;
+  std::unique_ptr<Type> type_data_;
 };
 
 class ArrayType : public Type {
  public:
   ArrayType() { type_ = TypeType::kArray; }
-  virtual void SetType(Type* type, int size) {
+  virtual void SetType(std::unique_ptr<Type> type, int size) {
     type_ = TypeType::kArray;
-    type_data_ = type;
+    type_data_ = std::move(type);
     size_ = size;
   }
   virtual ~ArrayType() = default;
@@ -997,7 +998,7 @@ class ArrayType : public Type {
 
  private:
   int size_;
-  Type* type_data_;
+  std::unique_ptr<Type> type_data_;
 };
 
 class StmtNode {
@@ -1027,7 +1028,7 @@ class StmtNode {
 
  protected:
   StmtType type_;
-  std::vector<StmtNode*> stmts_;
+  std::vector<std::unique_ptr<StmtNode>> stmts_;
 };
 
 class ExprNode : public StmtNode {
@@ -1062,15 +1063,15 @@ class UnaryNode : public ExprNode {
   };
 
   UnaryNode() { type_ = StmtType::kUnary; }
-  void SetUnaryNode(Operator op, ExprNode* expr) {
+  void SetUnaryNode(Operator op, std::unique_ptr<ExprNode> expr) {
     op_ = op;
-    expr_ = expr;
+    expr_ = std::move(expr);
   }
   virtual ~UnaryNode() = default;
 
  private:
   Operator op_;
-  ExprNode* expr_;
+  std::unique_ptr<ExprNode> expr_;
 };
 
 class BinaryNode : public ExprNode {
@@ -1109,40 +1110,42 @@ class BinaryNode : public ExprNode {
   };
 
   BinaryNode() { type_ = StmtType::kBinary; }
-  void SetBinaryNode(Operator op, ExprNode* left, ExprNode* right) {
+  void SetBinaryNode(Operator op, std::unique_ptr<ExprNode> left,
+                     std::unique_ptr<ExprNode> right) {
     op_ = op;
-    left_ = left;
-    right_ = right;
+    left_ = std::move(left);
+    right_ = std::move(right);
   }
   virtual ~BinaryNode() = default;
 
  private:
   Operator op_;
-  ExprNode* left_;
-  ExprNode* right_;
+  std::unique_ptr<ExprNode> left_;
+  std::unique_ptr<ExprNode> right_;
 };
 
 class ConditionalNode : public ExprNode {
  public:
   ConditionalNode() { type_ = StmtType::kConditional; }
-  void SetConditionalNode(ExprNode* condition, ExprNode* true_expr,
-                          ExprNode* false_expr) {
-    condition_ = condition;
-    true_expr_ = true_expr;
-    false_expr_ = false_expr;
+  void SetConditionalNode(std::unique_ptr<ExprNode> condition,
+                          std::unique_ptr<ExprNode> true_expr,
+                          std::unique_ptr<ExprNode> false_expr) {
+    condition_ = std::move(condition);
+    true_expr_ = std::move(true_expr);
+    false_expr_ = std::move(false_expr);
   }
   virtual ~ConditionalNode() = default;
 
  private:
-  ExprNode* condition_;
-  ExprNode* true_expr_;
-  ExprNode* false_expr_;
+  std::unique_ptr<ExprNode> condition_;
+  std::unique_ptr<ExprNode> true_expr_;
+  std::unique_ptr<ExprNode> false_expr_;
 };
 
 class FuncNode : public ExprNode {
  public:
   FuncNode() { type_ = StmtType::kFunc; }
-  void SetFuncNode(Token name, std::vector<ExprNode*> params) {
+  void SetFuncNode(Token name, std::vector<std::unique_ptr<ExprNode>> params) {
     name_ = name;
     params_ = params;
   }
@@ -1150,7 +1153,7 @@ class FuncNode : public ExprNode {
 
  private:
   Token name_;
-  std::vector<ExprNode*> params_;
+  std::vector<std::unique_ptr<ExprNode>> params_;
 };
 
 class VarNode : public ExprNode {
@@ -1175,19 +1178,21 @@ class VarDeclNode : public DeclNode {
   void SetVarDeclNode(std::vector<Token> type, Token name) {
     var_type_ = type;
     name_ = name;
-    value_.push_back(new ExprNode());
+    value_.push_back(std::unique_ptr<ExprNode>(new ExprNode()));
   }
-  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode* value) {
+  void SetVarDeclNode(std::vector<Token> type, Token name,
+                      std::unique_ptr<ExprNode> value) {
     var_type_ = type;
     name_ = name;
     value_.push_back(value);
   }
-  void SetVarDeclNode(std::vector<Token> type, Token name, ExprNode* size,
-                      std::vector<ExprNode*> value) {
+  void SetVarDeclNode(std::vector<Token> type, Token name,
+                      std::unique_ptr<ExprNode> size,
+                      std::vector<std::unique_ptr<ExprNode>> value) {
     var_type_ = type;
     name_ = name;
     is_array_ = true;
-    size_ = size;
+    size_ = std::move(size);
     value_ = value;
   }
 
@@ -1197,16 +1202,16 @@ class VarDeclNode : public DeclNode {
   std::vector<Token> var_type_;
   Token name_;
   bool is_array_ = false;
-  ExprNode* size_;
-  std::vector<ExprNode*> value_;
+  std::unique_ptr<ExprNode> size_;
+  std::vector<std::unique_ptr<ExprNode>> value_;
 };
 
 class FuncDeclNode : public DeclNode {
  public:
   FuncDeclNode() { type_ = StmtType::kFuncDecl; }
   void SetFuncDeclNode(std::vector<Token> type, Token name,
-                       std::vector<ExprNode*> args,
-                       std::vector<StmtNode*> stmts) {
+                       std::vector<std::unique_ptr<ExprNode>> args,
+                       std::vector<std::unique_ptr<ExprNode>> stmts) {
     return_type_ = type;
     name_ = name;
     args_ = args;
@@ -1217,14 +1222,15 @@ class FuncDeclNode : public DeclNode {
  private:
   std::vector<Token> return_type_;
   Token name_;
-  std::vector<ExprNode*> args_;
-  std::vector<StmtNode*> stmts_;
+  std::vector<std::unique_ptr<ExprNode>> args_;
+  std::vector<std::unique_ptr<ExprNode>> stmts_;
 };
 
 class FuncInvokeNode : public ExprNode {
  public:
   FuncInvokeNode() { type_ = StmtType::kFuncInvoke; }
-  void SetFuncInvokeNode(Token name, std::vector<ExprNode*> args) {
+  void SetFuncInvokeNode(Token name,
+                         std::vector<std::unique_ptr<ExprNode>> args) {
     name_ = name;
     args_ = args;
   }
@@ -1232,34 +1238,35 @@ class FuncInvokeNode : public ExprNode {
 
  private:
   Token name_;
-  std::vector<ExprNode*> args_;
+  std::vector<std::unique_ptr<ExprNode>> args_;
 };
 
 class IfNode : public StmtNode {
  public:
   IfNode() { type_ = StmtType::kIf; }
-  void SetIfNode(ExprNode condition, std::vector<StmtNode*> body) {
+  void SetIfNode(ExprNode condition,
+                 std::vector<std::unique_ptr<StmtNode>> body) {
     condition_ = condition;
     body_ = body;
   }
 
  private:
   ExprNode condition_;
-  std::vector<StmtNode*> body_;
+  std::vector<std::unique_ptr<StmtNode>> body_;
 };
 
 class CastNode : public ExprNode {
  public:
   CastNode() { type_ = StmtType::kCast; }
-  void SetCastNode(std::vector<Token> type, ExprNode* expr) {
+  void SetCastNode(std::vector<Token> type, std::unique_ptr<ExprNode> expr) {
     cast_type_ = type;
-    expr_ = expr;
+    expr_ = std::move(expr);
   }
   virtual ~CastNode() = default;
 
  private:
   std::vector<Token> cast_type_;
-  ExprNode* expr_;
+  std::unique_ptr<ExprNode> expr_;
 };
 
 class Parser {
@@ -1391,8 +1398,8 @@ size_t Parser::ParseFuncDecl(Token* token, size_t length,
     index++;
   }
 
-  result.SetFuncDeclNode(type, token[index], std::vector<ExprNode>(),
-                         std::vector<StmtNode>());
+  /*result.SetFuncDeclNode(type, token[index], std::vector<std::unique_ptr<ExprNode>>(),
+                         std::vector<std::unique_ptr<StmtNode>>());*/
 }
 
 size_t ParseExpr(Token* token, size_t length, ExprNode& result) {
