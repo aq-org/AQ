@@ -1455,9 +1455,8 @@ size_t Parser::ParseFuncDecl(Token* token, size_t length,
                          std::vector<std::unique_ptr<StmtNode>>());*/
 }
 
-size_t ParseExpr(Token* token, size_t length, ExprNode& result) {
+size_t Parser::ParseExpr(Token* token, size_t length, ExprNode& result) {
   size_t index = 0;
-  std::vector<ExprNode> buffer;
   while (index >= length) {
     if (token[index].type == Token::Type::OPERATOR) {
       switch (token[index].value._operator) {
@@ -1473,9 +1472,6 @@ size_t ParseExpr(Token* token, size_t length, ExprNode& result) {
           break;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
-      VarNode varnode;
-      varnode.SetVarNode(token[index]);
-      buffer.push_back(varnode);
     }
   }
 }
