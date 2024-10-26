@@ -1030,7 +1030,8 @@ class StmtNode {
     kBinary,
     kConditional,
     kFunc,
-    kCast
+    kCast,
+    kArrayDecl
   };
 
   StmtType GetType() { return type_; }
@@ -1212,24 +1213,15 @@ class DeclNode : public StmtNode {
 class VarDeclNode : public DeclNode {
  public:
   VarDeclNode() { type_ = StmtType::kVarDecl; }
-  /*void SetVarDeclNode(std::vector<Token> type, Token name) {
+  void SetVarDeclNode(std::vector<Token> type, Token name) {
     var_type_ = type;
     name_ = name;
-    value_.push_back(std::unique_ptr<ExprNode>(new ExprNode()));
-  }*/
-  /*void SetVarDeclNode(std::vector<Token> type, Token name,
-                      std::unique_ptr<ExprNode>&& value) {
-    var_type_ = type;
-    name_ = name;
-    value_.push_back(value);
-  }*/
+    value_.push_back(std::make_unique<ExprNode>());
+  }
   void SetVarDeclNode(std::vector<Token> type, Token name,
-                      std::unique_ptr<ExprNode>&& size,
                       std::vector<std::unique_ptr<ExprNode>>&& value) {
     var_type_ = type;
     name_ = name;
-    is_array_ = true;
-    size_ = std::move(size);
     value_ = std::move(value);
   }
 
@@ -1238,12 +1230,38 @@ class VarDeclNode : public DeclNode {
   VarDeclNode(const VarDeclNode&) = delete;
   VarDeclNode& operator=(const VarDeclNode&) = delete;
 
- private:
+ protected:
   std::vector<Token> var_type_;
   Token name_;
-  bool is_array_ = false;
-  std::unique_ptr<ExprNode> size_;
   std::vector<std::unique_ptr<ExprNode>> value_;
+};
+
+class ArrayDeclNode : public VarDeclNode {
+ public:
+  ArrayDeclNode() { type_ = StmtType::kArrayDecl; }
+  void SetArrayDeclNode(std::vector<Token> type, Token name,
+                        std::unique_ptr<ExprNode>&& size) {
+    var_type_ = type;
+    name_ = name;
+    size_ = std::move(size);
+    value_.push_back(std::make_unique<ExprNode>());
+  }
+  void SetArrayDeclNode(std::vector<Token> type, Token name,
+                        std::unique_ptr<ExprNode>&& size,
+                        std::vector<std::unique_ptr<ExprNode>>&& value) {
+    var_type_ = type;
+    name_ = name;
+    size_ = std::move(size);
+    value_ = std::move(value);
+  }
+
+  virtual ~ArrayDeclNode() = default;
+
+  ArrayDeclNode(const ArrayDeclNode&) = delete;
+  ArrayDeclNode& operator=(const ArrayDeclNode&) = delete;
+
+ private:
+  std::unique_ptr<ExprNode> size_;
 };
 
 class FuncDeclNode : public DeclNode {
