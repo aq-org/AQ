@@ -1351,6 +1351,10 @@ class Parser {
   size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode& result);
   size_t ParseExpr(Token* token, size_t length,
                    std::unique_ptr<ExprNode>& result);
+  size_t ParsePrimaryExpr(Token* token, size_t length,
+                          std::unique_ptr<ExprNode>& result);
+  size_t ParseFullExpr(Token* token, size_t length,
+                       std::unique_ptr<ExprNode>& result);
 };
 
 Parser::Parser() = default;
@@ -1478,7 +1482,7 @@ size_t Parser::ParseExpr(Token* token, size_t length,
                          std::unique_ptr<ExprNode>& result) {
   size_t index = 0;
   std::vector<std::unique_ptr<ExprNode>> exprs;
-  while (index >= length) {
+  while (index <= length) {
     if (token[index].type == Token::Type::OPERATOR) {
       switch (token[index].value._operator) {
         case Token::OperatorType::NONE:
@@ -1604,6 +1608,91 @@ size_t Parser::ParseExpr(Token* token, size_t length,
     }
   }
 }
+
+size_t Parser::ParsePrimaryExpr(Token* token, size_t length,
+                                std::unique_ptr<ExprNode>& result) {
+  size_t index = 0;
+  enum class State { kPreOper, kPostOper, kEnd };
+  State state = State::kPreOper;
+  std::unique_ptr<UnaryNode> expr;
+  while (state != State::kEnd && index <= length) {
+    if (token[index].type == Token::Type::OPERATOR) {
+      switch (token[index].value._operator) {
+        case Token::OperatorType::amp:  // &
+          if (state == State::kPreOper) {
+            expr->SetUnaryNode(UnaryNode::Operator::kAddrOf,
+                               std::make_unique<ExprNode>());
+            break;
+          }
+          state = State::kEnd;
+          break;
+        case Token::OperatorType::star:  // *
+          if (state == State::kPreOper) {
+            expr->SetUnaryNode(UnaryNode::Operator::kDeref,
+                               std::make_unique<ExprNode>());
+            break;
+          }
+          state = State::kEnd;
+          break;
+        case Token::OperatorType::plus:  // +
+          if (state == State::kPreOper) {
+            expr->SetUnaryNode(UnaryNode::Operator::kPlus,
+                               std::make_unique<ExprNode>());
+            break;
+          }
+          state = State::kEnd;
+          break;
+        case Token::OperatorType::minus:  // -
+          if (state == State::kPreOper) {
+            expr->SetUnaryNode(UnaryNode::Operator::kMinus,
+                               std::make_unique<ExprNode>());
+            break;
+          }
+          state = State::kEnd;
+          break;
+
+        case Token::OperatorType::l_square:  // [
+          break;
+        case Token::OperatorType::r_square:  // ]
+          break;
+        case Token::OperatorType::l_paren:  // (
+          break;
+        case Token::OperatorType::r_paren:  // )
+          break;
+        case Token::OperatorType::l_brace:  // {
+          break;
+        case Token::OperatorType::r_brace:  // }
+          break;
+        case Token::OperatorType::period:  // .
+          break;
+        case Token::OperatorType::arrow:  // ->
+          break;
+        case Token::OperatorType::minusminus:  // --
+          break;
+        case Token::OperatorType::tilde:  // ~
+          break;
+        case Token::OperatorType::exclaim:  // !
+          break;
+        case Token::OperatorType::question:  // ?
+          break;
+        case Token::OperatorType::colon:  // :
+          break;
+        case Token::OperatorType::periodstar:  // .*
+          break;
+        case Token::OperatorType::arrowstar:  // ->*
+          break;
+        case Token::OperatorType::coloncolon:  // ::
+          break;
+        default:
+          break;
+      }
+    } else if (token[index].type == Token::Type::IDENTIFIER) {
+    }
+  }
+}
+
+size_t Parser::ParseFullExpr(Token* token, size_t length,
+                             std::unique_ptr<ExprNode>& result) {}
 
 }  // namespace Compiler
 }  // namespace Aq
