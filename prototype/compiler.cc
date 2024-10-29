@@ -1028,7 +1028,8 @@ class StmtNode {
     kConditional,
     kFunc,
     kCast,
-    kArrayDecl
+    kArrayDecl,
+    kArray
   };
 
   StmtType GetType() { return type_; }
@@ -1076,6 +1077,7 @@ class UnaryNode : public ExprNode {
     kMinus,
     kNot,
     kLNot,
+    ARRAY
   };
 
   UnaryNode() { type_ = StmtType::kUnary; }
@@ -1083,14 +1085,36 @@ class UnaryNode : public ExprNode {
     op_ = op;
     expr_ = expr;
   }
+
+  Operator GetOperator() { return op_; }
+
   virtual ~UnaryNode() = default;
 
   UnaryNode(const UnaryNode&) = default;
   UnaryNode& operator=(const UnaryNode&) = default;
 
- private:
+ protected:
   Operator op_;
   ExprNode* expr_;
+};
+
+class ArrayNode : public UnaryNode {
+ public:
+  ArrayNode() {
+    type_ = StmtType::kArray;
+    op_ = Operator::ARRAY;
+  }
+  void SetArrayNode(ExprNode* expr, ExprNode* index) {
+    expr_ = expr;
+    index_ = index;
+  }
+  virtual ~ArrayNode() = default;
+
+  ArrayNode(const ArrayNode&) = default;
+  ArrayNode& operator=(const ArrayNode&) = default;
+
+ private:
+  ExprNode* index_;
 };
 
 class BinaryNode : public ExprNode {
@@ -1339,9 +1363,9 @@ class Parser {
   bool IsDecl(Token* token, size_t length);
   bool IsFuncDecl(Token* token, size_t length);
   size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode& result);
-  size_t ParseExpr(Token* token, size_t length, ExprNode* result);
-  size_t ParsePrimaryExpr(Token* token, size_t length, ExprNode* result);
-  size_t ParseFullExpr(Token* token, size_t length, ExprNode* result);
+  ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
+  ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
+  ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
 };
 
 Parser::Parser() = default;
@@ -1465,8 +1489,7 @@ size_t Parser::ParseFuncDecl(Token* token, size_t length,
                          std::vector<std::unique_ptr<StmtNode>>());*/
 }
 
-size_t Parser::ParseExpr(Token* token, size_t length, ExprNode* result) {
-  size_t index = 0;
+ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
   while (index <= length) {
     if (token[index].type == Token::Type::OPERATOR) {
       switch (token[index].value._operator) {
@@ -1594,48 +1617,109 @@ size_t Parser::ParseExpr(Token* token, size_t length, ExprNode* result) {
   }
 }
 
-size_t Parser::ParsePrimaryExpr(Token* token, size_t length, ExprNode* result) {
+ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
   size_t index = 0;
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
-  UnaryNode* expr;
+  ExprNode* expr = NULL;
+  ExprNode* primary = NULL;
   while (state != State::kEnd && index <= length) {
     if (token[index].type == Token::Type::OPERATOR) {
       switch (token[index].value._operator) {
         case Token::OperatorType::amp:  // &
           if (state == State::kPreOper) {
-            expr->SetUnaryNode(UnaryNode::Operator::kAddrOf, NULL);
+            UnaryNode* amp_node = new UnaryNode();
+            amp_node->SetUnaryNode(UnaryNode::Operator::kAddrOf, NULL);
+            if (expr == NULL || primary == NULL) {
+              expr = amp_node;
+              primary = amp_node;
+            } else {
+              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), amp_node);
+            }
+            index++;
             break;
           }
           state = State::kEnd;
           break;
         case Token::OperatorType::star:  // *
           if (state == State::kPreOper) {
-            expr->SetUnaryNode(UnaryNode::Operator::kDeref, NULL);
+            UnaryNode* star_node = new UnaryNode();
+            star_node->SetUnaryNode(UnaryNode::Operator::kDeref, NULL);
+            if (expr == NULL || primary == NULL) {
+              expr = star_node;
+              primary = star_node;
+            } else {
+              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), star_node);
+            }
+            index++;
             break;
           }
           state = State::kEnd;
           break;
         case Token::OperatorType::plus:  // +
           if (state == State::kPreOper) {
-            expr->SetUnaryNode(UnaryNode::Operator::kPlus, NULL);
+            UnaryNode* plus_node = new UnaryNode();
+            plus_node->SetUnaryNode(UnaryNode::Operator::kPlus, NULL);
+            if (expr == NULL || primary == NULL) {
+              expr = plus_node;
+              primary = plus_node;
+            } else {
+              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), plus_node);
+            }
+            index++;
             break;
           }
           state = State::kEnd;
           break;
         case Token::OperatorType::minus:  // -
           if (state == State::kPreOper) {
-            expr->SetUnaryNode(UnaryNode::Operator::kMinus, NULL);
+            UnaryNode* minus_node = new UnaryNode();
+            minus_node->SetUnaryNode(UnaryNode::Operator::kMinus, NULL);
+            if (expr == NULL || primary == NULL) {
+              expr = minus_node;
+              primary = minus_node;
+            } else {
+              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), minus_node);
+            }
+            index++;
             break;
           }
           state = State::kEnd;
           break;
 
         case Token::OperatorType::l_square:  // [
+          if (state == State::kPostOper) {
+            ArrayNode* array = new ArrayNode();
+            array->SetArrayNode(expr, ParseExpr(token, length, index));
+            expr = array;
+            index++;
+            break;
+          }
           break;
         case Token::OperatorType::r_square:  // ]
+          if (dynamic_cast<UnaryNode*>(expr)->GetOperator() !=
+              UnaryNode::Operator::ARRAY) {
+            state = State::kEnd;
+            break;
+          }
+          index++;
           break;
         case Token::OperatorType::l_paren:  // (
+          if (state == State::kPreOper) {
+            if (expr == NULL || primary == NULL) {
+              expr = ParseExpr(token, length, index);
+              primary = expr;
+            } else {
+              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(primary)->GetOperator(),
+                  ParseExpr(token, length, index));
+            }
+          } else if (state == State::kPostOper) {
+          }
           break;
         case Token::OperatorType::r_paren:  // )
           break;
@@ -1671,7 +1755,7 @@ size_t Parser::ParsePrimaryExpr(Token* token, size_t length, ExprNode* result) {
   }
 }
 
-size_t Parser::ParseFullExpr(Token* token, size_t length, ExprNode* result) {}
+ExprNode* Parser::ParseFullExpr(Token* token, size_t length, size_t& index) {}
 
 }  // namespace Compiler
 }  // namespace Aq
