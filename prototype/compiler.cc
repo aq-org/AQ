@@ -1231,12 +1231,12 @@ class DeclNode : public StmtNode {
 class VarDeclNode : public DeclNode {
  public:
   VarDeclNode() { type_ = StmtType::kVarDecl; }
-  void SetVarDeclNode(std::vector<Token> type, Token name) {
+  void SetVarDeclNode(Type* type, Token name) {
     var_type_ = type;
     name_ = name;
     value_.push_back(NULL);
   }
-  void SetVarDeclNode(std::vector<Token> type, Token name,
+  void SetVarDeclNode(Type* type, Token name,
                       std::vector<ExprNode*> value) {
     var_type_ = type;
     name_ = name;
@@ -1249,7 +1249,7 @@ class VarDeclNode : public DeclNode {
   VarDeclNode& operator=(const VarDeclNode&) = default;
 
  protected:
-  std::vector<Token> var_type_;
+  Type* var_type_;
   Token name_;
   std::vector<ExprNode*> value_;
 };
@@ -1257,13 +1257,13 @@ class VarDeclNode : public DeclNode {
 class ArrayDeclNode : public VarDeclNode {
  public:
   ArrayDeclNode() { type_ = StmtType::kArrayDecl; }
-  void SetArrayDeclNode(std::vector<Token> type, Token name, ExprNode* size) {
+  void SetArrayDeclNode(Type* type, Token name, ExprNode* size) {
     var_type_ = type;
     name_ = name;
     size_ = size;
     value_.push_back(new ExprNode());
   }
-  void SetArrayDeclNode(std::vector<Token> type, Token name, ExprNode* size,
+  void SetArrayDeclNode(Type* type, Token name, ExprNode* size,
                         std::vector<ExprNode*> value) {
     var_type_ = type;
     name_ = name;
@@ -1283,7 +1283,7 @@ class ArrayDeclNode : public VarDeclNode {
 class FuncDeclNode : public DeclNode {
  public:
   FuncDeclNode() { type_ = StmtType::kFuncDecl; }
-  void SetFuncDeclNode(std::vector<Token> type, Token name,
+  void SetFuncDeclNode(Type* type, Token name,
                        std::vector<ExprNode*> args,
                        std::vector<ExprNode*> stmts) {
     return_type_ = type;
@@ -1297,7 +1297,7 @@ class FuncDeclNode : public DeclNode {
   FuncDeclNode& operator=(const FuncDeclNode&) = default;
 
  private:
-  std::vector<Token> return_type_;
+  Type* return_type_;
   Token name_;
   std::vector<ExprNode*> args_;
   std::vector<ExprNode*> stmts_;
@@ -1339,7 +1339,7 @@ class IfNode : public StmtNode {
 class CastNode : public ExprNode {
  public:
   CastNode() { type_ = StmtType::kCast; }
-  void SetCastNode(std::vector<Token> type, ExprNode* expr) {
+  void SetCastNode(Type* type, ExprNode* expr) {
     cast_type_ = type;
     expr_ = expr;
   }
@@ -1349,7 +1349,7 @@ class CastNode : public ExprNode {
   CastNode& operator=(const CastNode&) = default;
 
  private:
-  std::vector<Token> cast_type_;
+  Type* cast_type_;
   ExprNode* expr_;
 };
 
