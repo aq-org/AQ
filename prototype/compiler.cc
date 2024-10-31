@@ -937,9 +937,10 @@ LexEnd:
 
 class Type {
  public:
-  enum class TypeType { kBase, kPointer, kArray };
+  enum class TypeType { NONE, kBase, kConst, kPointer, kArray, kReference };
 
   enum class BaseType {
+    NONE,
     kVoid,
     kBool,
     kChar,
@@ -967,12 +968,151 @@ class Type {
 
   TypeType GetType() { return type_; }
 
+  BaseType GetBaseType() { return base_data_; }
+
+  static Type* CreateType(Token* token, size_t length, size_t& index);
+
  protected:
-  TypeType type_;
+  TypeType type_ = TypeType::NONE;
   Type* type_data_;
 
  private:
-  BaseType base_data_;
+  BaseType base_data_ = BaseType::NONE;
+};
+
+Type* Type::CreateType(Token* token, size_t length, size_t& index) {
+  Type* type = new Type();
+  while (index < length) {
+    if (token[index].type == Token::Type::KEYWORD) {
+      switch (token[index].value.keyword) {
+        case Token::KeywordType::Const:
+          ConstType* const_type = new ConstType();
+          if (type->GetType() != Type::TypeType::NONE) {
+            const_type->SetType(type);
+            type = const_type;
+            break;
+          }
+          index++;
+          if (index < length && token[index].type == Token::Type::KEYWORD) {
+            switch (token[index].value.keyword) {
+              case Token::KeywordType::Void:
+                type->SetType(Type::BaseType::kVoid);
+                break;
+              case Token::KeywordType::Bool:
+                type->SetType(Type::BaseType::kBool);
+                break;
+              case Token::KeywordType::Char:
+                type->SetType(Type::BaseType::kChar);
+                break;
+              case Token::KeywordType::Short:
+                type->SetType(Type::BaseType::kShort);
+                break;
+              case Token::KeywordType::Int:
+                type->SetType(Type::BaseType::kInt);
+                break;
+              case Token::KeywordType::Long:
+                type->SetType(Type::BaseType::kLong);
+                break;
+              case Token::KeywordType::Float:
+                type->SetType(Type::BaseType::kFloat);
+                break;
+              case Token::KeywordType::Double:
+                type->SetType(Type::BaseType::kDouble);
+                break;
+              case Token::KeywordType::Auto:
+                type->SetType(Type::BaseType::kAuto);
+                break;
+              default:
+                return type;
+                break;
+            }
+            const_type->SetType(type);
+            type = const_type;
+          } else {
+            type->SetType(Type::BaseType::NONE);
+            return type;
+          }
+          break;
+        case Token::KeywordType::Void:
+          type->SetType(Type::BaseType::kVoid);
+          break;
+        case Token::KeywordType::Bool:
+          type->SetType(Type::BaseType::kBool);
+          break;
+        case Token::KeywordType::Char:
+          type->SetType(Type::BaseType::kChar);
+          break;
+        case Token::KeywordType::Short:
+          type->SetType(Type::BaseType::kShort);
+          break;
+        case Token::KeywordType::Int:
+          type->SetType(Type::BaseType::kInt);
+          break;
+        case Token::KeywordType::Long:
+          type->SetType(Type::BaseType::kLong);
+          break;
+        case Token::KeywordType::Float:
+          type->SetType(Type::BaseType::kFloat);
+          break;
+        case Token::KeywordType::Double:
+          type->SetType(Type::BaseType::kDouble);
+          break;
+        case Token::KeywordType::Struct:
+          type->SetType(Type::BaseType::kStruct);
+          return type;
+        case Token::KeywordType::Union:
+          type->SetType(Type::BaseType::kUnion);
+          return type;
+        case Token::KeywordType::Enum:
+          type->SetType(Type::BaseType::kEnum);
+          return type;
+        case Token::KeywordType::Auto:
+          type->SetType(Type::BaseType::kAuto);
+          break;
+        default:
+          return type;
+      }
+    } else if (token[index].type == Token::Type::OPERATOR) {
+      switch (token[index].value._operator) {
+        case Token::OperatorType::star:
+          PointerType* pointer_type = new PointerType();
+          pointer_type->SetType(type);
+          type = pointer_type;
+          break;
+        case Token::OperatorType::amp:
+          ReferenceType* reference_type = new ReferenceType();
+          reference_type->SetType(type);
+          type = reference_type;
+          break;
+        default:
+          return type;
+      }
+    } else if (token[index].type == Token::Type::IDENTIFIER) {
+      if (token[index + 1].type == Token::Type::OPERATOR &&
+          token[index + 1].value._operator == Token::OperatorType::l_square) {
+        ArrayType* array_type = new ArrayType();
+        index++;
+        array_type->SetType(type, Parser::ParseExpr(token, length, index));
+        type = array_type;
+      }
+      return type;
+    }
+    index++;
+  }
+  return type;
+}
+
+class ConstType : public Type {
+ public:
+  ConstType() { type_ = TypeType::kConst; }
+  virtual void SetType(Type* type) {
+    type_ = TypeType::kConst;
+    type_data_ = type;
+  }
+  virtual ~ConstType() = default;
+
+  ConstType(const ConstType&) = default;
+  ConstType& operator=(const ConstType&) = default;
 };
 
 class PointerType : public Type {
@@ -991,20 +1131,33 @@ class PointerType : public Type {
 class ArrayType : public Type {
  public:
   ArrayType() { type_ = TypeType::kArray; }
-  virtual void SetType(Type* type, int size) {
+  virtual void SetType(Type* type, ExprNode* size) {
     type_ = TypeType::kArray;
     type_data_ = type;
     size_ = size;
   }
   virtual ~ArrayType() = default;
 
-  int GetSize() { return size_; }
+  ExprNode* GetSize() { return size_; }
 
   ArrayType(const ArrayType&) = default;
   ArrayType& operator=(const ArrayType&) = default;
 
  private:
-  int size_;
+  ExprNode* size_;
+};
+
+class ReferenceType : public Type {
+ public:
+  ReferenceType() { type_ = TypeType::kReference; }
+  virtual void SetType(Type* type) {
+    type_ = TypeType::kReference;
+    type_data_ = type;
+  }
+  virtual ~ReferenceType() = default;
+
+  ReferenceType(const ReferenceType&) = default;
+  ReferenceType& operator=(const ReferenceType&) = default;
 };
 
 class StmtNode {
@@ -1029,7 +1182,8 @@ class StmtNode {
     kFunc,
     kCast,
     kArrayDecl,
-    kArray
+    kArray,
+    kConvert
   };
 
   StmtType GetType() { return type_; }
@@ -1076,8 +1230,9 @@ class UnaryNode : public ExprNode {
     kPlus,
     kMinus,
     kNot,
-    kLNot,
-    ARRAY
+    kBitwiseNot,
+    ARRAY,
+    CONVERT
   };
 
   UnaryNode() { type_ = StmtType::kUnary; }
@@ -1115,6 +1270,25 @@ class ArrayNode : public UnaryNode {
 
  private:
   ExprNode* index_;
+};
+
+class ConvertNode : public UnaryNode {
+ public:
+  ConvertNode() {
+    type_ = StmtType::kConvert;
+    op_ = Operator::CONVERT;
+  }
+  void SetConvertNode(Type* type, ExprNode* expr) {
+    converted_type_ = type;
+    expr_ = expr;
+  }
+  virtual ~ConvertNode() = default;
+
+  ConvertNode(const ConvertNode&) = default;
+  ConvertNode& operator=(const ConvertNode&) = default;
+
+ private:
+  Type* converted_type_;
 };
 
 class BinaryNode : public ExprNode {
@@ -1234,7 +1408,7 @@ class VarDeclNode : public DeclNode, public ExprNode {
   void SetVarDeclNode(Type* type, Token name) {
     var_type_ = type;
     name_ = name;
-    value_.push_back(NULL);
+    value_.push_back(nullptr);
   }
   void SetVarDeclNode(Type* type, Token name, std::vector<ExprNode*> value) {
     var_type_ = type;
@@ -1357,11 +1531,12 @@ class Parser {
   ~Parser();
   std::vector<StmtNode> Parse(std::vector<Token> token);
 
+  static ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
+
  private:
   bool IsDecl(Token* token, size_t length);
   bool IsFuncDecl(Token* token, size_t length);
   size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode& result);
-  ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
   ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
   ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
 };
@@ -1619,16 +1794,16 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
   size_t index = 0;
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
-  ExprNode* expr = NULL;
-  ExprNode* primary = NULL;
-  while (state != State::kEnd && index <= length) {
+  ExprNode* expr = nullptr;
+  ExprNode* primary = nullptr;
+  while (state != State::kEnd && index < length) {
     if (token[index].type == Token::Type::OPERATOR) {
       switch (token[index].value._operator) {
         case Token::OperatorType::amp:  // &
           if (state == State::kPreOper) {
             UnaryNode* amp_node = new UnaryNode();
-            amp_node->SetUnaryNode(UnaryNode::Operator::kAddrOf, NULL);
-            if (expr == NULL || primary == NULL) {
+            amp_node->SetUnaryNode(UnaryNode::Operator::kAddrOf, nullptr);
+            if (expr == nullptr || primary == nullptr) {
               expr = amp_node;
               primary = amp_node;
             } else {
@@ -1643,8 +1818,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
         case Token::OperatorType::star:  // *
           if (state == State::kPreOper) {
             UnaryNode* star_node = new UnaryNode();
-            star_node->SetUnaryNode(UnaryNode::Operator::kDeref, NULL);
-            if (expr == NULL || primary == NULL) {
+            star_node->SetUnaryNode(UnaryNode::Operator::kDeref, nullptr);
+            if (expr == nullptr || primary == nullptr) {
               expr = star_node;
               primary = star_node;
             } else {
@@ -1659,8 +1834,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
         case Token::OperatorType::plus:  // +
           if (state == State::kPreOper) {
             UnaryNode* plus_node = new UnaryNode();
-            plus_node->SetUnaryNode(UnaryNode::Operator::kPlus, NULL);
-            if (expr == NULL || primary == NULL) {
+            plus_node->SetUnaryNode(UnaryNode::Operator::kPlus, nullptr);
+            if (expr == nullptr || primary == nullptr) {
               expr = plus_node;
               primary = plus_node;
             } else {
@@ -1675,8 +1850,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
         case Token::OperatorType::minus:  // -
           if (state == State::kPreOper) {
             UnaryNode* minus_node = new UnaryNode();
-            minus_node->SetUnaryNode(UnaryNode::Operator::kMinus, NULL);
-            if (expr == NULL || primary == NULL) {
+            minus_node->SetUnaryNode(UnaryNode::Operator::kMinus, nullptr);
+            if (expr == nullptr || primary == nullptr) {
               expr = minus_node;
               primary = minus_node;
             } else {
@@ -1688,9 +1863,44 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           }
           state = State::kEnd;
           break;
+        case Token::OperatorType::exclaim:  // !
+          if (state == State::kPreOper) {
+            UnaryNode* not_node = new UnaryNode();
+            not_node->SetUnaryNode(UnaryNode::Operator::kNot, nullptr);
+            if (expr == nullptr || primary == nullptr) {
+              expr = not_node;
+              primary = not_node;
+            } else {
+              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), not_node);
+            }
+            index++;
+            break;
+          }
+          state = State::kEnd;
+          break;
+        case Token::OperatorType::tilde:  // ~
+          if (state == State::kPreOper) {
+            UnaryNode* bitwisenot_node = new UnaryNode();
+            bitwisenot_node->SetUnaryNode(UnaryNode::Operator::kBitwiseNot,
+                                          nullptr);
+            if (expr == nullptr || primary == nullptr) {
+              expr = bitwisenot_node;
+              primary = bitwisenot_node;
+            } else {
+              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(primary)->GetOperator(),
+                  bitwisenot_node);
+            }
+            index++;
+            break;
+          }
+          state = State::kEnd;
+          break;
 
         case Token::OperatorType::l_square:  // [
           if (state == State::kPostOper) {
+            index++;
             ArrayNode* array = new ArrayNode();
             array->SetArrayNode(expr, ParseExpr(token, length, index));
             expr = array;
@@ -1699,27 +1909,43 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           }
           break;
         case Token::OperatorType::r_square:  // ]
-          if (dynamic_cast<UnaryNode*>(expr)->GetOperator() !=
-              UnaryNode::Operator::ARRAY) {
-            state = State::kEnd;
-            break;
-          }
-          index++;
+          state = State::kEnd;
           break;
         case Token::OperatorType::l_paren:  // (
           if (state == State::kPreOper) {
-            if (expr == NULL || primary == NULL) {
-              expr = ParseExpr(token, length, index);
+            index++;
+            if (expr == nullptr || primary == nullptr) {
+              if (token[index].type == Token::Type::KEYWORD) {
+                expr = new ConvertNode();
+                dynamic_cast<ConvertNode*>(expr)->SetConvertNode(
+                    Type::CreateType(token, length, index), nullptr);
+              } else {
+                expr = ParseExpr(token, length, index);
+                state = State::kPostOper;
+              }
               primary = expr;
             } else {
-              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(primary)->GetOperator(),
-                  ParseExpr(token, length, index));
+              if (token[index].type == Token::Type::KEYWORD) {
+                ConvertNode* convert_node = new ConvertNode();
+                convert_node->SetConvertNode(
+                    Type::CreateType(token, length, index), nullptr);
+                dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                    dynamic_cast<UnaryNode*>(primary)->GetOperator(),
+                    convert_node);
+                primary = convert_node;
+              } else {
+                ExprNode* expr_node = ParseExpr(token, length, index);
+                dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
+                    dynamic_cast<UnaryNode*>(primary)->GetOperator(),
+                    expr_node);
+                state = State::kPostOper;
+              }
             }
-          } else if (state == State::kPostOper) {
+            index++;
           }
           break;
         case Token::OperatorType::r_paren:  // )
+          state = State::kEnd;
           break;
         case Token::OperatorType::l_brace:  // {
           break;
@@ -1730,10 +1956,6 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
         case Token::OperatorType::arrow:  // ->
           break;
         case Token::OperatorType::minusminus:  // --
-          break;
-        case Token::OperatorType::tilde:  // ~
-          break;
-        case Token::OperatorType::exclaim:  // !
           break;
         case Token::OperatorType::question:  // ?
           break;
