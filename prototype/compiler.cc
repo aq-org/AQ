@@ -1174,8 +1174,8 @@ class StmtNode {
     kFuncInvoke,
     kAssign,
     kIf,
-    kNumber,
-    kVar,
+    kValue,
+    kIdentifier,
     kUnary,
     kBinary,
     kConditional,
@@ -1205,14 +1205,14 @@ class ExprNode : public StmtNode {
   ExprNode& operator=(const ExprNode&) = default;
 };
 
-class NumberNode : public ExprNode {
+class ValueNode : public ExprNode {
  public:
-  NumberNode() { type_ = StmtType::kNumber; }
-  void SetNumberNode(Token value) { value_ = value; }
-  virtual ~NumberNode() = default;
+  ValueNode() { type_ = StmtType::kValue; }
+  void SetValueNode(Token value) { value_ = value; }
+  virtual ~ValueNode() = default;
 
-  NumberNode(const NumberNode&) = default;
-  NumberNode& operator=(const NumberNode&) = default;
+  ValueNode(const ValueNode&) = default;
+  ValueNode& operator=(const ValueNode&) = default;
 
  private:
   Token value_;
@@ -1380,14 +1380,14 @@ class FuncNode : public ExprNode {
   std::vector<ExprNode*> params_;
 };
 
-class VarNode : public ExprNode {
+class IdentifierNode : public ExprNode {
  public:
-  VarNode() { type_ = StmtType::kVar; }
-  void SetVarNode(Token name) { name_ = name; }
-  virtual ~VarNode() = default;
+  IdentifierNode() { type_ = StmtType::kIdentifier; }
+  void SetIdentifierNode(Token name) { name_ = name; }
+  virtual ~IdentifierNode() = default;
 
-  VarNode(const VarNode&) = default;
-  VarNode& operator=(const VarNode&) = default;
+  IdentifierNode(const IdentifierNode&) = default;
+  IdentifierNode& operator=(const IdentifierNode&) = default;
 
  private:
   Token name_;
@@ -1456,7 +1456,7 @@ class ArrayDeclNode : public VarDeclNode {
 class FuncDeclNode : public DeclNode {
  public:
   FuncDeclNode() { type_ = StmtType::kFuncDecl; }
-  void SetFuncDeclNode(Type* type, Token name, std::vector<ExprNode*> args,
+  void SetFuncDeclNode(Type* type, ExprNode* name, std::vector<ExprNode*> args,
                        std::vector<ExprNode*> stmts) {
     return_type_ = type;
     name_ = name;
@@ -1470,7 +1470,7 @@ class FuncDeclNode : public DeclNode {
 
  private:
   Type* return_type_;
-  Token name_;
+  ExprNode* name_;
   std::vector<ExprNode*> args_;
   std::vector<ExprNode*> stmts_;
 };
@@ -1478,7 +1478,7 @@ class FuncDeclNode : public DeclNode {
 class FuncInvokeNode : public ExprNode {
  public:
   FuncInvokeNode() { type_ = StmtType::kFuncInvoke; }
-  void SetFuncInvokeNode(Token name, std::vector<ExprNode*> args) {
+  void SetFuncInvokeNode(ExprNode* name, std::vector<ExprNode*> args) {
     name_ = name;
     args_ = args;
   }
@@ -1488,7 +1488,7 @@ class FuncInvokeNode : public ExprNode {
   FuncInvokeNode& operator=(const FuncInvokeNode&) = default;
 
  private:
-  Token name_;
+  ExprNode* name_;
   std::vector<ExprNode*> args_;
 };
 
@@ -1794,8 +1794,9 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
   size_t index = 0;
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
-  ExprNode* expr = nullptr;
-  ExprNode* primary = nullptr;
+  ExprNode* full_expr = nullptr;
+  ExprNode* main_expr = nullptr;
+  ExprNode* preoper_expr = nullptr;
   while (state != State::kEnd && index < length) {
     if (token[index].type == Token::Type::OPERATOR) {
       switch (token[index].value._operator) {
@@ -1803,12 +1804,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           if (state == State::kPreOper) {
             UnaryNode* amp_node = new UnaryNode();
             amp_node->SetUnaryNode(UnaryNode::Operator::kAddrOf, nullptr);
-            if (expr == nullptr || primary == nullptr) {
-              expr = amp_node;
-              primary = amp_node;
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = amp_node;
+              preoper_expr = amp_node;
             } else {
-              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), amp_node);
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      amp_node);
             }
             index++;
             break;
@@ -1819,12 +1822,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           if (state == State::kPreOper) {
             UnaryNode* star_node = new UnaryNode();
             star_node->SetUnaryNode(UnaryNode::Operator::kDeref, nullptr);
-            if (expr == nullptr || primary == nullptr) {
-              expr = star_node;
-              primary = star_node;
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = star_node;
+              preoper_expr = star_node;
             } else {
-              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), star_node);
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      star_node);
             }
             index++;
             break;
@@ -1835,12 +1840,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           if (state == State::kPreOper) {
             UnaryNode* plus_node = new UnaryNode();
             plus_node->SetUnaryNode(UnaryNode::Operator::kPlus, nullptr);
-            if (expr == nullptr || primary == nullptr) {
-              expr = plus_node;
-              primary = plus_node;
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = plus_node;
+              preoper_expr = plus_node;
             } else {
-              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), plus_node);
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      plus_node);
             }
             index++;
             break;
@@ -1851,12 +1858,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           if (state == State::kPreOper) {
             UnaryNode* minus_node = new UnaryNode();
             minus_node->SetUnaryNode(UnaryNode::Operator::kMinus, nullptr);
-            if (expr == nullptr || primary == nullptr) {
-              expr = minus_node;
-              primary = minus_node;
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = minus_node;
+              preoper_expr = minus_node;
             } else {
-              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), minus_node);
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      minus_node);
             }
             index++;
             break;
@@ -1867,12 +1876,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           if (state == State::kPreOper) {
             UnaryNode* not_node = new UnaryNode();
             not_node->SetUnaryNode(UnaryNode::Operator::kNot, nullptr);
-            if (expr == nullptr || primary == nullptr) {
-              expr = not_node;
-              primary = not_node;
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = not_node;
+              preoper_expr = not_node;
             } else {
-              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(primary)->GetOperator(), not_node);
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      not_node);
             }
             index++;
             break;
@@ -1884,13 +1895,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             UnaryNode* bitwisenot_node = new UnaryNode();
             bitwisenot_node->SetUnaryNode(UnaryNode::Operator::kBitwiseNot,
                                           nullptr);
-            if (expr == nullptr || primary == nullptr) {
-              expr = bitwisenot_node;
-              primary = bitwisenot_node;
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = bitwisenot_node;
+              preoper_expr = bitwisenot_node;
             } else {
-              dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(primary)->GetOperator(),
-                  bitwisenot_node);
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      bitwisenot_node);
             }
             index++;
             break;
@@ -1902,8 +1914,12 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           if (state == State::kPostOper) {
             index++;
             ArrayNode* array = new ArrayNode();
-            array->SetArrayNode(expr, ParseExpr(token, length, index));
-            expr = array;
+            array->SetArrayNode(main_expr, ParseExpr(token, length, index));
+            dynamic_cast<UnaryNode*>(preoper_expr)
+                ->SetUnaryNode(
+                    dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                    array);
+            if (main_expr == full_expr) main_expr = array;
             index++;
             break;
           }
@@ -1914,48 +1930,120 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
         case Token::OperatorType::l_paren:  // (
           if (state == State::kPreOper) {
             index++;
-            if (expr == nullptr || primary == nullptr) {
+            if (full_expr == nullptr || preoper_expr == nullptr) {
               if (token[index].type == Token::Type::KEYWORD) {
-                expr = new ConvertNode();
-                dynamic_cast<ConvertNode*>(expr)->SetConvertNode(
+                full_expr = new ConvertNode();
+                dynamic_cast<ConvertNode*>(full_expr)->SetConvertNode(
                     Type::CreateType(token, length, index), nullptr);
               } else {
-                expr = ParseExpr(token, length, index);
+                full_expr = ParseExpr(token, length, index);
                 state = State::kPostOper;
               }
-              primary = expr;
+              preoper_expr = full_expr;
             } else {
               if (token[index].type == Token::Type::KEYWORD) {
                 ConvertNode* convert_node = new ConvertNode();
                 convert_node->SetConvertNode(
                     Type::CreateType(token, length, index), nullptr);
-                dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                    dynamic_cast<UnaryNode*>(primary)->GetOperator(),
-                    convert_node);
-                primary = convert_node;
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        convert_node);
+                preoper_expr = convert_node;
               } else {
-                ExprNode* expr_node = ParseExpr(token, length, index);
-                dynamic_cast<UnaryNode*>(primary)->SetUnaryNode(
-                    dynamic_cast<UnaryNode*>(primary)->GetOperator(),
-                    expr_node);
+                ExprNode* full_expr_node = ParseExpr(token, length, index);
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        full_expr_node);
                 state = State::kPostOper;
               }
             }
             index++;
+          } else if (state == State::kPostOper &&
+                     main_expr->GetType() == StmtNode::StmtType::kIdentifier &&
+                     token[index - 1].type == Token::Type::IDENTIFIER) {
+            std::vector<ExprNode*> args;
+            index++;
+            while (index < length &&
+                   (token[index].type == Token::Type::OPERATOR &&
+                    token[index].value._operator !=
+                        Token::OperatorType::r_paren)) {
+              args.push_back(ParseExpr(token, length, index));
+              if (token[index].type == Token::Type::OPERATOR &&
+                  token[index].value._operator == Token::OperatorType::comma) {
+                index++;
+              } else if (token[index].type == Token::Type::OPERATOR &&
+                         token[index].value._operator ==
+                             Token::OperatorType::r_paren) {
+                index++;
+                break;
+              } else {
+                state = State::kEnd;
+                break;
+              }
+            }
+            FuncInvokeNode* func_invoke_node = new FuncInvokeNode();
+            func_invoke_node->SetFuncInvokeNode(main_expr, args);
+            dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        func_invoke_node);
+            main_expr = func_invoke_node;
+          } else {
+            state = State::kEnd;
           }
           break;
         case Token::OperatorType::r_paren:  // )
           state = State::kEnd;
           break;
-        case Token::OperatorType::l_brace:  // {
+
+        case Token::OperatorType::plusplus:  // ++
+          UnaryNode* preinc_node = new UnaryNode();
+          if (state == State::kPreOper) {
+            preinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, nullptr);
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              preoper_expr = full_expr = preinc_node;
+            } else {
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      preinc_node);
+            }
+          } else {
+            preinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, full_expr);
+            full_expr = preinc_node;
+          }
+          index++;
+          break;
+        case Token::OperatorType::minusminus:  // --
+          UnaryNode* postinc_node = new UnaryNode();
+          if (state == State::kPostOper) {
+            postinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, nullptr);
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              preoper_expr = full_expr = postinc_node;
+            } else {
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      postinc_node);
+            }
+          } else {
+            postinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc,
+                                       full_expr);
+            full_expr = postinc_node;
+          }
+          index++;
+          break;
+
+        // TODO(Parser): Advanced syntax awaits subsequent development.
+        /*case Token::OperatorType::l_brace:  // {
           break;
         case Token::OperatorType::r_brace:  // }
           break;
         case Token::OperatorType::period:  // .
           break;
         case Token::OperatorType::arrow:  // ->
-          break;
-        case Token::OperatorType::minusminus:  // --
           break;
         case Token::OperatorType::question:  // ?
           break;
@@ -1966,11 +2054,41 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
         case Token::OperatorType::arrowstar:  // ->*
           break;
         case Token::OperatorType::coloncolon:  // ::
-          break;
+          break;*/
         default:
+          state = State::kEnd;
           break;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
+      IdentifierNode* identifier_node = new IdentifierNode();
+      identifier_node->SetIdentifierNode(token[index]);
+      if (full_expr == nullptr || preoper_expr == nullptr) {
+        full_expr = preoper_expr = main_expr = identifier_node;
+      } else {
+        dynamic_cast<UnaryNode*>(preoper_expr)
+            ->SetUnaryNode(
+                dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                identifier_node);
+        main_expr = identifier_node;
+      }
+      index++;
+    } else if (token[index].type == Token::Type::NUMBER ||
+               token[index].type == Token::Type::CHARACTER ||
+               token[index].type == Token::Type::STRING) {
+      ValueNode* number_node = new ValueNode();
+      number_node->SetValueNode(token[index]);
+      if (full_expr == nullptr || preoper_expr == nullptr) {
+        full_expr = preoper_expr = main_expr = number_node;
+      } else {
+        dynamic_cast<UnaryNode*>(preoper_expr)
+            ->SetUnaryNode(
+                dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                number_node);
+        main_expr = number_node;
+      }
+      index++;
+    } else {
+      state = State::kEnd;
     }
   }
 }
