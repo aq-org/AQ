@@ -980,186 +980,6 @@ class Type {
   BaseType base_data_ = BaseType::NONE;
 };
 
-Type* Type::CreateType(Token* token, size_t length, size_t& index) {
-  Type* type = new Type();
-  while (index < length) {
-    if (token[index].type == Token::Type::KEYWORD) {
-      switch (token[index].value.keyword) {
-        case Token::KeywordType::Const:
-          ConstType* const_type = new ConstType();
-          if (type->GetType() != Type::TypeType::NONE) {
-            const_type->SetType(type);
-            type = const_type;
-            break;
-          }
-          index++;
-          if (index < length && token[index].type == Token::Type::KEYWORD) {
-            switch (token[index].value.keyword) {
-              case Token::KeywordType::Void:
-                type->SetType(Type::BaseType::kVoid);
-                break;
-              case Token::KeywordType::Bool:
-                type->SetType(Type::BaseType::kBool);
-                break;
-              case Token::KeywordType::Char:
-                type->SetType(Type::BaseType::kChar);
-                break;
-              case Token::KeywordType::Short:
-                type->SetType(Type::BaseType::kShort);
-                break;
-              case Token::KeywordType::Int:
-                type->SetType(Type::BaseType::kInt);
-                break;
-              case Token::KeywordType::Long:
-                type->SetType(Type::BaseType::kLong);
-                break;
-              case Token::KeywordType::Float:
-                type->SetType(Type::BaseType::kFloat);
-                break;
-              case Token::KeywordType::Double:
-                type->SetType(Type::BaseType::kDouble);
-                break;
-              case Token::KeywordType::Auto:
-                type->SetType(Type::BaseType::kAuto);
-                break;
-              default:
-                return type;
-                break;
-            }
-            const_type->SetType(type);
-            type = const_type;
-          } else {
-            type->SetType(Type::BaseType::NONE);
-            return type;
-          }
-          break;
-        case Token::KeywordType::Void:
-          type->SetType(Type::BaseType::kVoid);
-          break;
-        case Token::KeywordType::Bool:
-          type->SetType(Type::BaseType::kBool);
-          break;
-        case Token::KeywordType::Char:
-          type->SetType(Type::BaseType::kChar);
-          break;
-        case Token::KeywordType::Short:
-          type->SetType(Type::BaseType::kShort);
-          break;
-        case Token::KeywordType::Int:
-          type->SetType(Type::BaseType::kInt);
-          break;
-        case Token::KeywordType::Long:
-          type->SetType(Type::BaseType::kLong);
-          break;
-        case Token::KeywordType::Float:
-          type->SetType(Type::BaseType::kFloat);
-          break;
-        case Token::KeywordType::Double:
-          type->SetType(Type::BaseType::kDouble);
-          break;
-        case Token::KeywordType::Struct:
-          type->SetType(Type::BaseType::kStruct);
-          return type;
-        case Token::KeywordType::Union:
-          type->SetType(Type::BaseType::kUnion);
-          return type;
-        case Token::KeywordType::Enum:
-          type->SetType(Type::BaseType::kEnum);
-          return type;
-        case Token::KeywordType::Auto:
-          type->SetType(Type::BaseType::kAuto);
-          break;
-        default:
-          return type;
-      }
-    } else if (token[index].type == Token::Type::OPERATOR) {
-      switch (token[index].value._operator) {
-        case Token::OperatorType::star:
-          PointerType* pointer_type = new PointerType();
-          pointer_type->SetType(type);
-          type = pointer_type;
-          break;
-        case Token::OperatorType::amp:
-          ReferenceType* reference_type = new ReferenceType();
-          reference_type->SetType(type);
-          type = reference_type;
-          break;
-        default:
-          return type;
-      }
-    } else if (token[index].type == Token::Type::IDENTIFIER) {
-      if (token[index + 1].type == Token::Type::OPERATOR &&
-          token[index + 1].value._operator == Token::OperatorType::l_square) {
-        ArrayType* array_type = new ArrayType();
-        index++;
-        array_type->SetType(type, Parser::ParseExpr(token, length, index));
-        type = array_type;
-      }
-      return type;
-    }
-    index++;
-  }
-  return type;
-}
-
-class ConstType : public Type {
- public:
-  ConstType() { type_ = TypeType::kConst; }
-  virtual void SetType(Type* type) {
-    type_ = TypeType::kConst;
-    type_data_ = type;
-  }
-  virtual ~ConstType() = default;
-
-  ConstType(const ConstType&) = default;
-  ConstType& operator=(const ConstType&) = default;
-};
-
-class PointerType : public Type {
- public:
-  PointerType() { type_ = TypeType::kPointer; }
-  virtual void SetType(Type* type) {
-    type_ = TypeType::kPointer;
-    type_data_ = type;
-  }
-  virtual ~PointerType() = default;
-
-  PointerType(const PointerType&) = default;
-  PointerType& operator=(const PointerType&) = default;
-};
-
-class ArrayType : public Type {
- public:
-  ArrayType() { type_ = TypeType::kArray; }
-  virtual void SetType(Type* type, ExprNode* size) {
-    type_ = TypeType::kArray;
-    type_data_ = type;
-    size_ = size;
-  }
-  virtual ~ArrayType() = default;
-
-  ExprNode* GetSize() { return size_; }
-
-  ArrayType(const ArrayType&) = default;
-  ArrayType& operator=(const ArrayType&) = default;
-
- private:
-  ExprNode* size_;
-};
-
-class ReferenceType : public Type {
- public:
-  ReferenceType() { type_ = TypeType::kReference; }
-  virtual void SetType(Type* type) {
-    type_ = TypeType::kReference;
-    type_data_ = type;
-  }
-  virtual ~ReferenceType() = default;
-
-  ReferenceType(const ReferenceType&) = default;
-  ReferenceType& operator=(const ReferenceType&) = default;
-};
-
 class StmtNode {
  public:
   StmtNode() { type_ = StmtType::kStmt; }
@@ -1540,6 +1360,186 @@ class Parser {
   ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
   ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
 };
+
+class ConstType : public Type {
+ public:
+  ConstType() { type_ = TypeType::kConst; }
+  virtual void SetType(Type* type) {
+    type_ = TypeType::kConst;
+    type_data_ = type;
+  }
+  virtual ~ConstType() = default;
+
+  ConstType(const ConstType&) = default;
+  ConstType& operator=(const ConstType&) = default;
+};
+
+class PointerType : public Type {
+ public:
+  PointerType() { type_ = TypeType::kPointer; }
+  virtual void SetType(Type* type) {
+    type_ = TypeType::kPointer;
+    type_data_ = type;
+  }
+  virtual ~PointerType() = default;
+
+  PointerType(const PointerType&) = default;
+  PointerType& operator=(const PointerType&) = default;
+};
+
+class ArrayType : public Type {
+ public:
+  ArrayType() { type_ = TypeType::kArray; }
+  virtual void SetType(Type* type, ExprNode* size) {
+    type_ = TypeType::kArray;
+    type_data_ = type;
+    size_ = size;
+  }
+  virtual ~ArrayType() = default;
+
+  ExprNode* GetSize() { return size_; }
+
+  ArrayType(const ArrayType&) = default;
+  ArrayType& operator=(const ArrayType&) = default;
+
+ private:
+  ExprNode* size_;
+};
+
+class ReferenceType : public Type {
+ public:
+  ReferenceType() { type_ = TypeType::kReference; }
+  virtual void SetType(Type* type) {
+    type_ = TypeType::kReference;
+    type_data_ = type;
+  }
+  virtual ~ReferenceType() = default;
+
+  ReferenceType(const ReferenceType&) = default;
+  ReferenceType& operator=(const ReferenceType&) = default;
+};
+
+Type* Type::CreateType(Token* token, size_t length, size_t& index) {
+  Type* type = new Type();
+  while (index < length) {
+    if (token[index].type == Token::Type::KEYWORD) {
+      switch (token[index].value.keyword) {
+        case Token::KeywordType::Const:
+          ConstType* const_type = new ConstType();
+          if (type->GetType() != Type::TypeType::NONE) {
+            const_type->SetType(type);
+            type = const_type;
+            break;
+          }
+          index++;
+          if (index < length && token[index].type == Token::Type::KEYWORD) {
+            switch (token[index].value.keyword) {
+              case Token::KeywordType::Void:
+                type->SetType(Type::BaseType::kVoid);
+                break;
+              case Token::KeywordType::Bool:
+                type->SetType(Type::BaseType::kBool);
+                break;
+              case Token::KeywordType::Char:
+                type->SetType(Type::BaseType::kChar);
+                break;
+              case Token::KeywordType::Short:
+                type->SetType(Type::BaseType::kShort);
+                break;
+              case Token::KeywordType::Int:
+                type->SetType(Type::BaseType::kInt);
+                break;
+              case Token::KeywordType::Long:
+                type->SetType(Type::BaseType::kLong);
+                break;
+              case Token::KeywordType::Float:
+                type->SetType(Type::BaseType::kFloat);
+                break;
+              case Token::KeywordType::Double:
+                type->SetType(Type::BaseType::kDouble);
+                break;
+              case Token::KeywordType::Auto:
+                type->SetType(Type::BaseType::kAuto);
+                break;
+              default:
+                return type;
+                break;
+            }
+            const_type->SetType(type);
+            type = const_type;
+          } else {
+            type->SetType(Type::BaseType::NONE);
+            return type;
+          }
+          break;
+        case Token::KeywordType::Void:
+          type->SetType(Type::BaseType::kVoid);
+          break;
+        case Token::KeywordType::Bool:
+          type->SetType(Type::BaseType::kBool);
+          break;
+        case Token::KeywordType::Char:
+          type->SetType(Type::BaseType::kChar);
+          break;
+        case Token::KeywordType::Short:
+          type->SetType(Type::BaseType::kShort);
+          break;
+        case Token::KeywordType::Int:
+          type->SetType(Type::BaseType::kInt);
+          break;
+        case Token::KeywordType::Long:
+          type->SetType(Type::BaseType::kLong);
+          break;
+        case Token::KeywordType::Float:
+          type->SetType(Type::BaseType::kFloat);
+          break;
+        case Token::KeywordType::Double:
+          type->SetType(Type::BaseType::kDouble);
+          break;
+        case Token::KeywordType::Struct:
+          type->SetType(Type::BaseType::kStruct);
+          return type;
+        case Token::KeywordType::Union:
+          type->SetType(Type::BaseType::kUnion);
+          return type;
+        case Token::KeywordType::Enum:
+          type->SetType(Type::BaseType::kEnum);
+          return type;
+        case Token::KeywordType::Auto:
+          type->SetType(Type::BaseType::kAuto);
+          break;
+        default:
+          return type;
+      }
+    } else if (token[index].type == Token::Type::OPERATOR) {
+      switch (token[index].value._operator) {
+        case Token::OperatorType::star:
+          PointerType* pointer_type = new PointerType();
+          pointer_type->SetType(type);
+          type = pointer_type;
+          break;
+        case Token::OperatorType::amp:
+          ReferenceType* reference_type = new ReferenceType();
+          reference_type->SetType(type);
+          type = reference_type;
+          break;
+        default:
+          return type;
+      }
+    } else if (token[index].type == Token::Type::IDENTIFIER) {
+      if (token[index + 1].type == Token::Type::OPERATOR &&
+          token[index + 1].value._operator == Token::OperatorType::l_square) {
+        ArrayType* array_type = new ArrayType();
+        index++;
+        array_type->SetType(type, Parser::ParseExpr(token, length, index));
+        type = array_type;
+      }
+      return type;
+    }
+    index++;
+  }
+  return type;
+}
 
 Parser::Parser() = default;
 Parser::~Parser() = default;
