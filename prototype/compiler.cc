@@ -1463,7 +1463,6 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
                 break;
               default:
                 return type;
-                break;
             }
             const_type->SetType(type);
             type = const_type;
@@ -1791,7 +1790,6 @@ ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
 }
 
 ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
-  size_t index = 0;
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
   ExprNode* full_expr = nullptr;
