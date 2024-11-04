@@ -1424,7 +1424,7 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
   while (index < length) {
     if (token[index].type == Token::Type::KEYWORD) {
       switch (token[index].value.keyword) {
-        case Token::KeywordType::Const:
+        case Token::KeywordType::Const: {
           ConstType* const_type = new ConstType();
           if (type->GetType() != Type::TypeType::NONE) {
             const_type->SetType(type);
@@ -1471,6 +1471,7 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
             return type;
           }
           break;
+        }
         case Token::KeywordType::Void:
           type->SetType(Type::BaseType::kVoid);
           break;
@@ -1512,16 +1513,18 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
       }
     } else if (token[index].type == Token::Type::OPERATOR) {
       switch (token[index].value._operator) {
-        case Token::OperatorType::star:
+        case Token::OperatorType::star: {
           PointerType* pointer_type = new PointerType();
           pointer_type->SetType(type);
           type = pointer_type;
           break;
-        case Token::OperatorType::amp:
+        }
+        case Token::OperatorType::amp: {
           ReferenceType* reference_type = new ReferenceType();
           reference_type->SetType(type);
           type = reference_type;
           break;
+        }
         default:
           return type;
       }
@@ -1555,6 +1558,9 @@ std::vector<StmtNode> Parser::Parse(std::vector<Token> token) {
     } else {
     }
   }
+
+  // TODO(Parser::Parse): Complete the function.
+  return std::vector<StmtNode>();
 }
 
 bool Parser::IsDecl(Token* token, size_t length) {
@@ -1659,6 +1665,9 @@ size_t Parser::ParseFuncDecl(Token* token, size_t length,
   /*result.SetFuncDeclNode(type, token[index],
      std::vector<std::unique_ptr<ExprNode>>(),
                          std::vector<std::unique_ptr<StmtNode>>());*/
+
+  // TODO(Parser::ParseFuncDecl): Complete the function.
+  return index;
 }
 
 ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
@@ -1787,6 +1796,9 @@ ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
     } else if (token[index].type == Token::Type::IDENTIFIER) {
     }
   }
+
+  // TODO(Parser::ParseExpr): Complete the function.
+  return nullptr;
 }
 
 ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
@@ -1984,9 +1996,9 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             FuncInvokeNode* func_invoke_node = new FuncInvokeNode();
             func_invoke_node->SetFuncInvokeNode(main_expr, args);
             dynamic_cast<UnaryNode*>(preoper_expr)
-                    ->SetUnaryNode(
-                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                        func_invoke_node);
+                ->SetUnaryNode(
+                    dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                    func_invoke_node);
             main_expr = func_invoke_node;
           } else {
             state = State::kEnd;
@@ -1996,7 +2008,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           state = State::kEnd;
           break;
 
-        case Token::OperatorType::plusplus:  // ++
+        case Token::OperatorType::plusplus: {  // ++
           UnaryNode* preinc_node = new UnaryNode();
           if (state == State::kPreOper) {
             preinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, nullptr);
@@ -2014,7 +2026,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           }
           index++;
           break;
-        case Token::OperatorType::minusminus:  // --
+        }
+        case Token::OperatorType::minusminus: {  // --
           UnaryNode* postinc_node = new UnaryNode();
           if (state == State::kPostOper) {
             postinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, nullptr);
@@ -2033,7 +2046,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           }
           index++;
           break;
-
+        }
         // TODO(Parser): Advanced syntax awaits subsequent development.
         /*case Token::OperatorType::l_brace:  // {
           break;
@@ -2089,9 +2102,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
       state = State::kEnd;
     }
   }
+
+  return full_expr;
 }
 
-ExprNode* Parser::ParseFullExpr(Token* token, size_t length, size_t& index) {}
+ExprNode* Parser::ParseFullExpr(Token* token, size_t length, size_t& index) {
+  // TODO(Parser::ParseFullExpr): Complete the function.
+  return nullptr;
+}
 
 }  // namespace Compiler
 }  // namespace Aq
