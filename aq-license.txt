@@ -1,3 +1,43 @@
+AQ License
+Version 3, Aug 24th, 2024
+Copyright 2024 AQ author, All Rights Reserved.
+
+Definition
+"This License" means version 3 of the AQ License.
+"AQ author" refers to the first author of AQ (the creator of AQ).
+"Program" or "Work" means any legally protected work licensed under this License.
+"Copyright" applies to all types of works for which copyright is recognized by law.
+"You" and "your" refer to (a) the company or organization receiving the license (the "Entity") on whose behalf the license is accepted; (b) the individual receiving the license (the "individual") who does not accept the license on behalf of the Entity.
+To "modify" a work means to copy or adapt all or part of the work in a manner that requires copyright permission, rather than making an exact copy. The resulting work is called a "modified version" of an earlier work or a work "based on" an earlier work.
+A "covered work" means an unmodified copy of the Program or a work based on the Program (including any work based on covered work or any work based on a "modified version" of an earlier work).
+"Propagating" a work means doing anything to the work without permission that would subject you directly or secondarily to liability for infringement under applicable copyright law, other than executing it on a computer or modifying a private copy. Propagation includes reproduction, distribution (with or without modification), making available to the public, and other activities in certain countries.
+"Development Use" means your internal use of the Program to develop, test, prototype and demonstrate your Application.
+"Personal Use" means an individual's use of the Program solely on a desktop or laptop computer under his/her control solely for the purpose of running personal applications.
+
+Licensed content
+This License grants you, during the term of this License, a non-exclusive, non-exclusive, revocable, non-transferable, non-sublicensable, non-sublicensable, limited license, subject to the restrictions set forth in this License and related documentation, for: (i) personal use only, (ii) Development and use, (iii) Other legal purposes. This license recognizes your rights of fair use or other equivalent rights under copyright law.
+All rights not expressly granted in this License are reserved by the AQ Author. If you wish to use the Program for any purpose other than as expressly permitted by this License, you must obtain a valid license for the Program from the AQ author or under a separate license agreement permitting such use.
+The license term of this License begins on the date this License is published and ends on the date the next version of the License is published.
+If you have special needs, you can negotiate a special AQ license agreement with the AQ author (which is equivalent to this license and can exercise rights in lieu of this license). Different license agreements can be used simultaneously.
+
+Terms and Conditions
+The AQ author retain all ownership and intellectual property rights in the Program.
+You should prominently add AQ-related information (the Program name, author, license, version, etc.) to all copies of the Program, "modified versions" of earlier works, and "covered works". At the same time, you shall require (in the license conditions or related terms) that all developers, users and licensees of the Program, as well as any person or entity associated with the Program, own the License and comply with the relevant terms of the License, and in the event of failure to do so, suspend the use and incur possible other liabilities in accordance with the relevant requirements of the License. And in the event of any conflict with your license terms, this License shall take precedence, otherwise your license will be invalid.
+If you participate in the creation of an AQ program (any kind of work), you hereby grant the AQ author a perpetual, worldwide, exclusive, royalty-free, irrevocable copyright license to reproduce, prepare derivative works of, publicly display, Public performance and reproduction license and distribution of your Contributions and such derivative works. You also hereby grant to the AQ author a perpetual, worldwide, exclusive, free, royalty-free, irrevocable patent. You represent that you have the legal right to grant the above license. If your employer has rights to intellectual property you create, including your Contributions, you represent that you have the authority to make the Contributions on behalf of that employer. You represent that each of your Contributions is your original work. Otherwise you should not participate in the creation.
+If conditions are imposed on you (whether by court order, legal regulation or otherwise) that conflict with anything in this License, and they do not exempt you from the terms and conditions of this License. If you cannot satisfy both the other conditions and the terms and conditions of this License, you should not use the Program or acquire this License.
+If you fail to comply with this license and related terms, your license will be suspended at the same time, and the AQ author has the right to prosecute you for the violation (including but not limited to compensation for damages, elimination of effects, or suspension of use). If you fail to comply with this license and related terms, you will be fully responsible for all consequences (including but not limited to economic losses).
+If your License is suspended or expires, you shall delete the Program, "modified versions" of the earlier work, and all of its "covered works." and cease all activities related to the Program, "modified versions" of earlier works, and "covered works". If the AQ author does not make special requirements for your infringement, you can obtain permission again 30 days after your infringement ceases.
+THE PROGRAM IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND. AQ Author further disclaims all warranties, express and implied, including, without limitation, any implied warranties of merchantability, fitness for a particular purpose, or non-infringement. In no event shall AQ Author be liable to you or any third party for any indirect, incidental, special, punitive or consequential damages, or damages for loss of profits, revenue, data or data use, whether in an action of contract or tort, is not responsible, even if the AQ author has been advised of the possibility of such damages.
+In addition, if the program has additional licensing requirements (such as agreements, terms), they will also be regarded as the licensing conditions of this license, and you should also comply with these provisions, otherwise the license will become invalid.
+The AQ Terms and Conditions are also considered part of this License and serve as additional terms to this License. You are also subject to the AQ Terms and Conditions.
+
+Equivalent Licenses
+You may use the GNU AFFERO GENERAL PUBLIC LICENSE Version 3 instead of this License to exercise rights. But you must comply with all the conditions of the GNU AFFERO GENERAL PUBLIC LICENSE Version 3.
+
+
+
+GNU AFFERO GENERAL PUBLIC LICENSE Version 3:
+
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
 
