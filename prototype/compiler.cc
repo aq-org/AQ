@@ -271,63 +271,63 @@ struct Token {
   enum class OperatorType {
     // TODO: Add more operators.
     NONE = 0,
-    l_square,
-    r_square,
-    l_paren,
-    r_paren,
-    l_brace,
-    r_brace,
-    period,
-    ellipsis,
-    amp,
-    ampamp,
-    ampequal,
-    star,
-    starequal,
-    plus,
-    plusplus,
-    plusequal,
-    minus,
-    arrow,
-    minusminus,
-    minusequal,
-    tilde,
-    exclaim,
-    exclaimequal,
-    slash,
-    slashequal,
-    percent,
-    percentequal,
-    less,
-    lessless,
-    lessequal,
-    lesslessequal,
-    spaceship,
-    greater,
-    greatergreater,
-    greaterequal,
-    greatergreaterequal,
-    caret,
-    caretequal,
-    pipe,
-    pipepipe,
-    pipeequal,
-    question,
-    colon,
-    semi,
-    equal,
-    equalequal,
-    comma,
-    hash,
-    hashhash,
-    hashat,
-    periodstar,
-    arrowstar,
-    coloncolon,
-    at,
-    lesslessless,
-    greatergreatergreater,
-    caretcaret,
+    l_square,               //[
+    r_square,               //]
+    l_paren,                //(
+    r_paren,                //)
+    l_brace,                //{
+    r_brace,                //}
+    period,                 //.
+    ellipsis,               //...
+    amp,                    //&
+    ampamp,                 //&&
+    ampequal,               //&=
+    star,                   //*
+    starequal,              //*=
+    plus,                   //+
+    plusplus,               //++
+    plusequal,              //+=
+    minus,                  //-
+    arrow,                  //->
+    minusminus,             //--
+    minusequal,             //-=
+    tilde,                  //~
+    exclaim,                //!
+    exclaimequal,           //!=
+    slash,                  ///
+    slashequal,             ///=
+    percent,                //%
+    percentequal,           //%=
+    less,                   //<
+    lessless,               //<<
+    lessequal,              //<=
+    lesslessequal,          //<<=
+    spaceship,              //<=>
+    greater,                //>
+    greatergreater,         //>>
+    greaterequal,           //>=
+    greatergreaterequal,    //>>=
+    caret,                  //^
+    caretequal,             //^=
+    pipe,                   //|
+    pipepipe,               //||
+    pipeequal,              //|=
+    question,               //?
+    colon,                  //:
+    semi,                   //;
+    equal,                  //=
+    equalequal,             //==
+    comma,                  //,
+    hash,                   // #
+    hashhash,               // ##
+    hashat,                 // #@
+    periodstar,             //.*
+    arrowstar,              //->*
+    coloncolon,             //::
+    at,                     //@
+    lesslessless,           //<<<
+    greatergreatergreater,  //>>>
+    caretcaret,             //^^
   };
   struct ValueStr {
     char* location;
@@ -1359,6 +1359,9 @@ class Parser {
   size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode& result);
   ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
   ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
+  ExprNode* ParseCustomPriorityExpr(Token* token, size_t length, size_t& index,
+                                    unsigned int priority);
+  unsigned int GetPriority(Token token);
 };
 
 class ConstType : public Type {
@@ -2107,8 +2110,93 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
 }
 
 ExprNode* Parser::ParseFullExpr(Token* token, size_t length, size_t& index) {
+  ExprNode* expr = ParsePrimaryExpr(token, length, index);
+
   // TODO(Parser::ParseFullExpr): Complete the function.
   return nullptr;
+}
+
+ExprNode* Parser::ParseCustomPriorityExpr(Token* token, size_t length,
+                                          size_t& index,
+                                          unsigned int priority) {
+  ExprNode* expr = ParsePrimaryExpr(token, length, index);
+  if (priority < 1) return expr;
+  switch (token[index].value._operator) {
+    case Token::OperatorType::periodstar:
+    case Token::OperatorType::arrowstar:
+    default:
+      break;
+  }
+  if (priority < 2) return expr;
+
+  switch (token[index].value._operator) {
+    case Token::OperatorType::star:
+
+    case Token::OperatorType::slash:
+    case Token::OperatorType::percent:
+    default:
+      break;
+  }
+
+  // TODO(Parser::ParseCustomPriorityExpr): Complete the function.
+  return nullptr;
+}
+
+unsigned int Parser::GetPriority(Token token) {
+  if (token.type == Token::Type::OPERATOR) {
+    switch (token.value._operator) {
+      case Token::OperatorType::periodstar:
+      case Token::OperatorType::arrowstar:
+        return 14;
+      case Token::OperatorType::star:
+      case Token::OperatorType::slash:
+      case Token::OperatorType::percent:
+        return 13;
+      case Token::OperatorType::plus:
+      case Token::OperatorType::minus:
+        return 12;
+      case Token::OperatorType::lessless:
+      case Token::OperatorType::greatergreater:
+        return 11;
+      case Token::OperatorType::less:
+      case Token::OperatorType::lessequal:
+      case Token::OperatorType::greater:
+      case Token::OperatorType::greaterequal:
+        return 10;
+      case Token::OperatorType::equalequal:
+      case Token::OperatorType::exclaimequal:
+        return 9;
+      case Token::OperatorType::amp:
+        return 8;
+      case Token::OperatorType::caret:
+        return 7;
+      case Token::OperatorType::pipe:
+        return 6;
+      case Token::OperatorType::ampamp:
+        return 5;
+      case Token::OperatorType::pipepipe:
+        return 4;
+      case Token::OperatorType::question:
+        return 3;
+      case Token::OperatorType::equal:
+      case Token::OperatorType::plusequal:
+      case Token::OperatorType::minusequal:
+      case Token::OperatorType::starequal:
+      case Token::OperatorType::slashequal:
+      case Token::OperatorType::percentequal:
+      case Token::OperatorType::ampequal:
+      case Token::OperatorType::caretequal:
+      case Token::OperatorType::pipeequal:
+      case Token::OperatorType::lesslessequal:
+      case Token::OperatorType::greatergreaterequal:
+        return 2;
+      case Token::OperatorType::comma:
+        return 1;
+      default:
+        return 0;
+    }
+  }
+  return 0;
 }
 
 }  // namespace Compiler
