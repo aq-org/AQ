@@ -890,9 +890,6 @@ LexEnd:
     value.location = location;
     value.length = length;
 
-    // DEBUG/TEST CODE
-    std::cout << std::string(location, length) << std::endl;
-
     switch (return_token.type) {
       case Token::Type::IDENTIFIER:
         return_token.value.keyword =
@@ -1351,19 +1348,20 @@ class Parser {
  public:
   Parser();
   ~Parser();
-  std::vector<StmtNode> Parse(std::vector<Token> token);
+  static std::vector<StmtNode> Parse(std::vector<Token> token);
 
   static ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
 
  private:
-  bool IsDecl(Token* token, size_t length);
-  bool IsFuncDecl(Token* token, size_t length);
-  size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode& result);
-  ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
-  ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
-  ExprNode* ParseBinaryExpr(Token* token, size_t length, size_t& index,
-                            ExprNode* left, unsigned int priority);
-  unsigned int GetPriority(Token token);
+  static bool IsDecl(Token* token, size_t length);
+  static bool IsFuncDecl(Token* token, size_t length);
+  static size_t ParseFuncDecl(Token* token, size_t length,
+                              FuncDeclNode& result);
+  static ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
+  static ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
+  static ExprNode* ParseBinaryExpr(Token* token, size_t length, size_t& index,
+                                   ExprNode* left, unsigned int priority);
+  static unsigned int GetPriority(Token token);
 };
 
 class ConstType : public Type {
@@ -1676,134 +1674,7 @@ size_t Parser::ParseFuncDecl(Token* token, size_t length,
 }
 
 ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
-  while (index <= length) {
-    if (token[index].type == Token::Type::OPERATOR) {
-      switch (token[index].value._operator) {
-        case Token::OperatorType::NONE:
-          break;
-        case Token::OperatorType::l_square:  // [
-          break;
-        case Token::OperatorType::r_square:  // ]
-          break;
-        case Token::OperatorType::l_paren:  // (
-          break;
-        case Token::OperatorType::r_paren:  // )
-          break;
-        case Token::OperatorType::l_brace:  // {
-          break;
-        case Token::OperatorType::r_brace:  // }
-          break;
-        case Token::OperatorType::period:  // .
-          break;
-        case Token::OperatorType::ellipsis:  // ...
-          break;
-        case Token::OperatorType::amp:  // &
-          break;
-        case Token::OperatorType::ampamp:  // &&
-          break;
-        case Token::OperatorType::ampequal:  // &=
-          break;
-        case Token::OperatorType::star:  // *
-          break;
-        case Token::OperatorType::starequal:  // *=
-          break;
-        case Token::OperatorType::plus:  // +
-          break;
-        case Token::OperatorType::plusplus:  // ++
-          break;
-        case Token::OperatorType::plusequal:  // +=
-          break;
-        case Token::OperatorType::minus:  // -
-          break;
-        case Token::OperatorType::arrow:  // ->
-          break;
-        case Token::OperatorType::minusminus:  // --
-          break;
-        case Token::OperatorType::minusequal:  // -=
-          break;
-        case Token::OperatorType::tilde:  // ~
-          break;
-        case Token::OperatorType::exclaim:  // !
-          break;
-        case Token::OperatorType::exclaimequal:  // !=
-          break;
-        case Token::OperatorType::slash:  // /
-          break;
-        case Token::OperatorType::slashequal:  // /=
-          break;
-        case Token::OperatorType::percent:  // %
-          break;
-        case Token::OperatorType::percentequal:  // %=
-          break;
-        case Token::OperatorType::less:  // <
-          break;
-        case Token::OperatorType::lessless:  // <<
-          break;
-        case Token::OperatorType::lessequal:  // <=
-          break;
-        case Token::OperatorType::lesslessequal:  // <<=
-          break;
-        case Token::OperatorType::spaceship:  // <=>
-          break;
-        case Token::OperatorType::greater:  // >
-          break;
-        case Token::OperatorType::greatergreater:  // >>
-          break;
-        case Token::OperatorType::greaterequal:  // >=
-          break;
-        case Token::OperatorType::greatergreaterequal:  // >>=
-          break;
-        case Token::OperatorType::caret:  // ^
-          break;
-        case Token::OperatorType::caretequal:  // ^=
-          break;
-        case Token::OperatorType::pipe:  // |
-          break;
-        case Token::OperatorType::pipepipe:  // ||
-          break;
-        case Token::OperatorType::pipeequal:  // |=
-          break;
-        case Token::OperatorType::question:  // ?
-          break;
-        case Token::OperatorType::colon:  // :
-          break;
-        case Token::OperatorType::semi:  // ;
-          break;
-        case Token::OperatorType::equal:  // =
-          break;
-        case Token::OperatorType::equalequal:  // ==
-          break;
-        case Token::OperatorType::comma:  // ,
-          break;
-        case Token::OperatorType::hash:  // #
-          break;
-        case Token::OperatorType::hashhash:  // ##
-          break;
-        case Token::OperatorType::hashat:  // #@
-          break;
-        case Token::OperatorType::periodstar:  // .*
-          break;
-        case Token::OperatorType::arrowstar:  // ->*
-          break;
-        case Token::OperatorType::coloncolon:  // ::
-          break;
-        case Token::OperatorType::at:  // @
-          break;
-        case Token::OperatorType::lesslessless:  // <<<
-          break;
-        case Token::OperatorType::greatergreatergreater:  // >>>
-          break;
-        case Token::OperatorType::caretcaret:  // ^^
-          break;
-        default:
-          break;
-      }
-    } else if (token[index].type == Token::Type::IDENTIFIER) {
-    }
-  }
-
-  // TODO(Parser::ParseExpr): Complete the function.
-  return nullptr;
+  return ParseFullExpr(token, length, index);
 }
 
 ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
@@ -2562,6 +2433,12 @@ int main(int argc, char* argv[]) {
       break;
     }
   }
-  Aq::Compiler::Parser parser;
-  parser.Parse(token);
+
+  std::cout << "Lex End." << std::endl;
+
+  Aq::Compiler::Parser::Parse(token);
+
+  std::cout << "Parse End." << std::endl;
+
+  return 0;
 }
