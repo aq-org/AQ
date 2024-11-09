@@ -1114,36 +1114,36 @@ class ConvertNode : public UnaryNode {
 class BinaryNode : public ExprNode {
  public:
   enum class Operator {
-    kAdd,
-    kSub,
-    kMul,
-    kDiv,
-    kRem,
-    kAnd,
-    kOr,
-    kXor,
-    kShl,
-    kShr,
-    kLT,
-    kGT,
-    kLE,
-    kGE,
-    kEQ,
-    kNE,
-    kLAnd,
-    kLOr,
-    kAssign,
-    kAddAssign,
-    kSubAssign,
-    kMulAssign,
-    kDivAssign,
-    kRemAssign,
-    kAndAssign,
-    kOrAssign,
-    kXorAssign,
-    kShlAssign,
-    kShrAssign,
-    kComma
+    kAdd,        // +
+    kSub,        // -
+    kMul,        // *
+    kDiv,        // /
+    kRem,        // %
+    kAnd,        // &
+    kOr,         // |
+    kXor,        // ^
+    kShl,        // <<
+    kShr,        // >>
+    kLT,         // <
+    kGT,         // >
+    kLE,         // <=
+    kGE,         // >=
+    kEQ,         // ==
+    kNE,         // !=
+    kLAnd,       // &&
+    kLOr,        // ||
+    kAssign,     // =
+    kAddAssign,  // +=
+    kSubAssign,  // -=
+    kMulAssign,  // *=
+    kDivAssign,  // /=
+    kRemAssign,  // %=
+    kAndAssign,  // &=
+    kOrAssign,   // |=
+    kXorAssign,  // ^=
+    kShlAssign,  // <<=
+    kShrAssign,  // >>=
+    kComma       // ,
   };
 
   BinaryNode() { type_ = StmtType::kBinary; }
@@ -1359,8 +1359,8 @@ class Parser {
   size_t ParseFuncDecl(Token* token, size_t length, FuncDeclNode& result);
   ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
   ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
-  ExprNode* ParseCustomPriorityExpr(Token* token, size_t length, size_t& index,
-                                    unsigned int priority);
+  ExprNode* ParseBinaryExpr(Token* token, size_t length, size_t& index,
+                            ExprNode* left, unsigned int priority);
   unsigned int GetPriority(Token token);
 };
 
@@ -2110,36 +2110,339 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
 }
 
 ExprNode* Parser::ParseFullExpr(Token* token, size_t length, size_t& index) {
+  if (length >= index) return nullptr;
   ExprNode* expr = ParsePrimaryExpr(token, length, index);
-
-  // TODO(Parser::ParseFullExpr): Complete the function.
-  return nullptr;
+  expr = ParseBinaryExpr(token, length, index, expr, 0);
+  return expr;
 }
 
-ExprNode* Parser::ParseCustomPriorityExpr(Token* token, size_t length,
-                                          size_t& index,
-                                          unsigned int priority) {
-  ExprNode* expr = ParsePrimaryExpr(token, length, index);
-  if (priority < 1) return expr;
-  switch (token[index].value._operator) {
-    case Token::OperatorType::periodstar:
-    case Token::OperatorType::arrowstar:
-    default:
-      break;
+ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
+                                  ExprNode* left, unsigned int priority) {
+  ExprNode* expr = left;
+  while (index < length && GetPriority(token[index]) > priority) {
+    if (token[index].type != Token::Type::OPERATOR) return expr;
+    switch (token[index].value._operator) {
+      case Token::OperatorType::periodstar:
+      case Token::OperatorType::arrowstar:
+        // TODO(Parser::ParseBinaryExpr): Complete the case.
+        break;
+
+      case Token::OperatorType::star: {
+        BinaryNode* star_node = new BinaryNode();
+        index++;
+        star_node->SetBinaryNode(
+            BinaryNode::Operator::kMul, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 12));
+        expr = star_node;
+        break;
+      }
+      case Token::OperatorType::slash: {
+        BinaryNode* slash_node = new BinaryNode();
+        index++;
+        slash_node->SetBinaryNode(
+            BinaryNode::Operator::kDiv, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 12));
+        expr = slash_node;
+        break;
+      }
+      case Token::OperatorType::percent: {
+        BinaryNode* percent_node = new BinaryNode();
+        index++;
+        percent_node->SetBinaryNode(
+            BinaryNode::Operator::kRem, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 12));
+        expr = percent_node;
+        break;
+      }
+
+      case Token::OperatorType::plus: {
+        BinaryNode* plus_node = new BinaryNode();
+        index++;
+        plus_node->SetBinaryNode(
+            BinaryNode::Operator::kAdd, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 11));
+        expr = plus_node;
+        break;
+      }
+      case Token::OperatorType::minus: {
+        BinaryNode* minus_node = new BinaryNode();
+        index++;
+        minus_node->SetBinaryNode(
+            BinaryNode::Operator::kSub, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 11));
+        expr = minus_node;
+        break;
+      }
+
+      case Token::OperatorType::lessless: {
+        BinaryNode* lessless_node = new BinaryNode();
+        index++;
+        lessless_node->SetBinaryNode(
+            BinaryNode::Operator::kShl, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 10));
+        expr = lessless_node;
+        break;
+      }
+      case Token::OperatorType::greatergreater: {
+        BinaryNode* greatergreater_node = new BinaryNode();
+        index++;
+        greatergreater_node->SetBinaryNode(
+            BinaryNode::Operator::kShr, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 10));
+        expr = greatergreater_node;
+        break;
+      }
+
+      case Token::OperatorType::less: {
+        BinaryNode* less_node = new BinaryNode();
+        index++;
+        less_node->SetBinaryNode(
+            BinaryNode::Operator::kLT, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 9));
+        expr = less_node;
+        break;
+      }
+      case Token::OperatorType::lessequal: {
+        BinaryNode* lessequal_node = new BinaryNode();
+        index++;
+        lessequal_node->SetBinaryNode(
+            BinaryNode::Operator::kLE, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 9));
+        expr = lessequal_node;
+        break;
+      }
+      case Token::OperatorType::greater: {
+        BinaryNode* greater_node = new BinaryNode();
+        index++;
+        greater_node->SetBinaryNode(
+            BinaryNode::Operator::kGT, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 9));
+        expr = greater_node;
+        break;
+      }
+      case Token::OperatorType::greaterequal: {
+        BinaryNode* greaterequal_node = new BinaryNode();
+        index++;
+        greaterequal_node->SetBinaryNode(
+            BinaryNode::Operator::kGE, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 9));
+        expr = greaterequal_node;
+        break;
+      }
+
+      case Token::OperatorType::equalequal: {
+        BinaryNode* equalequal_node = new BinaryNode();
+        index++;
+        equalequal_node->SetBinaryNode(
+            BinaryNode::Operator::kEQ, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 8));
+        expr = equalequal_node;
+        break;
+      }
+      case Token::OperatorType::exclaimequal: {
+        BinaryNode* exclaimequal_node = new BinaryNode();
+        index++;
+        exclaimequal_node->SetBinaryNode(
+            BinaryNode::Operator::kNE, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 8));
+        expr = exclaimequal_node;
+        break;
+      }
+
+      case Token::OperatorType::amp: {
+        BinaryNode* amp_node = new BinaryNode();
+        index++;
+        amp_node->SetBinaryNode(
+            BinaryNode::Operator::kAnd, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 7));
+        expr = amp_node;
+        break;
+      }
+
+      case Token::OperatorType::caret: {
+        BinaryNode* caret_node = new BinaryNode();
+        index++;
+        caret_node->SetBinaryNode(
+            BinaryNode::Operator::kXor, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 6));
+        expr = caret_node;
+        break;
+      }
+
+      case Token::OperatorType::pipe: {
+        BinaryNode* pipe_node = new BinaryNode();
+        index++;
+        pipe_node->SetBinaryNode(
+            BinaryNode::Operator::kOr, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 5));
+        expr = pipe_node;
+        break;
+      }
+
+      case Token::OperatorType::ampamp: {
+        BinaryNode* ampamp_node = new BinaryNode();
+        index++;
+        ampamp_node->SetBinaryNode(
+            BinaryNode::Operator::kLAnd, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 4));
+        expr = ampamp_node;
+        break;
+      }
+
+      case Token::OperatorType::pipepipe: {
+        BinaryNode* pipepipe_node = new BinaryNode();
+        index++;
+        pipepipe_node->SetBinaryNode(
+            BinaryNode::Operator::kLOr, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 3));
+        expr = pipepipe_node;
+        break;
+      }
+
+      case Token::OperatorType::question:
+        // TODO(TriExpr): Complete the case.
+        break;
+
+      case Token::OperatorType::equal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::plusequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kAddAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::minusequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kSubAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::starequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kMulAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::slashequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kDivAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::percentequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kRemAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::ampequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kAndAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::caretequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kXorAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::pipeequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kOrAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::lesslessequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kShlAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::greatergreaterequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kShrAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+
+      case Token::OperatorType::comma:
+        // TODO(Parser::ParseBinaryExpr): Complete the case.
+        break;
+
+      default:
+        return expr;
+    }
   }
-  if (priority < 2) return expr;
 
-  switch (token[index].value._operator) {
-    case Token::OperatorType::star:
-
-    case Token::OperatorType::slash:
-    case Token::OperatorType::percent:
-    default:
-      break;
-  }
-
-  // TODO(Parser::ParseCustomPriorityExpr): Complete the function.
-  return nullptr;
+  // TODO(Parser::ParseBinaryExpr): Complete the function.
+  return expr;
 }
 
 unsigned int Parser::GetPriority(Token token) {
