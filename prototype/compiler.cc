@@ -1143,7 +1143,9 @@ class BinaryNode : public ExprNode {
     kXorAssign,  // ^=
     kShlAssign,  // <<=
     kShrAssign,  // >>=
-    kComma       // ,
+    kComma,      // ,
+    kPtrMemD,    // .*
+    kPtrMemI,    // ->*
   };
 
   BinaryNode() { type_ = StmtType::kBinary; }
@@ -2122,10 +2124,26 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
   while (index < length && GetPriority(token[index]) > priority) {
     if (token[index].type != Token::Type::OPERATOR) return expr;
     switch (token[index].value._operator) {
-      case Token::OperatorType::periodstar:
-      case Token::OperatorType::arrowstar:
-        // TODO(Parser::ParseBinaryExpr): Complete the case.
+      case Token::OperatorType::periodstar: {
+        BinaryNode* periodstar_node = new BinaryNode();
+        index++;
+        periodstar_node->SetBinaryNode(
+            BinaryNode::Operator::kPtrMemD, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 14));
+        expr = periodstar_node;
         break;
+      }
+      case Token::OperatorType::arrowstar: {
+        BinaryNode* arrowstar_node = new BinaryNode();
+        index++;
+        arrowstar_node->SetBinaryNode(
+            BinaryNode::Operator::kPtrMemI, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 14));
+        expr = arrowstar_node;
+        break;
+      }
 
       case Token::OperatorType::star: {
         BinaryNode* star_node = new BinaryNode();
@@ -2133,7 +2151,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         star_node->SetBinaryNode(
             BinaryNode::Operator::kMul, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 12));
+                            ParsePrimaryExpr(token, length, index), 13));
         expr = star_node;
         break;
       }
@@ -2143,7 +2161,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         slash_node->SetBinaryNode(
             BinaryNode::Operator::kDiv, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 12));
+                            ParsePrimaryExpr(token, length, index), 13));
         expr = slash_node;
         break;
       }
@@ -2153,7 +2171,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         percent_node->SetBinaryNode(
             BinaryNode::Operator::kRem, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 12));
+                            ParsePrimaryExpr(token, length, index), 13));
         expr = percent_node;
         break;
       }
@@ -2164,7 +2182,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         plus_node->SetBinaryNode(
             BinaryNode::Operator::kAdd, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 11));
+                            ParsePrimaryExpr(token, length, index), 12));
         expr = plus_node;
         break;
       }
@@ -2174,7 +2192,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         minus_node->SetBinaryNode(
             BinaryNode::Operator::kSub, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 11));
+                            ParsePrimaryExpr(token, length, index), 12));
         expr = minus_node;
         break;
       }
@@ -2185,7 +2203,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         lessless_node->SetBinaryNode(
             BinaryNode::Operator::kShl, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 10));
+                            ParsePrimaryExpr(token, length, index), 11));
         expr = lessless_node;
         break;
       }
@@ -2195,7 +2213,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         greatergreater_node->SetBinaryNode(
             BinaryNode::Operator::kShr, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 10));
+                            ParsePrimaryExpr(token, length, index), 11));
         expr = greatergreater_node;
         break;
       }
@@ -2206,7 +2224,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         less_node->SetBinaryNode(
             BinaryNode::Operator::kLT, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 9));
+                            ParsePrimaryExpr(token, length, index), 10));
         expr = less_node;
         break;
       }
@@ -2216,7 +2234,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         lessequal_node->SetBinaryNode(
             BinaryNode::Operator::kLE, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 9));
+                            ParsePrimaryExpr(token, length, index), 10));
         expr = lessequal_node;
         break;
       }
@@ -2226,7 +2244,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         greater_node->SetBinaryNode(
             BinaryNode::Operator::kGT, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 9));
+                            ParsePrimaryExpr(token, length, index), 10));
         expr = greater_node;
         break;
       }
@@ -2236,7 +2254,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         greaterequal_node->SetBinaryNode(
             BinaryNode::Operator::kGE, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 9));
+                            ParsePrimaryExpr(token, length, index), 10));
         expr = greaterequal_node;
         break;
       }
@@ -2247,7 +2265,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         equalequal_node->SetBinaryNode(
             BinaryNode::Operator::kEQ, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 8));
+                            ParsePrimaryExpr(token, length, index), 9));
         expr = equalequal_node;
         break;
       }
@@ -2257,7 +2275,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         exclaimequal_node->SetBinaryNode(
             BinaryNode::Operator::kNE, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 8));
+                            ParsePrimaryExpr(token, length, index), 9));
         expr = exclaimequal_node;
         break;
       }
@@ -2268,7 +2286,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         amp_node->SetBinaryNode(
             BinaryNode::Operator::kAnd, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 7));
+                            ParsePrimaryExpr(token, length, index), 8));
         expr = amp_node;
         break;
       }
@@ -2279,7 +2297,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         caret_node->SetBinaryNode(
             BinaryNode::Operator::kXor, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 6));
+                            ParsePrimaryExpr(token, length, index), 7));
         expr = caret_node;
         break;
       }
@@ -2290,7 +2308,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         pipe_node->SetBinaryNode(
             BinaryNode::Operator::kOr, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 5));
+                            ParsePrimaryExpr(token, length, index), 6));
         expr = pipe_node;
         break;
       }
@@ -2301,7 +2319,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         ampamp_node->SetBinaryNode(
             BinaryNode::Operator::kLAnd, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 4));
+                            ParsePrimaryExpr(token, length, index), 5));
         expr = ampamp_node;
         break;
       }
@@ -2312,7 +2330,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         pipepipe_node->SetBinaryNode(
             BinaryNode::Operator::kLOr, expr,
             ParseBinaryExpr(token, length, index,
-                            ParsePrimaryExpr(token, length, index), 3));
+                            ParsePrimaryExpr(token, length, index), 4));
         expr = pipepipe_node;
         break;
       }
@@ -2432,9 +2450,16 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
         break;
       }
 
-      case Token::OperatorType::comma:
-        // TODO(Parser::ParseBinaryExpr): Complete the case.
+      case Token::OperatorType::comma: {
+        BinaryNode* comma_node = new BinaryNode();
+        index++;
+        comma_node->SetBinaryNode(
+            BinaryNode::Operator::kComma, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 1));
+        expr = comma_node;
         break;
+      }
 
       default:
         return expr;
