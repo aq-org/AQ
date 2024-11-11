@@ -984,6 +984,7 @@ class StmtNode {
 
   enum class StmtType {
     kStmt,
+    kCompound,
     kDecl,
     kExpr,
     kFuncDecl,
@@ -991,6 +992,7 @@ class StmtNode {
     kFuncInvoke,
     kAssign,
     kIf,
+    kWhile,
     kValue,
     kIdentifier,
     kUnary,
@@ -1010,6 +1012,19 @@ class StmtNode {
 
  protected:
   StmtType type_;
+};
+
+class CompoundNode : public StmtNode {
+ public:
+  CompoundNode() { type_ = StmtType::kCompound; }
+  virtual ~CompoundNode() = default;
+
+  void SetCompoundNode(std::vector<StmtNode*> stmts) { stmts_ = stmts; }
+
+  CompoundNode(const CompoundNode&) = default;
+  CompoundNode& operator=(const CompoundNode&) = default;
+
+ private:
   std::vector<StmtNode*> stmts_;
 };
 
@@ -1276,7 +1291,7 @@ class FuncDeclNode : public DeclNode {
  public:
   FuncDeclNode() { type_ = StmtType::kFuncDecl; }
   void SetFuncDeclNode(Type* type, ExprNode* name, std::vector<ExprNode*> args,
-                       std::vector<ExprNode*> stmts) {
+                       CompoundNode* stmts) {
     return_type_ = type;
     name_ = name;
     args_ = args;
@@ -1291,7 +1306,7 @@ class FuncDeclNode : public DeclNode {
   Type* return_type_;
   ExprNode* name_;
   std::vector<ExprNode*> args_;
-  std::vector<ExprNode*> stmts_;
+  CompoundNode* stmts_;
 };
 
 class FuncInvokeNode : public ExprNode {
@@ -1314,7 +1329,7 @@ class FuncInvokeNode : public ExprNode {
 class IfNode : public StmtNode {
  public:
   IfNode() { type_ = StmtType::kIf; }
-  void SetIfNode(ExprNode* condition, std::vector<StmtNode*> body) {
+  void SetIfNode(ExprNode* condition, CompoundNode* body) {
     condition_ = condition;
     body_ = body;
   }
@@ -1324,7 +1339,25 @@ class IfNode : public StmtNode {
 
  private:
   ExprNode* condition_;
-  std::vector<StmtNode*> body_;
+  CompoundNode* body_;
+};
+
+class WhileNode : public StmtNode {
+ public:
+  WhileNode() { type_ = StmtType::kWhile; }
+  virtual ~WhileNode() = default;
+
+  void SetWhileNode(ExprNode* condition, CompoundNode* body) {
+    condition_ = condition;
+    body_ = body;
+  }
+
+  WhileNode(const WhileNode&) = default;
+  WhileNode& operator=(const WhileNode&) = default;
+
+ private:
+  ExprNode* condition_;
+  CompoundNode* body_;
 };
 
 class CastNode : public ExprNode {
@@ -1348,18 +1381,18 @@ class Parser {
  public:
   Parser();
   ~Parser();
-  static std::vector<StmtNode> Parse(std::vector<Token> token);
+  static CompoundNode* Parse(std::vector<Token> token);
 
   static ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
 
  private:
   static bool IsDecl(Token* token, size_t length, size_t& index);
   static bool IsFuncDecl(Token* token, size_t length, size_t& index);
+  static StmtNode* ParseStmt(Token* token, size_t length, size_t& index);
   static VarDeclNode* ParseVarDecl(Token* token, size_t length, size_t& index);
   static FuncDeclNode* ParseFuncDecl(Token* token, size_t length,
                                      size_t& index);
   static ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
-  static ExprNode* ParseFullExpr(Token* token, size_t length, size_t& index);
   static ExprNode* ParseBinaryExpr(Token* token, size_t length, size_t& index,
                                    ExprNode* left, unsigned int priority);
   static unsigned int GetPriority(Token token);
@@ -1552,21 +1585,23 @@ Parser::Parser() = default;
 Parser::~Parser() = default;
 
 // TODO(Parser): NOT COMPLETE.
-std::vector<StmtNode> Parser::Parse(std::vector<Token> token) {
+CompoundNode* Parser::Parse(std::vector<Token> token) {
   Token* token_ptr = token.data();
   size_t index = 0;
   size_t length = token.size();
   if (IsDecl(token_ptr, length, index)) {
     if (IsFuncDecl(token_ptr, length, index)) {
-      FuncDeclNode result;
-      ParseFuncDecl(token_ptr, length, index);
+      FuncDeclNode* result = ParseFuncDecl(token_ptr, length, index);
     } else {
+      VarDeclNode* result = ParseVarDecl(token_ptr, length, index);
+      if (token_ptr[index].type != Token::Type::OPERATOR ||
+          token_ptr[index].value._operator != Token::OperatorType::semi)
+        return nullptr;
+      index++;
     }
-  } else {
   }
-
   // TODO(Parser::Parse): Complete the function.
-  return std::vector<StmtNode>();
+  return nullptr;
 }
 
 bool Parser::IsDecl(Token* token, size_t length, size_t& index) {
@@ -1628,6 +1663,36 @@ bool Parser::IsFuncDecl(Token* token, size_t length, size_t& index) {
   return false;
 }
 
+StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
+  // TODO(Parser::ParseStmt): Complete the function.
+  if (IsDecl(token, length, index)) {
+    if (IsFuncDecl(token, length, index)) {
+      return nullptr;
+    } else {
+      VarDeclNode* result = ParseVarDecl(token, length, index);
+      if (token[index].type != Token::Type::OPERATOR ||
+          token[index].value._operator != Token::OperatorType::semi)
+        return nullptr;
+      index++;
+      return dynamic_cast<DeclNode*>(result);
+    }
+  }
+  switch (token[index].type) {
+    case Token::Type::OPERATOR:
+      switch (token[index].value._operator) {
+        case Token::OperatorType::semi:
+          break;
+        default:
+          return nullptr;
+      }
+      break;
+    case Token::Type::KEYWORD:
+      switch (token[index].value.keyword) {}
+      break;
+    default:
+  }
+}
+
 FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
                                     size_t& index) {
   FuncDeclNode* func_decl = nullptr;
@@ -1652,7 +1717,7 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
       token[index].value._operator != Token::OperatorType::l_brace)
     return func_decl;
   // TODO(Parser::ParseFuncDecl): Parse the function body.
-  std::vector<ExprNode*> stmts;
+  CompoundNode* stmts = nullptr;
 
   func_decl = new FuncDeclNode();
   func_decl->SetFuncDeclNode(type, name, args, stmts);
@@ -1703,10 +1768,6 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
       return var_decl;
   }
   return var_decl;
-}
-
-ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
-  return ParseFullExpr(token, length, index);
 }
 
 ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
@@ -2014,7 +2075,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
   return full_expr;
 }
 
-ExprNode* Parser::ParseFullExpr(Token* token, size_t length, size_t& index) {
+ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
   if (length >= index) return nullptr;
   ExprNode* expr = ParsePrimaryExpr(token, length, index);
   expr = ParseBinaryExpr(token, length, index, expr, 0);
