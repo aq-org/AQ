@@ -230,6 +230,7 @@ struct Token {
     For,
     Friend,
     Goto,
+    If,
     Import,
     Inline,
     Int,
@@ -400,6 +401,7 @@ TokenMap::TokenMap() {
   keyword_map.Insert("for", Token::KeywordType::For);
   keyword_map.Insert("friend", Token::KeywordType::Friend);
   keyword_map.Insert("goto", Token::KeywordType::Goto);
+  keyword_map.Insert("if", Token::KeywordType::If);
   keyword_map.Insert("import", Token::KeywordType::Import);
   keyword_map.Insert("inline", Token::KeywordType::Inline);
   keyword_map.Insert("int", Token::KeywordType::Int);
@@ -1334,12 +1336,20 @@ class IfNode : public StmtNode {
     body_ = body;
   }
 
+  void SetIfNode(ExprNode* condition, CompoundNode* body,
+                 CompoundNode* else_body) {
+    condition_ = condition;
+    body_ = body;
+    else_body_ = else_body;
+  }
+
   IfNode(const IfNode&) = default;
   IfNode& operator=(const IfNode&) = default;
 
  private:
   ExprNode* condition_;
   CompoundNode* body_;
+  CompoundNode* else_body_;
 };
 
 class WhileNode : public StmtNode {
@@ -1386,8 +1396,8 @@ class Parser {
   static ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
 
  private:
-  static bool IsDecl(Token* token, size_t length, size_t& index);
-  static bool IsFuncDecl(Token* token, size_t length, size_t& index);
+  static bool IsDecl(Token* token, size_t length, size_t index);
+  static bool IsFuncDecl(Token* token, size_t length, size_t index);
   static StmtNode* ParseStmt(Token* token, size_t length, size_t& index);
   static VarDeclNode* ParseVarDecl(Token* token, size_t length, size_t& index);
   static FuncDeclNode* ParseFuncDecl(Token* token, size_t length,
@@ -1604,7 +1614,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   return nullptr;
 }
 
-bool Parser::IsDecl(Token* token, size_t length, size_t& index) {
+bool Parser::IsDecl(Token* token, size_t length, size_t index) {
   if (token[0].type == Token::Type::KEYWORD) {
     if (token[0].value.keyword == Token::KeywordType::Auto ||
         token[0].value.keyword == Token::KeywordType::Bool ||
@@ -1649,7 +1659,7 @@ bool Parser::IsDecl(Token* token, size_t length, size_t& index) {
   return false;
 }
 
-bool Parser::IsFuncDecl(Token* token, size_t length, size_t& index) {
+bool Parser::IsFuncDecl(Token* token, size_t length, size_t index) {
   for (size_t i = index; i < length; i++) {
     if (token[i].type == Token::Type::OPERATOR &&
         token[i].value._operator == Token::OperatorType::semi) {
@@ -1681,15 +1691,89 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
     case Token::Type::OPERATOR:
       switch (token[index].value._operator) {
         case Token::OperatorType::semi:
-          break;
+          index++;
+          return nullptr;
+        case Token::OperatorType::l_brace: {
+          CompoundNode* result = new CompoundNode();
+          std::vector<StmtNode*> stmts;
+          while (true) {
+            StmtNode* stmt = ParseStmt(token, length, ++index);
+            if (stmt == nullptr) break;
+            stmts.push_back(stmt);
+          }
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::r_brace)
+            return nullptr;
+          result->SetCompoundNode(stmts);
+          index++;
+          return result;
+        }
+        case Token::OperatorType::r_square:
+        case Token::OperatorType::r_paren:
+        case Token::OperatorType::r_brace:
+          return nullptr;
+        default:
+          StmtNode* stmt_node = ParseExpr(token, length, index);
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::semi)
+            return nullptr;
+          index++;
+          return stmt_node;
+      }
+    case Token::Type::KEYWORD:
+      switch (token[index].value.keyword) {
+        case Token::KeywordType::If: {
+          IfNode* result = new IfNode();
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::l_paren)
+            return nullptr;
+          ExprNode* condition = ParseExpr(token, length, ++index);
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::r_paren)
+            return nullptr;
+          index++;
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::l_brace)
+            return nullptr;
+          CompoundNode* body =
+              dynamic_cast<CompoundNode*>(ParseStmt(token, length, index));
+          result->SetIfNode(condition, body);
+          if (token[index].type == Token::Type::KEYWORD &&
+              token[index].value.keyword == Token::KeywordType::Else) {
+            CompoundNode* else_body =
+                dynamic_cast<CompoundNode*>(ParseStmt(token, length, index));
+            result->SetIfNode(condition, body, else_body);
+          }
+          return result;
+        }
+        case Token::KeywordType::While: {
+          WhileNode* result = new WhileNode();
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::l_paren)
+            return nullptr;
+          ExprNode* condition = ParseExpr(token, length, ++index);
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::r_paren)
+            return nullptr;
+          index++;
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::l_brace)
+            return nullptr;
+          CompoundNode* body =
+              dynamic_cast<CompoundNode*>(ParseStmt(token, length, index));
+          result->SetWhileNode(condition, body);
+          return result;
+        }
         default:
           return nullptr;
       }
-      break;
-    case Token::Type::KEYWORD:
-      switch (token[index].value.keyword) {}
-      break;
     default:
+      StmtNode* stmt_node = ParseExpr(token, length, index);
+      if (token[index].type != Token::Type::OPERATOR ||
+          token[index].value._operator != Token::OperatorType::semi)
+        return nullptr;
+      index++;
+      return stmt_node;
   }
 }
 
@@ -1716,14 +1800,20 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
   if (token[index].type != Token::Type::OPERATOR ||
       token[index].value._operator != Token::OperatorType::l_brace)
     return func_decl;
-  // TODO(Parser::ParseFuncDecl): Parse the function body.
-  CompoundNode* stmts = nullptr;
+
+  std::vector<StmtNode*> stmts_vector;
+  while (true) {
+    StmtNode* stmt = ParseStmt(token, length, ++index);
+    if (stmt == nullptr) break;
+    stmts_vector.push_back(stmt);
+  }
+  CompoundNode* stmts = new CompoundNode();
+  stmts->SetCompoundNode(stmts_vector);
 
   func_decl = new FuncDeclNode();
   func_decl->SetFuncDeclNode(type, name, args, stmts);
 
-  // TODO(Parser::ParseFuncDecl): Complete the function.
-  return nullptr;
+  return func_decl;
 }
 
 VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
