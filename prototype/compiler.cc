@@ -1023,6 +1023,8 @@ class CompoundNode : public StmtNode {
 
   void SetCompoundNode(std::vector<StmtNode*> stmts) { stmts_ = stmts; }
 
+  std::vector<StmtNode*> GetStmts() { return stmts_; }
+
   CompoundNode(const CompoundNode&) = default;
   CompoundNode& operator=(const CompoundNode&) = default;
 
@@ -1257,6 +1259,10 @@ class VarDeclNode : public DeclNode, public ExprNode {
   VarDeclNode(const VarDeclNode&) = default;
   VarDeclNode& operator=(const VarDeclNode&) = default;
 
+  Type* GetType() { return var_type_; }
+  ExprNode* GetName() { return name_; }
+  std::vector<ExprNode*> GetValue() { return value_; }
+
  protected:
   Type* var_type_;
   ExprNode* name_;
@@ -1300,6 +1306,11 @@ class FuncDeclNode : public DeclNode {
     stmts_ = stmts;
   }
   virtual ~FuncDeclNode() = default;
+
+  Type* GetReturnType() { return return_type_; }
+  ExprNode* GetName() { return name_; }
+  std::vector<ExprNode*> GetArgs() { return args_; }
+  CompoundNode* GetStmts() { return stmts_; }
 
   FuncDeclNode(const FuncDeclNode&) = default;
   FuncDeclNode& operator=(const FuncDeclNode&) = default;
@@ -2581,6 +2592,39 @@ unsigned int Parser::GetPriority(Token token) {
   return 0;
 }
 
+class BytecodeGenerator {
+ public:
+  BytecodeGenerator() = default;
+  ~BytecodeGenerator() = default;
+
+  static void GenerateBytecode(StmtNode* stmt);
+
+ private:
+  static void HandleFuncDecl(FuncDeclNode* func_decl);
+  static void HandleVarDecl(VarDeclNode* var_decl);
+};
+
+void BytecodeGenerator::GenerateBytecode(StmtNode* stmt) {
+  if (stmt->GetType() != StmtNode::StmtType::kCompound) return;
+  CompoundNode* compound_node = dynamic_cast<CompoundNode*>(stmt);
+  for (size_t i = 0; i < compound_node->GetStmts().size(); i++) {
+    switch (compound_node->GetStmts()[i]->GetType()) {
+      case StmtNode::StmtType::kFuncDecl:
+        HandleFuncDecl(
+            dynamic_cast<FuncDeclNode*>(compound_node->GetStmts()[i]));
+        break;
+      case StmtNode::StmtType::kVarDecl:
+        HandleVarDecl(dynamic_cast<VarDeclNode*>(compound_node->GetStmts()[i]));
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {}
+void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl) {}
+
 }  // namespace Compiler
 }  // namespace Aq
 
@@ -2619,9 +2663,11 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Lex End." << std::endl;
 
-  Aq::Compiler::Parser::Parse(token);
+  Aq::Compiler::CompoundNode* ast = Aq::Compiler::Parser::Parse(token);
 
   std::cout << "Parse End." << std::endl;
+
+  Aq::Compiler::BytecodeGenerator::GenerateBytecode(ast);
 
   return 0;
 }
