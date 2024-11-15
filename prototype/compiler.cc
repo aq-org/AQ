@@ -1605,24 +1605,27 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
 Parser::Parser() = default;
 Parser::~Parser() = default;
 
-// TODO(Parser): NOT COMPLETE.
 CompoundNode* Parser::Parse(std::vector<Token> token) {
   Token* token_ptr = token.data();
   size_t index = 0;
   size_t length = token.size();
+  CompoundNode* ast = nullptr;
+  std::vector<StmtNode*> stmts;
   if (IsDecl(token_ptr, length, index)) {
     if (IsFuncDecl(token_ptr, length, index)) {
-      FuncDeclNode* result = ParseFuncDecl(token_ptr, length, index);
+      stmts.push_back(ParseFuncDecl(token_ptr, length, index));
     } else {
-      VarDeclNode* result = ParseVarDecl(token_ptr, length, index);
+      stmts.push_back(
+          dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
       if (token_ptr[index].type != Token::Type::OPERATOR ||
           token_ptr[index].value._operator != Token::OperatorType::semi)
         return nullptr;
       index++;
     }
   }
-  // TODO(Parser::Parse): Complete the function.
-  return nullptr;
+  ast = new CompoundNode();
+  ast->SetCompoundNode(stmts);
+  return ast;
 }
 
 bool Parser::IsDecl(Token* token, size_t length, size_t index) {
