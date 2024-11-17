@@ -1611,15 +1611,20 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   size_t length = token.size();
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
-  if (IsDecl(token_ptr, length, index)) {
-    if (IsFuncDecl(token_ptr, length, index)) {
-      stmts.push_back(ParseFuncDecl(token_ptr, length, index));
+  while (index <= token.size()) {
+    if (IsDecl(token_ptr, length, index)) {
+      if (IsFuncDecl(token_ptr, length, index)) {
+        stmts.push_back(ParseFuncDecl(token_ptr, length, index));
+      } else {
+        stmts.push_back(
+            dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
+        if (token_ptr[index].type != Token::Type::OPERATOR ||
+            token_ptr[index].value._operator != Token::OperatorType::semi)
+          return nullptr;
+        index++;
+      }
     } else {
-      stmts.push_back(
-          dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
-      if (token_ptr[index].type != Token::Type::OPERATOR ||
-          token_ptr[index].value._operator != Token::OperatorType::semi)
-        return nullptr;
+      // ERROR
       index++;
     }
   }
@@ -1891,10 +1896,12 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               full_expr = amp_node;
               preoper_expr = amp_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      amp_node);
+              if (preoper_expr != nullptr)
+                if (preoper_expr != nullptr)
+                  dynamic_cast<UnaryNode*>(preoper_expr)
+                      ->SetUnaryNode(
+                          dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                          amp_node);
             }
             index++;
             break;
@@ -1909,10 +1916,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               full_expr = star_node;
               preoper_expr = star_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      star_node);
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        star_node);
             }
             index++;
             break;
@@ -1927,10 +1935,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               full_expr = plus_node;
               preoper_expr = plus_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      plus_node);
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        plus_node);
             }
             index++;
             break;
@@ -1945,10 +1954,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               full_expr = minus_node;
               preoper_expr = minus_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      minus_node);
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        minus_node);
             }
             index++;
             break;
@@ -1963,10 +1973,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               full_expr = not_node;
               preoper_expr = not_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      not_node);
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        not_node);
             }
             index++;
             break;
@@ -1982,10 +1993,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               full_expr = bitwisenot_node;
               preoper_expr = bitwisenot_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      bitwisenot_node);
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        bitwisenot_node);
             }
             index++;
             break;
@@ -1998,10 +2010,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             index++;
             ArrayNode* array = new ArrayNode();
             array->SetArrayNode(main_expr, ParseExpr(token, length, index));
-            dynamic_cast<UnaryNode*>(preoper_expr)
-                ->SetUnaryNode(
-                    dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                    array);
+            if (preoper_expr != nullptr)
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      array);
             if (main_expr == full_expr) main_expr = array;
             index++;
             break;
@@ -2028,17 +2041,19 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
                 ConvertNode* convert_node = new ConvertNode();
                 convert_node->SetConvertNode(
                     Type::CreateType(token, length, index), nullptr);
-                dynamic_cast<UnaryNode*>(preoper_expr)
-                    ->SetUnaryNode(
-                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                        convert_node);
+                if (preoper_expr != nullptr)
+                  dynamic_cast<UnaryNode*>(preoper_expr)
+                      ->SetUnaryNode(
+                          dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                          convert_node);
                 preoper_expr = convert_node;
               } else {
                 ExprNode* full_expr_node = ParseExpr(token, length, index);
-                dynamic_cast<UnaryNode*>(preoper_expr)
-                    ->SetUnaryNode(
-                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                        full_expr_node);
+                if (preoper_expr != nullptr)
+                  dynamic_cast<UnaryNode*>(preoper_expr)
+                      ->SetUnaryNode(
+                          dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                          full_expr_node);
                 state = State::kPostOper;
               }
             }
@@ -2068,10 +2083,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             }
             FuncInvokeNode* func_invoke_node = new FuncInvokeNode();
             func_invoke_node->SetFuncInvokeNode(main_expr, args);
-            dynamic_cast<UnaryNode*>(preoper_expr)
-                ->SetUnaryNode(
-                    dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                    func_invoke_node);
+            if (preoper_expr != nullptr)
+              dynamic_cast<UnaryNode*>(preoper_expr)
+                  ->SetUnaryNode(
+                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                      func_invoke_node);
             main_expr = func_invoke_node;
           } else {
             state = State::kEnd;
@@ -2088,10 +2104,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             if (full_expr == nullptr || preoper_expr == nullptr) {
               preoper_expr = full_expr = preinc_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      preinc_node);
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        preinc_node);
             }
           } else {
             preinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, full_expr);
@@ -2107,10 +2124,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             if (full_expr == nullptr || preoper_expr == nullptr) {
               preoper_expr = full_expr = postinc_node;
             } else {
-              dynamic_cast<UnaryNode*>(preoper_expr)
-                  ->SetUnaryNode(
-                      dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      postinc_node);
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        postinc_node);
             }
           } else {
             postinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc,
@@ -2149,10 +2167,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
       if (full_expr == nullptr || preoper_expr == nullptr) {
         full_expr = preoper_expr = main_expr = identifier_node;
       } else {
-        dynamic_cast<UnaryNode*>(preoper_expr)
-            ->SetUnaryNode(
-                dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                identifier_node);
+        if (preoper_expr != nullptr)
+          dynamic_cast<UnaryNode*>(preoper_expr)
+              ->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                  identifier_node);
         main_expr = identifier_node;
       }
       index++;
@@ -2164,10 +2183,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
       if (full_expr == nullptr || preoper_expr == nullptr) {
         full_expr = preoper_expr = main_expr = number_node;
       } else {
-        dynamic_cast<UnaryNode*>(preoper_expr)
-            ->SetUnaryNode(
-                dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                number_node);
+        if (preoper_expr != nullptr)
+          dynamic_cast<UnaryNode*>(preoper_expr)
+              ->SetUnaryNode(
+                  dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                  number_node);
         main_expr = number_node;
       }
       index++;
