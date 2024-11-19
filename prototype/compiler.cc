@@ -1590,6 +1590,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
   while (index <= token.size()) {
+    std::cout << "index: " << index << ", size: " << token.size() << std::endl;
     if (IsDecl(token_ptr, length, index)) {
       if (IsFuncDecl(token_ptr, length, index)) {
         stmts.push_back(ParseFuncDecl(token_ptr, length, index));
@@ -1786,7 +1787,8 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
   if (token[index].type != Token::Type::IDENTIFIER) return nullptr;
   ExprNode* stat = Parser::ParsePrimaryExpr(token, length, index);
   std::cout << "A POINT" << std::endl;
-  if(stat==nullptr) std::cout<<"AP ERROR"<<std::endl;
+  if (stat->GetType() != StmtNode::StmtType::kFunc)
+    std::cout << "AP ERROR" << std::endl;
   if (stat == nullptr || stat->GetType() != StmtNode::StmtType::kFunc)
     return nullptr;
   std::cout << "B POINT" << std::endl;
@@ -1797,6 +1799,7 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
 
   std::vector<StmtNode*> stmts_vector;
   while (true) {
+    std::cout << "E POINT" << std::endl;
     StmtNode* stmt = ParseStmt(token, length, ++index);
     if (stmt == nullptr) break;
     stmts_vector.push_back(stmt);
@@ -1806,6 +1809,8 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
 
   func_decl = new FuncDeclNode();
   func_decl->SetFuncDeclNode(type, dynamic_cast<FuncNode*>(stat), stmts);
+
+  std::cout << "D POINT" << std::endl;
 
   return func_decl;
 }
@@ -1988,14 +1993,24 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
         case Token::OperatorType::l_square:  // [
           if (state == State::kPostOper) {
             index++;
-            ArrayNode* array = new ArrayNode();
-            array->SetArrayNode(main_expr, ParseExpr(token, length, index));
+            ArrayNode* array_node = new ArrayNode();
+            array_node->SetArrayNode(main_expr,
+                                     ParseExpr(token, length, index));
             if (preoper_expr != nullptr)
               dynamic_cast<UnaryNode*>(preoper_expr)
                   ->SetUnaryNode(
                       dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                      array);
-            if (main_expr == full_expr) main_expr = array;
+                      array_node);
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = main_expr = array_node;
+            } else {
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        array_node);
+              main_expr = array_node;
+            }
             index++;
             break;
           }
@@ -2063,12 +2078,13 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
                 break;
               }
             }
+            index++;
             FuncNode* func_node = new FuncNode();
             std::cout << "NFN PPE FUNC" << std::endl;
             func_node->SetFuncNode(main_expr, args);
             std::cout << "NFN2 PPE FUNC" << std::endl;
             UnaryNode* preoper_unary_node = nullptr;
-            if (preoper_expr != nullptr)
+            /*if (preoper_expr != nullptr)
               preoper_unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
             if (preoper_unary_node != nullptr) {
               preoper_unary_node->SetUnaryNode(
@@ -2077,7 +2093,20 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             } else {
               preoper_expr = func_node;
             }
-            main_expr = func_node;
+            main_expr = func_node;*/
+            if (full_expr == nullptr || preoper_expr == nullptr) {
+              full_expr = main_expr = func_node;
+            } else {
+              if (preoper_expr != nullptr) {
+                UnaryNode* unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
+                if (unary_node == nullptr) {
+                  std::cout << "UNARY ERROR" << std::endl;
+                  return nullptr;
+                }
+                unary_node->SetUnaryNode(unary_node->GetOperator(), func_node);
+              }
+              main_expr = func_node;
+            }
             std::cout << "NFN END PPE FUNC" << std::endl;
           } else {
             state = State::kEnd;
@@ -2156,7 +2185,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
       IdentifierNode* identifier_node = new IdentifierNode();
       identifier_node->SetIdentifierNode(token[index]);
       if (full_expr == nullptr || preoper_expr == nullptr) {
-        full_expr = preoper_expr = main_expr = identifier_node;
+        full_expr = main_expr = identifier_node;
       } else {
         if (preoper_expr != nullptr)
           dynamic_cast<UnaryNode*>(preoper_expr)
@@ -2178,7 +2207,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
       ValueNode* number_node = new ValueNode();
       number_node->SetValueNode(token[index]);
       if (full_expr == nullptr || preoper_expr == nullptr) {
-        full_expr = preoper_expr = main_expr = number_node;
+        full_expr = main_expr = number_node;
       } else {
         if (preoper_expr != nullptr)
           dynamic_cast<UnaryNode*>(preoper_expr)
@@ -2195,7 +2224,6 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
   }
 
   std::cout << "END PPE FUNC" << std::endl;
-
   return full_expr;
 }
 
