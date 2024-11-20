@@ -1589,7 +1589,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   size_t length = token.size();
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
-  while (index <= token.size()) {
+  while (index < token.size()) {
     std::cout << "index: " << index << ", size: " << token.size() << std::endl;
     if (IsDecl(token_ptr, length, index)) {
       if (IsFuncDecl(token_ptr, length, index)) {
@@ -1820,18 +1820,25 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
   Type* type = Type::CreateType(token, length, index);
   ExprNode* name = ParsePrimaryExpr(token, length, index);
   var_decl->SetVarDeclNode(type, name);
-  if (token[index].type != Token::Type::OPERATOR) return var_decl;
+  if (token[index].type != Token::Type::OPERATOR) {
+    return var_decl;
+    std::cout << "END PVD FUNC E5" << std::endl;
+  }
   switch (token[index].value._operator) {
     case Token::OperatorType::l_square: {
       ExprNode* size = ParseExpr(token, length, ++index);
       if (token[index].type != Token::Type::OPERATOR ||
-          token[index].value._operator != Token::OperatorType::r_square)
+          token[index].value._operator != Token::OperatorType::r_square) {
         return var_decl;
+        std::cout << "END PVD FUNC E4" << std::endl;
+      }
       if (token[index].type == Token::Type::OPERATOR &&
           token[index].value._operator == Token::OperatorType::equal) {
         if (token[index].type != Token::Type::OPERATOR ||
-            token[index].value._operator != Token::OperatorType::l_brace)
+            token[index].value._operator != Token::OperatorType::l_brace) {
           return var_decl;
+          std::cout << "END PVD FUNC E3" << std::endl;
+        }
         std::vector<ExprNode*> values;
         while (true) {
           values.push_back(ParseExpr(token, length, ++index));
@@ -1839,8 +1846,10 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
               token[index].value._operator == Token::OperatorType::r_brace)
             break;
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::comma)
+              token[index].value._operator != Token::OperatorType::comma) {
+            std::cout << "END PVD FUNC E2" << std::endl;
             return var_decl;
+          }
         }
         var_decl = new ArrayDeclNode();
         dynamic_cast<ArrayDeclNode*>(var_decl)->SetArrayDeclNode(type, name,
@@ -1854,8 +1863,11 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
       var_decl->SetVarDeclNode(type, name, value);
     }
     default:
+    std::cout<<index;
+      std::cout << "END PVD FUNC E1" << std::endl;
       return var_decl;
   }
+  std::cout << "END PVD FUNC" << std::endl;
   return var_decl;
 }
 
@@ -2061,10 +2073,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             std::vector<ExprNode*> args;
             index++;
             while (index < length &&
-                   (token[index].type == Token::Type::OPERATOR &&
-                    token[index].value._operator !=
-                        Token::OperatorType::r_paren)) {
-              args.push_back(ParseExpr(token, length, index));
+
+                   token[index].value._operator !=
+                       Token::OperatorType::r_paren) {
+              std::cout << "ARG PPE FUNC" << std::endl;
+              args.push_back(ParseVarDecl(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
                   token[index].value._operator == Token::OperatorType::comma) {
                 index++;
@@ -2078,7 +2091,6 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
                 break;
               }
             }
-            index++;
             FuncNode* func_node = new FuncNode();
             std::cout << "NFN PPE FUNC" << std::endl;
             func_node->SetFuncNode(main_expr, args);
