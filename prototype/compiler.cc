@@ -1824,6 +1824,8 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
     return var_decl;
     std::cout << "END PVD FUNC E5" << std::endl;
   }
+  if (token[index].value._operator == Token::OperatorType::equal)
+    std::cout << "IS  =  " << std::endl;
   switch (token[index].value._operator) {
     case Token::OperatorType::l_square: {
       ExprNode* size = ParseExpr(token, length, ++index);
@@ -1857,10 +1859,13 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
       }
       dynamic_cast<ArrayDeclNode*>(var_decl)->SetArrayDeclNode(type, name,
                                                                size);
+      break;
     }
     case Token::OperatorType::equal: {
+      std::cout<<"EQUAL RUN IN PVD FUNC"<<std::endl;
       ExprNode* value = ParseExpr(token, length, ++index);
       var_decl->SetVarDeclNode(type, name, value);
+      break;
     }
     default:
       std::cout << index;
@@ -2238,9 +2243,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
 }
 
 ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
-  if (length >= index) return nullptr;
+  std::cout<<"START PE FUNC"<<std::endl;
+  if (index >= length) return nullptr;
   ExprNode* expr = ParsePrimaryExpr(token, length, index);
   expr = ParseBinaryExpr(token, length, index, expr, 0);
+  std::cout<<"END PE FUNC"<<std::endl;
   return expr;
 }
 
