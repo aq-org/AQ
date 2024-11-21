@@ -1863,7 +1863,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
       var_decl->SetVarDeclNode(type, name, value);
     }
     default:
-    std::cout<<index;
+      std::cout << index;
       std::cout << "END PVD FUNC E1" << std::endl;
       return var_decl;
   }
@@ -2072,10 +2072,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             std::cout << "FN PPE FUNC" << std::endl;
             std::vector<ExprNode*> args;
             index++;
-            while (index < length &&
-
-                   token[index].value._operator !=
-                       Token::OperatorType::r_paren) {
+            while (index < length && token[index].value._operator !=
+                                         Token::OperatorType::r_paren) {
               std::cout << "ARG PPE FUNC" << std::endl;
               args.push_back(ParseVarDecl(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
@@ -2084,13 +2082,13 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               } else if (token[index].type == Token::Type::OPERATOR &&
                          token[index].value._operator ==
                              Token::OperatorType::r_paren) {
-                index++;
                 break;
               } else {
                 state = State::kEnd;
                 break;
               }
             }
+            index++;
             FuncNode* func_node = new FuncNode();
             std::cout << "NFN PPE FUNC" << std::endl;
             func_node->SetFuncNode(main_expr, args);
