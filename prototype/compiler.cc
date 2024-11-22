@@ -1695,6 +1695,8 @@ class Parser {
 
   static ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
 
+  static ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
+
  private:
   static bool IsDecl(Token* token, size_t length, size_t index);
   static bool IsFuncDecl(Token* token, size_t length, size_t index);
@@ -1702,7 +1704,6 @@ class Parser {
   static VarDeclNode* ParseVarDecl(Token* token, size_t length, size_t& index);
   static FuncDeclNode* ParseFuncDecl(Token* token, size_t length,
                                      size_t& index);
-  static ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
   static ExprNode* ParseBinaryExpr(Token* token, size_t length, size_t& index,
                                    ExprNode* left, unsigned int priority);
   static unsigned int GetPriority(Token token);
@@ -1877,7 +1878,7 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
       size_t index_temp = index;
-      Parser::ParseExpr(token, length, index_temp);
+      Parser::ParsePrimaryExpr(token, length, index_temp);
       if (token[index_temp].type == Token::Type::OPERATOR &&
           token[index_temp].value._operator == Token::OperatorType::l_square) {
         ArrayType* array_type = new ArrayType();
@@ -1901,17 +1902,23 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
   while (index < token.size()) {
-    std::cout << "index: " << index << ", size: " << token.size() << " \n" << token[index] << std::endl << std::endl;
+    std::cout << "index: " << index << ", size: " << token.size() << " \n"
+              << token[index] << std::endl
+              << std::endl;
     if (IsDecl(token_ptr, length, index)) {
       if (IsFuncDecl(token_ptr, length, index)) {
         stmts.push_back(ParseFuncDecl(token_ptr, length, index));
       } else {
-        std::cout << "VarDecl" << " \n" << token[index] << std::endl << std::endl;
+        std::cout << "VarDecl" << " \n"
+                  << token[index] << std::endl
+                  << std::endl;
         stmts.push_back(
             dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
         if (token_ptr[index].type != Token::Type::OPERATOR ||
             token_ptr[index].value._operator != Token::OperatorType::semi) {
-          std::cout << "Error" << " \n" << token[index] << std::endl << std::endl;
+          std::cout << "Error" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
           return nullptr;
         }
         index++;
@@ -2036,6 +2043,7 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
       switch (token[index].value.keyword) {
         case Token::KeywordType::If: {
           IfNode* result = new IfNode();
+          index++;
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::l_paren)
             return nullptr;
@@ -2060,6 +2068,7 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
         }
         case Token::KeywordType::While: {
           WhileNode* result = new WhileNode();
+          index++;
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::l_paren)
             return nullptr;
@@ -2091,7 +2100,9 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
 
 FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
                                     size_t& index) {
-  std::cout << "ParseFuncDecl" << " \n" << token[index] << std::endl << std::endl;
+  std::cout << "ParseFuncDecl" << " \n"
+            << token[index] << std::endl
+            << std::endl;
   FuncDeclNode* func_decl = nullptr;
   Type* type = Type::CreateType(token, length, index);
   std::cout << "C POINT" << " \n" << token[index] << std::endl << std::endl;
@@ -2108,16 +2119,21 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
       token[index].value._operator != Token::OperatorType::l_brace)
     return func_decl;
 
+  index++;
+
   std::vector<StmtNode*> stmts_vector;
   while (true) {
-    std::cout << index << "E POINT" << " \n" << token[index] << std::endl << std::endl;
-    StmtNode* stmt = ParseStmt(token, length, ++index);
     if ((token[index].type == Token::Type::OPERATOR &&
          token[index].value._operator == Token::OperatorType::r_brace) ||
         index >= length)
       break;
+    std::cout << index << "E POINT" << " \n"
+              << token[index] << std::endl
+              << std::endl;
+    StmtNode* stmt = ParseStmt(token, length, ++index);
     stmts_vector.push_back(stmt);
   }
+  index++;
   CompoundNode* stmts = new CompoundNode();
   stmts->SetCompoundNode(stmts_vector);
 
@@ -2136,7 +2152,9 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
   var_decl->SetVarDeclNode(type, name);
   if (token[index].type != Token::Type::OPERATOR) {
     return var_decl;
-    std::cout << "END ParseVarDecl FUNC E5" << " \n" << token[index] << std::endl << std::endl;
+    std::cout << "END ParseVarDecl FUNC E5" << " \n"
+              << token[index] << std::endl
+              << std::endl;
   }
   if (token[index].value._operator == Token::OperatorType::equal)
     std::cout << "IS  =  " << " \n" << token[index] << std::endl << std::endl;
@@ -2146,14 +2164,18 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
       if (token[index].type != Token::Type::OPERATOR ||
           token[index].value._operator != Token::OperatorType::r_square) {
         return var_decl;
-        std::cout << "END ParseVarDecl FUNC E4" << " \n" << token[index] << std::endl << std::endl;
+        std::cout << "END ParseVarDecl FUNC E4" << " \n"
+                  << token[index] << std::endl
+                  << std::endl;
       }
       if (token[index].type == Token::Type::OPERATOR &&
           token[index].value._operator == Token::OperatorType::equal) {
         if (token[index].type != Token::Type::OPERATOR ||
             token[index].value._operator != Token::OperatorType::l_brace) {
           return var_decl;
-          std::cout << "END ParseVarDecl FUNC E3" << " \n" << token[index] << std::endl << std::endl;
+          std::cout << "END ParseVarDecl FUNC E3" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
         }
         std::vector<ExprNode*> values;
         while (true) {
@@ -2163,7 +2185,9 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
             break;
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::comma) {
-            std::cout << "END ParseVarDecl FUNC E2" << " \n" << token[index] << std::endl << std::endl;
+            std::cout << "END ParseVarDecl FUNC E2" << " \n"
+                      << token[index] << std::endl
+                      << std::endl;
             return var_decl;
           }
         }
@@ -2176,17 +2200,23 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
       break;
     }
     case Token::OperatorType::equal: {
-      std::cout << "EQUAL RUN IN ParseVarDecl FUNC" << " \n" << token[index] << std::endl << std::endl;
+      std::cout << "EQUAL RUN IN ParseVarDecl FUNC" << " \n"
+                << token[index] << std::endl
+                << std::endl;
       ExprNode* value = ParseExpr(token, length, ++index);
       var_decl->SetVarDeclNode(type, name, value);
       break;
     }
     default:
       std::cout << index;
-      std::cout << "END ParseVarDecl FUNC E1" << " \n" << token[index] << std::endl << std::endl;
+      std::cout << "END ParseVarDecl FUNC E1" << " \n"
+                << token[index] << std::endl
+                << std::endl;
       return var_decl;
   }
-  std::cout << "END ParseVarDecl FUNC" << " \n" << token[index] << std::endl << std::endl;
+  std::cout << "END ParseVarDecl FUNC" << " \n"
+            << token[index] << std::endl
+            << std::endl;
   return var_decl;
 }
 
@@ -2197,12 +2227,18 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
   ExprNode* main_expr = nullptr;
   ExprNode* preoper_expr = nullptr;
 
-  std::cout << "START ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+  std::cout << "START ParsePrimaryExpr FUNC" << " \n"
+            << token[index] << std::endl
+            << std::endl;
 
   while (state != State::kEnd && index < length) {
-    std::cout << "WHILE ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+    std::cout << "WHILE ParsePrimaryExpr FUNC" << " \n"
+              << token[index] << std::endl
+              << std::endl;
     if (token[index].type == Token::Type::OPERATOR) {
-      std::cout << "OPER ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+      std::cout << "OPER ParsePrimaryExpr FUNC" << " \n"
+                << token[index] << std::endl
+                << std::endl;
       switch (token[index].value._operator) {
         case Token::OperatorType::amp:  // &
           if (state == State::kPreOper) {
@@ -2350,7 +2386,9 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           state = State::kEnd;
           break;
         case Token::OperatorType::l_paren:  // (
-          std::cout << "LPAREN ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+          std::cout << "LPAREN ParsePrimaryExpr FUNC" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
           if (state == State::kPreOper) {
             index++;
             if (full_expr == nullptr || preoper_expr == nullptr) {
@@ -2388,12 +2426,16 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           } else if (state == State::kPostOper &&
                      main_expr->GetType() == StmtNode::StmtType::kIdentifier &&
                      token[index - 1].type == Token::Type::IDENTIFIER) {
-            std::cout << "FN ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+            std::cout << "FN ParsePrimaryExpr FUNC" << " \n"
+                      << token[index] << std::endl
+                      << std::endl;
             std::vector<ExprNode*> args;
             index++;
             while (index < length && token[index].value._operator !=
                                          Token::OperatorType::r_paren) {
-              std::cout << "ARG ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+              std::cout << "ARG ParsePrimaryExpr FUNC" << " \n"
+                        << token[index] << std::endl
+                        << std::endl;
               args.push_back(ParseVarDecl(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
                   token[index].value._operator == Token::OperatorType::comma) {
@@ -2409,9 +2451,13 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
             }
             index++;
             FuncNode* func_node = new FuncNode();
-            std::cout << "NEW FUNC NODE ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+            std::cout << "NEW FUNC NODE ParsePrimaryExpr FUNC" << " \n"
+                      << token[index] << std::endl
+                      << std::endl;
             func_node->SetFuncNode(main_expr, args);
-            std::cout << "NEW FUNC NODE2 ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+            std::cout << "NEW FUNC NODE2 ParsePrimaryExpr FUNC" << " \n"
+                      << token[index] << std::endl
+                      << std::endl;
             UnaryNode* preoper_unary_node = nullptr;
             /*if (preoper_expr != nullptr)
               preoper_unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
@@ -2429,14 +2475,18 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
               if (preoper_expr != nullptr) {
                 UnaryNode* unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
                 if (unary_node == nullptr) {
-                  std::cout << "UNARY ERROR" << " \n" << token[index] << std::endl << std::endl;
+                  std::cout << "UNARY ERROR" << " \n"
+                            << token[index] << std::endl
+                            << std::endl;
                   return nullptr;
                 }
                 unary_node->SetUnaryNode(unary_node->GetOperator(), func_node);
               }
               main_expr = func_node;
             }
-            std::cout << "NEW FUNC NODE END ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+            std::cout << "NEW FUNC NODE END ParsePrimaryExpr FUNC" << " \n"
+                      << token[index] << std::endl
+                      << std::endl;
           } else {
             state = State::kEnd;
           }
@@ -2510,7 +2560,9 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
           break;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
-      std::cout << "IDENT ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+      std::cout << "IDENT ParsePrimaryExpr FUNC" << " \n"
+                << token[index] << std::endl
+                << std::endl;
       IdentifierNode* identifier_node = new IdentifierNode();
       identifier_node->SetIdentifierNode(token[index]);
       if (full_expr == nullptr || preoper_expr == nullptr) {
@@ -2552,16 +2604,22 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
     }
   }
 
-  std::cout << "END ParsePrimaryExpr FUNC" << " \n" << token[index] << std::endl << std::endl;
+  std::cout << "END ParsePrimaryExpr FUNC" << " \n"
+            << token[index] << std::endl
+            << std::endl;
   return full_expr;
 }
 
 ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
-  std::cout << "START ParseExpr" << " \n" << token[index] << std::endl << std::endl;
+  std::cout << "START ParseExpr" << " \n"
+            << token[index] << std::endl
+            << std::endl;
   if (index >= length) return nullptr;
   ExprNode* expr = ParsePrimaryExpr(token, length, index);
   expr = ParseBinaryExpr(token, length, index, expr, 0);
-  std::cout << "END ParseExpr" << " \n" << token[index] << std::endl << std::endl;
+  std::cout << "END ParseExpr" << " \n"
+            << token[index] << std::endl
+            << std::endl;
   return expr;
 }
 
@@ -2988,7 +3046,7 @@ class BytecodeGenerator {
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   if (stmt == nullptr) return;
-  std::cout << "BytecodeGenerator::GenerateBytecode OK"  << std::endl;
+  std::cout << "BytecodeGenerator::GenerateBytecode OK" << std::endl;
   for (size_t i = 0; i < stmt->GetStmts().size(); i++) {
     switch (stmt->GetStmts()[i]->GetType()) {
       case StmtNode::StmtType::kFuncDecl:
@@ -3042,7 +3100,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  std::cout << "Lex End."  << std::endl;
+  std::cout << "Lex End." << std::endl;
 
   Aq::Compiler::CompoundNode* ast = Aq::Compiler::Parser::Parse(token);
 
