@@ -1767,6 +1767,7 @@ class ReferenceType : public Type {
 };
 
 Type* Type::CreateType(Token* token, size_t length, size_t& index) {
+  std::cout << "CreateType" << " \n" << token[index] << std::endl << std::endl;
   Type* type = new Type();
   while (index < length) {
     if (token[index].type == Token::Type::KEYWORD) {
@@ -1809,12 +1810,18 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
                 type->SetType(Type::BaseType::kAuto);
                 break;
               default:
+                std::cout << "ReturnType" << " \n"
+                          << token[index] << std::endl
+                          << std::endl;
                 return type;
             }
             const_type->SetType(type);
             type = const_type;
           } else {
             type->SetType(Type::BaseType::NONE);
+            std::cout << "ReturnType" << " \n"
+                      << token[index] << std::endl
+                      << std::endl;
             return type;
           }
           break;
@@ -1845,17 +1852,29 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
           break;
         case Token::KeywordType::Struct:
           type->SetType(Type::BaseType::kStruct);
+          std::cout << "ReturnType" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
           return type;
         case Token::KeywordType::Union:
           type->SetType(Type::BaseType::kUnion);
+          std::cout << "ReturnType" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
           return type;
         case Token::KeywordType::Enum:
           type->SetType(Type::BaseType::kEnum);
+          std::cout << "ReturnType" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
           return type;
         case Token::KeywordType::Auto:
           type->SetType(Type::BaseType::kAuto);
           break;
         default:
+          std::cout << "ReturnType" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
           return type;
       }
     } else if (token[index].type == Token::Type::OPERATOR) {
@@ -1873,6 +1892,9 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
           break;
         }
         default:
+          std::cout << "ReturnType" << " \n"
+                    << token[index] << std::endl
+                    << std::endl;
           return type;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
@@ -1884,10 +1906,14 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
         array_type->SetType(type, Parser::ParseExpr(token, length, index_temp));
         type = array_type;
       }
+      std::cout << "ReturnType" << " \n"
+                << token[index] << std::endl
+                << std::endl;
       return type;
     }
     index++;
   }
+  std::cout << "ReturnType" << " \n" << token[index] << std::endl << std::endl;
   return type;
 }
 
@@ -1933,47 +1959,63 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
 }
 
 bool Parser::IsDecl(Token* token, size_t length, size_t index) {
-  if (token[0].type == Token::Type::KEYWORD) {
-    if (token[0].value.keyword == Token::KeywordType::Auto ||
-        token[0].value.keyword == Token::KeywordType::Bool ||
-        token[0].value.keyword == Token::KeywordType::Char ||
-        token[0].value.keyword == Token::KeywordType::Double ||
-        token[0].value.keyword == Token::KeywordType::Float ||
-        token[0].value.keyword == Token::KeywordType::Int ||
-        token[0].value.keyword == Token::KeywordType::Long ||
-        token[0].value.keyword == Token::KeywordType::Void ||
-        token[0].value.keyword == Token::KeywordType::String ||
-        token[0].value.keyword == Token::KeywordType::Struct ||
-        token[0].value.keyword == Token::KeywordType::Union ||
-        token[0].value.keyword == Token::KeywordType::Enum ||
-        token[0].value.keyword == Token::KeywordType::Namespace ||
-        token[0].value.keyword == Token::KeywordType::Template ||
-        token[0].value.keyword == Token::KeywordType::Typedef ||
-        token[0].value.keyword == Token::KeywordType::Extern ||
-        token[0].value.keyword == Token::KeywordType::Class ||
-        token[0].value.keyword == Token::KeywordType::Const ||
-        token[0].value.keyword == Token::KeywordType::Friend ||
-        token[0].value.keyword == Token::KeywordType::Inline ||
-        token[0].value.keyword == Token::KeywordType::Number ||
-        token[0].value.keyword == Token::KeywordType::Short ||
-        token[0].value.keyword == Token::KeywordType::Signed ||
-        token[0].value.keyword == Token::KeywordType::Unsigned ||
-        token[0].value.keyword == Token::KeywordType::Virtual ||
-        token[0].value.keyword == Token::KeywordType::Wchar_t) {
+  std::cout << "RUN Parser::IsDecl" << " \n"
+            << token[index] << std::endl
+            << std::endl;
+  if (token[index].type == Token::Type::KEYWORD) {
+    if (token[index].value.keyword == Token::KeywordType::Auto ||
+        token[index].value.keyword == Token::KeywordType::Bool ||
+        token[index].value.keyword == Token::KeywordType::Char ||
+        token[index].value.keyword == Token::KeywordType::Double ||
+        token[index].value.keyword == Token::KeywordType::Float ||
+        token[index].value.keyword == Token::KeywordType::Int ||
+        token[index].value.keyword == Token::KeywordType::Long ||
+        token[index].value.keyword == Token::KeywordType::Void ||
+        token[index].value.keyword == Token::KeywordType::String ||
+        token[index].value.keyword == Token::KeywordType::Struct ||
+        token[index].value.keyword == Token::KeywordType::Union ||
+        token[index].value.keyword == Token::KeywordType::Enum ||
+        token[index].value.keyword == Token::KeywordType::Namespace ||
+        token[index].value.keyword == Token::KeywordType::Template ||
+        token[index].value.keyword == Token::KeywordType::Typedef ||
+        token[index].value.keyword == Token::KeywordType::Extern ||
+        token[index].value.keyword == Token::KeywordType::Class ||
+        token[index].value.keyword == Token::KeywordType::Const ||
+        token[index].value.keyword == Token::KeywordType::Friend ||
+        token[index].value.keyword == Token::KeywordType::Inline ||
+        token[index].value.keyword == Token::KeywordType::Number ||
+        token[index].value.keyword == Token::KeywordType::Short ||
+        token[index].value.keyword == Token::KeywordType::Signed ||
+        token[index].value.keyword == Token::KeywordType::Unsigned ||
+        token[index].value.keyword == Token::KeywordType::Virtual ||
+        token[index].value.keyword == Token::KeywordType::Wchar_t) {
+      std::cout << "RETURN TRUE Parser::IsDecl 1" << " \n"
+                << token[index] << std::endl
+                << std::endl;
       return true;
     } else {
+      std::cout << "RETURN FALSE Parser::IsDecl" << " \n"
+                << token[index] << std::endl
+                << std::endl;
       return false;
     }
-  } else if ((token[0].type == Token::Type::IDENTIFIER &&
-              token[1].type == Token::Type::IDENTIFIER) ||
-             (token[0].type == Token::Type::IDENTIFIER &&
-              token[1].type == Token::Type::OPERATOR &&
-              (token[1].value._operator == Token::OperatorType::star ||
-               token[1].value._operator == Token::OperatorType::amp ||
-               token[1].value._operator == Token::OperatorType::ampamp) &&
-              token[2].type == Token::Type::IDENTIFIER)) {
+  } else if ((token[index].type == Token::Type::IDENTIFIER &&
+              token[index + 1].type == Token::Type::IDENTIFIER) ||
+             (token[index].type == Token::Type::IDENTIFIER &&
+              token[index + 1].type == Token::Type::OPERATOR &&
+              (token[index + 1].value._operator == Token::OperatorType::star ||
+               token[index + 1].value._operator == Token::OperatorType::amp ||
+               token[index + 1].value._operator ==
+                   Token::OperatorType::ampamp) &&
+              token[index + 2].type == Token::Type::IDENTIFIER)) {
+    std::cout << "RETURN TRUE Parser::IsDecl 2" << " \n"
+              << token[index] << std::endl
+              << std::endl;
     return true;
   }
+  std::cout << "RETURN FALSE Parser::IsDecl" << " \n"
+            << token[index] << std::endl
+            << std::endl;
   return false;
 }
 
@@ -1995,7 +2037,6 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
   std::cout << "RUN Parser::ParseStmt" << " \n"
             << token[index] << std::endl
             << std::endl;
-  // TODO(Parser::ParseStmt): Complete the function.
   if (IsDecl(token, length, index)) {
     if (IsFuncDecl(token, length, index)) {
       return nullptr;
@@ -2004,15 +2045,18 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
       if (token[index].type != Token::Type::OPERATOR ||
           token[index].value._operator != Token::OperatorType::semi)
         return nullptr;
-      index += 2;
+      index++;
       return dynamic_cast<DeclNode*>(result);
     }
   }
+  std::cout << "RUN Parser::ParseStmt ISNT DECL" << " \n"
+            << token[index] << std::endl
+            << std::endl;
   switch (token[index].type) {
     case Token::Type::OPERATOR:
       switch (token[index].value._operator) {
         case Token::OperatorType::semi:
-          index += 2;
+          index++;
           return nullptr;
         case Token::OperatorType::l_brace: {
           std::cout << "COMPOUNDNODE" << " \n"
@@ -2020,9 +2064,10 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
                     << std::endl;
           CompoundNode* result = new CompoundNode();
           std::vector<StmtNode*> stmts;
+          index++;
           while (token[index].value._operator != Token::OperatorType::r_brace &&
                  index < length) {
-            StmtNode* stmt = ParseStmt(token, length, ++index);
+            StmtNode* stmt = ParseStmt(token, length, index);
             if (stmt == nullptr) break;
             stmts.push_back(stmt);
           }
@@ -2030,7 +2075,7 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
               token[index].value._operator != Token::OperatorType::r_brace)
             return nullptr;
           result->SetCompoundNode(stmts);
-          index += 2;
+          index++;
           return result;
         }
         case Token::OperatorType::r_square:
@@ -2042,7 +2087,7 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::semi)
             return nullptr;
-          index += 2;
+          index++;
           return stmt_node;
       }
     case Token::Type::KEYWORD:
@@ -2067,7 +2112,7 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
               token[index].value.keyword == Token::KeywordType::Else) {
             result->SetIfNode(condition, body, ParseStmt(token, length, index));
           }
-          index += 2;
+          index++;
           std::cout << "IFNODE END" << " \n"
                     << token[index] << std::endl
                     << std::endl;
@@ -2085,7 +2130,7 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
             return nullptr;
           index++;
           result->SetWhileNode(condition, ParseStmt(token, length, index));
-          index += 2;
+          index++;
           return result;
         }
         default:
@@ -2096,7 +2141,7 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
       if (token[index].type != Token::Type::OPERATOR ||
           token[index].value._operator != Token::OperatorType::semi)
         return nullptr;
-      index += 2;
+      index++;
       return stmt_node;
   }
 }
@@ -2109,7 +2154,7 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
   FuncDeclNode* func_decl = nullptr;
   Type* type = Type::CreateType(token, length, index);
   std::cout << "C POINT" << " \n" << token[index] << std::endl << std::endl;
-   if (token[index].type != Token::Type::IDENTIFIER) return nullptr;
+  // if (token[index].type != Token::Type::IDENTIFIER) return nullptr;
   ExprNode* stat = Parser::ParsePrimaryExpr(token, length, index);
   std::cout << "A POINT" << " \n" << token[index] << std::endl << std::endl;
   if (stat->GetType() != StmtNode::StmtType::kFunc)
@@ -2122,7 +2167,7 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
       token[index].value._operator != Token::OperatorType::l_brace)
     return func_decl;
 
-  index++;
+  /*index++;
 
   std::vector<StmtNode*> stmts_vector;
   while (true) {
@@ -2138,12 +2183,14 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
   }
   index++;
   CompoundNode* stmts = new CompoundNode();
-  stmts->SetCompoundNode(stmts_vector);
+  stmts->SetCompoundNode(stmts_vector);*/
 
+  CompoundNode* stmts =
+      dynamic_cast<CompoundNode*>(ParseStmt(token, length, index));
   func_decl = new FuncDeclNode();
   func_decl->SetFuncDeclNode(type, dynamic_cast<FuncNode*>(stat), stmts);
 
-  std::cout << "D POINT" << " \n" << std::endl << std::endl;
+  std::cout << "D POINT" << " \n" << token[index] << std::endl << std::endl;
 
   return func_decl;
 }
