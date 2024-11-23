@@ -2130,7 +2130,6 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
             return nullptr;
           index++;
           result->SetWhileNode(condition, ParseStmt(token, length, index));
-          index++;
           return result;
         }
         default:
