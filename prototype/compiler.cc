@@ -3110,8 +3110,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   }
 }
 
-void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {}
-void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl) {}
+void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
+  std::cout<<"BytecodeGenerator::HandleFuncDecl OK"<<std::endl;
+}
+void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl) {
+  std::cout<<"BytecodeGenerator::HandleVarDecl OK"<<std::endl;
+}
 
 }  // namespace Compiler
 }  // namespace Aq
