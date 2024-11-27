@@ -1,1 +1,1 @@
-You can update code for AQ by submitting Pull Requests. You can also contribute to AQ by submitting Issues or Communications. You can also contact us at axa6.com, Email, X, Facebook, etc.
+You can update code for AQ by submitting Pull Requests. You can also contribute to AQ by submitting Issues or Communications. You can also contact us at Official Website: axa6.com, Email: admin@axa6.com, X: https://x.com/aq_organization, Facebook: https://www.facebook.com/aq.organization, etc.
