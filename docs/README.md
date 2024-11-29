@@ -78,6 +78,13 @@
 
 <p align="center">Translations may be inaccurate or delayed, please read the English version if available. If you find any bugs, please <a href="https://github.com/aq-org/AQ/issues/new">report</a> to us. </p>
 
+## Our Sponsors
+<div align="center">
+<a href="https://opencollective.com/body-count" align="center"><img src="./docs/heymanbug.png"></img></a><br/>
+<a href="https://opencollective.com/body-count" align="center"><b>heymanbug</b></a>
+<b align="center">$200</b>
+</div>
+
 ## Table of contents
 
 - [Introduction](#introduce)
@@ -96,7 +103,7 @@
 
 ### Introduction
 
-**AQ** is an `interpreted` **programming language**. It's `fast`, `small`, `simple` and `safe`. At the same time, programs written in AQ can also be compiled. *Perhaps a great work. *
+**AQ** is an `interpreted` **programming language**. It's `fast`, `small`, `simple` and `safe`. At the same time, programs written in AQ can also be compiled. *Perhaps a great work.*
 
 [![AQ Card](https://aq-org-github-readme-stats.vercel.app/api/pin/?username=aq-org&repo=AQ)](https://github.com/aq-org/AQ)
 
@@ -109,7 +116,7 @@
 - **Cross-platform** (supports `Windows`, `Linux` and `MacOS`, etc.)
 - Similar to `C++` syntax (quick mastery)
 - Interpreted (optional `compilation`)
-- Free (subject to `AQ License`)
+- Free (subject to `AGPL-3.0` and `AQ License`)
 - Open source (under `AQ license`)
 ### The following is a comparison between the **AQ** language and 15 other mainstream programming languages in different aspects:
 
@@ -198,15 +205,15 @@ AQ is an open source project and everyone is welcome to contribute to it! Whethe
 
 ## License
 
-**AQ** is based on [AQ License](https://github.com/aq-org/AQ/blob/main/LICENSE). This is a `license` designed specifically for **AQ** to protect **AQ**'s `intellectual property` and `community interests`.
+**AQ** is based on `AGPL-3.0` and [AQ License](https://github.com/aq-org/AQ/blob/main/aq-license.txt). This is a `license` designed specifically for **AQ** to protect **AQ**'s `intellectual property` and `community interests`.
 
-The `AQ License` allows you to `freely use`, `modify` and `distribute` **AQ** under the conditions of the license, but it also has some restrictions on your actions. For example, you need to retain **AQ**'s `copyright statement` and `license text` and not use them for illegal or unethical purposes.
+The `AGPL-3.0` and `AQ License` allows you to `freely use`, `modify` and `distribute` **AQ** under the conditions of the license, but it also has some restrictions on your actions. For example, you need to retain **AQ**'s `copyright statement` and `license text` and not use them for illegal or unethical purposes.
 
-If you plan to use **AQ** for `commercial use`, or develop `derivative products` based on **AQ**, please read the full text of the `AQ License` carefully and abide by the `terms and conditions` therein. If you have any questions, you can also contact us at any time.
+If you plan to use **AQ** for `commercial use`, or develop `derivative products` based on **AQ**, please read the full text of the `AGPL-3.0` and `AQ License` carefully and abide by the `terms and conditions` therein. If you have any questions, you can also contact us at any time.
 
 In addition, **AQ** itself may also use "parts of code" from other "open source software", and these codes may be subject to "other licenses". We will accurately mark these `license information` in the code.
 
-We believe that the `AQ License` can well balance **AQ**'s `open source` and `intellectual property protection`, creating favorable conditions for **AQ**'s `long-term development`. If you have any questions or suggestions about the license, please feel free to discuss it with us.
+We believe that the `AGPL-3.0` and `AQ License` can well balance **AQ**'s `open source` and `intellectual property protection`, creating favorable conditions for **AQ**'s `long-term development`. If you have any questions or suggestions about the license, please feel free to discuss it with us.
 
 > Copyright 2024 AQ author, All Rights Reserved.
-> This program is licensed under the AQ License. You can find the AQ license in the root directory.
+> This program is licensed under the AGPL-3.0 and AQ License. You can find the AQ license in the root directory.
