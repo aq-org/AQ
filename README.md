@@ -11,6 +11,7 @@
      <a href="https://github.com/aq-org/AQ/commits">
        <img alt="Commits" src="https://img.shields.io/github/commit-activity/t/aq-org/AQ" />
      </a>
+<a href="https://app.fossa.com/projects/git%2Bgithub.com%2Faq-org%2FAQ?ref=badge_shield" alt="FOSSA Status"><img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Faq-org%2FAQ.svg?type=shield"/></a>
      <a href="https://github.com/aq-org/AQ/pulse">
        <img alt="Created At" src="https://img.shields.io/github/created-at/aq-org/AQ" />
      </a>
@@ -77,6 +78,9 @@
 <p align="center">Like this project? Please consider <a href="https://github.com/aq-org/AQ">Sponsor</a>, <a href="https://github.com/aq-org/AQ">join development </a> or <a href="https://github.com/aq-org/AQ">Stars</a> to help it improve! </p>
 
 <p align="center">Translations may be inaccurate or delayed, please read the English version if available. If you find any bugs, please <a href="https://github.com/aq-org/AQ/issues/new">report</a> to us. </p>
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Faq-org%2FAQ.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Faq-org%2FAQ?ref=badge_large)
 
 ## Our Sponsors
 <div align="center">
