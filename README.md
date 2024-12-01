@@ -15,6 +15,8 @@
      <a href="https://github.com/aq-org/AQ/pulse">
        <img alt="Created At" src="https://img.shields.io/github/created-at/aq-org/AQ" />
      </a>
+     </p>
+    <p align="center">
      <a href="https://github.com/aq-org/AQ/graphs/commit-activity">
        <img alt="Last Commits" src="https://img.shields.io/github/last-commit/aq-org/AQ" />
      </a>
@@ -27,6 +29,8 @@
      <a href="https://github.com/aq-org/AQ/issues">
        <img alt="Issues" src="https://img.shields.io/github/issues/aq-org/AQ" />
      </a>
+     </p>
+     <p align="center">
      <a href="https://github.com/aq-org/AQ/pulse">
        <img alt="Code Size" src="https://img.shields.io/github/languages/code-size/aq-org/AQ" />
      </a>
@@ -162,149 +166,132 @@ Click to view development progress
 </p>
 
 ## Detailed information
-<a href="https://app.fossa.com/projects/git%2Bgithub.com%2Faq-org%2FAQ?ref=badge_large" target="_blank" style="display: block" align="center">
+<table>
+<tr>
+<td><a href="https://app.fossa.com/projects/git%2Bgithub.com%2Faq-org%2FAQ?ref=badge_large" target="_blank" style="display: block" align="center">
 <img src="https://app.fossa.com/api/projects/git%2Bgithub.com%2Faq-org%2FAQ.svg?type=large" />
-</a>
-<!-- Copy-paste in your Readme.md file -->
-
+</a></td>
+<td>
 <a href="https://next.ossinsight.io/widgets/official/compose-org-productivity-ratio?activity=pull-requests%2Fmerged&period=past_12_months&owner_id=158474695" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-org-productivity-ratio/thumbnail.png?activity=pull-requests%2Fmerged&period=past_12_months&owner_id=158474695&image_size=3x3&color_scheme=dark" width="273" height="auto">
     <img alt="Pull-requests merged ratio of aq-org" src="https://next.ossinsight.io/widgets/official/compose-org-productivity-ratio/thumbnail.png?activity=pull-requests%2Fmerged&period=past_12_months&owner_id=158474695&image_size=3x3&color_scheme=light" width="273" height="auto">
   </picture>
-</a>
-<!-- Copy-paste in your Readme.md file -->
-
+</a></td>
+</tr>
+<tr>
+<td>
 <a href="https://next.ossinsight.io/widgets/official/compose-org-participants-roles-ratio?period=past_12_months&owner_id=158474695" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-org-participants-roles-ratio/thumbnail.png?period=past_12_months&owner_id=158474695&image_size=5x5&color_scheme=dark" width="465" height="auto">
     <img alt="Participants roles of aq-org" src="https://next.ossinsight.io/widgets/official/compose-org-participants-roles-ratio/thumbnail.png?period=past_12_months&owner_id=158474695&image_size=5x5&color_scheme=light" width="465" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/compose-org-participants-growth?activity=new&period=past_12_months&owner_id=158474695" target="_blank" style="display: block" align="center">
+</a></td>
+<td><a href="https://next.ossinsight.io/widgets/official/compose-org-participants-growth?activity=new&period=past_12_months&owner_id=158474695" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-org-participants-growth/thumbnail.png?activity=new&period=past_12_months&owner_id=158474695&image_size=4x7&color_scheme=dark" width="657" height="auto">
     <img alt="New trends of aq-org" src="https://next.ossinsight.io/widgets/official/compose-org-participants-growth/thumbnail.png?activity=new&period=past_12_months&owner_id=158474695&image_size=4x7&color_scheme=light" width="657" height="auto">
   </picture>
-</a>
+</a></td>
+</tr>
+</table>
 
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/compose-org-code-changes-top-repositories?period=past_12_months&owner_id=158474695" target="_blank" style="display: block" align="center">
+<table>
+<tr>
+<td><a href="https://next.ossinsight.io/widgets/official/compose-org-code-changes-top-repositories?period=past_12_months&owner_id=158474695" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-org-code-changes-top-repositories/thumbnail.png?period=past_12_months&owner_id=158474695&image_size=3x6&color_scheme=dark" width="561" height="auto">
     <img alt="Ranking of repos with the commit code changes in aq-org" src="https://next.ossinsight.io/widgets/official/compose-org-code-changes-top-repositories/thumbnail.png?period=past_12_months&owner_id=158474695&image_size=3x6&color_scheme=light" width="561" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/compose-activity-trends?repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+<td><a href="https://next.ossinsight.io/widgets/official/compose-activity-trends?repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-activity-trends/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=dark" width="815" height="auto">
     <img alt="Activity Trends of aq-org/AQ - Last 28 days" src="https://next.ossinsight.io/widgets/official/compose-activity-trends/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=light" width="815" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+</tr>
+<tr>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=dark" width="721" height="auto">
     <img alt="Pull Request Size of aq-org/AQ" src="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=light" width="721" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-repo-loc-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-repo-loc-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-loc-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=dark" width="721" height="auto">
     <img alt="Lines of Code Changes of aq-org/AQ" src="https://next.ossinsight.io/widgets/official/analyze-repo-loc-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=light" width="721" height="auto">
   </picture>
-</a>
+</a></td>
+</tr>
+</table>
 
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-org-commits-time-distribution?period=past_12_months&zone=0&owner_id=158474695" target="_blank" style="display: block" align="center">
+<table>
+<tr>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-org-commits-time-distribution?period=past_12_months&zone=0&owner_id=158474695" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-org-commits-time-distribution/thumbnail.png?period=past_12_months&zone=0&owner_id=158474695&image_size=3x6&color_scheme=dark" width="561" height="auto">
     <img alt="When Do Participants Prefer to Submit Code?" src="https://next.ossinsight.io/widgets/official/analyze-org-commits-time-distribution/thumbnail.png?period=past_12_months&zone=0&owner_id=158474695&image_size=3x6&color_scheme=light" width="561" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+<td><a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=dark" width="655" height="auto">
     <img alt="Performance Stats of aq-org/AQ - Last 28 days" src="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=light" width="655" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-repo-pushes-and-commits-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+</tr>
+<tr>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-repo-pushes-and-commits-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-pushes-and-commits-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=dark" width="721" height="auto">
     <img alt="Pushes and Commits of aq-org/AQ" src="https://next.ossinsight.io/widgets/official/analyze-repo-pushes-and-commits-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=light" width="721" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-repo-stars-map?activity=stars&repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-repo-stars-map?activity=stars&repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-stars-map/thumbnail.png?activity=stars&repo_id=751355154&image_size=auto&color_scheme=dark" width="721" height="auto">
     <img alt="Star Geographical Distribution of aq-org/AQ" src="https://next.ossinsight.io/widgets/official/analyze-repo-stars-map/thumbnail.png?activity=stars&repo_id=751355154&image_size=auto&color_scheme=light" width="721" height="auto">
   </picture>
-</a>
+</a></td>
+</tr>
+</table>
 
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
+<table>
+<tr>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month?repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=dark" width="721" height="auto">
     <img alt="Pull Request Size of aq-org/AQ" src="https://next.ossinsight.io/widgets/official/analyze-repo-pull-requests-size-per-month/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=light" width="721" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-repo-pull-request-open-to-merged?repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-repo-pull-request-open-to-merged?repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-pull-request-open-to-merged/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=dark" width="721" height="auto">
     <img alt="Pull Request Lifecycle of aq-org/AQ" src="https://next.ossinsight.io/widgets/official/analyze-repo-pull-request-open-to-merged/thumbnail.png?repo_id=751355154&image_size=auto&color_scheme=light" width="721" height="auto">
   </picture>
-</a>
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
-<!-- Copy-paste in your Readme.md file -->
-
-<a href="https://next.ossinsight.io/widgets/official/analyze-repo-commits-time-distribution?period=all_times&zone=0&repo_id=751355154" target="_blank" style="display: block" align="center">
+</a></td>
+</tr>
+<tr>
+<td><a href="https://next.ossinsight.io/widgets/official/analyze-repo-commits-time-distribution?period=all_times&zone=0&repo_id=751355154" target="_blank" style="display: block" align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-repo-commits-time-distribution/thumbnail.png?period=all_times&zone=0&repo_id=751355154&image_size=auto&color_scheme=dark" width="721" height="auto">
     <img alt="Commits Time Distribution of aq-org/AQ" src="https://next.ossinsight.io/widgets/official/analyze-repo-commits-time-distribution/thumbnail.png?period=all_times&zone=0&repo_id=751355154&image_size=auto&color_scheme=light" width="721" height="auto">
   </picture>
+</a></td>
+<td>
+<a href="https://next.ossinsight.io/widgets/official/analyze-org-activity-efficiency?period=past_12_months&activity=pull-requests&owner_id=158474695" target="_blank" style="display: block" align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/analyze-org-activity-efficiency/thumbnail.png?period=past_12_months&activity=pull-requests&owner_id=158474695&image_size=3x9&color_scheme=dark" width="849" height="auto">
+    <img alt="Count of Pull requests Over Time" src="https://next.ossinsight.io/widgets/official/analyze-org-activity-efficiency/thumbnail.png?period=past_12_months&activity=pull-requests&owner_id=158474695&image_size=3x9&color_scheme=light" width="849" height="auto">
+  </picture>
 </a>
+</td>
+</tr>
+</table>
+
+
 
 <!-- Made with [OSS Insight](https://ossinsight.io/) -->
 
