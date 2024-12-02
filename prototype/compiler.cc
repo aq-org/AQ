@@ -1347,6 +1347,8 @@ class ExprNode : public StmtNode {
   ExprNode() { type_ = StmtType::kExpr; }
   virtual ~ExprNode() = default;
 
+  virtual operator std::string();
+
   ExprNode(const ExprNode&) = default;
   ExprNode& operator=(const ExprNode&) = default;
 };
@@ -1520,6 +1522,9 @@ class FuncNode : public ExprNode {
   }
   virtual ~FuncNode() = default;
 
+  ExprNode* GetName() { return name_; }
+  std::vector<ExprNode*> GetArgs() { return args_; }
+
   FuncNode(const FuncNode&) = default;
   FuncNode& operator=(const FuncNode&) = default;
 
@@ -1533,6 +1538,11 @@ class IdentifierNode : public ExprNode {
   IdentifierNode() { type_ = StmtType::kIdentifier; }
   void SetIdentifierNode(Token name) { name_ = name; }
   virtual ~IdentifierNode() = default;
+
+  operator std::string() override {
+    return std::string(name_.value.identifier.location,
+                       name_.value.identifier.length);
+  }
 
   IdentifierNode(const IdentifierNode&) = default;
   IdentifierNode& operator=(const IdentifierNode&) = default;
@@ -1685,6 +1695,12 @@ class CastNode : public ExprNode {
   Type* cast_type_;
   ExprNode* expr_;
 };
+
+ExprNode::operator std::string() {
+  if (type_ == StmtType::kIdentifier)
+    return *dynamic_cast<IdentifierNode*>(this);
+  return std::string();
+}
 
 class Parser {
  public:
@@ -3086,11 +3102,14 @@ class BytecodeGenerator {
   BytecodeGenerator() = default;
   ~BytecodeGenerator() = default;
 
-  static void GenerateBytecode(CompoundNode* stmt);
+  void GenerateBytecode(CompoundNode* stmt);
 
  private:
-  static void HandleFuncDecl(FuncDeclNode* func_decl);
-  static void HandleVarDecl(VarDeclNode* var_decl);
+  void HandleFuncDecl(FuncDeclNode* func_decl);
+  void HandleVarDecl(VarDeclNode* var_decl);
+
+  LexMap<FuncDeclNode*> func_table_;
+  LexMap<VarDeclNode*> var_table_;
 };
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
@@ -3111,10 +3130,13 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 }
 
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
-  std::cout<<"BytecodeGenerator::HandleFuncDecl OK"<<std::endl;
+  std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
+  func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
+  
 }
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl) {
-  std::cout<<"BytecodeGenerator::HandleVarDecl OK"<<std::endl;
+  std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
+  var_table_.Insert(*var_decl->GetName(), var_decl);
 }
 
 }  // namespace Compiler
@@ -3161,7 +3183,9 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Parse End." << std::endl;
 
-  Aq::Compiler::BytecodeGenerator::GenerateBytecode(ast);
+  Aq::Compiler::BytecodeGenerator bytecode_generator;
+
+  bytecode_generator.GenerateBytecode(ast);
 
   return 0;
 }
