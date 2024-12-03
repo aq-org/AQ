@@ -3105,11 +3105,180 @@ class BytecodeGenerator {
   void GenerateBytecode(CompoundNode* stmt);
 
  private:
-  void HandleFuncDecl(FuncDeclNode* func_decl);
-  void HandleVarDecl(VarDeclNode* var_decl);
+  class Memory {
+   public:
+    Memory() { IsBigEndian(); }
+    ~Memory() = default;
+
+    void Add(uint8_t type, size_t size) {
+      type_.push_back(type);
+      memory_.resize(all_size_ + size);
+      all_size_ += size;
+
+      if (type > 0x0F) return;
+
+      for (size_t i = 0; i < size; i++) {
+        if (memory_.size() % 2 != 0) {
+          memory_.push_back(0);
+          all_size_++;
+          type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
+        } else {
+          memory_.push_back(0);
+          all_size_ += 2;
+          type_.push_back(type);
+        }
+      }
+    }
+
+    void Add(uint8_t type, size_t size, void* data) {
+      type_.push_back(type);
+      memory_.resize(all_size_ + size);
+      all_size_ += size;
+
+      if (type > 0x0F) return;
+
+      void* memory_data = malloc(size);
+
+      size_t read_index = 0;
+      for (void* data_ptr = memory_data; read_index < size;) {
+        switch (type) {
+          case 0x01:
+            *(int8_t*)memory_data = *(int8_t*)data;
+            data = (void*)((uintptr_t)data + 1);
+            read_index += 1;
+            memory_data = (void*)((uintptr_t)memory_data + 1);
+            break;
+          case 0x02:
+            *(int*)(memory_data) =
+                is_big_endian ? *(int*)data : SwapInt(*(int*)data);
+            data = (void*)((uintptr_t)data + 4);
+            read_index += 4;
+            memory_data = (void*)((uintptr_t)memory_data + 4);
+            break;
+          case 0x03:
+            *(long*)(memory_data) =
+                is_big_endian ? *(long*)data : SwapLong(*(long*)data);
+            data = (void*)((uintptr_t)data + 8);
+            read_index += 8;
+            memory_data = (void*)((uintptr_t)memory_data + 8);
+            break;
+          case 0x04:
+            *(float*)(memory_data) =
+                is_big_endian ? *(float*)data : SwapFloat(*(float*)data);
+            data = (void*)((uintptr_t)data + 4);
+            read_index += 4;
+            memory_data = (void*)((uintptr_t)memory_data + 4);
+            break;
+          case 0x05:
+            *(double*)(memory_data) =
+                is_big_endian ? *(double*)data : SwapDouble(*(double*)data);
+            data = (void*)((uintptr_t)data + 8);
+            read_index += 8;
+            memory_data = (void*)((uintptr_t)memory_data + 8);
+            break;
+          case 0x06:
+            *(uint64_t*)(memory_data) = is_big_endian
+                                            ? *(uint64_t*)data
+                                            : SwapUint64t(*(uint64_t*)data);
+            data = (void*)((uintptr_t)data + 8);
+            read_index += 8;
+            memory_data = (void*)((uintptr_t)memory_data + 8);
+          default:
+            return;
+        }
+      }
+
+      for (size_t i = 0; i < size; i++) {
+        if (memory_.size() % 2 != 0) {
+          memory_.push_back(*(uint64_t*)memory_data);
+          memory_data = (void*)((uintptr_t)memory_data + 1);
+          all_size_++;
+          type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
+        } else {
+          memory_.push_back(*(uint64_t*)memory_data);
+          memory_data = (void*)((uintptr_t)memory_data + 1);
+          all_size_ += 2;
+          type_.push_back(type);
+        }
+      }
+    }
+
+   private:
+    size_t all_size_ = 0;
+    std::vector<uint8_t> memory_;
+    std::vector<uint8_t> type_;
+    bool is_big_endian = false;
+
+    void IsBigEndian() {
+      uint16_t test_data = 0x0011;
+      is_big_endian = (*(uint8_t*)&test_data == 0x00);
+    }
+
+    int SwapInt(int x) {
+      uint32_t ux = (uint32_t)x;
+      ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
+           ((ux >> 8) & 0x0000FF00) | ((ux >> 24) & 0x000000FF);
+      return (int)ux;
+    }
+
+    long SwapLong(long x) {
+      uint64_t ux = (uint64_t)x;
+      ux = ((ux << 56) & 0xFF00000000000000ULL) |
+           ((ux << 40) & 0x00FF000000000000ULL) |
+           ((ux << 24) & 0x0000FF0000000000ULL) |
+           ((ux << 8) & 0x000000FF00000000ULL) |
+           ((ux >> 8) & 0x00000000FF000000ULL) |
+           ((ux >> 24) & 0x0000000000FF0000ULL) |
+           ((ux >> 40) & 0x000000000000FF00ULL) |
+           ((ux >> 56) & 0x00000000000000FFULL);
+      return (long)ux;
+    }
+
+    float SwapFloat(float x) {
+      uint32_t ux;
+      memcpy(&ux, &x, sizeof(uint32_t));
+      ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
+           ((ux >> 8) & 0x0000FF00) | ((ux >> 24) & 0x000000FF);
+      float result;
+      memcpy(&result, &ux, sizeof(float));
+      return result;
+    }
+
+    double SwapDouble(double x) {
+      uint64_t ux;
+      memcpy(&ux, &x, sizeof(uint64_t));
+      ux = ((ux << 56) & 0xFF00000000000000ULL) |
+           ((ux << 40) & 0x00FF000000000000ULL) |
+           ((ux << 24) & 0x0000FF0000000000ULL) |
+           ((ux << 8) & 0x000000FF00000000ULL) |
+           ((ux >> 8) & 0x00000000FF000000ULL) |
+           ((ux >> 24) & 0x0000000000FF0000ULL) |
+           ((ux >> 40) & 0x000000000000FF00ULL) |
+           ((ux >> 56) & 0x00000000000000FFULL);
+      double result;
+      memcpy(&result, &ux, sizeof(double));
+      return result;
+    }
+
+    uint64_t SwapUint64t(uint64_t x) {
+      x = ((x << 56) & 0xFF00000000000000ULL) |
+          ((x << 40) & 0x00FF000000000000ULL) |
+          ((x << 24) & 0x0000FF0000000000ULL) |
+          ((x << 8) & 0x000000FF00000000ULL) |
+          ((x >> 8) & 0x00000000FF000000ULL) |
+          ((x >> 24) & 0x0000000000FF0000ULL) |
+          ((x >> 40) & 0x000000000000FF00ULL) |
+          ((x >> 56) & 0x00000000000000FFULL);
+      return x;
+    }
+  };
+  void HandleFuncDecl(FuncDeclNode* func_decl, size_t& size);
+  void HandleVarDecl(VarDeclNode* var_decl, size_t& size);
+  void HandleStmt(StmtNode* stmt, size_t& size);
 
   LexMap<FuncDeclNode*> func_table_;
   LexMap<VarDeclNode*> var_table_;
+  size_t file_size_ = 0;
 };
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
@@ -3118,10 +3287,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   for (size_t i = 0; i < stmt->GetStmts().size(); i++) {
     switch (stmt->GetStmts()[i]->GetType()) {
       case StmtNode::StmtType::kFuncDecl:
-        HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt->GetStmts()[i]));
+        HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt->GetStmts()[i]),
+                       file_size_);
         break;
       case StmtNode::StmtType::kVarDecl:
-        HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]));
+        HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]),
+                      file_size_);
         break;
       default:
         break;
@@ -3129,16 +3300,18 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   }
 }
 
-void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
+void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl, size_t& size) {
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
   func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
-  
+  size_t func_decl_size = 8;
 }
-void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl) {
+
+void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size) {
   std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
   var_table_.Insert(*var_decl->GetName(), var_decl);
 }
 
+void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size) {}
 }  // namespace Compiler
 }  // namespace Aq
 
