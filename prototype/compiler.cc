@@ -1302,7 +1302,6 @@ class StmtNode {
     kExpr,
     kFuncDecl,
     kVarDecl,
-    kAssign,
     kIf,
     kWhile,
     kValue,
@@ -3272,12 +3271,21 @@ class BytecodeGenerator {
       return x;
     }
   };
+
   void HandleFuncDecl(FuncDeclNode* func_decl, size_t& size);
   void HandleVarDecl(VarDeclNode* var_decl, size_t& size);
+  void HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size);
   void HandleStmt(StmtNode* stmt, size_t& size);
+  size_t HandleExpr(ExprNode* expr, size_t& size);
+  size_t HandleUnaryExpr(UnaryNode* expr, size_t& size);
+  size_t HandleBinaryExpr(BinaryNode* expr, size_t& size);
+  size_t HandleFuncInvoke(FuncNode* func, size_t& size);
 
   LexMap<FuncDeclNode*> func_table_;
   LexMap<VarDeclNode*> var_table_;
+  LexMap<ArrayDeclNode*> array_table_;
+  Memory memory_;
+  std::vector<uint8_t> code_;
   size_t file_size_ = 0;
 };
 
@@ -3292,6 +3300,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         break;
       case StmtNode::StmtType::kVarDecl:
         HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]),
+                      file_size_);
+        break;
+        case StmtNode::StmtType::kArrayDecl:
+        HandleVarDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]),
                       file_size_);
         break;
       default:
@@ -3311,7 +3323,52 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size) {
   var_table_.Insert(*var_decl->GetName(), var_decl);
 }
 
+void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size) {
+  std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
+  array_table_.Insert(*array_decl->GetName(), array_decl);
+}
+
+size_t BytecodeGenerator::HandleExpr(ExprNode* expr, size_t& size) {
+  if (expr->GetType() == StmtNode::StmtType::kUnary) {
+    return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), size);
+  } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
+    return HandleBinaryExpr(dynamic_cast<BinaryNode*>(expr), size);
+  }else if (expr->GetType() == StmtNode::StmtType::kFunc){
+
+  }
+}
+size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size) {
+  switch(expr->GetOperator()){
+    case UnaryNode::Operator::kPostInc:
+      break;
+    case UnaryNode::Operator::kPostDec:
+      break;
+    case UnaryNode::Operator::kPreInc:
+      break;
+    case UnaryNode::Operator::kPreDec:
+      break;
+    case UnaryNode::Operator::kAddrOf:
+      break;
+    case UnaryNode::Operator::kDeref:
+      break;
+    case UnaryNode::Operator::kPlus:
+      break;
+    case UnaryNode::Operator::kMinus:
+      break;
+    case UnaryNode::Operator::kNot:
+      break;
+    case UnaryNode::Operator::kBitwiseNot:
+      break;
+    default:
+      break;
+  }
+}
+size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr, size_t& size) {}
+
 void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size) {}
+
+size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size){}
+
 }  // namespace Compiler
 }  // namespace Aq
 
