@@ -1269,7 +1269,10 @@ class Type {
     kAuto
   };
 
-  Type() { type_ = TypeType::kBase; }
+  Type() {
+    type_ = TypeType::kBase;
+    base_data_ = BaseType::NONE;
+  }
   virtual void SetType(BaseType type) { base_data_ = type; }
   virtual ~Type() = default;
 
@@ -1281,6 +1284,32 @@ class Type {
   BaseType GetBaseType() { return base_data_; }
 
   static Type* CreateType(Token* token, size_t length, size_t& index);
+
+  virtual size_t GetSize() {
+    switch (base_data_) {
+      case BaseType::kVoid:
+      case BaseType::kBool:
+      case BaseType::kChar:
+        return 1;
+      case BaseType::kShort:
+      case BaseType::kInt:
+      case BaseType::kFloat:
+        return 4;
+      case BaseType::kLong:
+      case BaseType::kDouble:
+      case BaseType::kStruct:
+      case BaseType::kUnion:
+      case BaseType::kEnum:
+      case BaseType::kPointer:
+      case BaseType::kArray:
+      case BaseType::kFunction:
+      case BaseType::kTypedef:
+      case BaseType::kAuto:
+        return 8;
+      default:
+        return 1;
+    }
+  }
 
  protected:
   TypeType type_ = TypeType::NONE;
@@ -1732,6 +1761,10 @@ class ConstType : public Type {
   }
   virtual ~ConstType() = default;
 
+  Type* GetSubType() { return type_data_; }
+
+  size_t GetSize() override { return type_data_->GetSize(); }
+
   ConstType(const ConstType&) = default;
   ConstType& operator=(const ConstType&) = default;
 };
@@ -1744,6 +1777,10 @@ class PointerType : public Type {
     type_data_ = type;
   }
   virtual ~PointerType() = default;
+
+  Type* GetSubType() { return type_data_; }
+
+  size_t GetSize() override { return 8; }
 
   PointerType(const PointerType&) = default;
   PointerType& operator=(const PointerType&) = default;
@@ -1759,7 +1796,11 @@ class ArrayType : public Type {
   }
   virtual ~ArrayType() = default;
 
-  ExprNode* GetSize() { return size_; }
+  Type* GetSubType() { return type_data_; }
+
+  ExprNode* GetArraySize() { return size_; }
+
+  size_t GetSize() override { return 8; }
 
   ArrayType(const ArrayType&) = default;
   ArrayType& operator=(const ArrayType&) = default;
@@ -3109,12 +3150,13 @@ class BytecodeGenerator {
     Memory() { IsBigEndian(); }
     ~Memory() = default;
 
-    void Add(uint8_t type, size_t size) {
+    size_t Add(uint8_t type, size_t size) {
+      size_t index = memory_.size();
       type_.push_back(type);
       memory_.resize(all_size_ + size);
       all_size_ += size;
 
-      if (type > 0x0F) return;
+      if (type > 0x0F) return index;
 
       for (size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
@@ -3127,14 +3169,17 @@ class BytecodeGenerator {
           type_.push_back(type);
         }
       }
+
+      return index;
     }
 
-    void Add(uint8_t type, size_t size, void* data) {
+    size_t Add(uint8_t type, size_t size, void* data) {
+      size_t index = memory_.size();
       type_.push_back(type);
       memory_.resize(all_size_ + size);
       all_size_ += size;
 
-      if (type > 0x0F) return;
+      if (type > 0x0F) return index;
 
       void* memory_data = malloc(size);
 
@@ -3183,7 +3228,7 @@ class BytecodeGenerator {
             read_index += 8;
             memory_data = (void*)((uintptr_t)memory_data + 8);
           default:
-            return;
+            return index;
         }
       }
 
@@ -3200,6 +3245,7 @@ class BytecodeGenerator {
           type_.push_back(type);
         }
       }
+      return index;
     }
 
    private:
@@ -3282,7 +3328,7 @@ class BytecodeGenerator {
   size_t HandleFuncInvoke(FuncNode* func, size_t& size);
 
   LexMap<FuncDeclNode*> func_table_;
-  LexMap<VarDeclNode*> var_table_;
+  LexMap<size_t> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
   Memory memory_;
   std::vector<uint8_t> code_;
@@ -3302,7 +3348,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]),
                       file_size_);
         break;
-        case StmtNode::StmtType::kArrayDecl:
+      case StmtNode::StmtType::kArrayDecl:
         HandleVarDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]),
                       file_size_);
         break;
@@ -3320,10 +3366,63 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl, size_t& size) {
 
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size) {
   std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
-  var_table_.Insert(*var_decl->GetName(), var_decl);
+  Type* var_type = var_decl->GetType();
+  while (var_type->GetType() == Type::TypeType::kBase ||
+         var_type->GetType() == Type::TypeType::kPointer ||
+         var_type->GetType() == Type::TypeType::kArray ||
+         var_type->GetType() == Type::TypeType::kReference) {
+    switch (var_type->GetType()) {
+      case Type::TypeType::kConst:
+        var_type = dynamic_cast<ConstType*>(var_type)->GetSubType();
+        break;
+      default:
+        return;
+    }
+  }
+  uint8_t vm_type = 0x00;
+  if (var_type->GetType() == Type::TypeType::kBase) {
+    switch (var_type->GetBaseType()) {
+      case Type::BaseType::kVoid:
+        vm_type = 0x00;
+        break;
+      case Type::BaseType::kBool:
+      case Type::BaseType::kChar:
+        vm_type = 0x01;
+        break;
+      case Type::BaseType::kShort:
+      case Type::BaseType::kInt:
+        vm_type = 0x02;
+        break;
+      case Type::BaseType::kLong:
+        vm_type = 0x03;
+        break;
+      case Type::BaseType::kFloat:
+        vm_type = 0x04;
+        break;
+      case Type::BaseType::kDouble:
+        vm_type = 0x05;
+        break;
+      case Type::BaseType::kStruct:
+      case Type::BaseType::kUnion:
+      case Type::BaseType::kEnum:
+      case Type::BaseType::kPointer:
+      case Type::BaseType::kArray:
+      case Type::BaseType::kFunction:
+      case Type::BaseType::kTypedef:
+      case Type::BaseType::kAuto:
+        vm_type = 0x06;
+        break;
+      default:
+        vm_type = 0x00;
+        break;
+    }
+  }
+  var_table_.Insert(*var_decl->GetName(),
+                    memory_.Add(vm_type, var_type->GetSize()));
 }
 
-void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size) {
+void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
+                                        size_t& size) {
   std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
   array_table_.Insert(*array_decl->GetName(), array_decl);
 }
@@ -3333,12 +3432,11 @@ size_t BytecodeGenerator::HandleExpr(ExprNode* expr, size_t& size) {
     return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), size);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
     return HandleBinaryExpr(dynamic_cast<BinaryNode*>(expr), size);
-  }else if (expr->GetType() == StmtNode::StmtType::kFunc){
-
+  } else if (expr->GetType() == StmtNode::StmtType::kFunc) {
   }
 }
 size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size) {
-  switch(expr->GetOperator()){
+  switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc:
       break;
     case UnaryNode::Operator::kPostDec:
@@ -3367,7 +3465,7 @@ size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr, size_t& size) {}
 
 void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size) {}
 
-size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size){}
+size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size) {}
 
 }  // namespace Compiler
 }  // namespace Aq
