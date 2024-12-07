@@ -78,6 +78,9 @@
 
 <p align="center">Les traductions peuvent être inexactes ou retardées, veuillez lire la version anglaise si vous le pouvez. Si vous trouvez des erreurs, merci de nous les signaler<a href="https://github.com/aq-org/AQ/issues/new">Rapport</a>。</p>
 
+> [!CAUTION]
+> La traduction est obsolète, veuillez consulter la documentation en anglais.
+
 ## Table des matières
 
 - [introduire](#introduire)

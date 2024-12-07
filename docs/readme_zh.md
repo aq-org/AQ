@@ -78,6 +78,9 @@
 
 <p align="center">翻译可能不准确或延迟，如果可以，请阅读英文版本。如果你发现任何错误，请向我们<a href="https://github.com/aq-org/AQ/issues/new">报告</a>。</p>
 
+> [!CAUTION]
+> 翻译已经过时，请查看英文文档。
+
 ## 目录
 
 - [介绍](#介绍)

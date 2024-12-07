@@ -78,7 +78,10 @@
 
 <p align="center">Las traducciones pueden ser inexactas o retrasadas; lea la versión en inglés si puede. Si encuentra algún error, por favor infórmenos<a href="https://github.com/aq-org/AQ/issues/new"> Informe</a>。</p>
 
-## 目录
+> [!CAUTION]
+> La traducción no está actualizada, consulte la documentación en inglés.
+
+## directorio
 
 - [introducir](#introducir)
     - [Introducción](#introducción)
