@@ -3436,6 +3436,7 @@ size_t BytecodeGenerator::HandleExpr(ExprNode* expr, size_t& size) {
   }
 }
 size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size) {
+  // TODO(BytecodeGenerator::HandleUnaryExpr): Complete the function.
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc:
       break;
