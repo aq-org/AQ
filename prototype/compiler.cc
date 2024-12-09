@@ -3318,6 +3318,25 @@ class BytecodeGenerator {
     }
   };
 
+  class Bytecode {
+   public:
+    Bytecode(size_t oper) { oper_ = oper; }
+    Bytecode(size_t oper, ...) {
+      oper_ = oper;
+      va_list args;
+      va_start(args, oper);
+      for (size_t i = 0; i < oper; i++) {
+        arg_.push_back(va_arg(args, size_t));
+      }
+      va_end(args);
+    }
+    ~Bytecode() = default;
+
+   private:
+    uint8_t oper_;
+    std::vector<uint8_t> arg_;
+  };
+
   void HandleFuncDecl(FuncDeclNode* func_decl, size_t& size);
   void HandleVarDecl(VarDeclNode* var_decl, size_t& size);
   void HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size);
@@ -3327,7 +3346,7 @@ class BytecodeGenerator {
   size_t HandleBinaryExpr(BinaryNode* expr, size_t& size);
   size_t HandleFuncInvoke(FuncNode* func, size_t& size);
 
-  LexMap<FuncDeclNode*> func_table_;
+  LexMap<std::vector<Bytecode>> func_table_;
   LexMap<size_t> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
   Memory memory_;
@@ -3360,7 +3379,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl, size_t& size) {
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
-  func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
+  // TODO(BytecodeGenerator::HandleFuncDecl): Complete the function.
+  // func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
   size_t func_decl_size = 8;
 }
 
@@ -3439,6 +3459,7 @@ size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size) {
   // TODO(BytecodeGenerator::HandleUnaryExpr): Complete the function.
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc:
+
       break;
     case UnaryNode::Operator::kPostDec:
       break;
