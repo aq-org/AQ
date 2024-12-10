@@ -1419,6 +1419,8 @@ class UnaryNode : public ExprNode {
 
   Operator GetOperator() { return op_; }
 
+  ExprNode* GetExpr() { return expr_; }
+
   virtual ~UnaryNode() = default;
 
   UnaryNode(const UnaryNode&) = default;
@@ -3320,7 +3322,7 @@ class BytecodeGenerator {
 
   class Bytecode {
    public:
-    Bytecode(size_t oper) { oper_ = oper; }
+    // Bytecode(size_t oper) { oper_ = oper; }
     Bytecode(size_t oper, ...) {
       oper_ = oper;
       va_list args;
@@ -3337,14 +3339,21 @@ class BytecodeGenerator {
     std::vector<uint8_t> arg_;
   };
 
-  void HandleFuncDecl(FuncDeclNode* func_decl, size_t& size);
-  void HandleVarDecl(VarDeclNode* var_decl, size_t& size);
-  void HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size);
-  void HandleStmt(StmtNode* stmt, size_t& size);
-  size_t HandleExpr(ExprNode* expr, size_t& size);
-  size_t HandleUnaryExpr(UnaryNode* expr, size_t& size);
-  size_t HandleBinaryExpr(BinaryNode* expr, size_t& size);
-  size_t HandleFuncInvoke(FuncNode* func, size_t& size);
+  void HandleFuncDecl(FuncDeclNode* func_decl, size_t& size,
+                      std::vector<Bytecode>& code);
+  void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size,
+                                        std::vector<Bytecode>& code);
+  void HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size,
+                       std::vector<Bytecode>& code);
+  void HandleStmt(StmtNode* stmt, size_t& size, std::vector<Bytecode>& code);
+  size_t HandleExpr(ExprNode* expr, size_t& size, std::vector<Bytecode>& code);
+  size_t HandleUnaryExpr(UnaryNode* expr, size_t& size,
+                         std::vector<Bytecode>& code);
+  size_t HandleBinaryExpr(BinaryNode* expr, size_t& size,
+                          std::vector<Bytecode>& code);
+  size_t HandleFuncInvoke(FuncNode* func, size_t& size,
+                          std::vector<Bytecode>& code);
+  size_t GetIndex(ExprNode* expr);
 
   LexMap<std::vector<Bytecode>> func_table_;
   LexMap<size_t> var_table_;
@@ -3359,32 +3368,40 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   std::cout << "BytecodeGenerator::GenerateBytecode OK" << std::endl;
   for (size_t i = 0; i < stmt->GetStmts().size(); i++) {
     switch (stmt->GetStmts()[i]->GetType()) {
-      case StmtNode::StmtType::kFuncDecl:
+      case StmtNode::StmtType::kFuncDecl: {
+        std::vector<Bytecode> code;
         HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt->GetStmts()[i]),
-                       file_size_);
+                       file_size_, code);
         break;
-      case StmtNode::StmtType::kVarDecl:
+      }
+      case StmtNode::StmtType::kVarDecl: {
+        std::vector<Bytecode> code;
         HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]),
-                      file_size_);
+                      file_size_, code);
         break;
-      case StmtNode::StmtType::kArrayDecl:
+      }
+      case StmtNode::StmtType::kArrayDecl: {
+        std::vector<Bytecode> code;
         HandleVarDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]),
-                      file_size_);
+                      file_size_, code);
         break;
+      }
       default:
         break;
     }
   }
 }
 
-void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl, size_t& size) {
+void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl, size_t& size,
+                                       std::vector<Bytecode>& code) {
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
   // TODO(BytecodeGenerator::HandleFuncDecl): Complete the function.
   // func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
   size_t func_decl_size = 8;
 }
 
-void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size) {
+void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size,
+                                      std::vector<Bytecode>& code) {
   std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
   Type* var_type = var_decl->GetType();
   while (var_type->GetType() == Type::TypeType::kBase ||
@@ -3441,25 +3458,29 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size) {
                     memory_.Add(vm_type, var_type->GetSize()));
 }
 
-void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
-                                        size_t& size) {
+void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size,
+                                        std::vector<Bytecode>& code) {
+  // TODO(BytecodeGenerator::HandleArrayDecl): Complete the function.
   std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
   array_table_.Insert(*array_decl->GetName(), array_decl);
 }
 
-size_t BytecodeGenerator::HandleExpr(ExprNode* expr, size_t& size) {
+size_t BytecodeGenerator::HandleExpr(ExprNode* expr, size_t& size,
+                                     std::vector<Bytecode>& code) {
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
-    return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), size);
+    return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), size, code);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
-    return HandleBinaryExpr(dynamic_cast<BinaryNode*>(expr), size);
+    return HandleBinaryExpr(dynamic_cast<BinaryNode*>(expr), size, code);
   } else if (expr->GetType() == StmtNode::StmtType::kFunc) {
   }
 }
-size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size) {
+size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size,
+                                          std::vector<Bytecode>& code) {
   // TODO(BytecodeGenerator::HandleUnaryExpr): Complete the function.
+
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc:
-
+      code.push_back(Bytecode(0x06), );
       break;
     case UnaryNode::Operator::kPostDec:
       break;
@@ -3483,11 +3504,27 @@ size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size) {
       break;
   }
 }
-size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr, size_t& size) {}
+size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr, size_t& size,
+                                           std::vector<Bytecode>& code) {}
 
-void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size) {}
+void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size,
+                                   std::vector<Bytecode>& code) {}
 
-size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size) {}
+size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size,
+                                           std::vector<Bytecode>& code) {}
+
+size_t BytecodeGenerator::GetIndex(ExprNode* expr){
+  switch(expr->GetType()){
+    case StmtNode::StmtType::kIdentifier:
+      return var_table_.Find(*dynamic_cast<IdentifierNode*>(expr));
+    case StmtNode::StmtType::kValue:
+      return memory_.Add(0x02, 4, &dynamic_cast<ValueNode*>(expr)->GetValue());
+    case StmtNode::StmtType::kFunc:
+      return HandleFuncInvoke(dynamic_cast<FuncNode*>(expr), size, code);
+    default:
+      return 0;
+  }
+}
 
 }  // namespace Compiler
 }  // namespace Aq
