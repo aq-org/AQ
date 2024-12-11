@@ -341,8 +341,11 @@ struct Token {
     KeywordType keyword;
     ValueStr identifier;
     OperatorType _operator;
-    ValueStr character;
-    ValueStr string;
+    char character;
+    std::string string;
+
+    Value() {}
+    ~Value() {}
   };
 
   Type type = Type::START;
@@ -351,10 +354,10 @@ struct Token {
   Token();
   ~Token();
 
-  Token(const Token&) = default;
-  Token(Token&&) noexcept = default;
-  Token& operator=(const Token&) = default;
-  Token& operator=(Token&&) noexcept = default;
+  Token(const Token&) {}
+  Token(Token&&) noexcept {}
+  Token& operator=(const Token&) {}
+  Token& operator=(Token&&) noexcept {}
 
   std::string TokenTypeToString(Token::Type type) {
     switch (type) {
@@ -653,12 +656,10 @@ struct Token {
                           token.value.number.length);
         break;
       case Token::Type::CHARACTER:
-        os << std::string(token.value.character.location,
-                          token.value.character.length);
+        os << token.value.character;
         break;
       case Token::Type::STRING:
-        os << std::string(token.value.string.location,
-                          token.value.string.length);
+        os << token.value.string;
         break;
       default:
         os << "N/A";
@@ -1217,11 +1218,11 @@ LexEnd:
         break;
 
       case Token::Type::CHARACTER:
-        return_token.value.character = value;
+        return_token.value.character = value.location[1];
         break;
 
       case Token::Type::STRING:
-        return_token.value.string = value;
+        return_token.value.string = std::string(value.location + 1, length - 2);
         break;
 
       case Token::Type::OPERATOR:
@@ -1413,11 +1414,10 @@ class ValueNode : public ExprNode {
   std::variant<char, std::string, int, long, float, double, uint64_t>
   GetValue() {
     if (value_.type == Token::Type::CHARACTER) {
-      return value_.value.character.location[0];
+      return value_.value.character;
     }
     if (value_.type == Token::Type::STRING) {
-      return std::string(value_.value.string.location,
-                         value_.value.string.length);
+      return value_.value.string;
     }
 
     std::string str(value_.value.number.location, value_.value.number.length);
@@ -1541,7 +1541,7 @@ class ValueNode : public ExprNode {
       return 1;
     }
     if (value_.type == Token::Type::STRING) {
-      return value_.value.string.length;
+      return value_.value.string.size();
     }
     switch (GetVmType()) {
       case 0x02:
@@ -3652,7 +3652,7 @@ size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size,
 
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc:
-      code.push_back(Bytecode(0x06), );
+      // code.push_back(Bytecode(0x06), );
       break;
     case UnaryNode::Operator::kPostDec:
       break;
