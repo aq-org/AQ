@@ -8,7 +8,9 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace Aq {
@@ -1386,6 +1388,176 @@ class ValueNode : public ExprNode {
   ValueNode() { type_ = StmtType::kValue; }
   void SetValueNode(Token value) { value_ = value; }
   virtual ~ValueNode() = default;
+
+  /*int GetIntValue() {
+    return std::stoi(
+        std::string(value_.value.number.location, value_.value.number.length));
+  }
+  long GetLongValue() {
+    return std::stol(
+        std::string(value_.value.number.location, value_.value.number.length));
+  }
+  float GetFloatValue() {
+    return std::stof(
+        std::string(value_.value.number.location, value_.value.number.length));
+  }
+  double GetDoubleValue() {
+    return std::stod(
+        std::string(value_.value.number.location, value_.value.number.length));
+  }
+  uint64_t GetUInt64Value() {
+    return std::stoull(
+        std::string(value_.value.number.location, value_.value.number.length));
+  }*/
+
+  std::variant<char, std::string, int, long, float, double, uint64_t>
+  GetValue() {
+    if (value_.type == Token::Type::CHARACTER) {
+      return value_.value.character.location[0];
+    }
+    if (value_.type == Token::Type::STRING) {
+      return std::string(value_.value.string.location,
+                         value_.value.string.length);
+    }
+
+    std::string str(value_.value.number.location, value_.value.number.length);
+    try {
+      size_t pos;
+      int int_value = std::stoi(str, &pos);
+      if (pos == str.size()) {
+        return int_value;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      long long_value = std::stol(str, &pos);
+      if (pos == str.size()) {
+        return long_value;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      uint64_t uint64_value = std::stoull(str, &pos);
+      if (pos == str.size()) {
+        return uint64_value;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      float float_value = std::stof(str, &pos);
+      if (pos == str.size()) {
+        return float_value;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      double double_value = std::stod(str, &pos);
+      if (pos == str.size()) {
+        return double_value;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    return 0;
+  }
+
+  size_t GetVmType() {
+    if (value_.type == Token::Type::CHARACTER) {
+      return 0x01;
+    }
+    if (value_.type == Token::Type::STRING) {
+      return 0x01;
+    }
+
+    std::string str(value_.value.number.location, value_.value.number.length);
+    try {
+      size_t pos;
+      int int_value = std::stoi(str, &pos);
+      if (pos == str.size()) {
+        return 0x02;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      long long_value = std::stol(str, &pos);
+      if (pos == str.size()) {
+        return 0x03;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      uint64_t uint64_value = std::stoull(str, &pos);
+      if (pos == str.size()) {
+        return 0x06;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      float float_value = std::stof(str, &pos);
+      if (pos == str.size()) {
+        return 0x04;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    try {
+      size_t pos;
+      double double_value = std::stod(str, &pos);
+      if (pos == str.size()) {
+        return 0x05;
+      }
+    } catch (const std::invalid_argument&) {
+    } catch (const std::out_of_range&) {
+    }
+
+    return 0x00;
+  }
+
+  size_t GetSize() {
+    if (value_.type == Token::Type::CHARACTER) {
+      return 1;
+    }
+    if (value_.type == Token::Type::STRING) {
+      return value_.value.string.length;
+    }
+    switch (GetVmType()) {
+      case 0x02:
+        return 4;
+      case 0x03:
+        return 8;
+      case 0x04:
+        return 4;
+      case 0x05:
+        return 8;
+      case 0x06:
+        return 8;
+      default:
+        return 0;
+    }
+  }
 
   ValueNode(const ValueNode&) = default;
   ValueNode& operator=(const ValueNode&) = default;
@@ -3353,7 +3525,7 @@ class BytecodeGenerator {
                           std::vector<Bytecode>& code);
   size_t HandleFuncInvoke(FuncNode* func, size_t& size,
                           std::vector<Bytecode>& code);
-  size_t GetIndex(ExprNode* expr);
+  size_t GetIndex(ExprNode* expr, size_t& size, std::vector<Bytecode>& code);
 
   LexMap<std::vector<Bytecode>> func_table_;
   LexMap<size_t> var_table_;
@@ -3513,12 +3685,15 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size,
 size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size,
                                            std::vector<Bytecode>& code) {}
 
-size_t BytecodeGenerator::GetIndex(ExprNode* expr){
-  switch(expr->GetType()){
+size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
+                                   std::vector<Bytecode>& code) {
+  switch (expr->GetType()) {
     case StmtNode::StmtType::kIdentifier:
       return var_table_.Find(*dynamic_cast<IdentifierNode*>(expr));
     case StmtNode::StmtType::kValue:
-      return memory_.Add(0x02, 4, &dynamic_cast<ValueNode*>(expr)->GetValue());
+      return memory_.Add(dynamic_cast<ValueNode*>(expr)->GetVmType(),
+                         dynamic_cast<ValueNode*>(expr)->GetSize(),
+                         &dynamic_cast<ValueNode*>(expr)->GetValue());
     case StmtNode::StmtType::kFunc:
       return HandleFuncInvoke(dynamic_cast<FuncNode*>(expr), size, code);
     default:
