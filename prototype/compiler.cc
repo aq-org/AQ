@@ -1411,13 +1411,12 @@ class ValueNode : public ExprNode {
         std::string(value_.value.number.location, value_.value.number.length));
   }*/
 
-  std::variant<char, std::string, int, long, float, double, uint64_t>
-  GetValue() {
+  std::variant<char, char*, int, long, float, double, uint64_t> GetValue() {
     if (value_.type == Token::Type::CHARACTER) {
       return value_.value.character;
     }
     if (value_.type == Token::Type::STRING) {
-      return value_.value.string;
+      return value_.value.string.data();
     }
 
     std::string str(value_.value.number.location, value_.value.number.length);
@@ -1558,6 +1557,8 @@ class ValueNode : public ExprNode {
         return 0;
     }
   }
+
+  Token GetToken() { return value_; }
 
   ValueNode(const ValueNode&) = default;
   ValueNode& operator=(const ValueNode&) = default;
@@ -3691,9 +3692,40 @@ size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
     case StmtNode::StmtType::kIdentifier:
       return var_table_.Find(*dynamic_cast<IdentifierNode*>(expr));
     case StmtNode::StmtType::kValue:
-      return memory_.Add(dynamic_cast<ValueNode*>(expr)->GetVmType(),
-                         dynamic_cast<ValueNode*>(expr)->GetSize(),
-                         &dynamic_cast<ValueNode*>(expr)->GetValue());
+      size_t vm_type = dynamic_cast<ValueNode*>(expr)->GetVmType();
+      switch (vm_type) {
+        case 0x01: {
+          int8_t value =
+              std::get<int8_t>(dynamic_cast<ValueNode*>(expr)->GetValue());
+          return memory_.Add(vm_type, dynamic_cast<ValueNode*>(expr)->GetSize(),
+                             &value);
+          break;
+        }
+        case 0x02: {
+          int value = std::get<int>(dynamic_cast<ValueNode*>(expr)->GetValue());
+          return memory_.Add(vm_type, 4, &value);
+        }
+        case 0x03: {
+          long value =
+              std::get<long>(dynamic_cast<ValueNode*>(expr)->GetValue());
+          return memory_.Add(vm_type, 8, &value);
+        }
+        case 0x04: {
+          float value =
+              std::get<float>(dynamic_cast<ValueNode*>(expr)->GetValue());
+          return memory_.Add(vm_type, 4, &value);
+        }
+        case 0x05: {
+          double value =
+              std::get<double>(dynamic_cast<ValueNode*>(expr)->GetValue());
+          return memory_.Add(vm_type, 8, &value);
+        }
+        case 0x06: {
+          uint64_t value =
+              std::get<uint64_t>(dynamic_cast<ValueNode*>(expr)->GetValue());
+          return memory_.Add(vm_type, 8, &value);
+        }
+      }
     case StmtNode::StmtType::kFunc:
       return HandleFuncInvoke(dynamic_cast<FuncNode*>(expr), size, code);
     default:
