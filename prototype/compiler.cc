@@ -1478,7 +1478,7 @@ class ValueNode : public ExprNode {
       return 0x01;
     }
     if (value_.type == Token::Type::STRING) {
-      return 0x01;
+      return 0x06;
     }
 
     std::string str(value_.value.number.location, value_.value.number.length);
@@ -3505,6 +3505,10 @@ class BytecodeGenerator {
       }
       va_end(args);
     }
+    Bytecode(size_t oper, std::vector<uint8_t> args) {
+      oper_ = oper;
+      arg_ = args;
+    }
     ~Bytecode() = default;
 
    private:
@@ -3684,7 +3688,10 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size,
                                    std::vector<Bytecode>& code) {}
 
 size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size,
-                                           std::vector<Bytecode>& code) {}
+                                           std::vector<Bytecode>& code) {
+  std::vector<ExprNode*> args = func->GetArgs();
+  // TODO(BytecodeGenerator::HandleFuncInvoke): Complete the function.
+}
 
 size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
                                    std::vector<Bytecode>& code) {
@@ -3721,6 +3728,16 @@ size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
           return memory_.Add(vm_type, 8, &value);
         }
         case 0x06: {
+          if (dynamic_cast<ValueNode*>(expr)->GetToken().type ==
+              Token::Type::STRING) {
+            std::string value = std::get<std::string>(
+                dynamic_cast<ValueNode*>(expr)->GetValue());
+            size_t str_index =
+                memory_.Add(0x01, value.size() + 1, value.data());
+            size_t ptr_index = memory_.Add(vm_type, 8);
+            code.push_back(Bytecode(0x05, str_index, ptr_index));
+            return ptr_index;
+          }
           uint64_t value =
               std::get<uint64_t>(dynamic_cast<ValueNode*>(expr)->GetValue());
           return memory_.Add(vm_type, 8, &value);
