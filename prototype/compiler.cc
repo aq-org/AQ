@@ -3534,6 +3534,7 @@ class BytecodeGenerator {
                           std::vector<Bytecode>& code);
   size_t GetIndex(ExprNode* expr, size_t& size, std::vector<Bytecode>& code);
   size_t AddConstInt8t(int8_t value);
+  uint8_t GetExpeVmType(ExprNode* expr);
 
   LexMap<std::pair<FuncDeclNode, std::vector<Bytecode>>> func_table_;
   LexMap<size_t> var_table_;
@@ -3829,6 +3830,21 @@ size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
 
 size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
   return memory_.Add(0x01, 1, &value);
+}
+
+uint8_t BytecodeGenerator::GetExpeVmType(ExprNode* expr) {
+  if (expr->GetType() == StmtNode::StmtType::kUnary) {
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::kAddrOf) {
+      return 0x06;
+    }
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::CONVERT) {
+      // TODO
+    }
+  }
+  if (expr->GetType() == StmtNode::StmtType::kBinary) {
+  }
 }
 
 }  // namespace Compiler
