@@ -1637,6 +1637,8 @@ class ConvertNode : public UnaryNode {
   }
   virtual ~ConvertNode() = default;
 
+  Type* GetConvertedType() { return converted_type_; }
+
   ConvertNode(const ConvertNode&) = default;
   ConvertNode& operator=(const ConvertNode&) = default;
 
@@ -1689,6 +1691,9 @@ class BinaryNode : public ExprNode {
   }
   virtual ~BinaryNode() = default;
 
+  ExprNode* GetLeftExpr() { return left_; }
+  ExprNode* GetRightExpr() { return right_; }
+
   BinaryNode(const BinaryNode&) = default;
   BinaryNode& operator=(const BinaryNode&) = default;
 
@@ -1708,6 +1713,9 @@ class ConditionalNode : public ExprNode {
     false_expr_ = false_expr;
   }
   virtual ~ConditionalNode() = default;
+
+  ExprNode* GetTrueExpr() { return true_expr_; }
+  ExprNode* GetFalseExpr() { return false_expr_; }
 
   ConditionalNode(const ConditionalNode&) = default;
   ConditionalNode& operator=(const ConditionalNode&) = default;
@@ -3534,7 +3542,7 @@ class BytecodeGenerator {
                           std::vector<Bytecode>& code);
   size_t GetIndex(ExprNode* expr, size_t& size, std::vector<Bytecode>& code);
   size_t AddConstInt8t(int8_t value);
-  uint8_t GetExpeVmType(ExprNode* expr);
+  uint8_t GetExprVmType(ExprNode* expr);
 
   LexMap<std::pair<FuncDeclNode, std::vector<Bytecode>>> func_table_;
   LexMap<size_t> var_table_;
@@ -3832,7 +3840,7 @@ size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
   return memory_.Add(0x01, 1, &value);
 }
 
-uint8_t BytecodeGenerator::GetExpeVmType(ExprNode* expr) {
+uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::kAddrOf) {
@@ -3840,10 +3848,119 @@ uint8_t BytecodeGenerator::GetExpeVmType(ExprNode* expr) {
     }
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::CONVERT) {
+      switch (dynamic_cast<ConvertNode*>(expr)->GetConvertedType()->GetType()) {
+        case Type::TypeType::kBase:
+        case Type::TypeType::kConst:
+          switch (dynamic_cast<ConvertNode*>(expr)
+                      ->GetConvertedType()
+                      ->GetBaseType()) {
+            case Type::BaseType::kVoid:
+              return 0x00;
+            case Type::BaseType::kBool:
+            case Type::BaseType::kChar:
+              return 0x01;
+            case Type::BaseType::kShort:
+            case Type::BaseType::kInt:
+              return 0x02;
+            case Type::BaseType::kLong:
+              return 0x03;
+            case Type::BaseType::kFloat:
+              return 0x04;
+            case Type::BaseType::kDouble:
+              return 0x05;
+            case Type::BaseType::kStruct:
+            case Type::BaseType::kUnion:
+            case Type::BaseType::kEnum:
+            case Type::BaseType::kPointer:
+            case Type::BaseType::kArray:
+            case Type::BaseType::kFunction:
+            case Type::BaseType::kTypedef:
+            case Type::BaseType::kAuto:
+              return 0x06;
+            default:
+              return 0x00;
+          }
+
+        case Type::TypeType::kArray:
+        case Type::TypeType::kPointer:
+        case Type::TypeType::kReference:
+          return 0x06;
+
+        default:
+          return 0x00;
+      }
+    }
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::ARRAY) {
       // TODO
     }
   }
   if (expr->GetType() == StmtNode::StmtType::kBinary) {
+    uint8_t left =
+        GetExprVmType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
+    uint8_t right =
+        GetExprVmType(dynamic_cast<BinaryNode*>(expr)->GetRightExpr());
+
+    return left > right ? left : right;
+  }
+  if (expr->GetType() == StmtNode::StmtType::kValue) {
+    return dynamic_cast<ValueNode*>(expr)->GetVmType();
+  }
+  if (expr->GetType() == StmtNode::StmtType::kConditional) {
+    uint8_t true_value =
+        GetExprVmType(dynamic_cast<ConditionalNode*>(expr)->GetTrueExpr());
+    uint8_t false_value =
+        GetExprVmType(dynamic_cast<ConditionalNode*>(expr)->GetFalseExpr());
+
+    return true_value > false_value ? true_value : false_value;
+  }
+  if (expr->GetType() == StmtNode::StmtType::kFunc) {
+    Type* return_type =
+        func_table_.Find(*dynamic_cast<FuncNode*>(expr)->GetName())
+            .first.GetReturnType();
+    switch (return_type->GetType()) {
+      case Type::TypeType::kBase:
+      case Type::TypeType::kConst:
+        switch (return_type->GetBaseType()) {
+          case Type::BaseType::kVoid:
+            return 0x00;
+          case Type::BaseType::kBool:
+          case Type::BaseType::kChar:
+            return 0x01;
+          case Type::BaseType::kShort:
+          case Type::BaseType::kInt:
+            return 0x02;
+          case Type::BaseType::kLong:
+            return 0x03;
+          case Type::BaseType::kFloat:
+            return 0x04;
+          case Type::BaseType::kDouble:
+            return 0x05;
+          case Type::BaseType::kStruct:
+          case Type::BaseType::kUnion:
+          case Type::BaseType::kEnum:
+          case Type::BaseType::kPointer:
+          case Type::BaseType::kArray:
+          case Type::BaseType::kFunction:
+          case Type::BaseType::kTypedef:
+          case Type::BaseType::kAuto:
+            return 0x06;
+          default:
+            return 0x00;
+        }
+
+      case Type::TypeType::kArray:
+      case Type::TypeType::kPointer:
+      case Type::TypeType::kReference:
+        return 0x06;
+
+      default:
+        return 0x00;
+    }
+  }
+  if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
+    // TODO
+    var_table_.Find(*dynamic_cast<IdentifierNode*>(expr));
   }
 }
 
