@@ -92,7 +92,7 @@ class LexMap {
     };
 
     // Copy all the data in the linked list to |new_list|.
-    void CopyDataToNewList(PairList* new_list, size_t new_capacity) {
+    void CopyDataToNewList(PairList* new_list, std::size_t new_capacity) {
       PairList::Node* temp_node = head_ptr_;
       while (temp_node != nullptr) {
         unsigned int hash = 5381;
@@ -334,7 +334,7 @@ struct Token {
   };
   struct ValueStr {
     char* location;
-    size_t length;
+    std::size_t length;
   };
   union Value {
     ValueStr number;
@@ -824,7 +824,7 @@ Token::OperatorType TokenMap::GetOperatorValue(std::string _operator) {
 class Lexer {
  public:
   // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
-  Lexer(char* source_code, size_t length)
+  Lexer(char* source_code, std::size_t length)
       : buffer_ptr_(source_code), buffer_end_(source_code + length - 1){};
   ~Lexer() = default;
 
@@ -1198,7 +1198,7 @@ LexEnd:
   } else {
     // Meaningful token. Determine the specific token information.
     char* location = buffer_ptr_;
-    size_t length = read_ptr - buffer_ptr_;
+    std::size_t length = read_ptr - buffer_ptr_;
     buffer_ptr_ = read_ptr;
 
     // Handle the detailed information of tokens.
@@ -1286,9 +1286,9 @@ class Type {
 
   BaseType GetBaseType() { return base_data_; }
 
-  static Type* CreateType(Token* token, size_t length, size_t& index);
+  static Type* CreateType(Token* token, std::size_t length, std::size_t& index);
 
-  virtual size_t GetSize() {
+  virtual std::size_t GetSize() {
     switch (base_data_) {
       case BaseType::kVoid:
       case BaseType::kBool:
@@ -1423,7 +1423,7 @@ class ValueNode : public ExprNode {
 
     std::string str(value_.value.number.location, value_.value.number.length);
     try {
-      size_t pos;
+      std::size_t pos;
       int int_value = std::stoi(str, &pos);
       if (pos == str.size()) {
         return int_value;
@@ -1433,7 +1433,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       long long_value = std::stol(str, &pos);
       if (pos == str.size()) {
         return long_value;
@@ -1443,7 +1443,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       uint64_t uint64_value = std::stoull(str, &pos);
       if (pos == str.size()) {
         return uint64_value;
@@ -1453,7 +1453,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       float float_value = std::stof(str, &pos);
       if (pos == str.size()) {
         return float_value;
@@ -1463,7 +1463,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       double double_value = std::stod(str, &pos);
       if (pos == str.size()) {
         return double_value;
@@ -1475,7 +1475,7 @@ class ValueNode : public ExprNode {
     return 0;
   }*/
 
-  size_t GetVmType() {
+  std::size_t GetVmType() {
     if (value_.type == Token::Type::CHARACTER) {
       return 0x01;
     }
@@ -1485,7 +1485,7 @@ class ValueNode : public ExprNode {
 
     std::string str(value_.value.number.location, value_.value.number.length);
     try {
-      size_t pos;
+      std::size_t pos;
       int int_value = std::stoi(str, &pos);
       if (pos == str.size()) {
         return 0x02;
@@ -1495,7 +1495,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       long long_value = std::stol(str, &pos);
       if (pos == str.size()) {
         return 0x03;
@@ -1505,7 +1505,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       uint64_t uint64_value = std::stoull(str, &pos);
       if (pos == str.size()) {
         return 0x06;
@@ -1515,7 +1515,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       float float_value = std::stof(str, &pos);
       if (pos == str.size()) {
         return 0x04;
@@ -1525,7 +1525,7 @@ class ValueNode : public ExprNode {
     }
 
     try {
-      size_t pos;
+      std::size_t pos;
       double double_value = std::stod(str, &pos);
       if (pos == str.size()) {
         return 0x05;
@@ -1537,7 +1537,7 @@ class ValueNode : public ExprNode {
     return 0x00;
   }
 
-  size_t GetSize() {
+  std::size_t GetSize() {
     if (value_.type == Token::Type::CHARACTER) {
       return 1;
     }
@@ -1792,7 +1792,7 @@ class VarDeclNode : public DeclNode, public ExprNode {
   VarDeclNode(const VarDeclNode&) = default;
   VarDeclNode& operator=(const VarDeclNode&) = default;
 
-  Type* GetType() { return var_type_; }
+  Type* GetVarType() { return var_type_; }
   ExprNode* GetName() { return name_; }
   std::vector<ExprNode*> GetValue() { return value_; }
 
@@ -1921,19 +1921,24 @@ class Parser {
   ~Parser();
   static CompoundNode* Parse(std::vector<Token> token);
 
-  static ExprNode* ParseExpr(Token* token, size_t length, size_t& index);
+  static ExprNode* ParseExpr(Token* token, std::size_t length,
+                             std::size_t& index);
 
-  static ExprNode* ParsePrimaryExpr(Token* token, size_t length, size_t& index);
+  static ExprNode* ParsePrimaryExpr(Token* token, std::size_t length,
+                                    std::size_t& index);
 
  private:
-  static bool IsDecl(Token* token, size_t length, size_t index);
-  static bool IsFuncDecl(Token* token, size_t length, size_t index);
-  static StmtNode* ParseStmt(Token* token, size_t length, size_t& index);
-  static VarDeclNode* ParseVarDecl(Token* token, size_t length, size_t& index);
-  static FuncDeclNode* ParseFuncDecl(Token* token, size_t length,
-                                     size_t& index);
-  static ExprNode* ParseBinaryExpr(Token* token, size_t length, size_t& index,
-                                   ExprNode* left, unsigned int priority);
+  static bool IsDecl(Token* token, std::size_t length, std::size_t index);
+  static bool IsFuncDecl(Token* token, std::size_t length, std::size_t index);
+  static StmtNode* ParseStmt(Token* token, std::size_t length,
+                             std::size_t& index);
+  static VarDeclNode* ParseVarDecl(Token* token, std::size_t length,
+                                   std::size_t& index);
+  static FuncDeclNode* ParseFuncDecl(Token* token, std::size_t length,
+                                     std::size_t& index);
+  static ExprNode* ParseBinaryExpr(Token* token, std::size_t length,
+                                   std::size_t& index, ExprNode* left,
+                                   unsigned int priority);
   static unsigned int GetPriority(Token token);
 };
 
@@ -1948,7 +1953,7 @@ class ConstType : public Type {
 
   Type* GetSubType() { return type_data_; }
 
-  size_t GetSize() override { return type_data_->GetSize(); }
+  std::size_t GetSize() override { return type_data_->GetSize(); }
 
   ConstType(const ConstType&) = default;
   ConstType& operator=(const ConstType&) = default;
@@ -1965,7 +1970,7 @@ class PointerType : public Type {
 
   Type* GetSubType() { return type_data_; }
 
-  size_t GetSize() override { return 8; }
+  std::size_t GetSize() override { return 8; }
 
   PointerType(const PointerType&) = default;
   PointerType& operator=(const PointerType&) = default;
@@ -1985,7 +1990,7 @@ class ArrayType : public Type {
 
   ExprNode* GetArraySize() { return size_; }
 
-  size_t GetSize() override { return 8; }
+  std::size_t GetSize() override { return 8; }
 
   ArrayType(const ArrayType&) = default;
   ArrayType& operator=(const ArrayType&) = default;
@@ -2007,7 +2012,7 @@ class ReferenceType : public Type {
   ReferenceType& operator=(const ReferenceType&) = default;
 };
 
-Type* Type::CreateType(Token* token, size_t length, size_t& index) {
+Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
   std::cout << "CreateType" << " \n" << token[index] << std::endl << std::endl;
   Type* type = new Type();
   while (index < length) {
@@ -2139,7 +2144,7 @@ Type* Type::CreateType(Token* token, size_t length, size_t& index) {
           return type;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
-      size_t index_temp = index;
+      std::size_t index_temp = index;
       Parser::ParsePrimaryExpr(token, length, index_temp);
       if (token[index_temp].type == Token::Type::OPERATOR &&
           token[index_temp].value._operator == Token::OperatorType::l_square) {
@@ -2163,8 +2168,8 @@ Parser::~Parser() = default;
 
 CompoundNode* Parser::Parse(std::vector<Token> token) {
   Token* token_ptr = token.data();
-  size_t index = 0;
-  size_t length = token.size();
+  std::size_t index = 0;
+  std::size_t length = token.size();
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
   while (index <= token.size()) {
@@ -2199,7 +2204,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   return ast;
 }
 
-bool Parser::IsDecl(Token* token, size_t length, size_t index) {
+bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
   std::cout << "RUN Parser::IsDecl" << " \n"
             << token[index] << std::endl
             << std::endl;
@@ -2260,8 +2265,8 @@ bool Parser::IsDecl(Token* token, size_t length, size_t index) {
   return false;
 }
 
-bool Parser::IsFuncDecl(Token* token, size_t length, size_t index) {
-  for (size_t i = index; i < length; i++) {
+bool Parser::IsFuncDecl(Token* token, std::size_t length, std::size_t index) {
+  for (std::size_t i = index; i < length; i++) {
     if (token[i].type == Token::Type::OPERATOR &&
         token[i].value._operator == Token::OperatorType::semi) {
       return false;
@@ -2274,7 +2279,8 @@ bool Parser::IsFuncDecl(Token* token, size_t length, size_t index) {
   return false;
 }
 
-StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
+StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
+                            std::size_t& index) {
   std::cout << "RUN Parser::ParseStmt" << " \n"
             << token[index] << std::endl
             << std::endl;
@@ -2386,8 +2392,8 @@ StmtNode* Parser::ParseStmt(Token* token, size_t length, size_t& index) {
   }
 }
 
-FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
-                                    size_t& index) {
+FuncDeclNode* Parser::ParseFuncDecl(Token* token, std::size_t length,
+                                    std::size_t& index) {
   std::cout << "ParseFuncDecl" << " \n"
             << token[index] << std::endl
             << std::endl;
@@ -2435,7 +2441,8 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, size_t length,
   return func_decl;
 }
 
-VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
+VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
+                                  std::size_t& index) {
   VarDeclNode* var_decl = new VarDeclNode();
   Type* type = Type::CreateType(token, length, index);
   ExprNode* name = ParsePrimaryExpr(token, length, index);
@@ -2510,7 +2517,8 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, size_t length, size_t& index) {
   return var_decl;
 }
 
-ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
+ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
+                                   std::size_t& index) {
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
   ExprNode* full_expr = nullptr;
@@ -2900,7 +2908,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, size_t length, size_t& index) {
   return full_expr;
 }
 
-ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
+ExprNode* Parser::ParseExpr(Token* token, std::size_t length,
+                            std::size_t& index) {
   std::cout << "START ParseExpr" << " \n"
             << token[index] << std::endl
             << std::endl;
@@ -2913,8 +2922,9 @@ ExprNode* Parser::ParseExpr(Token* token, size_t length, size_t& index) {
   return expr;
 }
 
-ExprNode* Parser::ParseBinaryExpr(Token* token, size_t length, size_t& index,
-                                  ExprNode* left, unsigned int priority) {
+ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
+                                  std::size_t& index, ExprNode* left,
+                                  unsigned int priority) {
   ExprNode* expr = left;
   while (index < length && GetPriority(token[index]) > priority) {
     if (token[index].type != Token::Type::OPERATOR) return expr;
@@ -3335,15 +3345,15 @@ class BytecodeGenerator {
     Memory() { IsBigEndian(); }
     ~Memory() = default;
 
-    size_t Add(uint8_t type, size_t size) {
-      size_t index = memory_.size() + 1;
+    std::size_t Add(uint8_t type, std::size_t size) {
+      std::size_t index = memory_.size() + 1;
       type_.push_back(type);
       memory_.resize(all_size_ + size);
       all_size_ += size;
 
       if (type > 0x0F) return index;
 
-      for (size_t i = 0; i < size; i++) {
+      for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(0);
           all_size_++;
@@ -3358,8 +3368,8 @@ class BytecodeGenerator {
       return index;
     }
 
-    size_t Add(uint8_t type, size_t size, const void* data) {
-      size_t index = memory_.size() + 1;
+    std::size_t Add(uint8_t type, std::size_t size, const void* data) {
+      std::size_t index = memory_.size() + 1;
       type_.push_back(type);
       memory_.resize(all_size_ + size);
       all_size_ += size;
@@ -3368,7 +3378,7 @@ class BytecodeGenerator {
 
       void* memory_data = malloc(size);
 
-      size_t read_index = 0;
+      std::size_t read_index = 0;
       for (void* data_ptr = memory_data; read_index < size;) {
         switch (type) {
           case 0x01:
@@ -3417,7 +3427,7 @@ class BytecodeGenerator {
         }
       }
 
-      for (size_t i = 0; i < size; i++) {
+      for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
@@ -3434,7 +3444,7 @@ class BytecodeGenerator {
     }
 
    private:
-    size_t all_size_ = 0;
+    std::size_t all_size_ = 0;
     std::vector<uint8_t> memory_;
     std::vector<uint8_t> type_;
     bool is_big_endian = false;
@@ -3505,17 +3515,17 @@ class BytecodeGenerator {
 
   class Bytecode {
    public:
-    // Bytecode(size_t oper) { oper_ = oper; }
-    Bytecode(size_t oper, ...) {
+    // Bytecode(std::size_t oper) { oper_ = oper; }
+    Bytecode(std::size_t oper, ...) {
       oper_ = oper;
       va_list args;
       va_start(args, oper);
-      for (size_t i = 0; i < oper; i++) {
-        arg_.push_back(va_arg(args, size_t));
+      for (std::size_t i = 0; i < oper; i++) {
+        arg_.push_back(va_arg(args, std::size_t));
       }
       va_end(args);
     }
-    Bytecode(size_t oper, std::vector<size_t> args) {
+    Bytecode(std::size_t oper, std::vector<std::size_t> args) {
       oper_ = oper;
       arg_ = args;
     }
@@ -3523,39 +3533,43 @@ class BytecodeGenerator {
 
    private:
     uint8_t oper_;
-    std::vector<size_t> arg_;
+    std::vector<std::size_t> arg_;
   };
 
-  void HandleFuncDecl(FuncDeclNode* func_decl, size_t& size,
+  void HandleFuncDecl(FuncDeclNode* func_decl, std::size_t& size,
                       std::vector<Bytecode>& code);
-  void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size,
+  void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
+                                        std::size_t& size,
                                         std::vector<Bytecode>& code);
-  void HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size,
+  void HandleArrayDecl(ArrayDeclNode* array_decl, std::size_t& size,
                        std::vector<Bytecode>& code);
-  void HandleStmt(StmtNode* stmt, size_t& size, std::vector<Bytecode>& code);
-  size_t HandleExpr(ExprNode* expr, size_t& size, std::vector<Bytecode>& code);
-  size_t HandleUnaryExpr(UnaryNode* expr, size_t& size,
+  void HandleStmt(StmtNode* stmt, std::size_t& size,
+                  std::vector<Bytecode>& code);
+  std::size_t HandleExpr(ExprNode* expr, std::size_t& size,
                          std::vector<Bytecode>& code);
-  size_t HandleBinaryExpr(BinaryNode* expr, size_t& size,
-                          std::vector<Bytecode>& code);
-  size_t HandleFuncInvoke(FuncNode* func, size_t& size,
-                          std::vector<Bytecode>& code);
-  size_t GetIndex(ExprNode* expr, size_t& size, std::vector<Bytecode>& code);
-  size_t AddConstInt8t(int8_t value);
+  std::size_t HandleUnaryExpr(UnaryNode* expr, std::size_t& size,
+                              std::vector<Bytecode>& code);
+  std::size_t HandleBinaryExpr(BinaryNode* expr, std::size_t& size,
+                               std::vector<Bytecode>& code);
+  std::size_t HandleFuncInvoke(FuncNode* func, std::size_t& size,
+                               std::vector<Bytecode>& code);
+  std::size_t GetIndex(ExprNode* expr, std::size_t& size,
+                       std::vector<Bytecode>& code);
+  std::size_t AddConstInt8t(int8_t value);
   uint8_t GetExprVmType(ExprNode* expr);
 
   LexMap<std::pair<FuncDeclNode, std::vector<Bytecode>>> func_table_;
-  LexMap<size_t> var_table_;
+  LexMap<std::pair<FuncDeclNode, std::size_t>> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
   Memory memory_;
   std::vector<uint8_t> code_;
-  size_t file_size_ = 0;
+  std::size_t file_size_ = 0;
 };
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   if (stmt == nullptr) return;
   std::cout << "BytecodeGenerator::GenerateBytecode OK" << std::endl;
-  for (size_t i = 0; i <= stmt->GetStmts().size(); i++) {
+  for (std::size_t i = 0; i <= stmt->GetStmts().size(); i++) {
     switch (stmt->GetStmts()[i]->GetType()) {
       case StmtNode::StmtType::kFuncDecl: {
         std::vector<Bytecode> code;
@@ -3581,15 +3595,16 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   }
 }
 
-void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl, size_t& size,
+void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl,
+                                       std::size_t& size,
                                        std::vector<Bytecode>& code) {
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
   // TODO(BytecodeGenerator::HandleFuncDecl): Complete the function.
   // func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
-  size_t func_decl_size = 8;
+  std::size_t func_decl_size = 8;
 }
 
-void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size,
+void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, std::size_t& size,
                                       std::vector<Bytecode>& code) {
   std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
   Type* var_type = var_decl->GetType();
@@ -3644,18 +3659,20 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, size_t& size,
     }
   }
   var_table_.Insert(*var_decl->GetName(),
-                    memory_.Add(vm_type, var_type->GetSize()));
+                    std::pair<FuncDeclNode, std::size_t>(
+                        var_decl, memory_.Add(vm_type, var_type->GetSize())));
 }
 
-void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl, size_t& size,
+void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
+                                        std::size_t& size,
                                         std::vector<Bytecode>& code) {
   // TODO(BytecodeGenerator::HandleArrayDecl): Complete the function.
   std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
   array_table_.Insert(*array_decl->GetName(), array_decl);
 }
 
-size_t BytecodeGenerator::HandleExpr(ExprNode* expr, size_t& size,
-                                     std::vector<Bytecode>& code) {
+std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr, std::size_t& size,
+                                          std::vector<Bytecode>& code) {
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
     return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), size, code);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
@@ -3664,10 +3681,11 @@ size_t BytecodeGenerator::HandleExpr(ExprNode* expr, size_t& size,
 
   return GetIndex(expr, size, code);
 }
-size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size,
-                                          std::vector<Bytecode>& code) {
+std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
+                                               std::size_t& size,
+                                               std::vector<Bytecode>& code) {
   // TODO(BytecodeGenerator::HandleUnaryExpr): Complete the function.
-  size_t sub_expr = HandleExpr(expr->GetExpr(), size, code);
+  std::size_t sub_expr = HandleExpr(expr->GetExpr(), size, code);
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc:  // ++ (postfix)
       // TODO
@@ -3700,14 +3718,16 @@ size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr, size_t& size,
       break;
   }
 }
-size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr, size_t& size,
-                                           std::vector<Bytecode>& code) {}
+std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
+                                                std::size_t& size,
+                                                std::vector<Bytecode>& code) {}
 
-void BytecodeGenerator::HandleStmt(StmtNode* stmt, size_t& size,
+void BytecodeGenerator::HandleStmt(StmtNode* stmt, std::size_t& size,
                                    std::vector<Bytecode>& code) {}
 
-size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size,
-                                           std::vector<Bytecode>& code) {
+std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
+                                                std::size_t& size,
+                                                std::vector<Bytecode>& code) {
   std::vector<ExprNode*> args = func->GetArgs();
   FuncDeclNode func_decl = func_table_.Find(*func->GetName()).first;
 
@@ -3763,11 +3783,11 @@ size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size,
     }
   }
 
-  std::vector<size_t> vm_args;
+  std::vector<std::size_t> vm_args;
   vm_args.push_back(memory_.Add(vm_type, func_type->GetSize()));
   vm_args.push_back(args.size());
 
-  for (size_t i = 0; i <= args.size(); i++) {
+  for (std::size_t i = 0; i <= args.size(); i++) {
     vm_args.push_back(HandleExpr(args[i], size, code));
   }
 
@@ -3776,13 +3796,13 @@ size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func, size_t& size,
   return vm_args[0];
 }
 
-size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
-                                   std::vector<Bytecode>& code) {
+std::size_t BytecodeGenerator::GetIndex(ExprNode* expr, std::size_t& size,
+                                        std::vector<Bytecode>& code) {
   switch (expr->GetType()) {
     case StmtNode::StmtType::kIdentifier:
-      return var_table_.Find(*dynamic_cast<IdentifierNode*>(expr));
+      return var_table_.Find(*dynamic_cast<IdentifierNode*>(expr)).second;
     case StmtNode::StmtType::kValue: {
-      size_t vm_type = dynamic_cast<ValueNode*>(expr)->GetVmType();
+      std::size_t vm_type = dynamic_cast<ValueNode*>(expr)->GetVmType();
       switch (vm_type) {
         case 0x01: {
           int8_t value = dynamic_cast<ValueNode*>(expr)->GetCharValue();
@@ -3817,9 +3837,9 @@ size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
             std::string value =
                 dynamic_cast<ValueNode*>(expr)->GetStringValue();
             // std::get<char*>(dynamic_cast<ValueNode*>(expr)->GetValue());
-            size_t str_index = memory_.Add(
+            std::size_t str_index = memory_.Add(
                 0x01, value.size() + 1, static_cast<const void*>(value.data()));
-            size_t ptr_index = memory_.Add(vm_type, 8);
+            std::size_t ptr_index = memory_.Add(vm_type, 8);
             code.push_back(Bytecode(0x05, str_index, ptr_index));
             return ptr_index;
           }
@@ -3836,7 +3856,7 @@ size_t BytecodeGenerator::GetIndex(ExprNode* expr, size_t& size,
   }
 }
 
-size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
+std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
   return memory_.Add(0x01, 1, &value);
 }
 
@@ -3959,8 +3979,8 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
     }
   }
   if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
-    // TODO
-    var_table_.Find(*dynamic_cast<IdentifierNode*>(expr));
+    Type* var_type =
+        var_table_.Find(*dynamic_cast<IdentifierNode*>(expr)).first.GetVarType();
   }
 }
 
