@@ -3559,7 +3559,7 @@ class BytecodeGenerator {
   uint8_t GetExprVmType(ExprNode* expr);
 
   LexMap<std::pair<FuncDeclNode, std::vector<Bytecode>>> func_table_;
-  LexMap<std::pair<FuncDeclNode, std::size_t>> var_table_;
+  LexMap<std::pair<VarDeclNode, std::size_t>> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
   Memory memory_;
   std::vector<uint8_t> code_;
@@ -3607,7 +3607,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl,
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, std::size_t& size,
                                       std::vector<Bytecode>& code) {
   std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
-  Type* var_type = var_decl->GetType();
+  Type* var_type = var_decl->GetVarType();
   while (var_type->GetType() == Type::TypeType::kBase ||
          var_type->GetType() == Type::TypeType::kPointer ||
          var_type->GetType() == Type::TypeType::kArray ||
@@ -3659,7 +3659,7 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, std::size_t& size,
     }
   }
   var_table_.Insert(*var_decl->GetName(),
-                    std::pair<FuncDeclNode, std::size_t>(
+                    std::pair<VarDeclNode, std::size_t>(
                         var_decl, memory_.Add(vm_type, var_type->GetSize())));
 }
 
