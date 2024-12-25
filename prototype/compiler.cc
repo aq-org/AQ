@@ -3979,8 +3979,131 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
     }
   }
   if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
-    Type* var_type =
-        var_table_.Find(*dynamic_cast<IdentifierNode*>(expr)).first.GetVarType();
+    switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                .first.GetVarType()
+                ->GetType()) {
+      case Type::TypeType::kBase:
+      case Type::TypeType::kConst:
+        switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                    .first.GetVarType()
+                    ->GetBaseType()) {
+          case Type::BaseType::kVoid:
+            return 0x00;
+          case Type::BaseType::kBool:
+          case Type::BaseType::kChar:
+            return 0x01;
+          case Type::BaseType::kShort:
+          case Type::BaseType::kInt:
+            return 0x02;
+          case Type::BaseType::kLong:
+            return 0x03;
+          case Type::BaseType::kFloat:
+            return 0x04;
+          case Type::BaseType::kDouble:
+            return 0x05;
+          case Type::BaseType::kStruct:
+          case Type::BaseType::kUnion:
+          case Type::BaseType::kEnum:
+          case Type::BaseType::kPointer:
+          case Type::BaseType::kArray:
+          case Type::BaseType::kFunction:
+          case Type::BaseType::kTypedef:
+          case Type::BaseType::kAuto:
+            return 0x06;
+          default:
+            return 0x00;
+        }
+
+      case Type::TypeType::kArray:
+      case Type::TypeType::kPointer:
+      case Type::TypeType::kReference:
+        return 0x06;
+
+      default:
+        return 0x00;
+    }
+  }
+  if (expr->GetType() == StmtNode::StmtType::kVarDecl) {
+    switch (dynamic_cast<VarDeclNode*>(expr)->GetVarType()->GetType()) {
+      case Type::TypeType::kBase:
+      case Type::TypeType::kConst:
+        switch (dynamic_cast<VarDeclNode*>(expr)->GetVarType()->GetBaseType()) {
+          case Type::BaseType::kVoid:
+            return 0x00;
+          case Type::BaseType::kBool:
+          case Type::BaseType::kChar:
+            return 0x01;
+          case Type::BaseType::kShort:
+          case Type::BaseType::kInt:
+            return 0x02;
+          case Type::BaseType::kLong:
+            return 0x03;
+          case Type::BaseType::kFloat:
+            return 0x04;
+          case Type::BaseType::kDouble:
+            return 0x05;
+          case Type::BaseType::kStruct:
+          case Type::BaseType::kUnion:
+          case Type::BaseType::kEnum:
+          case Type::BaseType::kPointer:
+          case Type::BaseType::kArray:
+          case Type::BaseType::kFunction:
+          case Type::BaseType::kTypedef:
+          case Type::BaseType::kAuto:
+            return 0x06;
+          default:
+            return 0x00;
+        }
+
+      case Type::TypeType::kArray:
+      case Type::TypeType::kPointer:
+      case Type::TypeType::kReference:
+        return 0x06;
+
+      default:
+        return 0x00;
+    }
+  }
+  if (expr->GetType() == StmtNode::StmtType::kCast) {
+    switch (dynamic_cast<CastNode*>(expr)->GetVarType()->GetType()) {
+      case Type::TypeType::kBase:
+      case Type::TypeType::kConst:
+        switch (dynamic_cast<CastNode*>(expr)->GetVarType()->GetBaseType()) {
+          case Type::BaseType::kVoid:
+            return 0x00;
+          case Type::BaseType::kBool:
+          case Type::BaseType::kChar:
+            return 0x01;
+          case Type::BaseType::kShort:
+          case Type::BaseType::kInt:
+            return 0x02;
+          case Type::BaseType::kLong:
+            return 0x03;
+          case Type::BaseType::kFloat:
+            return 0x04;
+          case Type::BaseType::kDouble:
+            return 0x05;
+          case Type::BaseType::kStruct:
+          case Type::BaseType::kUnion:
+          case Type::BaseType::kEnum:
+          case Type::BaseType::kPointer:
+          case Type::BaseType::kArray:
+          case Type::BaseType::kFunction:
+          case Type::BaseType::kTypedef:
+          case Type::BaseType::kAuto:
+            return 0x06;
+          default:
+            return 0x00;
+        }
+
+      case Type::TypeType::kArray:
+      case Type::TypeType::kPointer:
+      case Type::TypeType::kReference:
+        return 0x06;
+
+      default:
+        return 0x00;
+    }
   }
 }
 
