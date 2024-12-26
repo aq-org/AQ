@@ -4161,7 +4161,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
         case Type::TypeType::kArray:
         case Type::TypeType::kPointer:
         case Type::TypeType::kReference:
-          return GetExprArrayVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+          return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
 
         default:
           return 0x00;
@@ -4169,15 +4169,15 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
     }
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::ARRAY) {
-      return GetExprArrayVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+      return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
     }
-    return GetExprArrayVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+    return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
   }
   if (expr->GetType() == StmtNode::StmtType::kBinary) {
     uint8_t left =
-        GetExprArrayVmType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
+        GetExprPtrValueVmType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
     uint8_t right =
-        GetExprArrayVmType(dynamic_cast<BinaryNode*>(expr)->GetRightExpr());
+        GetExprPtrValueVmType(dynamic_cast<BinaryNode*>(expr)->GetRightExpr());
 
     return left > right ? left : right;
   }
@@ -4186,8 +4186,8 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
   }
   if (expr->GetType() == StmtNode::StmtType::kConditional) {
     uint8_t true_value =
-        GetExprArrayVmType(dynamic_cast<ConditionalNode*>(expr)->GetTrueExpr());
-    uint8_t false_value = GetExprArrayVmType(
+        GetExprPtrValueVmType(dynamic_cast<ConditionalNode*>(expr)->GetTrueExpr());
+    uint8_t false_value = GetExprPtrValueVmType(
         dynamic_cast<ConditionalNode*>(expr)->GetFalseExpr());
 
     return true_value > false_value ? true_value : false_value;
