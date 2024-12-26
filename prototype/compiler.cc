@@ -1901,6 +1901,8 @@ class CastNode : public ExprNode {
   }
   virtual ~CastNode() = default;
 
+  Type* GetCastType() { return cast_type_; }
+
   CastNode(const CastNode&) = default;
   CastNode& operator=(const CastNode&) = default;
 
@@ -2007,6 +2009,8 @@ class ReferenceType : public Type {
     type_data_ = type;
   }
   virtual ~ReferenceType() = default;
+
+  Type* GetSubType() { return type_data_; }
 
   ReferenceType(const ReferenceType&) = default;
   ReferenceType& operator=(const ReferenceType&) = default;
@@ -3557,9 +3561,10 @@ class BytecodeGenerator {
                        std::vector<Bytecode>& code);
   std::size_t AddConstInt8t(int8_t value);
   uint8_t GetExprVmType(ExprNode* expr);
+  uint8_t GetExprPtrValueVmType(ExprNode* expr);
 
   LexMap<std::pair<FuncDeclNode, std::vector<Bytecode>>> func_table_;
-  LexMap<std::pair<VarDeclNode, std::size_t>> var_table_;
+  LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
   Memory memory_;
   std::vector<uint8_t> code_;
@@ -3659,7 +3664,7 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl, std::size_t& size,
     }
   }
   var_table_.Insert(*var_decl->GetName(),
-                    std::pair<VarDeclNode, std::size_t>(
+                    std::pair<VarDeclNode*, std::size_t>(
                         var_decl, memory_.Add(vm_type, var_type->GetSize())));
 }
 
@@ -3914,6 +3919,11 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
         UnaryNode::Operator::ARRAY) {
       // TODO
     }
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::kDeref) {
+      // TODO
+    }
+    return GetExprVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
   }
   if (expr->GetType() == StmtNode::StmtType::kBinary) {
     uint8_t left =
@@ -3980,12 +3990,12 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   }
   if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
     switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                .first.GetVarType()
+                .first->GetVarType()
                 ->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
         switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                    .first.GetVarType()
+                    .first->GetVarType()
                     ->GetBaseType()) {
           case Type::BaseType::kVoid:
             return 0x00;
@@ -4065,10 +4075,656 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
     }
   }
   if (expr->GetType() == StmtNode::StmtType::kCast) {
-    switch (dynamic_cast<CastNode*>(expr)->GetVarType()->GetType()) {
+    switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
-        switch (dynamic_cast<CastNode*>(expr)->GetVarType()->GetBaseType()) {
+        switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetBaseType()) {
+          case Type::BaseType::kVoid:
+            return 0x00;
+          case Type::BaseType::kBool:
+          case Type::BaseType::kChar:
+            return 0x01;
+          case Type::BaseType::kShort:
+          case Type::BaseType::kInt:
+            return 0x02;
+          case Type::BaseType::kLong:
+            return 0x03;
+          case Type::BaseType::kFloat:
+            return 0x04;
+          case Type::BaseType::kDouble:
+            return 0x05;
+          case Type::BaseType::kStruct:
+          case Type::BaseType::kUnion:
+          case Type::BaseType::kEnum:
+          case Type::BaseType::kPointer:
+          case Type::BaseType::kArray:
+          case Type::BaseType::kFunction:
+          case Type::BaseType::kTypedef:
+          case Type::BaseType::kAuto:
+            return 0x06;
+          default:
+            return 0x00;
+        }
+
+      case Type::TypeType::kArray:
+      case Type::TypeType::kPointer:
+      case Type::TypeType::kReference:
+        return 0x06;
+
+      default:
+        return 0x00;
+    }
+  }
+}
+
+uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
+  if (expr->GetType() == StmtNode::StmtType::kUnary) {
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::kAddrOf) {
+      return GetExprVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+    }
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::CONVERT) {
+      switch (dynamic_cast<ConvertNode*>(expr)->GetConvertedType()->GetType()) {
+        case Type::TypeType::kBase:
+        case Type::TypeType::kConst:
+          switch (dynamic_cast<ConvertNode*>(expr)
+                      ->GetConvertedType()
+                      ->GetBaseType()) {
+            case Type::BaseType::kVoid:
+              return 0x00;
+            case Type::BaseType::kBool:
+            case Type::BaseType::kChar:
+              return 0x01;
+            case Type::BaseType::kShort:
+            case Type::BaseType::kInt:
+              return 0x02;
+            case Type::BaseType::kLong:
+              return 0x03;
+            case Type::BaseType::kFloat:
+              return 0x04;
+            case Type::BaseType::kDouble:
+              return 0x05;
+            case Type::BaseType::kStruct:
+            case Type::BaseType::kUnion:
+            case Type::BaseType::kEnum:
+            case Type::BaseType::kPointer:
+            case Type::BaseType::kArray:
+            case Type::BaseType::kFunction:
+            case Type::BaseType::kTypedef:
+            case Type::BaseType::kAuto:
+              return 0x06;
+            default:
+              return 0x00;
+          }
+
+        case Type::TypeType::kArray:
+        case Type::TypeType::kPointer:
+        case Type::TypeType::kReference:
+          return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+
+        default:
+          return 0x00;
+      }
+    }
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::ARRAY) {
+      return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+    }
+    return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+  }
+  if (expr->GetType() == StmtNode::StmtType::kBinary) {
+    uint8_t left =
+        GetExprPtrValueVmType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
+    uint8_t right =
+        GetExprPtrValueVmType(dynamic_cast<BinaryNode*>(expr)->GetRightExpr());
+
+    return left > right ? left : right;
+  }
+  if (expr->GetType() == StmtNode::StmtType::kValue) {
+    return dynamic_cast<ValueNode*>(expr)->GetVmType();
+  }
+  if (expr->GetType() == StmtNode::StmtType::kConditional) {
+    uint8_t true_value =
+        GetExprPtrValueVmType(dynamic_cast<ConditionalNode*>(expr)->GetTrueExpr());
+    uint8_t false_value = GetExprPtrValueVmType(
+        dynamic_cast<ConditionalNode*>(expr)->GetFalseExpr());
+
+    return true_value > false_value ? true_value : false_value;
+  }
+  if (expr->GetType() == StmtNode::StmtType::kFunc) {
+    Type* return_type =
+        func_table_.Find(*dynamic_cast<FuncNode*>(expr)->GetName())
+            .first.GetReturnType();
+    switch (return_type->GetType()) {
+      case Type::TypeType::kBase:
+      case Type::TypeType::kConst:
+        switch (return_type->GetBaseType()) {
+          case Type::BaseType::kVoid:
+            return 0x00;
+          case Type::BaseType::kBool:
+          case Type::BaseType::kChar:
+            return 0x01;
+          case Type::BaseType::kShort:
+          case Type::BaseType::kInt:
+            return 0x02;
+          case Type::BaseType::kLong:
+            return 0x03;
+          case Type::BaseType::kFloat:
+            return 0x04;
+          case Type::BaseType::kDouble:
+            return 0x05;
+          case Type::BaseType::kStruct:
+          case Type::BaseType::kUnion:
+          case Type::BaseType::kEnum:
+          case Type::BaseType::kPointer:
+          case Type::BaseType::kArray:
+          case Type::BaseType::kFunction:
+          case Type::BaseType::kTypedef:
+          case Type::BaseType::kAuto:
+            return 0x06;
+          default:
+            return 0x00;
+        }
+
+      case Type::TypeType::kArray:
+        switch (
+            dynamic_cast<ArrayType*>(return_type)->GetSubType()->GetType()) {
+          case Type::TypeType::kBase:
+          case Type::TypeType::kConst:
+            switch (dynamic_cast<ArrayType*>(return_type)
+                        ->GetSubType()
+                        ->GetBaseType()) {
+              case Type::BaseType::kVoid:
+                return 0x00;
+              case Type::BaseType::kBool:
+              case Type::BaseType::kChar:
+                return 0x01;
+              case Type::BaseType::kShort:
+              case Type::BaseType::kInt:
+                return 0x02;
+              case Type::BaseType::kLong:
+                return 0x03;
+              case Type::BaseType::kFloat:
+                return 0x04;
+              case Type::BaseType::kDouble:
+                return 0x05;
+              case Type::BaseType::kStruct:
+              case Type::BaseType::kUnion:
+              case Type::BaseType::kEnum:
+              case Type::BaseType::kPointer:
+              case Type::BaseType::kArray:
+              case Type::BaseType::kFunction:
+              case Type::BaseType::kTypedef:
+              case Type::BaseType::kAuto:
+                return 0x06;
+              default:
+                return 0x00;
+            }
+
+          case Type::TypeType::kArray:
+          case Type::TypeType::kPointer:
+          case Type::TypeType::kReference:
+            return 0x06;
+
+          default:
+            return 0x00;
+        }
+      case Type::TypeType::kPointer:
+        switch (
+            dynamic_cast<PointerType*>(return_type)->GetSubType()->GetType()) {
+          case Type::TypeType::kBase:
+          case Type::TypeType::kConst:
+            switch (dynamic_cast<PointerType*>(return_type)
+                        ->GetSubType()
+                        ->GetBaseType()) {
+              case Type::BaseType::kVoid:
+                return 0x00;
+              case Type::BaseType::kBool:
+              case Type::BaseType::kChar:
+                return 0x01;
+              case Type::BaseType::kShort:
+              case Type::BaseType::kInt:
+                return 0x02;
+              case Type::BaseType::kLong:
+                return 0x03;
+              case Type::BaseType::kFloat:
+                return 0x04;
+              case Type::BaseType::kDouble:
+                return 0x05;
+              case Type::BaseType::kStruct:
+              case Type::BaseType::kUnion:
+              case Type::BaseType::kEnum:
+              case Type::BaseType::kPointer:
+              case Type::BaseType::kArray:
+              case Type::BaseType::kFunction:
+              case Type::BaseType::kTypedef:
+              case Type::BaseType::kAuto:
+                return 0x06;
+              default:
+                return 0x00;
+            }
+
+          case Type::TypeType::kArray:
+          case Type::TypeType::kPointer:
+          case Type::TypeType::kReference:
+            return 0x06;
+
+          default:
+            return 0x00;
+        }
+      case Type::TypeType::kReference:
+        switch (dynamic_cast<ReferenceType*>(return_type)
+                    ->GetSubType()
+                    ->GetType()) {
+          case Type::TypeType::kBase:
+          case Type::TypeType::kConst:
+            switch (dynamic_cast<ReferenceType*>(return_type)
+                        ->GetSubType()
+                        ->GetBaseType()) {
+              case Type::BaseType::kVoid:
+                return 0x00;
+              case Type::BaseType::kBool:
+              case Type::BaseType::kChar:
+                return 0x01;
+              case Type::BaseType::kShort:
+              case Type::BaseType::kInt:
+                return 0x02;
+              case Type::BaseType::kLong:
+                return 0x03;
+              case Type::BaseType::kFloat:
+                return 0x04;
+              case Type::BaseType::kDouble:
+                return 0x05;
+              case Type::BaseType::kStruct:
+              case Type::BaseType::kUnion:
+              case Type::BaseType::kEnum:
+              case Type::BaseType::kPointer:
+              case Type::BaseType::kArray:
+              case Type::BaseType::kFunction:
+              case Type::BaseType::kTypedef:
+              case Type::BaseType::kAuto:
+                return 0x06;
+              default:
+                return 0x00;
+            }
+
+          case Type::TypeType::kArray:
+          case Type::TypeType::kPointer:
+          case Type::TypeType::kReference:
+            return 0x06;
+
+          default:
+            return 0x00;
+        }
+    }
+    if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
+      switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                  .first->GetVarType()
+                  ->GetType()) {
+        case Type::TypeType::kBase:
+        case Type::TypeType::kConst:
+          switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                      .first->GetVarType()
+                      ->GetBaseType()) {
+            case Type::BaseType::kVoid:
+              return 0x00;
+            case Type::BaseType::kBool:
+            case Type::BaseType::kChar:
+              return 0x01;
+            case Type::BaseType::kShort:
+            case Type::BaseType::kInt:
+              return 0x02;
+            case Type::BaseType::kLong:
+              return 0x03;
+            case Type::BaseType::kFloat:
+              return 0x04;
+            case Type::BaseType::kDouble:
+              return 0x05;
+            case Type::BaseType::kStruct:
+            case Type::BaseType::kUnion:
+            case Type::BaseType::kEnum:
+            case Type::BaseType::kPointer:
+            case Type::BaseType::kArray:
+            case Type::BaseType::kFunction:
+            case Type::BaseType::kTypedef:
+            case Type::BaseType::kAuto:
+              return 0x06;
+            default:
+              return 0x00;
+          }
+
+        case Type::TypeType::kArray:
+          switch (dynamic_cast<ArrayType*>(
+                      var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                          .first->GetVarType())
+                      ->GetSubType()
+                      ->GetType()) {
+            case Type::TypeType::kBase:
+            case Type::TypeType::kConst:
+              switch (dynamic_cast<ArrayType*>(
+                          var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                              .first->GetVarType())
+                          ->GetSubType()
+                          ->GetBaseType()) {
+                case Type::BaseType::kVoid:
+                  return 0x00;
+                case Type::BaseType::kBool:
+                case Type::BaseType::kChar:
+                  return 0x01;
+                case Type::BaseType::kShort:
+                case Type::BaseType::kInt:
+                  return 0x02;
+                case Type::BaseType::kLong:
+                  return 0x03;
+                case Type::BaseType::kFloat:
+                  return 0x04;
+                case Type::BaseType::kDouble:
+                  return 0x05;
+                case Type::BaseType::kStruct:
+                case Type::BaseType::kUnion:
+                case Type::BaseType::kEnum:
+                case Type::BaseType::kPointer:
+                case Type::BaseType::kArray:
+                case Type::BaseType::kFunction:
+                case Type::BaseType::kTypedef:
+                case Type::BaseType::kAuto:
+                  return 0x06;
+                default:
+                  return 0x00;
+              }
+
+            case Type::TypeType::kArray:
+            case Type::TypeType::kPointer:
+            case Type::TypeType::kReference:
+              return 0x06;
+
+            default:
+              return 0x00;
+          }
+        case Type::TypeType::kPointer:
+          switch (dynamic_cast<PointerType*>(
+                      var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                          .first->GetVarType())
+                      ->GetSubType()
+                      ->GetType()) {
+            case Type::TypeType::kBase:
+            case Type::TypeType::kConst:
+              switch (dynamic_cast<PointerType*>(
+                          var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                              .first->GetVarType())
+                          ->GetSubType()
+                          ->GetBaseType()) {
+                case Type::BaseType::kVoid:
+                  return 0x00;
+                case Type::BaseType::kBool:
+                case Type::BaseType::kChar:
+                  return 0x01;
+                case Type::BaseType::kShort:
+                case Type::BaseType::kInt:
+                  return 0x02;
+                case Type::BaseType::kLong:
+                  return 0x03;
+                case Type::BaseType::kFloat:
+                  return 0x04;
+                case Type::BaseType::kDouble:
+                  return 0x05;
+                case Type::BaseType::kStruct:
+                case Type::BaseType::kUnion:
+                case Type::BaseType::kEnum:
+                case Type::BaseType::kPointer:
+                case Type::BaseType::kArray:
+                case Type::BaseType::kFunction:
+                case Type::BaseType::kTypedef:
+                case Type::BaseType::kAuto:
+                  return 0x06;
+                default:
+                  return 0x00;
+              }
+
+            case Type::TypeType::kArray:
+            case Type::TypeType::kPointer:
+            case Type::TypeType::kReference:
+              return 0x06;
+
+            default:
+              return 0x00;
+          }
+        case Type::TypeType::kReference:
+          switch (dynamic_cast<ReferenceType*>(
+                      var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                          .first->GetVarType())
+                      ->GetSubType()
+                      ->GetType()) {
+            case Type::TypeType::kBase:
+            case Type::TypeType::kConst:
+              switch (dynamic_cast<ReferenceType*>(
+                          var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
+                              .first->GetVarType())
+                          ->GetSubType()
+                          ->GetBaseType()) {
+                case Type::BaseType::kVoid:
+                  return 0x00;
+                case Type::BaseType::kBool:
+                case Type::BaseType::kChar:
+                  return 0x01;
+                case Type::BaseType::kShort:
+                case Type::BaseType::kInt:
+                  return 0x02;
+                case Type::BaseType::kLong:
+                  return 0x03;
+                case Type::BaseType::kFloat:
+                  return 0x04;
+                case Type::BaseType::kDouble:
+                  return 0x05;
+                case Type::BaseType::kStruct:
+                case Type::BaseType::kUnion:
+                case Type::BaseType::kEnum:
+                case Type::BaseType::kPointer:
+                case Type::BaseType::kArray:
+                case Type::BaseType::kFunction:
+                case Type::BaseType::kTypedef:
+                case Type::BaseType::kAuto:
+                  return 0x06;
+                default:
+                  return 0x00;
+              }
+
+            case Type::TypeType::kArray:
+            case Type::TypeType::kPointer:
+            case Type::TypeType::kReference:
+              return 0x06;
+
+            default:
+              return 0x00;
+          }
+
+        default:
+          return 0x00;
+      }
+    }
+    if (expr->GetType() == StmtNode::StmtType::kVarDecl) {
+      switch (dynamic_cast<VarDeclNode*>(expr)->GetVarType()->GetType()) {
+        case Type::TypeType::kBase:
+        case Type::TypeType::kConst:
+          switch (
+              dynamic_cast<VarDeclNode*>(expr)->GetVarType()->GetBaseType()) {
+            case Type::BaseType::kVoid:
+              return 0x00;
+            case Type::BaseType::kBool:
+            case Type::BaseType::kChar:
+              return 0x01;
+            case Type::BaseType::kShort:
+            case Type::BaseType::kInt:
+              return 0x02;
+            case Type::BaseType::kLong:
+              return 0x03;
+            case Type::BaseType::kFloat:
+              return 0x04;
+            case Type::BaseType::kDouble:
+              return 0x05;
+            case Type::BaseType::kStruct:
+            case Type::BaseType::kUnion:
+            case Type::BaseType::kEnum:
+            case Type::BaseType::kPointer:
+            case Type::BaseType::kArray:
+            case Type::BaseType::kFunction:
+            case Type::BaseType::kTypedef:
+            case Type::BaseType::kAuto:
+              return 0x06;
+            default:
+              return 0x00;
+          }
+
+        case Type::TypeType::kArray:
+          switch (dynamic_cast<ArrayType*>(
+                      dynamic_cast<VarDeclNode*>(expr)->GetVarType())
+                      ->GetSubType()
+                      ->GetType()) {
+            case Type::TypeType::kBase:
+            case Type::TypeType::kConst:
+              switch (dynamic_cast<ArrayType*>(
+                          dynamic_cast<VarDeclNode*>(expr)->GetVarType())
+                          ->GetSubType()
+                          ->GetBaseType()) {
+                case Type::BaseType::kVoid:
+                  return 0x00;
+                case Type::BaseType::kBool:
+                case Type::BaseType::kChar:
+                  return 0x01;
+                case Type::BaseType::kShort:
+                case Type::BaseType::kInt:
+                  return 0x02;
+                case Type::BaseType::kLong:
+                  return 0x03;
+                case Type::BaseType::kFloat:
+                  return 0x04;
+                case Type::BaseType::kDouble:
+                  return 0x05;
+                case Type::BaseType::kStruct:
+                case Type::BaseType::kUnion:
+                case Type::BaseType::kEnum:
+                case Type::BaseType::kPointer:
+                case Type::BaseType::kArray:
+                case Type::BaseType::kFunction:
+                case Type::BaseType::kTypedef:
+                case Type::BaseType::kAuto:
+                  return 0x06;
+                default:
+                  return 0x00;
+              }
+
+            case Type::TypeType::kArray:
+            case Type::TypeType::kPointer:
+            case Type::TypeType::kReference:
+              return 0x06;
+
+            default:
+              return 0x00;
+          }
+        case Type::TypeType::kPointer:
+          switch (dynamic_cast<PointerType*>(
+                      dynamic_cast<VarDeclNode*>(expr)->GetVarType())
+                      ->GetSubType()
+                      ->GetType()) {
+            case Type::TypeType::kBase:
+            case Type::TypeType::kConst:
+              switch (dynamic_cast<PointerType*>(
+                          dynamic_cast<VarDeclNode*>(expr)->GetVarType())
+                          ->GetSubType()
+                          ->GetBaseType()) {
+                case Type::BaseType::kVoid:
+                  return 0x00;
+                case Type::BaseType::kBool:
+                case Type::BaseType::kChar:
+                  return 0x01;
+                case Type::BaseType::kShort:
+                case Type::BaseType::kInt:
+                  return 0x02;
+                case Type::BaseType::kLong:
+                  return 0x03;
+                case Type::BaseType::kFloat:
+                  return 0x04;
+                case Type::BaseType::kDouble:
+                  return 0x05;
+                case Type::BaseType::kStruct:
+                case Type::BaseType::kUnion:
+                case Type::BaseType::kEnum:
+                case Type::BaseType::kPointer:
+                case Type::BaseType::kArray:
+                case Type::BaseType::kFunction:
+                case Type::BaseType::kTypedef:
+                case Type::BaseType::kAuto:
+                  return 0x06;
+                default:
+                  return 0x00;
+              }
+
+            case Type::TypeType::kArray:
+            case Type::TypeType::kPointer:
+            case Type::TypeType::kReference:
+              return 0x06;
+
+            default:
+              return 0x00;
+          }
+        case Type::TypeType::kReference:
+          switch (dynamic_cast<ReferenceType*>(
+                      dynamic_cast<VarDeclNode*>(expr)->GetVarType())
+                      ->GetSubType()
+                      ->GetType()) {
+            case Type::TypeType::kBase:
+            case Type::TypeType::kConst:
+              switch (dynamic_cast<ReferenceType*>(
+                          dynamic_cast<VarDeclNode*>(expr)->GetVarType())
+                          ->GetSubType()
+                          ->GetBaseType()) {
+                case Type::BaseType::kVoid:
+                  return 0x00;
+                case Type::BaseType::kBool:
+                case Type::BaseType::kChar:
+                  return 0x01;
+                case Type::BaseType::kShort:
+                case Type::BaseType::kInt:
+                  return 0x02;
+                case Type::BaseType::kLong:
+                  return 0x03;
+                case Type::BaseType::kFloat:
+                  return 0x04;
+                case Type::BaseType::kDouble:
+                  return 0x05;
+                case Type::BaseType::kStruct:
+                case Type::BaseType::kUnion:
+                case Type::BaseType::kEnum:
+                case Type::BaseType::kPointer:
+                case Type::BaseType::kArray:
+                case Type::BaseType::kFunction:
+                case Type::BaseType::kTypedef:
+                case Type::BaseType::kAuto:
+                  return 0x06;
+                default:
+                  return 0x00;
+              }
+
+            case Type::TypeType::kArray:
+            case Type::TypeType::kPointer:
+            case Type::TypeType::kReference:
+              return 0x06;
+
+            default:
+              return 0x00;
+          }
+
+        default:
+          return 0x00;
+      }
+    }
+  }
+  if (expr->GetType() == StmtNode::StmtType::kCast) {
+    switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetType()) {
+      case Type::TypeType::kBase:
+      case Type::TypeType::kConst:
+        switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetBaseType()) {
           case Type::BaseType::kVoid:
             return 0x00;
           case Type::BaseType::kBool:
