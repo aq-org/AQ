@@ -3590,7 +3590,6 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 }
 
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl,
-
                                        std::vector<Bytecode>& code) {
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
   // TODO(BytecodeGenerator::HandleFuncDecl): Complete the function.
@@ -3658,7 +3657,6 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 }
 
 void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
-
                                         std::vector<Bytecode>& code) {
   // TODO(BytecodeGenerator::HandleArrayDecl): Complete the function.
   std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
@@ -3731,14 +3729,12 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
   }
 }
 std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
-
                                                 std::vector<Bytecode>& code) {}
 
 void BytecodeGenerator::HandleStmt(StmtNode* stmt,
                                    std::vector<Bytecode>& code) {}
 
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
-
                                                 std::vector<Bytecode>& code) {
   std::vector<ExprNode*> args = func->GetArgs();
   FuncDeclNode func_decl = func_table_.Find(*func->GetName()).first;
