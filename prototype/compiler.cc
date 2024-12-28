@@ -7,10 +7,8 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <stdexcept>
 #include <string>
-#include <variant>
 #include <vector>
 
 namespace Aq {
@@ -43,7 +41,7 @@ class LexMap {
 
     // Increase the size of the hash table.
     size_++;
-    if (size_ / capacity_ > 0.8) {
+    if (static_cast<double>(size_) / static_cast<double>(capacity_) > 0.8) {
       Resize();
     }
 
@@ -351,13 +349,116 @@ struct Token {
   Type type = Type::START;
   Value value;
 
-  Token();
-  ~Token();
+  Token() = default;
+  ~Token() = default;
 
-  Token(const Token&) {}
-  Token(Token&&) noexcept {}
-  Token& operator=(const Token&) {}
-  Token& operator=(Token&&) noexcept {}
+  Token(const Token& other) {
+    type = other.type;
+    switch (type) {
+      case Type::NUMBER:
+        value.number = other.value.number;
+        break;
+      case Type::KEYWORD:
+        value.keyword = other.value.keyword;
+        break;
+      case Type::IDENTIFIER:
+        value.identifier = other.value.identifier;
+        break;
+      case Type::OPERATOR:
+        value._operator = other.value._operator;
+        break;
+      case Type::CHARACTER:
+        value.character = other.value.character;
+        break;
+      case Type::STRING:
+        value.string = other.value.string;
+        break;
+      default:
+        break;
+    }
+  }
+
+  Token(Token&& other) noexcept {
+    type = other.type;
+    switch (type) {
+      case Type::NUMBER:
+        value.number = other.value.number;
+        break;
+      case Type::KEYWORD:
+        value.keyword = other.value.keyword;
+        break;
+      case Type::IDENTIFIER:
+        value.identifier = other.value.identifier;
+        break;
+      case Type::OPERATOR:
+        value._operator = other.value._operator;
+        break;
+      case Type::CHARACTER:
+        value.character = other.value.character;
+        break;
+      case Type::STRING:
+        value.string = other.value.string;
+        break;
+      default:
+        break;
+    }
+    other.type = Type::NONE;
+  }
+
+  Token& operator=(const Token& other) {
+    type = other.type;
+    switch (type) {
+      case Type::NUMBER:
+        value.number = other.value.number;
+        break;
+      case Type::KEYWORD:
+        value.keyword = other.value.keyword;
+        break;
+      case Type::IDENTIFIER:
+        value.identifier = other.value.identifier;
+        break;
+      case Type::OPERATOR:
+        value._operator = other.value._operator;
+        break;
+      case Type::CHARACTER:
+        value.character = other.value.character;
+        break;
+      case Type::STRING:
+        value.string = other.value.string;
+        break;
+      default:
+        break;
+    }
+    return *this;
+  }
+
+  Token& operator=(Token&& other) noexcept {
+    type = other.type;
+    switch (type) {
+      case Type::NUMBER:
+        value.number = other.value.number;
+        break;
+      case Type::KEYWORD:
+        value.keyword = other.value.keyword;
+        break;
+      case Type::IDENTIFIER:
+        value.identifier = other.value.identifier;
+        break;
+      case Type::OPERATOR:
+        value._operator = other.value._operator;
+        break;
+      case Type::CHARACTER:
+        value.character = other.value.character;
+        break;
+      case Type::STRING:
+        value.string = other.value.string;
+        break;
+      default:
+        break;
+    }
+    other.type = Type::NONE;
+    return *this;
+  }
 
   std::string TokenTypeToString(Token::Type type) {
     switch (type) {
@@ -686,9 +787,6 @@ class TokenMap {
   LexMap<Token::KeywordType> keyword_map;
   LexMap<Token::OperatorType> operator_map;
 };
-
-Token::Token() = default;
-Token::~Token() = default;
 
 TokenMap::TokenMap() {
   keyword_map.Insert("auto", Token::KeywordType::Auto);
