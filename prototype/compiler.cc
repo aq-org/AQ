@@ -1691,6 +1691,8 @@ class BinaryNode : public ExprNode {
   }
   virtual ~BinaryNode() = default;
 
+  Operator GetOperator() { return op_; }
+
   ExprNode* GetLeftExpr() { return left_; }
   ExprNode* GetRightExpr() { return right_; }
 
@@ -3729,7 +3731,145 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
   }
 }
 std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
-                                                std::vector<Bytecode>& code) {}
+                                                std::vector<Bytecode>& code) {
+  std::size_t left = HandleExpr(expr->GetLeftExpr(), code);
+  std::size_t right = HandleExpr(expr->GetRightExpr(), code);
+  uint8_t left_type = GetExprVmType(expr->GetLeftExpr());
+  uint8_t right_type = GetExprVmType(expr->GetRightExpr());
+  uint8_t result_type = left_type > right_type ? left_type : right_type;
+
+  switch (expr->GetOperator()) {
+    case BinaryNode::Operator::kAdd: {  // +
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x06, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kSub: {  // -
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x07, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kMul: {  // *
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x08, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kDiv: {  // /
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x09, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kRem: {  // %
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x0A, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kAnd: {  // &
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x10, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kOr: {  // |
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x11, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kXor: {  // ^
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x12, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kShl: {  // <<
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x0C, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kShr: {  // >>
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x0D, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kLT: {  // <
+      std::size_t result = memory_.Add(0x01, 1);
+      code.push_back(Bytecode(0x13, result, 0x04, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kGT: {  // >
+      std::size_t result = memory_.Add(0x01, 1);
+      code.push_back(Bytecode(0x13, result, 0x02, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kLE: {  // <=
+      std::size_t result = memory_.Add(0x01, 1);
+      code.push_back(Bytecode(0x13, result, 0x05, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kGE: {  // >=
+      std::size_t result = memory_.Add(0x01, 1);
+      code.push_back(Bytecode(0x13, result, 0x03, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kEQ: {  // ==
+      std::size_t result = memory_.Add(0x01, 1);
+      code.push_back(Bytecode(0x13, result, 0x00, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kNE: {  // !=
+      std::size_t result = memory_.Add(0x01, 1);
+      code.push_back(Bytecode(0x13, result, 0x01, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kLAnd: {  // &&
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x10, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kLOr: {  // ||
+      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      code.push_back(Bytecode(0x11, result, left, right));
+      return result;
+    }
+    case BinaryNode::Operator::kAssign:  // =
+      code.push_back(Bytecode(0x06, left, right, AddConstInt8t(0)));
+      return left;
+    case BinaryNode::Operator::kAddAssign:  // +=
+      code.push_back(Bytecode(0x06, left, left, right));
+      return left;
+    case BinaryNode::Operator::kSubAssign:  // -=
+      code.push_back(Bytecode(0x07, left, left, right));
+      return left;
+    case BinaryNode::Operator::kMulAssign:  // *=
+      code.push_back(Bytecode(0x08, left, left, right));
+      return left;
+    case BinaryNode::Operator::kDivAssign:  // /=
+      code.push_back(Bytecode(0x09, left, left, right));
+      return left;
+    case BinaryNode::Operator::kRemAssign:  // %=
+      code.push_back(Bytecode(0x0A, left, left, right));
+      return left;
+    case BinaryNode::Operator::kAndAssign:  // &=
+      code.push_back(Bytecode(0x10, left, left, right));
+      return left;
+    case BinaryNode::Operator::kOrAssign:  // |=
+      code.push_back(Bytecode(0x11, left, left, right));
+      return left;
+    case BinaryNode::Operator::kXorAssign:  // ^=
+      code.push_back(Bytecode(0x12, left, left, right));
+      return left;
+    case BinaryNode::Operator::kShlAssign:  // <<=
+      code.push_back(Bytecode(0x0C, left, left, right));
+      return left;
+    case BinaryNode::Operator::kShrAssign:  // >>=
+      code.push_back(Bytecode(0x0D, left, left, right));
+      return left;
+    case BinaryNode::Operator::kComma:    // :
+    case BinaryNode::Operator::kPtrMemD:  // .*
+    case BinaryNode::Operator::kPtrMemI:  // ->*
+    default:
+      // TODO
+      return left;
+  }
+}
 
 void BytecodeGenerator::HandleStmt(StmtNode* stmt,
                                    std::vector<Bytecode>& code) {}
