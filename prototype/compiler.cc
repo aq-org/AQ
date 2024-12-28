@@ -1584,7 +1584,7 @@ class ValueNode : public ExprNode {
     std::string str(value_.value.number.location, value_.value.number.length);
     try {
       std::size_t pos;
-      int int_value = std::stoi(str, &pos);
+      (void)std::stoi(str, &pos);
       if (pos == str.size()) {
         return 0x02;
       }
@@ -1594,7 +1594,7 @@ class ValueNode : public ExprNode {
 
     try {
       std::size_t pos;
-      long long_value = std::stol(str, &pos);
+      (void)std::stol(str, &pos);
       if (pos == str.size()) {
         return 0x03;
       }
@@ -1604,7 +1604,7 @@ class ValueNode : public ExprNode {
 
     try {
       std::size_t pos;
-      uint64_t uint64_value = std::stoull(str, &pos);
+      (void)std::stoull(str, &pos);
       if (pos == str.size()) {
         return 0x06;
       }
@@ -1614,7 +1614,7 @@ class ValueNode : public ExprNode {
 
     try {
       std::size_t pos;
-      float float_value = std::stof(str, &pos);
+      (void)std::stof(str, &pos);
       if (pos == str.size()) {
         return 0x04;
       }
@@ -1624,7 +1624,7 @@ class ValueNode : public ExprNode {
 
     try {
       std::size_t pos;
-      double double_value = std::stod(str, &pos);
+      (void)std::stod(str, &pos);
       if (pos == str.size()) {
         return 0x05;
       }
@@ -2047,7 +2047,7 @@ class Parser {
 class ConstType : public Type {
  public:
   ConstType() { type_ = TypeType::kConst; }
-  virtual void SetType(Type* type) {
+  void SetSubType(Type* type) {
     type_ = TypeType::kConst;
     type_data_ = type;
   }
@@ -2064,7 +2064,7 @@ class ConstType : public Type {
 class PointerType : public Type {
  public:
   PointerType() { type_ = TypeType::kPointer; }
-  virtual void SetType(Type* type) {
+  void SetSubType(Type* type) {
     type_ = TypeType::kPointer;
     type_data_ = type;
   }
@@ -2081,7 +2081,7 @@ class PointerType : public Type {
 class ArrayType : public Type {
  public:
   ArrayType() { type_ = TypeType::kArray; }
-  virtual void SetType(Type* type, ExprNode* size) {
+  void SetSubType(Type* type, ExprNode* size) {
     type_ = TypeType::kArray;
     type_data_ = type;
     size_ = size;
@@ -2104,7 +2104,7 @@ class ArrayType : public Type {
 class ReferenceType : public Type {
  public:
   ReferenceType() { type_ = TypeType::kReference; }
-  virtual void SetType(Type* type) {
+  void SetSubType(Type* type) {
     type_ = TypeType::kReference;
     type_data_ = type;
   }
@@ -2125,7 +2125,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
         case Token::KeywordType::Const: {
           ConstType* const_type = new ConstType();
           if (type->GetType() != Type::TypeType::NONE) {
-            const_type->SetType(type);
+            const_type->SetSubType(type);
             type = const_type;
             break;
           }
@@ -2165,7 +2165,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
                           << std::endl;
                 return type;
             }
-            const_type->SetType(type);
+            const_type->SetSubType(type);
             type = const_type;
           } else {
             type->SetType(Type::BaseType::NONE);
@@ -2231,13 +2231,13 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
       switch (token[index].value._operator) {
         case Token::OperatorType::star: {
           PointerType* pointer_type = new PointerType();
-          pointer_type->SetType(type);
+          pointer_type->SetSubType(type);
           type = pointer_type;
           break;
         }
         case Token::OperatorType::amp: {
           ReferenceType* reference_type = new ReferenceType();
-          reference_type->SetType(type);
+          reference_type->SetSubType(type);
           type = reference_type;
           break;
         }
@@ -2253,7 +2253,8 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
       if (token[index_temp].type == Token::Type::OPERATOR &&
           token[index_temp].value._operator == Token::OperatorType::l_square) {
         ArrayType* array_type = new ArrayType();
-        array_type->SetType(type, Parser::ParseExpr(token, length, index_temp));
+        array_type->SetSubType(type,
+                               Parser::ParseExpr(token, length, index_temp));
         type = array_type;
       }
       std::cout << "ReturnType" << " \n"
@@ -2860,7 +2861,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             std::cout << "NEW FUNC NODE2 ParsePrimaryExpr FUNC" << " \n"
                       << token[index] << std::endl
                       << std::endl;
-            UnaryNode* preoper_unary_node = nullptr;
+            // UnaryNode* preoper_unary_node = nullptr;
             /*if (preoper_expr != nullptr)
               preoper_unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
             if (preoper_unary_node != nullptr) {
@@ -3483,7 +3484,7 @@ class BytecodeGenerator {
       void* memory_data = malloc(size);
 
       std::size_t read_index = 0;
-      for (void* data_ptr = memory_data; read_index < size;) {
+      while (read_index < size) {
         switch (type) {
           case 0x01:
             *(int8_t*)memory_data = *(int8_t*)data;
@@ -3641,9 +3642,7 @@ class BytecodeGenerator {
   };
 
   void HandleFuncDecl(FuncDeclNode* func_decl, std::vector<Bytecode>& code);
-  void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
-
-                                        std::vector<Bytecode>& code);
+  void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   void HandleArrayDecl(ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
   void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
   std::size_t HandleExpr(ExprNode* expr, std::vector<Bytecode>& code);
@@ -3694,7 +3693,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl,
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
   // TODO(BytecodeGenerator::HandleFuncDecl): Complete the function.
   // func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
-  std::size_t func_decl_size = 8;
+  // std::size_t func_decl_size = 8;
 }
 
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
@@ -4356,6 +4355,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
         return 0x00;
     }
   }
+  return 0x00;
 }
 
 uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
@@ -4599,6 +4599,8 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
           default:
             return 0x00;
         }
+      default:
+        return 0x00;
     }
     if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
       switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
@@ -5003,6 +5005,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
         return 0x00;
     }
   }
+  return 0x00;
 }
 
 size_t BytecodeGenerator::GetExprVmSize(uint8_t type) {
