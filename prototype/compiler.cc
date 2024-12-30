@@ -52,6 +52,11 @@ class LexMap {
     pair_list_[hash].Prepend(pair);
   };
 
+  void Delete(std::string key) {
+    unsigned int hash = Hash(key);
+    pair_list_[hash].Delete(key);
+  };
+
   // Find the value of a key.
   T Find(std::string key) {
     unsigned int hash = Hash(key);
@@ -117,6 +122,33 @@ class LexMap {
         }
         temp->next = new Node(value);
       }
+    };
+
+    void Delete(std::string key) {
+      Node* temp = head_ptr_;
+      Node* prev = nullptr;
+
+      // Find the key to delete.
+      while (temp != nullptr) {
+        if (key == temp->data.key) {
+          break;
+        }
+        prev = temp;
+        temp = temp->next;
+      }
+
+      // Key not found.
+      if (temp == nullptr) {
+        return;
+      }
+
+      // Delete the key.
+      if (prev == nullptr) {
+        head_ptr_ = temp->next;
+      } else {
+        prev->next = temp->next;
+      }
+      delete temp;
     };
 
     // Find the value of a key.
@@ -3641,7 +3673,7 @@ class BytecodeGenerator {
     std::vector<std::size_t> arg_;
   };
 
-  void HandleFuncDecl(FuncDeclNode* func_decl, std::vector<Bytecode>& code);
+  void HandleFuncDecl(FuncDeclNode* func_decl);
   void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   void HandleArrayDecl(ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
   void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
@@ -3659,6 +3691,7 @@ class BytecodeGenerator {
   LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
   Memory memory_;
+  std::vector<Bytecode> init_code_;
   std::vector<uint8_t> code_;
 };
 
@@ -3667,33 +3700,37 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   std::cout << "BytecodeGenerator::GenerateBytecode OK" << std::endl;
   for (std::size_t i = 0; i <= stmt->GetStmts().size(); i++) {
     switch (stmt->GetStmts()[i]->GetType()) {
-      case StmtNode::StmtType::kFuncDecl: {
-        std::vector<Bytecode> code;
-        HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt->GetStmts()[i]), code);
+      case StmtNode::StmtType::kFuncDecl:
+        HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt->GetStmts()[i]));
         break;
-      }
-      case StmtNode::StmtType::kVarDecl: {
-        std::vector<Bytecode> code;
-        HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]), code);
+
+      case StmtNode::StmtType::kVarDecl:
+        HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]),
+                      init_code_);
         break;
-      }
-      case StmtNode::StmtType::kArrayDecl: {
-        std::vector<Bytecode> code;
-        HandleVarDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]), code);
+
+      case StmtNode::StmtType::kArrayDecl:
+        HandleVarDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]),
+                      init_code_);
         break;
-      }
+
       default:
         break;
     }
   }
 }
 
-void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl,
-                                       std::vector<Bytecode>& code) {
+void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
+  std::vector<Bytecode> code;
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
-  // TODO(BytecodeGenerator::HandleFuncDecl): Complete the function.
-  // func_table_.Insert(*func_decl->GetStat()->GetName(), func_decl);
-  // std::size_t func_decl_size = 8;
+  func_table_.Insert(
+      *func_decl->GetStat()->GetName(),
+      std::pair<FuncDeclNode, std::vector<Bytecode>>(*func_decl, code));
+  HandleStmt(func_decl->GetStmts(), code);
+  func_table_.Delete(*func_decl->GetStat()->GetName());
+  func_table_.Insert(
+      *func_decl->GetStat()->GetName(),
+      std::pair<FuncDeclNode, std::vector<Bytecode>>(*func_decl, code));
 }
 
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
@@ -3758,8 +3795,8 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
                                         std::vector<Bytecode>& code) {
   // TODO(BytecodeGenerator::HandleArrayDecl): Complete the function.
-  std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
-  array_table_.Insert(*array_decl->GetName(), array_decl);
+  // std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
+  // array_table_.Insert(*array_decl->GetName(), array_decl);
 }
 
 std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
