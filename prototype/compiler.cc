@@ -63,6 +63,11 @@ class LexMap {
     return pair_list_[hash].Find(key);
   };
 
+  bool IsElementExist(std::string key) {
+    unsigned int hash = Hash(key);
+    return pair_list_[hash].IsElementExist(key);
+  }
+
  private:
   struct Pair {
     std::string key;
@@ -166,6 +171,19 @@ class LexMap {
       // Key not found, return nullptr.
       return T();
     };
+
+    bool IsElementExist(std::string key) {
+      Node* temp = head_ptr_;
+
+      // Compare keys one by one to find the corresponding value.
+      while (temp != nullptr) {
+        if (key == temp->data.key) {
+          return true;
+        };
+        temp = temp->next;
+      }
+      return false;
+    }
 
    private:
     // A node type of the linked list.
@@ -1997,6 +2015,10 @@ class IfNode : public StmtNode {
     else_body_ = else_body;
   }
 
+  ExprNode* GetCondition() { return condition_; }
+  StmtNode* GetBody() { return body_; }
+  StmtNode* GetElseBody() { return else_body_; }
+
   IfNode(const IfNode&) = default;
   IfNode& operator=(const IfNode&) = default;
 
@@ -3673,6 +3695,33 @@ class BytecodeGenerator {
     std::vector<std::size_t> arg_;
   };
 
+  class FuncBytecode {
+   public:
+    FuncBytecode() = default;
+    ~FuncBytecode() = default;
+
+    void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
+    void HandleArrayDecl(ArrayDeclNode* array_decl,
+                         std::vector<Bytecode>& code);
+    void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
+    std::size_t HandleExpr(ExprNode* expr, std::vector<Bytecode>& code);
+    std::size_t HandleUnaryExpr(UnaryNode* expr, std::vector<Bytecode>& code);
+    std::size_t HandleBinaryExpr(BinaryNode* expr, std::vector<Bytecode>& code);
+    std::size_t HandleFuncInvoke(FuncNode* func, std::vector<Bytecode>& code);
+    std::size_t GetIndex(ExprNode* expr, std::vector<Bytecode>& code);
+    std::size_t AddConstInt8t(int8_t value);
+    uint8_t GetExprVmType(ExprNode* expr);
+    uint8_t GetExprPtrValueVmType(ExprNode* expr);
+    size_t GetExprVmSize(uint8_t type);
+
+   private:
+    FuncDeclNode func_decl_;
+    std::vector<Bytecode> func_code_;
+    LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
+    LexMap<ArrayDeclNode*> array_table_;
+    Memory func_memory_;
+  };
+
   void HandleFuncDecl(FuncDeclNode* func_decl);
   void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   void HandleArrayDecl(ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
@@ -3687,11 +3736,12 @@ class BytecodeGenerator {
   uint8_t GetExprPtrValueVmType(ExprNode* expr);
   size_t GetExprVmSize(uint8_t type);
 
-  LexMap<std::pair<FuncDeclNode, std::vector<Bytecode>>> func_table_;
+  LexMap<FuncDeclNode> func_table_;
   LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
-  Memory memory_;
-  std::vector<Bytecode> init_code_;
+  std::vector<FuncBytecode> func_list_;
+  Memory global_memory_;
+  std::vector<Bytecode> global_code_;
   std::vector<uint8_t> code_;
 };
 
@@ -3706,12 +3756,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 
       case StmtNode::StmtType::kVarDecl:
         HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]),
-                      init_code_);
+                      global_code_);
         break;
 
       case StmtNode::StmtType::kArrayDecl:
         HandleVarDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]),
-                      init_code_);
+                      global_code_);
         break;
 
       default:
@@ -3723,14 +3773,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   std::vector<Bytecode> code;
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
-  func_table_.Insert(
-      *func_decl->GetStat()->GetName(),
-      std::pair<FuncDeclNode, std::vector<Bytecode>>(*func_decl, code));
+  func_table_.Insert(*func_decl->GetStat()->GetName(), *func_decl);
   HandleStmt(func_decl->GetStmts(), code);
   func_table_.Delete(*func_decl->GetStat()->GetName());
-  func_table_.Insert(
-      *func_decl->GetStat()->GetName(),
-      std::pair<FuncDeclNode, std::vector<Bytecode>>(*func_decl, code));
+  func_table_.Insert(*func_decl->GetStat()->GetName(), *func_decl);
 }
 
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
@@ -3787,9 +3833,10 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
         break;
     }
   }
-  var_table_.Insert(*var_decl->GetName(),
-                    std::pair<VarDeclNode*, std::size_t>(
-                        var_decl, memory_.Add(vm_type, var_type->GetSize())));
+  var_table_.Insert(
+      *var_decl->GetName(),
+      std::pair<VarDeclNode*, std::size_t>(
+          var_decl, global_memory_.Add(vm_type, var_type->GetSize())));
 }
 
 void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
@@ -3815,14 +3862,14 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc: {  // ++ (postfix)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      size_t new_index = memory_.Add(vm_type, GetExprVmSize(vm_type));
+      size_t new_index = global_memory_.Add(vm_type, GetExprVmSize(vm_type));
       code.push_back(Bytecode(0x06, new_index, sub_expr, AddConstInt8t(0)));
       code.push_back(Bytecode(0x06, sub_expr, sub_expr, AddConstInt8t(1)));
       return new_index;
     }
     case UnaryNode::Operator::kPostDec: {  // -- (postfix)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      size_t new_index = memory_.Add(vm_type, GetExprVmSize(vm_type));
+      size_t new_index = global_memory_.Add(vm_type, GetExprVmSize(vm_type));
       code.push_back(Bytecode(0x06, new_index, sub_expr, AddConstInt8t(0)));
       code.push_back(Bytecode(0x07, sub_expr, sub_expr, AddConstInt8t(1)));
       return new_index;
@@ -3834,13 +3881,13 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       code.push_back(Bytecode(0x07, sub_expr, sub_expr, AddConstInt8t(1)));
       return sub_expr;
     case UnaryNode::Operator::kAddrOf: {  // & (address of)
-      size_t ptr_index = memory_.Add(0x06, 8);
+      size_t ptr_index = global_memory_.Add(0x06, 8);
       code.push_back(Bytecode(0x05, sub_expr, ptr_index));
       return ptr_index;
     }
     case UnaryNode::Operator::kDeref: {  // * (dereference)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      size_t new_index = memory_.Add(vm_type, GetExprVmSize(vm_type));
+      size_t new_index = global_memory_.Add(vm_type, GetExprVmSize(vm_type));
       code.push_back(Bytecode(0x01, sub_expr, new_index));
       return new_index;
     }
@@ -3848,13 +3895,13 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       return sub_expr;
     case UnaryNode::Operator::kMinus: {  // - (unary minus)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      size_t new_index = memory_.Add(vm_type, GetExprVmSize(vm_type));
+      size_t new_index = global_memory_.Add(vm_type, GetExprVmSize(vm_type));
       code.push_back(Bytecode(0x0B, new_index, sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::kNot: {  // ! (logical NOT)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      size_t new_index = memory_.Add(vm_type, GetExprVmSize(vm_type));
+      size_t new_index = global_memory_.Add(vm_type, GetExprVmSize(vm_type));
       code.push_back(Bytecode(0x0B, new_index, sub_expr));
       return new_index;
     }
@@ -3874,92 +3921,104 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
   switch (expr->GetOperator()) {
     case BinaryNode::Operator::kAdd: {  // +
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x06, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kSub: {  // -
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x07, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kMul: {  // *
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x08, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kDiv: {  // /
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x09, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kRem: {  // %
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x0A, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kAnd: {  // &
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x10, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kOr: {  // |
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x11, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kXor: {  // ^
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x12, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kShl: {  // <<
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x0C, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kShr: {  // >>
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x0D, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kLT: {  // <
-      std::size_t result = memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(Bytecode(0x13, result, 0x04, left, right));
       return result;
     }
     case BinaryNode::Operator::kGT: {  // >
-      std::size_t result = memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(Bytecode(0x13, result, 0x02, left, right));
       return result;
     }
     case BinaryNode::Operator::kLE: {  // <=
-      std::size_t result = memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(Bytecode(0x13, result, 0x05, left, right));
       return result;
     }
     case BinaryNode::Operator::kGE: {  // >=
-      std::size_t result = memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(Bytecode(0x13, result, 0x03, left, right));
       return result;
     }
     case BinaryNode::Operator::kEQ: {  // ==
-      std::size_t result = memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(Bytecode(0x13, result, 0x00, left, right));
       return result;
     }
     case BinaryNode::Operator::kNE: {  // !=
-      std::size_t result = memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(Bytecode(0x13, result, 0x01, left, right));
       return result;
     }
     case BinaryNode::Operator::kLAnd: {  // &&
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x10, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kLOr: {  // ||
-      std::size_t result = memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result =
+          global_memory_.Add(result_type, GetExprVmSize(result_type));
       code.push_back(Bytecode(0x11, result, left, right));
       return result;
     }
@@ -4006,12 +4065,85 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 }
 
 void BytecodeGenerator::HandleStmt(StmtNode* stmt,
-                                   std::vector<Bytecode>& code) {}
+                                   std::vector<Bytecode>& code) {
+  // TODO
+  /*if (stmt == nullptr) return;
+  switch (stmt->GetType()) {
+    case StmtNode::StmtType::kCompound:
+      for (std::size_t i = 0;
+           i <= dynamic_cast<CompoundNode*>(stmt)->GetStmts().size(); i++) {
+        HandleStmt(dynamic_cast<CompoundNode*>(stmt)->GetStmts()[i], code);
+      }
+      break;
+
+    case StmtNode::StmtType::kExpr:
+      HandleExpr(dynamic_cast<ExprNode*>(stmt), code);
+      break;
+
+    case StmtNode::StmtType::kIf:
+      size_t condition_index =
+          HandleExpr(dynamic_cast<IfNode*>(stmt)->GetCondition(), code);
+
+      if (dynamic_cast<IfNode*>(stmt)->GetElseStmt() != nullptr) {
+        HandleStmt(dynamic_cast<IfNode*>(stmt)->GetElseStmt(), code);
+      }
+      break;
+
+    case StmtNode::StmtType::kWhile:
+      HandleStmt(dynamic_cast<WhileNode*>(stmt)->GetStmt(), code);
+      break;
+
+    case StmtNode::StmtType::kDoWhile:
+      HandleStmt(dynamic_cast<DoWhileNode*>(stmt)->GetStmt(), code);
+      break;
+
+    case StmtNode::StmtType::kFor:
+      HandleStmt(dynamic_cast<ForNode*>(stmt)->GetStmt(), code);
+      break;
+
+    case StmtNode::StmtType::kSwitch:
+      HandleStmt(dynamic_cast<SwitchNode*>(stmt)->GetStmt(), code);
+      break;
+
+    case StmtNode::StmtType::kCase:
+      HandleStmt(dynamic_cast<CaseNode*>(stmt)->GetStmt(), code);
+      break;
+
+    case StmtNode::StmtType::kDefault:
+      HandleStmt(dynamic_cast<DefaultNode*>(stmt)->GetStmt(), code);
+      break;
+
+    case StmtNode::StmtType::kBreak:
+      break;
+
+    case StmtNode::StmtType::kContinue:
+      break;
+
+    case StmtNode::StmtType::kReturn:
+      HandleExpr(dynamic_cast<ReturnNode*>(stmt)->GetExpr(), code);
+      break;
+
+    case StmtNode::StmtType::kFuncDecl:
+      HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt));
+      break;
+
+    case StmtNode::StmtType::kVarDecl:
+      HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt), code);
+      break;
+
+    case StmtNode::StmtType::kArrayDecl:
+      HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(stmt), code);
+      break;
+
+    case StmtNode::Stmt
+
+  }*/
+}
 
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
                                                 std::vector<Bytecode>& code) {
   std::vector<ExprNode*> args = func->GetArgs();
-  FuncDeclNode func_decl = func_table_.Find(*func->GetName()).first;
+  FuncDeclNode func_decl = func_table_.Find(*func->GetName());
 
   Type* func_type = func_decl.GetReturnType();
   while (func_type->GetType() == Type::TypeType::kBase ||
@@ -4066,7 +4198,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   }
 
   std::vector<std::size_t> vm_args;
-  vm_args.push_back(memory_.Add(vm_type, func_type->GetSize()));
+  vm_args.push_back(global_memory_.Add(vm_type, func_type->GetSize()));
   vm_args.push_back(args.size());
 
   for (std::size_t i = 0; i <= args.size(); i++) {
@@ -4076,7 +4208,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   code.push_back(Bytecode(0x14, vm_args));
 
   return vm_args[0];
-}
+}  // namespace Compiler
 
 std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
                                         std::vector<Bytecode>& code) {
@@ -4089,29 +4221,29 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
         case 0x01: {
           int8_t value = dynamic_cast<ValueNode*>(expr)->GetCharValue();
           // std::get<int8_t>(dynamic_cast<ValueNode*>(expr)->GetValue());
-          return memory_.Add(vm_type, dynamic_cast<ValueNode*>(expr)->GetSize(),
-                             &value);
+          return global_memory_.Add(
+              vm_type, dynamic_cast<ValueNode*>(expr)->GetSize(), &value);
           break;
         }
         case 0x02: {
           int value = dynamic_cast<ValueNode*>(expr)->GetIntValue();
           // std::get<int>(dynamic_cast<ValueNode*>(expr)->GetValue());
-          return memory_.Add(vm_type, 4, &value);
+          return global_memory_.Add(vm_type, 4, &value);
         }
         case 0x03: {
           long value = dynamic_cast<ValueNode*>(expr)->GetLongValue();
           // std::get<long>(dynamic_cast<ValueNode*>(expr)->GetValue());
-          return memory_.Add(vm_type, 8, &value);
+          return global_memory_.Add(vm_type, 8, &value);
         }
         case 0x04: {
           float value = dynamic_cast<ValueNode*>(expr)->GetFloatValue();
           // std::get<float>(dynamic_cast<ValueNode*>(expr)->GetValue());
-          return memory_.Add(vm_type, 4, &value);
+          return global_memory_.Add(vm_type, 4, &value);
         }
         case 0x05: {
           double value = dynamic_cast<ValueNode*>(expr)->GetDoubleValue();
           // std::get<double>(dynamic_cast<ValueNode*>(expr)->GetValue());
-          return memory_.Add(vm_type, 8, &value);
+          return global_memory_.Add(vm_type, 8, &value);
         }
         case 0x06: {
           if (dynamic_cast<ValueNode*>(expr)->GetToken().type ==
@@ -4119,15 +4251,15 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
             std::string value =
                 dynamic_cast<ValueNode*>(expr)->GetStringValue();
             // std::get<char*>(dynamic_cast<ValueNode*>(expr)->GetValue());
-            std::size_t str_index = memory_.Add(
+            std::size_t str_index = global_memory_.Add(
                 0x01, value.size() + 1, static_cast<const void*>(value.data()));
-            std::size_t ptr_index = memory_.Add(vm_type, 8);
+            std::size_t ptr_index = global_memory_.Add(vm_type, 8);
             code.push_back(Bytecode(0x05, str_index, ptr_index));
             return ptr_index;
           }
           uint64_t value = dynamic_cast<ValueNode*>(expr)->GetUInt64Value();
           // std::get<uint64_t>(dynamic_cast<ValueNode*>(expr)->GetValue());
-          return memory_.Add(vm_type, 8, &value);
+          return global_memory_.Add(vm_type, 8, &value);
         }
       }
     }
@@ -4139,7 +4271,7 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
 }
 
 std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
-  return memory_.Add(0x01, 1, &value);
+  return global_memory_.Add(0x01, 1, &value);
 }
 
 uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
@@ -4224,7 +4356,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   if (expr->GetType() == StmtNode::StmtType::kFunc) {
     Type* return_type =
         func_table_.Find(*dynamic_cast<FuncNode*>(expr)->GetName())
-            .first.GetReturnType();
+            .GetReturnType();
     switch (return_type->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
@@ -4474,7 +4606,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
   if (expr->GetType() == StmtNode::StmtType::kFunc) {
     Type* return_type =
         func_table_.Find(*dynamic_cast<FuncNode*>(expr)->GetName())
-            .first.GetReturnType();
+            .GetReturnType();
     switch (return_type->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
