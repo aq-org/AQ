@@ -3,7 +3,9 @@
   <h2 align="center">AQ</h2>
   <p align="center">AQ is a fast, small, simple and safe interpreted programming language. It may be a great work. </p>
 </p>
-
+<p align="center">
+<a href="https://www.producthunt.com/posts/aq-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-aq&#0045;2" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=704776&theme=light" alt="AQ - AQ&#0032;is&#0032;a&#0032;fast&#0044;&#0032;small&#0044;&#0032;simple&#0032;and&#0032;safe&#0032;programming&#0032;language&#0046; | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+</p>
    <p align="center">
      <a href="https://github.com/aq-org/AQ/blob/main/LICENSE">
        <img alt="License" src="https://img.shields.io/badge/license-AQ-dark" />
@@ -291,9 +293,13 @@ Click to view development progress
 </tr>
 </table>
 
-
-
-<!-- Made with [OSS Insight](https://ossinsight.io/) -->
+<a href="https://star-history.com/#aq-org/AQ&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=aq-org/AQ&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=aq-org/AQ&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=aq-org/AQ&type=Date" />
+ </picture>
+</a>
 
 ## Quick Start
 ### Install
@@ -341,6 +347,19 @@ You can find information in <a href="/docs/standard.md">Language standards</a>.
 ## Contributors
 
 AQ is an open source project and everyone is welcome to contribute to it! Whether it's filing a bug report, participating in code development, improving documentation, or providing suggestions, any kind of contribution is highly appreciated.
+
+### Our Developers
+<a href="https://github.com/aq-org/AQ/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=aq-org/AQ" />
+</a>
+
+
+### Our Sponsors
+<div align="center">
+<a href="https://opencollective.com/body-count" align="center"><img src="./docs/heymanbug.png"></img></a><br/>
+<a href="https://opencollective.com/body-count" align="center"><b>heymanbug</b></a>
+<b align="center">$200</b>
+</div>
 
 ## License
 
