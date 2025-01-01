@@ -3695,33 +3695,6 @@ class BytecodeGenerator {
     std::vector<std::size_t> arg_;
   };
 
-  class FuncBytecode {
-   public:
-    FuncBytecode() = default;
-    ~FuncBytecode() = default;
-
-    void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
-    void HandleArrayDecl(ArrayDeclNode* array_decl,
-                         std::vector<Bytecode>& code);
-    void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
-    std::size_t HandleExpr(ExprNode* expr, std::vector<Bytecode>& code);
-    std::size_t HandleUnaryExpr(UnaryNode* expr, std::vector<Bytecode>& code);
-    std::size_t HandleBinaryExpr(BinaryNode* expr, std::vector<Bytecode>& code);
-    std::size_t HandleFuncInvoke(FuncNode* func, std::vector<Bytecode>& code);
-    std::size_t GetIndex(ExprNode* expr, std::vector<Bytecode>& code);
-    std::size_t AddConstInt8t(int8_t value);
-    uint8_t GetExprVmType(ExprNode* expr);
-    uint8_t GetExprPtrValueVmType(ExprNode* expr);
-    size_t GetExprVmSize(uint8_t type);
-
-   private:
-    FuncDeclNode func_decl_;
-    std::vector<Bytecode> func_code_;
-    LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
-    LexMap<ArrayDeclNode*> array_table_;
-    Memory func_memory_;
-  };
-
   void HandleFuncDecl(FuncDeclNode* func_decl);
   void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   void HandleArrayDecl(ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
@@ -3736,10 +3709,11 @@ class BytecodeGenerator {
   uint8_t GetExprPtrValueVmType(ExprNode* expr);
   size_t GetExprVmSize(uint8_t type);
 
+  // enum class BytecodeType { kGlobal, KFunc, kCompound, kIf, kWhile, kFor };
   LexMap<FuncDeclNode> func_table_;
   LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
   LexMap<ArrayDeclNode*> array_table_;
-  std::vector<FuncBytecode> func_list_;
+  // std::vector<BytecodeGenerator> func_list_;
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
   std::vector<uint8_t> code_;
