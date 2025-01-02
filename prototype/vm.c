@@ -533,120 +533,46 @@ void SetUint64tData(size_t index, uint64_t value) {
   }
 }
 
-void* Get1Parament(void* ptr, size_t* first) {
-  int state = 0;
-  int size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *first = 255 * size + *(uint8_t*)ptr;
-      state = 1;
+size_t DecodeUleb128(const uint8_t* input, size_t* result) {
+  size_t shift = 0;
+  size_t count = 0;
+
+  while (1) {
+    uint8_t byte = input[count++];
+    *result |= (byte & 0x7F) << shift;
+    if ((byte & 0x80) == 0) {
+      break;
     }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
+    shift += 7;
   }
+
+  return count;
+}
+
+void* Get1Parament(void* ptr, size_t* first) {
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
   return ptr;
 }
 
 void* Get2Parament(void* ptr, size_t* first, size_t* second) {
-  int state = 0;
-  int size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *first = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *second = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
   return ptr;
 }
 
 void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
-  int state = 0;
-  int size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *first = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *second = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *third = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, third));
   return ptr;
 }
 
 void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
                    size_t* fourth) {
-  int state = 0;
-  int size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *first = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *second = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *third = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *fourth = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, third));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, fourth));
   return ptr;
 }
 
@@ -655,56 +581,17 @@ int INVOKE(const size_t* func, const size_t return_value,
 
 void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
-  int state = 0;
-  int size = 0;
-  size_t func;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      func = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *return_value = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-
-  state = 0;
-  size = 0;
-  while (state == 0) {
-    if (*(uint8_t*)ptr < 255) {
-      *arg_count = 255 * size + *(uint8_t*)ptr;
-      state = 1;
-    }
-    ptr = (void*)((uintptr_t)ptr + 1);
-    ++size;
-  }
-
+  size_t func = 0;
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &func));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, return_value));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, arg_count));
   InternalObject args_obj = {*arg_count, NULL};
 
   size_t* args = malloc(*arg_count * sizeof(size_t));
 
   size_t read_arg = 0;
   while (read_arg < *arg_count) {
-    state = 0;
-    size = 0;
-    while (state == 0) {
-      if (*(uint8_t*)ptr < 255) {
-        *(args + read_arg) = 255 * size + *(uint8_t*)ptr;
-        state = 1;
-      }
-      ptr = (void*)((uintptr_t)ptr + 1);
-      ++size;
-    }
+    ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, args + read_arg));
     read_arg++;
   }
 
