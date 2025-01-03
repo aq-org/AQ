@@ -24,9 +24,6 @@ struct Pair {
 typedef struct {
   const char* name;
   void* location;
-  size_t memory_size;
-  void* memory;
-  void* types;
   size_t commands_size;
   void* commands;
 } FuncInfo;
@@ -2497,8 +2494,7 @@ void InitializeNameTable(struct LinkedList* list) {
 void* AddFunction(void* location) {
   void* origin_location = location;
   size_t all_size = SwapUint64t(*(uint64_t*)location);
-  size_t commands_size = all_size;
-  commands_size -= 8;
+  size_t commands_size = all_size - 8;
   location = (void*)((uintptr_t)location + 8);
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
@@ -2513,7 +2509,7 @@ void* AddFunction(void* location) {
   }
   location = (void*)((uintptr_t)location + 1);
   commands_size--;
-  table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
+  /*table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
   commands_size -= 8;
   location = (void*)((uintptr_t)location + 8);
   table->pair.second.memory = location;
@@ -2528,7 +2524,7 @@ void* AddFunction(void* location) {
     commands_size -= table->pair.second.memory_size / 2;
     location =
         (void*)((uintptr_t)location + table->pair.second.memory_size / 2);
-  }
+  }*/
   table->pair.second.commands = location;
   table->pair.second.commands_size = commands_size;
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
@@ -2567,7 +2563,7 @@ int WIDE();
 int InvokeCustomFunction(const char* name, size_t return_value,
                          InternalObject args) {
   FuncInfo func_info = GetCustomFunction(name);
-  void* temp_memory = malloc(func_info.memory_size);
+  /*void* temp_memory = malloc(func_info.memory_size);
   void* temp_types = NULL;
   if (func_info.memory_size % 2 != 0) {
     temp_types = malloc(func_info.memory_size / 2 + 1);
@@ -2644,7 +2640,7 @@ int InvokeCustomFunction(const char* name, size_t return_value,
       default:
         break;
     }
-  }
+  }*/
 
   void* run_code = func_info.commands;
   size_t first, second, result, operand1, operand2, opcode, arg_count,
@@ -2769,7 +2765,7 @@ int InvokeCustomFunction(const char* name, size_t return_value,
         func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
         func_info.commands = GetUnknownCountParamentAndINVOKE(
             func_info.commands, &returnvalue, &arg_count);
-        memory = memory_info;
+        // memory = memory_info;
         break;
       case 0x15:
         func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
@@ -2792,7 +2788,7 @@ int InvokeCustomFunction(const char* name, size_t return_value,
         break;
     }
   }
-  if (GetType(memory, return_value) != 0x00) {
+  /*if (GetType(memory, return_value) != 0x00) {
     int8_t bytedata;
     int intdata;
     long longdata;
@@ -2850,7 +2846,7 @@ int InvokeCustomFunction(const char* name, size_t return_value,
   FreeMemory(memory_info);
   free(temp_types);
   free(temp_memory);
-  memory = NULL;
+  memory = NULL;*/
   return 0;
 }
 
