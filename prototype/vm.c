@@ -580,8 +580,9 @@ void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
                                        size_t* arg_count) {
   size_t func = 0;
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &func));
-  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, return_value));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, arg_count));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, return_value));
+  arg_count--;
   InternalObject args_obj = {*arg_count, NULL};
 
   size_t* args = malloc(*arg_count * sizeof(size_t));
@@ -1501,12 +1502,12 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-void* IF(void* ptr, size_t condition, size_t true_branche,
-         size_t false_branche) {
+int InvokeCustomFunction(const char* name);
+void IF(size_t condition, size_t true_branche, size_t false_branche) {
   if (GetByteData(condition) != 0) {
-    return (void*)((uintptr_t)ptr + GetLongData(true_branche));
+    InvokeCustomFunction((char*)GetPtrData(true_branche));
   } else {
-    return (void*)((uintptr_t)ptr + GetLongData(false_branche));
+    InvokeCustomFunction((char*)GetPtrData(false_branche));
   }
 }
 int AND(size_t result, size_t operand1, size_t operand2) {
@@ -2444,8 +2445,6 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int InvokeCustomFunction(const char* name, size_t return_value,
-                         InternalObject args);
 int INVOKE(const size_t* func, const size_t return_value,
            const InternalObject args) {
   func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
@@ -2454,11 +2453,11 @@ int INVOKE(const size_t* func, const size_t return_value,
     return 0;
   }
 
-  return InvokeCustomFunction((char*)GetPtrData(*func), return_value, args);
+  return InvokeCustomFunction((char*)GetPtrData(*func));
 }
 int RETURN() { return 0; }
-void* GOTO(void* ptr, size_t offset) {
-  return (void*)((uintptr_t)ptr + GetLongData(offset));
+FuncInfo GOTO(size_t label) {
+  return GetCustomFunction((char*)GetPtrData(label));
 }
 int THROW() { return 0; }
 int WIDE() { return 0; }
@@ -2557,11 +2556,10 @@ func_ptr GetFunction(const char* name) {
 }
 
 int RETURN();
-void* GOTO(void* ptr, size_t offset);
+FuncInfo GOTO(size_t offset);
 int THROW();
 int WIDE();
-int InvokeCustomFunction(const char* name, size_t return_value,
-                         InternalObject args) {
+int InvokeCustomFunction(const char* name) {
   FuncInfo func_info = GetCustomFunction(name);
   /*void* temp_memory = malloc(func_info.memory_size);
   void* temp_types = NULL;
@@ -2645,143 +2643,131 @@ int InvokeCustomFunction(const char* name, size_t return_value,
   void* run_code = func_info.commands;
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       returnvalue;
-  while (func_info.commands <
-         (void*)((uintptr_t)run_code + func_info.commands_size)) {
-    switch (*(uint8_t*)func_info.commands) {
+  while (run_code <
+         (void*)((uintptr_t)func_info.commands + func_info.commands_size)) {
+    switch (*(uint8_t*)run_code) {
       case 0x00:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        run_code = (void*)((uintptr_t)run_code + 1);
         NOP();
         break;
       case 0x01:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get2Parament(run_code, &first, &second);
         LOAD(first, second);
         break;
       case 0x02:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get2Parament(run_code, &first, &second);
         STORE(first, second);
         break;
       case 0x03:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get2Parament(run_code, &first, &second);
         NEW(first, second);
         break;
       case 0x04:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = Get1Parament(func_info.commands, &first);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get1Parament(run_code, &first);
         FREE(first);
         break;
       case 0x05:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = Get2Parament(func_info.commands, &first, &second);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get2Parament(run_code, &first, &second);
         PTR(first, second);
         break;
       case 0x06:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         ADD(result, operand1, operand2);
         break;
       case 0x07:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         SUB(result, operand1, operand2);
         break;
       case 0x08:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         MUL(result, operand1, operand2);
         break;
       case 0x09:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         DIV(result, operand1, operand2);
         break;
       case 0x0A:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         REM(result, operand1, operand2);
         break;
       case 0x0B:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get2Parament(func_info.commands, &result, &operand1);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get2Parament(run_code, &result, &operand1);
         NEG(result, operand1);
         break;
       case 0x0C:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         SHL(result, operand1, operand2);
         break;
       case 0x0D:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         SHR(result, operand1, operand2);
         break;
       case 0x0E:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         SAR(result, operand1, operand2);
         break;
       case 0x0F:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
-        IF(run_code, result, operand1, operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
+        IF(result, operand1, operand2);
         break;
       case 0x10:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         AND(result, operand1, operand2);
         break;
       case 0x11:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         OR(result, operand1, operand2);
         break;
       case 0x12:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands =
-            Get3Parament(func_info.commands, &result, &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
         XOR(result, operand1, operand2);
         break;
       case 0x13:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = Get4Parament(func_info.commands, &result, &opcode,
-                                          &operand1, &operand2);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code =
+            Get4Parament(run_code, &result, &opcode, &operand1, &operand2);
         CMP(result, opcode, operand1, operand2);
         break;
       case 0x14:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = GetUnknownCountParamentAndINVOKE(
-            func_info.commands, &returnvalue, &arg_count);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = GetUnknownCountParamentAndINVOKE(run_code, &returnvalue,
+                                                    &arg_count);
         // memory = memory_info;
         break;
       case 0x15:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        run_code = (void*)((uintptr_t)run_code + 1);
         RETURN();
         break;
       case 0x16:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
-        func_info.commands = Get1Parament(func_info.commands, &operand1);
-        func_info.commands = GOTO(run_code, operand1);
+        run_code = (void*)((uintptr_t)run_code + 1);
+        run_code = Get1Parament(run_code, &operand1);
+        func_info = GOTO(operand1);
+        run_code = func_info.commands;
         break;
       case 0x17:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        run_code = (void*)((uintptr_t)run_code + 1);
         THROW();
         break;
       case 0xFF:
-        func_info.commands = (void*)((uintptr_t)func_info.commands + 1);
+        run_code = (void*)((uintptr_t)run_code + 1);
         WIDE();
         break;
       default:
@@ -2890,7 +2876,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   printf("\nProgram started.\n");
 
-  InvokeCustomFunction("main", 0, (InternalObject){0, NULL});
+  InvokeCustomFunction("main");
 
   printf("\nProgram finished\n");
   FreeAllPtr();
