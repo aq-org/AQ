@@ -4228,6 +4228,8 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       } else {
         size_t false_name_index = global_memory_.Add(0x01, 3, "$0");
         size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
+        code.push_back(Bytecode(_AQVM_OPERATOR_PTR, false_name_index,
+                                false_name_ptr_index));
         code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
                                 true_name_ptr_index, false_name_ptr_index));
       }
