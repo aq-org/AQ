@@ -3941,10 +3941,17 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
              var_type->GetType() == Type::TypeType::kReference) {
     vm_type = 0x06;
   }
-  var_table_.Insert(
-      *var_decl->GetName(),
-      std::pair<VarDeclNode*, std::size_t>(
-          var_decl, global_memory_.Add(vm_type, var_type->GetSize())));
+  if (var_decl->GetValue().empty()) {
+    var_table_.Insert(
+        *var_decl->GetName(),
+        std::pair<VarDeclNode*, std::size_t>(
+            var_decl, global_memory_.Add(vm_type, var_type->GetSize())));
+  } else {
+    size_t var_index = global_memory_.Add(vm_type, var_type->GetSize());
+    size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
+    code.push_back(
+        Bytecode(_AQVM_OPERATOR_ADD, var_index, value_index, AddConstInt8t(0)));
+  }
 }
 
 void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
