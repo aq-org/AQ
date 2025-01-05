@@ -20,7 +20,7 @@
 #define _AQVM_OPERATOR_PTR 0x05
 #define _AQVM_OPERATOR_ADD 0x06
 #define _AQVM_OPERATOR_SUB 0x07
-#define _AQVM_OPERATOR_SUB 0x08
+#define _AQVM_OPERATOR_MUL 0x08
 #define _AQVM_OPERATOR_DIV 0x09
 #define _AQVM_OPERATOR_REM 0x0A
 #define _AQVM_OPERATOR_NEG 0x0B
@@ -1511,6 +1511,7 @@ class StmtNode {
     kVarDecl,
     kIf,
     kWhile,
+    kGoto,
     kValue,
     kIdentifier,
     kUnary,
@@ -2076,6 +2077,21 @@ class WhileNode : public StmtNode {
   StmtNode* body_;
 };
 
+class GotoNode : public StmtNode {
+ public:
+  GotoNode() { type_ = StmtType::kGoto; }
+  void SetGotoNode(IdentifierNode label) { label_ = label; }
+  virtual ~GotoNode() = default;
+
+  IdentifierNode GetLabel() { return label_; }
+
+  GotoNode(const GotoNode&) = default;
+  GotoNode& operator=(const GotoNode&) = default;
+
+ private:
+  IdentifierNode label_;
+};
+
 class CastNode : public ExprNode {
  public:
   CastNode() { type_ = StmtType::kCast; }
@@ -2592,6 +2608,16 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
             return nullptr;
           index++;
           result->SetWhileNode(condition, ParseStmt(token, length, index));
+          return result;
+        }
+        case Token::KeywordType::Goto: {
+          GotoNode* result = new GotoNode();
+          index++;
+          if (token[index].type != Token::Type::IDENTIFIER) return nullptr;
+          IdentifierNode label;
+          label.SetIdentifierNode(token[index]);
+          index++;
+          result->SetGotoNode(label);
           return result;
         }
         default:
@@ -4180,7 +4206,7 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       std::string true_name("$" + std::to_string(++undefined_name_count_));
       HandleStmt(dynamic_cast<IfNode*>(stmt)->GetBody(), true_code);
       func_list_.push_back(
-          std::pair<std::string, std::vector<Bytecode>>(true_name, code));
+          std::pair<std::string, std::vector<Bytecode>>(true_name, true_code));
       size_t true_name_index =
           global_memory_.Add(0x01, true_name.size() + 1, true_name.c_str());
       size_t true_name_ptr_index = global_memory_.Add(0x06, 8);
@@ -4207,9 +4233,27 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       }
       break;
     }
-    case StmtNode::StmtType::kWhile:
-      HandleStmt(dynamic_cast<WhileNode*>(stmt)->GetBody(), code);
+
+    case StmtNode::StmtType::kWhile: {
+      std::size_t condition_index =
+          HandleExpr(dynamic_cast<IfNode*>(stmt)->GetCondition(), code);
+      std::vector<Bytecode> body_code;
+      std::string body_name("$" + std::to_string(++undefined_name_count_));
+      HandleStmt(dynamic_cast<IfNode*>(stmt)->GetBody(), body_code);
+      func_list_.push_back(
+          std::pair<std::string, std::vector<Bytecode>>(body_name, body_code));
+      size_t body_name_index =
+          global_memory_.Add(0x01, body_name.size() + 1, body_name.c_str());
+      size_t body_name_ptr_index = global_memory_.Add(0x06, 8);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_PTR, body_name_index, body_name_ptr_index));
+      body_code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_name_ptr_index));
+      size_t void_name_index = global_memory_.Add(0x01, 3, "$0");
+      size_t void_name_ptr_index = global_memory_.Add(0x06, 8);
+      code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
+                              body_name_ptr_index, void_name_ptr_index));
       break;
+    }
 
     case StmtNode::StmtType::kFuncDecl:
       HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt));
