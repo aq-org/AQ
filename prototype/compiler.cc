@@ -3834,7 +3834,7 @@ class BytecodeGenerator {
   // enum class BytecodeType { kGlobal, KFunc, kCompound, kIf, kWhile, kFor };
   LexMap<FuncDeclNode> func_table_;
   LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
-  LexMap<ArrayDeclNode*> array_table_;
+  // LexMap<ArrayDeclNode*> array_table_;
   std::vector<std::pair<std::string, std::vector<Bytecode>>> func_list_;
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
@@ -3864,8 +3864,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         break;
 
       case StmtNode::StmtType::kArrayDecl:
-        HandleVarDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]),
-                      global_code_);
+        HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]),
+                        global_code_);
         break;
 
       default:
@@ -3937,7 +3937,6 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
         break;
     }
   } else if (var_type->GetType() == Type::TypeType::kPointer ||
-             var_type->GetType() == Type::TypeType::kArray ||
              var_type->GetType() == Type::TypeType::kReference) {
     vm_type = 0x06;
   }
@@ -3956,9 +3955,73 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 
 void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
                                         std::vector<Bytecode>& code) {
-  // TODO(BytecodeGenerator::HandleArrayDecl): Complete the function.
-  // std::cout << "BytecodeGenerator::HandleArrayDecl OK" << std::endl;
-  // array_table_.Insert(*array_decl->GetName(), array_decl);
+  Type* array_type = array_decl->GetVarType();
+  if (array_type->GetType() == Type::TypeType::kConst)
+    array_type = dynamic_cast<ConstType*>(array_type)->GetSubType();
+  uint8_t vm_type = 0x00;
+  if (array_type->GetType() == Type::TypeType::kBase) {
+    switch (array_type->GetBaseType()) {
+      case Type::BaseType::kVoid:
+        vm_type = 0x00;
+        break;
+      case Type::BaseType::kBool:
+      case Type::BaseType::kChar:
+        vm_type = 0x01;
+        break;
+      case Type::BaseType::kShort:
+      case Type::BaseType::kInt:
+        vm_type = 0x02;
+        break;
+      case Type::BaseType::kLong:
+        vm_type = 0x03;
+        break;
+      case Type::BaseType::kFloat:
+        vm_type = 0x04;
+        break;
+      case Type::BaseType::kDouble:
+        vm_type = 0x05;
+        break;
+      case Type::BaseType::kStruct:
+      case Type::BaseType::kUnion:
+      case Type::BaseType::kEnum:
+      case Type::BaseType::kPointer:
+      case Type::BaseType::kArray:
+      case Type::BaseType::kFunction:
+      case Type::BaseType::kTypedef:
+      case Type::BaseType::kAuto:
+        vm_type = 0x06;
+        break;
+      default:
+        vm_type = 0x00;
+        break;
+    }
+  } else if (array_type->GetType() == Type::TypeType::kPointer ||
+             array_type->GetType() == Type::TypeType::kArray ||
+             array_type->GetType() == Type::TypeType::kReference) {
+    vm_type = 0x06;
+  }
+  if (array_decl->GetValue().empty()) {
+    size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
+    size_t array_ptr_index = global_memory_.Add(0x06, 8);
+    code.push_back(Bytecode(_AQVM_OPERATOR_PTR, array_index, array_ptr_index));
+    var_table_.Insert(
+        *array_decl->GetName(),
+        std::pair<VarDeclNode*, std::size_t>(
+            dynamic_cast<VarDeclNode*>(array_decl), array_ptr_index));
+  } else {
+    size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
+    size_t array_ptr_index = global_memory_.Add(0x06, 8);
+    code.push_back(Bytecode(_AQVM_OPERATOR_PTR, array_index, array_ptr_index));
+    for (size_t i = 0; i < array_decl->GetValue().size(); i++) {
+      size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
+      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, array_index, value_index,
+                              AddConstInt8t(0)));
+    }
+    var_table_.Insert(
+        *array_decl->GetName(),
+        std::pair<VarDeclNode*, std::size_t>(
+            dynamic_cast<VarDeclNode*>(array_decl), array_ptr_index));
+  }
 }
 
 std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
