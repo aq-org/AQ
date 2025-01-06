@@ -4537,7 +4537,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     case BinaryNode::Operator::kMul: {  // *
       std::size_t result =
           global_memory_.Add(result_type, GetExprVmSize(result_type));
-      code.push_back(Bytecode(_AQVM_OPERATOR_SUB, result, left, right));
+      code.push_back(Bytecode(_AQVM_OPERATOR_MUL, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kDiv: {  // /
@@ -4635,7 +4635,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, left, left, right));
       return left;
     case BinaryNode::Operator::kMulAssign:  // *=
-      code.push_back(Bytecode(_AQVM_OPERATOR_SUB, left, left, right));
+      code.push_back(Bytecode(_AQVM_OPERATOR_MUL, left, left, right));
       return left;
     case BinaryNode::Operator::kDivAssign:  // /=
       code.push_back(Bytecode(_AQVM_OPERATOR_DIV, left, left, right));
@@ -4724,10 +4724,10 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
     case StmtNode::StmtType::kWhile: {
       std::cout << "kWhile" << std::endl;
       std::size_t condition_index =
-          HandleExpr(dynamic_cast<IfNode*>(stmt)->GetCondition(), code);
+          HandleExpr(dynamic_cast<WhileNode*>(stmt)->GetCondition(), code);
       std::vector<Bytecode> body_code;
       std::string body_name("$" + std::to_string(++undefined_name_count_));
-      HandleStmt(dynamic_cast<IfNode*>(stmt)->GetBody(), body_code);
+      HandleStmt(dynamic_cast<WhileNode*>(stmt)->GetBody(), body_code);
       func_list_.push_back(
           std::pair<std::string, std::vector<Bytecode>>(body_name, body_code));
       size_t body_name_index =
@@ -5848,7 +5848,8 @@ size_t BytecodeGenerator::EncodeUleb128(size_t value,
     if (value != 0) {
       byte |= 0x80;
     }
-    output[count++] = byte;
+    output.push_back(byte);
+    count++;
   } while (value != 0);
   return count;
 }
