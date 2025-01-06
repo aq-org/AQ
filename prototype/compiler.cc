@@ -3724,6 +3724,10 @@ class BytecodeGenerator {
       return index;
     }
 
+    size_t GetSize() { return all_size_; }
+    std::vector<uint8_t> GetMemory() { return memory_; }
+    std::vector<uint8_t> GetType() { return type_; }
+
    private:
     std::size_t all_size_ = 0;
     std::vector<uint8_t> memory_;
@@ -3732,7 +3736,7 @@ class BytecodeGenerator {
 
     void IsBigEndian() {
       uint16_t test_data = 0x0011;
-      is_big_endian = (*(uint8_t*)&test_data == 0x00);
+      is_big_endian = *(uint8_t*)&test_data == 0x00;
     }
 
     int SwapInt(int x) {
@@ -3812,6 +3816,9 @@ class BytecodeGenerator {
     }
     ~Bytecode() = default;
 
+    uint8_t GetOper() { return oper_; }
+    std::vector<std::size_t> GetArgs() { return arg_; }
+
    private:
     uint8_t oper_;
     std::vector<std::size_t> arg_;
@@ -3830,6 +3837,9 @@ class BytecodeGenerator {
   uint8_t GetExprVmType(ExprNode* expr);
   uint8_t GetExprPtrValueVmType(ExprNode* expr);
   std::size_t GetExprVmSize(uint8_t type);
+  uint64_t SwapUint64t(uint64_t x);
+  void InsertUint64ToCode(uint64_t value);
+  size_t EncodeUleb128(size_t value, std::vector<uint8_t>& output);
 
   // enum class BytecodeType { kGlobal, KFunc, kCompound, kIf, kWhile, kFor };
   LexMap<FuncDeclNode> func_table_;
@@ -3870,6 +3880,162 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 
       default:
         break;
+    }
+  }
+
+  code_.push_back(0x41);
+  code_.push_back(0x51);
+  code_.push_back(0x42);
+  code_.push_back(0x43);
+
+  size_t memory_size = global_memory_.GetSize() + global_memory_.GetSize() / 2;
+  if (global_memory_.GetSize() % 2 != 0) memory_size++;
+  uint16_t test_data = 0x0011;
+  bool is_big_endian = *(uint8_t*)&test_data == 0x00;
+  InsertUint64ToCode(is_big_endian ? memory_size : SwapUint64t(memory_size));
+  code_.insert(code_.end(), global_memory_.GetMemory().begin(),
+               global_memory_.GetMemory().end());
+  code_.insert(code_.end(), global_memory_.GetType().begin(),
+               global_memory_.GetType().end());
+
+  for (size_t i = 0; i < func_list_.size(); i++) {
+    size_t func_size = 0;
+    size_t func_size_index = code_.size();
+    code_.insert(code_.end(), 8, 0);
+    code_.insert(code_.end(), func_list_[i].first.c_str(),
+                 func_list_[i].first.c_str() + func_list_[i].first.size() + 1);
+    func_size += func_list_[i].first.size() + 1;
+
+    for (size_t j = 0; j < func_list_[i].second.size(); j++) {
+      std::vector<uint8_t> buffer;
+      switch (func_list_[i].second[j].GetOper()) {
+        case _AQVM_OPERATOR_NOP:
+          func_size++;
+          code_.push_back(_AQVM_OPERATOR_NOP);
+          break;
+
+        case _AQVM_OPERATOR_LOAD:
+          func_size++;
+          code_.push_back(_AQVM_OPERATOR_LOAD);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+          break;
+
+        case _AQVM_OPERATOR_STORE:
+          func_size++;
+          code_.push_back(_AQVM_OPERATOR_STORE);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+          break;
+
+        case _AQVM_OPERATOR_NEW:
+          code_.push_back(_AQVM_OPERATOR_NEW);
+          break;
+
+        case _AQVM_OPERATOR_FREE:
+          code_.push_back(_AQVM_OPERATOR_FREE);
+          break;
+
+        case _AQVM_OPERATOR_PTR:
+          code_.push_back(_AQVM_OPERATOR_PTR);
+          break;
+
+        case _AQVM_OPERATOR_ADD:
+          code_.push_back(_AQVM_OPERATOR_ADD);
+          break;
+
+        case _AQVM_OPERATOR_SUB:
+          code_.push_back(_AQVM_OPERATOR_SUB);
+          break;
+
+        case _AQVM_OPERATOR_MUL:
+          code_.push_back(_AQVM_OPERATOR_MUL);
+          break;
+
+        case _AQVM_OPERATOR_DIV:
+          code_.push_back(_AQVM_OPERATOR_DIV);
+          break;
+
+        case _AQVM_OPERATOR_REM:
+          code_.push_back(_AQVM_OPERATOR_REM);
+          break;
+
+        case _AQVM_OPERATOR_NEG:
+          code_.push_back(_AQVM_OPERATOR_NEG);
+          break;
+
+        case _AQVM_OPERATOR_SHL:
+          code_.push_back(_AQVM_OPERATOR_SHL);
+          break;
+
+        case _AQVM_OPERATOR_SHR:
+          code_.push_back(_AQVM_OPERATOR_SHR);
+          break;
+
+        case _AQVM_OPERATOR_SAR:
+          code_.push_back(_AQVM_OPERATOR_SAR);
+          break;
+
+        case _AQVM_OPERATOR_IF:
+          code_.push_back(_AQVM_OPERATOR_IF);
+          break;
+
+        case _AQVM_OPERATOR_AND:
+          code_.push_back(_AQVM_OPERATOR_AND);
+          break;
+
+        case _AQVM_OPERATOR_OR:
+          code_.push_back(_AQVM_OPERATOR_OR);
+          break;
+
+        case _AQVM_OPERATOR_XOR:
+          code_.push_back(_AQVM_OPERATOR_XOR);
+          break;
+
+        case _AQVM_OPERATOR_CMP:
+          code_.push_back(_AQVM_OPERATOR_CMP);
+          break;
+
+        case _AQVM_OPERATOR_INVOKE:
+          code_.push_back(_AQVM_OPERATOR_INVOKE);
+          break;
+
+        case _AQVM_OPERATOR_RETURN:
+          code_.push_back(_AQVM_OPERATOR_RETURN);
+          break;
+
+        case _AQVM_OPERATOR_GOTO:
+          code_.push_back(_AQVM_OPERATOR_GOTO);
+          break;
+
+        case _AQVM_OPERATOR_THROW:
+          code_.push_back(_AQVM_OPERATOR_THROW);
+          break;
+
+        case _AQVM_OPERATOR_WIDE:
+          code_.push_back(_AQVM_OPERATOR_WIDE);
+          break;
+
+        default:
+          break;
+      }
+      buffer.clear();
     }
   }
 }
@@ -5398,6 +5564,34 @@ std::size_t BytecodeGenerator::GetExprVmSize(uint8_t type) {
     default:
       return 0;
   }
+}
+uint64_t BytecodeGenerator::SwapUint64t(uint64_t x) {
+  x = ((x << 56) & 0xFF00000000000000ULL) |
+      ((x << 40) & 0x00FF000000000000ULL) |
+      ((x << 24) & 0x0000FF0000000000ULL) | ((x << 8) & 0x000000FF00000000ULL) |
+      ((x >> 8) & 0x00000000FF000000ULL) | ((x >> 24) & 0x0000000000FF0000ULL) |
+      ((x >> 40) & 0x000000000000FF00ULL) | ((x >> 56) & 0x00000000000000FFULL);
+  return x;
+}
+
+void BytecodeGenerator::InsertUint64ToCode(uint64_t value) {
+  for (int i = 0; i < 8; ++i) {
+    code_.push_back(static_cast<uint8_t>((value >> (i * 8)) & 0xFF));
+  }
+}
+
+size_t BytecodeGenerator::EncodeUleb128(size_t value,
+                                        std::vector<uint8_t>& output) {
+  size_t count = 0;
+  do {
+    uint8_t byte = value & 0x7F;
+    value >>= 7;
+    if (value != 0) {
+      byte |= 0x80;
+    }
+    output[count++] = byte;
+  } while (value != 0);
+  return count;
 }
 
 }  // namespace Compiler
