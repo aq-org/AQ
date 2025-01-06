@@ -3945,97 +3945,365 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           break;
 
         case _AQVM_OPERATOR_NEW:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_NEW);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_FREE:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_FREE);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_PTR:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_PTR);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_ADD:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_ADD);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SUB:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_SUB);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_MUL:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_MUL);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_DIV:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_DIV);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_REM:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_REM);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_NEG:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_NEG);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SHL:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_SHL);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SHR:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_SHR);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SAR:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_SAR);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_IF:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_IF);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_AND:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_AND);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_OR:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_OR);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_XOR:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_XOR);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_CMP:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_CMP);
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[3], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_INVOKE:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_INVOKE);
+
+          for (size_t i = 0; i < func_list_[i].second[j].GetArgs().size();
+               i++) {
+            func_size +=
+                EncodeUleb128(func_list_[i].second[j].GetArgs()[i], buffer);
+            code_.insert(code_.end(), buffer.begin(), buffer.end());
+            buffer.clear();
+          }
           break;
 
         case _AQVM_OPERATOR_RETURN:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_RETURN);
           break;
 
         case _AQVM_OPERATOR_GOTO:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_GOTO);
+
+          func_size +=
+              EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_THROW:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_THROW);
           break;
 
         case _AQVM_OPERATOR_WIDE:
+          func_size++;
           code_.push_back(_AQVM_OPERATOR_WIDE);
           break;
 
         default:
           break;
       }
-      buffer.clear();
     }
   }
 }
