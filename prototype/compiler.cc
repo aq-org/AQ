@@ -3563,21 +3563,21 @@ class BytecodeGenerator {
 
     std::size_t Add(uint8_t type, std::size_t size) {
       std::cout << "Add1" << std::endl;
-      std::size_t index = memory_.size() + 1;
-      type_.push_back(type);
-      memory_.resize(all_size_ + size);
-      all_size_ += size;
+      std::size_t index = memory_.size();
+      // type_.push_back(type);
+      // memory_.resize(all_size_ + size);
+      // all_size_ += size;
 
       if (type > 0x0F) return index;
 
       for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(0);
-          all_size_++;
+          // all_size_++;
           type_[type_.size()] = (type_[type_.size()] << 4) | type;
         } else {
           memory_.push_back(0);
-          all_size_ += 2;
+          // all_size_ += 2;
           type_.push_back(type);
         }
       }
@@ -3587,10 +3587,10 @@ class BytecodeGenerator {
 
     std::size_t Add(uint8_t type, std::size_t size, const void* data) {
       std::cout << "Add2" << std::endl;
-      std::size_t index = memory_.size() + 1;
-      type_.push_back(type);
-      memory_.resize(all_size_ + size);
-      all_size_ += size;
+      std::size_t index = memory_.size();
+      // type_.push_back(type);
+      // memory_.resize(all_size_ + size);
+      // all_size_ += size;
 
       if (type > 0x0F) return index;
 
@@ -3649,12 +3649,12 @@ class BytecodeGenerator {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
-          all_size_++;
+          // all_size_++;
           type_[type_.size()] = (type_[type_.size()] << 4) | type;
         } else {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
-          all_size_ += 2;
+          // all_size_ += 2;
           type_.push_back(type);
         }
       }
@@ -3666,7 +3666,7 @@ class BytecodeGenerator {
     std::vector<uint8_t> GetType() { return type_; }
 
    private:
-    std::size_t all_size_ = 0;
+    // std::size_t all_size_ = 0;
     std::vector<uint8_t> memory_;
     std::vector<uint8_t> type_;
     bool is_big_endian = false;
@@ -3795,7 +3795,7 @@ BytecodeGenerator::BytecodeGenerator() {
   func_list_.push_back(
       std::pair<std::string, std::vector<Bytecode>>("$0", code));
 
-  FuncNode* func = new FuncNode();
+  /*FuncNode* func = new FuncNode();
   Token token;
   std::string* name_ptr = new std::string("print");
   token.type = Token::Type::IDENTIFIER;
@@ -3813,7 +3813,7 @@ BytecodeGenerator::BytecodeGenerator() {
   FuncDeclNode* func_decl = new FuncDeclNode();
   Type* type = new Type();
   type->SetType(Type::BaseType::kInt);
-  func_decl->SetFuncDeclNode(type, func, nullptr);
+  func_decl->SetFuncDeclNode(type, func, nullptr);*/
 }
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
@@ -3851,11 +3851,30 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   uint16_t test_data = 0x0011;
   bool is_big_endian = *(uint8_t*)&test_data == 0x00;
   InsertUint64ToCode(is_big_endian ? memory_size : SwapUint64t(memory_size));
+  for (size_t i = 0; i < global_memory_.GetMemory().size(); i++) {
+    code_.push_back(global_memory_.GetMemory()[i]);
+  }
+  for (size_t i = 0; i < global_memory_.GetType().size(); i++) {
+    code_.push_back(global_memory_.GetType()[i]);
+  }
+  /*std::cout << "code_ size: " << code_.size() << std::endl;
+  std::cout << "global_memory_ size: " << global_memory_.GetSize() << std::endl;
   code_.insert(code_.end(), global_memory_.GetMemory().begin(),
                global_memory_.GetMemory().end());
-  code_.insert(code_.end(), global_memory_.GetType().begin(),
-               global_memory_.GetType().end());
+  std::cout << "code_ size: " << code_.size() << std::endl;
+  try {
+    std::cout << "code_ size: " << code_.size() << std::endl;
+    std::cout << "code_ capacity: " << code_.capacity() << std::endl;
+    std::cout << "global_memory_.GetType() size: "
+              << global_memory_.GetType().size() << std::endl;
 
+    code_.insert(code_.end(), global_memory_.GetType().begin(),
+                 global_memory_.GetType().end());
+  } catch (const std::bad_alloc& e) {
+    std::cerr << "Memory allocation failed during code insertion: " << e.what()
+              << std::endl;
+    return;
+  }*/
   for (size_t i = 0; i < func_list_.size(); i++) {
     size_t func_size = 0;
     size_t func_size_index = code_.size();
@@ -4770,22 +4789,30 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
                                                 std::vector<Bytecode>& code) {
+  std::cout << "BytecodeGenerator::HandleFuncInvoke OK" << std::endl;
   std::vector<ExprNode*> args = func->GetArgs();
   FuncDeclNode func_decl = func_table_.Find(*func->GetName());
 
+  std::cout << "func_decl OK" << std::endl;
+
   Type* func_type = func_decl.GetReturnType();
-  while (func_type->GetType() == Type::TypeType::kBase ||
-         func_type->GetType() == Type::TypeType::kPointer ||
-         func_type->GetType() == Type::TypeType::kArray ||
-         func_type->GetType() == Type::TypeType::kReference) {
-    switch (func_type->GetType()) {
-      case Type::TypeType::kConst:
-        func_type = dynamic_cast<ConstType*>(func_type)->GetSubType();
-        break;
-      default:
-        break;
-    }
+
+  if (func_type == nullptr) std::cout << "ERROR NULLPTR func_type" << std::endl;
+
+  std::cout << "return_type OK1" << std::endl;
+
+  while (func_type->GetType() != Type::TypeType::kBase &&
+         func_type->GetType() != Type::TypeType::kPointer &&
+         func_type->GetType() != Type::TypeType::kArray &&
+         func_type->GetType() != Type::TypeType::kReference) {
+    std::cout << "return_type OK1.5" << std::endl;
+    if (func_type->GetType() == Type::TypeType::NONE) break;
+    if (func_type->GetType() == Type::TypeType::kConst)
+      func_type = dynamic_cast<ConstType*>(func_type)->GetSubType();
   }
+
+  std::cout << "return_type OK2" << std::endl;
+
   uint8_t vm_type = 0x00;
   if (func_type->GetType() == Type::TypeType::kBase) {
     switch (func_type->GetBaseType()) {
@@ -4823,11 +4850,22 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
         vm_type = 0x00;
         break;
     }
+  } else if (func_type->GetType() == Type::TypeType::kPointer ||
+             func_type->GetType() == Type::TypeType::kArray ||
+             func_type->GetType() == Type::TypeType::kReference) {
+    vm_type = 0x06;
   }
 
+  std::cout << "vm_type OK" << std::endl;
+
   std::vector<std::size_t> vm_args;
-  vm_args.push_back(global_memory_.Add(vm_type, func_type->GetSize()));
-  vm_args.push_back(args.size());
+  vm_args.push_back(args.size() + 1);
+  // TODO(ERROR)
+  std::cout << "vm_type: " << vm_type << ", Size: " << func_type->GetSize()
+            << std::endl;
+  std::size_t return_value_index =
+      global_memory_.Add(vm_type, func_type->GetSize());
+  vm_args.push_back(return_value_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
     vm_args.push_back(HandleExpr(args[i], code));
@@ -4835,7 +4873,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, vm_args));
 
-  return vm_args[0];
+  return vm_args[1];
 }
 
 std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
