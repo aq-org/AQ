@@ -4244,10 +4244,13 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_INVOKE);
 
-          for (size_t i = 0; i < func_list_[i].second[j].GetArgs().size();
-               i++) {
+          std::cout << "Args size: " << func_list_[i].second[j].GetArgs().size()
+                    << std::endl;
+          for (size_t k = 0; k < func_list_[i].second[j].GetArgs().size();
+               k++) {
+            std::cout << "READ ARGS" << std::endl;
             func_size +=
-                EncodeUleb128(func_list_[i].second[j].GetArgs()[i], buffer);
+                EncodeUleb128(func_list_[i].second[j].GetArgs()[k], buffer);
             code_.insert(code_.end(), buffer.begin(), buffer.end());
             buffer.clear();
           }
@@ -4284,8 +4287,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
     }
     func_size = is_big_endian ? func_size : SwapUint64t(func_size);
     for (int i = 0; i < 8; i++) {
-      code_.insert(code_.begin() + func_size_index + i,
-                   static_cast<uint8_t>((func_size >> (i * 8)) & 0xFF));
+      /*code_.insert(code_.begin() + func_size_index + i,
+                   static_cast<uint8_t>((func_size >> (i * 8)) & 0xFF));*/
+      code_[func_size_index + i] =
+          static_cast<uint8_t>((func_size >> (i * 8)) & 0xFF);
     }
   }
 
