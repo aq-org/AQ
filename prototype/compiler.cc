@@ -2950,7 +2950,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               std::cout << "ARG ParsePrimaryExpr FUNC" << " \n"
                         << token[index] << std::endl
                         << std::endl;
-              args.push_back(ParseVarDecl(token, length, index));
+              args.push_back(ParseExpr(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
                   token[index].value._operator == Token::OperatorType::comma) {
                 index++;
@@ -3104,11 +3104,10 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
       if (full_expr == nullptr || preoper_expr == nullptr) {
         full_expr = main_expr = number_node;
       } else {
-        if (preoper_expr != nullptr)
-          dynamic_cast<UnaryNode*>(preoper_expr)
-              ->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                  number_node);
+        dynamic_cast<UnaryNode*>(preoper_expr)
+            ->SetUnaryNode(
+                dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                number_node);
         main_expr = number_node;
       }
       index++;
@@ -3130,6 +3129,7 @@ ExprNode* Parser::ParseExpr(Token* token, std::size_t length,
             << token[index] << std::endl
             << std::endl;
   if (index >= length) return nullptr;
+  if (IsDecl(token, length, index)) return ParseVarDecl(token, length, index);
   ExprNode* expr = ParsePrimaryExpr(token, length, index);
   expr = ParseBinaryExpr(token, length, index, expr, 0);
   std::cout << "END ParseExpr" << " \n"
@@ -3574,7 +3574,7 @@ class BytecodeGenerator {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(0);
           // all_size_++;
-          type_[type_.size()] = (type_[type_.size()] << 4) | type;
+          type_[type_.size()-1] = (type_[type_.size()-1] << 4) | type;
         } else {
           memory_.push_back(0);
           // all_size_ += 2;
@@ -3596,7 +3596,8 @@ class BytecodeGenerator {
 
       void* memory_data = malloc(size);
 
-      std::size_t read_index = 0;
+      std::memcpy(memory_data, data, size);
+      /*std::size_t read_index = 0;
       while (read_index < size) {
         switch (type) {
           case 0x01:
@@ -3643,14 +3644,14 @@ class BytecodeGenerator {
           default:
             return index;
         }
-      }
+      }*/
 
       for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
           // all_size_++;
-          type_[type_.size()] = (type_[type_.size()] << 4) | type;
+          type_[type_.size()-1] = (type_[type_.size()-1] << 4) | type;
         } else {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
@@ -3844,6 +3845,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   code_.push_back(0x51);
   code_.push_back(0x42);
   code_.push_back(0x43);
+
+  // Version
+  code_.push_back(0x00);
+  code_.push_back(0x00);
+  code_.push_back(0x00);
+  code_.push_back(0x00);
 
   size_t memory_size = global_memory_.GetSize();
   std::cout << "Memory Size: " << memory_size << std::endl;
@@ -4864,8 +4871,15 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   std::cout << "vm_type OK" << std::endl;
 
   std::vector<std::size_t> vm_args;
+
+  std::string func_name = std::string(*func->GetName());
+  std::size_t func_name_index =
+      global_memory_.Add(0x01, func_name.size() + 1, func_name.c_str());
+  std::size_t func_name_ptr_index = global_memory_.Add(0x06, 8);
+  code.push_back(Bytecode(_AQVM_OPERATOR_PTR, func_name_index,
+                          func_name_ptr_index));
+  vm_args.push_back(func_name_ptr_index);
   vm_args.push_back(args.size() + 1);
-  // TODO(ERROR)
   std::cout << "vm_type: " << vm_type << ", Size: " << func_type->GetSize()
             << std::endl;
   std::size_t return_value_index =
@@ -4878,7 +4892,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, vm_args));
 
-  return vm_args[1];
+  return vm_args[2];
 }
 
 std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
