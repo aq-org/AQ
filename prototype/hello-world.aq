@@ -1,0 +1,4 @@
+int print(char* str){}
+void main(){
+  print("Hello World!");
+}

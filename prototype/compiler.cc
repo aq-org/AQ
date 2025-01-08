@@ -4769,6 +4769,8 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       body_code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_name_ptr_index));
       size_t void_name_index = global_memory_.Add(0x01, 3, "$0");
       size_t void_name_ptr_index = global_memory_.Add(0x06, 8);
+      code.push_back(Bytecode(_AQVM_OPERATOR_PTR, void_name_index,
+                              void_name_ptr_index));
       code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
                               body_name_ptr_index, void_name_ptr_index));
       break;
