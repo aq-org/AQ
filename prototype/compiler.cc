@@ -3662,7 +3662,7 @@ class BytecodeGenerator {
       return index;
     }
 
-    size_t GetSize() { return memory_.size() + type_.size(); }
+    size_t GetSize() { return memory_.size(); }
     std::vector<uint8_t> GetMemory() { return memory_; }
     std::vector<uint8_t> GetType() { return type_; }
 
