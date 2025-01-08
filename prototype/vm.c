@@ -1059,12 +1059,12 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
                     GetUint64tData(operand1) / GetUint64tData(operand2));
         break;
       case 0x04:
-        SetFloatData(result,
-                     GetUint64tData(operand1) / GetUint64tData(operand2));
+        SetFloatData(result, (double)GetUint64tData(operand1) /
+                                 (double)GetUint64tData(operand2));
         break;
       case 0x05:
-        SetDoubleData(result,
-                      GetUint64tData(operand1) / GetUint64tData(operand2));
+        SetDoubleData(result, (double)GetUint64tData(operand1) /
+                                  (double)GetUint64tData(operand2));
         break;
       case 0x06:
         SetUint64tData(result,
@@ -2464,13 +2464,13 @@ int THROW() { return 0; }
 int WIDE() { return 0; }
 
 void print(InternalObject args, size_t return_value) {
-  SetIntData(return_value, printf((char*)GetPtrData(*args.index)));
+  SetIntData(return_value, printf("%s", (char*)GetPtrData(*args.index)));
 }
 
 unsigned int hash(const char* str) {
   unsigned long hash = 5381;
   int c;
-  while (c = *str++) {
+  while ((c = *str++)) {
     hash = ((hash << 5) + hash) + c;
   }
   return hash % 1024;
@@ -2495,7 +2495,7 @@ void* AddFunction(void* location) {
   void* origin_location = location;
   size_t all_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
-  printf("AddFunction Size: %lu\n", all_size);
+  printf("AddFunction Size: %zu\n", all_size);
   size_t commands_size = all_size;
   location = (void*)((uintptr_t)location + 8);
   struct FuncList* table = &func_table[hash(location)];
@@ -2886,7 +2886,7 @@ int main(int argc, char* argv[]) {
     bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2);
   }
 
-  printf("Memory size: %lu\n", *(uint8_t*)bytecode_file);
+  printf("Memory size: %hhu\n", *(uint8_t*)bytecode_file);
 
   while (bytecode_file < bytecode_end) {
     printf("AddFunction\n");
