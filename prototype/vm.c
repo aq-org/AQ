@@ -531,6 +531,7 @@ void SetUint64tData(size_t index, uint64_t value) {
 }
 
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
+  *result = 0;
   size_t shift = 0;
   size_t count = 0;
 
@@ -2492,8 +2493,10 @@ void InitializeNameTable(struct LinkedList* list) {
 
 void* AddFunction(void* location) {
   void* origin_location = location;
-  size_t all_size = SwapUint64t(*(uint64_t*)location);
-  size_t commands_size = all_size - 8;
+  size_t all_size =
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+  printf("AddFunction Size: %lu\n", all_size);
+  size_t commands_size = all_size;
   location = (void*)((uintptr_t)location + 8);
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
@@ -2502,6 +2505,7 @@ void* AddFunction(void* location) {
   table->pair.second.location = origin_location;
   table->pair.first = location;
   table->pair.second.name = location;
+  printf("AddFunction: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
     commands_size--;
@@ -2528,7 +2532,7 @@ void* AddFunction(void* location) {
   table->pair.second.commands_size = commands_size;
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
   AddFreePtr(table->next);
-  return (void*)((uintptr_t)location + all_size);
+  return (void*)((uintptr_t)origin_location + 8 + all_size);
 }
 
 FuncInfo GetCustomFunction(const char* name) {
@@ -2560,6 +2564,7 @@ FuncInfo GOTO(size_t offset);
 int THROW();
 int WIDE();
 int InvokeCustomFunction(const char* name) {
+  printf("InvokeCustomFunction: %s\n", name);
   FuncInfo func_info = GetCustomFunction(name);
   /*void* temp_memory = malloc(func_info.memory_size);
   void* temp_types = NULL;
@@ -2645,6 +2650,7 @@ int InvokeCustomFunction(const char* name) {
       returnvalue;
   while (run_code <
          (void*)((uintptr_t)func_info.commands + func_info.commands_size)) {
+    printf("0x%02X\n", *(uint8_t*)run_code);
     switch (*(uint8_t*)run_code) {
       case 0x00:
         run_code = (void*)((uintptr_t)run_code + 1);
@@ -2867,7 +2873,24 @@ int main(int argc, char* argv[]) {
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
+  memory = (struct Memory*)malloc(sizeof(struct Memory));
+  memory->size = is_big_endian ? *(uint64_t*)bytecode_file
+                               : SwapUint64t(*(uint64_t*)bytecode_file);
+  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+  memory->data = bytecode_file;
+  bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size);
+  memory->type = bytecode_file;
+  if (memory->size % 2 != 0) {
+    bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2 + 1);
+  } else {
+    bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2);
+  }
+
+  printf("Memory size: %lu\n", *(uint8_t*)bytecode_file);
+
   while (bytecode_file < bytecode_end) {
+    printf("AddFunction\n");
+
     bytecode_file = AddFunction(bytecode_file);
   }
 
