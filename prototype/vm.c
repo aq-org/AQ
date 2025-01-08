@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 typedef struct {
   size_t size;
@@ -70,6 +71,7 @@ bool is_big_endian;
 void AddFreePtr(void* ptr) {
   struct FreeList* new_free_list =
       (struct FreeList*)malloc(sizeof(struct FreeList));
+  if (new_free_list == NULL) return;
   new_free_list->ptr = ptr;
   new_free_list->next = free_list;
   free_list = new_free_list;
@@ -147,7 +149,7 @@ uint64_t SwapUint64t(uint64_t x) {
 
 struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   struct Memory* memory_ptr = (struct Memory*)malloc(sizeof(struct Memory));
-
+  if (memory_ptr == NULL) return NULL;
   memory_ptr->data = data;
   memory_ptr->type = type;
   memory_ptr->size = size;
@@ -189,22 +191,22 @@ int8_t GetByteData(size_t index) {
     case 0x01:
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
-      return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+      return (int8_t)is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
-      return is_big_endian
+      return (int8_t)is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
-      return is_big_endian
+      return (int8_t)is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
-      return is_big_endian
+      return (int8_t)is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
-      return is_big_endian
+      return (int8_t)is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
@@ -2544,7 +2546,7 @@ FuncInfo GetCustomFunction(const char* name) {
     }
     table = table->next;
   }
-  return (FuncInfo){NULL, NULL, 0, NULL, NULL, 0, NULL};
+  return (FuncInfo){NULL, NULL, 0, NULL};
 }
 
 func_ptr GetFunction(const char* name) {
