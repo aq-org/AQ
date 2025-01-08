@@ -97,8 +97,8 @@ class LexMap {
 
  private:
   struct Pair {
-    std::string key;
-    T value;
+    std::string key = std::string();
+    T value = T();
   };
 
   // A linked list of Pair type, used to resolve hash conflicts.
@@ -418,18 +418,21 @@ struct Token {
     OperatorType _operator;
     char character;
     std::string* string;
-
-    Value() {}
-    ~Value() {}
   };
 
   Type type = Type::START;
-  Value value;
+  Value value = Value();
 
   Token() = default;
   ~Token() = default;
 
-  Token(const Token& other) {
+  Token(const Token& other) = default;
+  Token(Token&& other) noexcept = default;
+
+  Token& operator=(const Token& other) = default;
+  Token& operator=(Token&& other) noexcept = default;
+
+  /*Token(const Token& other) {
     type = other.type;
     switch (type) {
       case Type::NUMBER:
@@ -535,7 +538,7 @@ struct Token {
     }
     other.type = Type::NONE;
     return *this;
-  }
+  }*/
 
   std::string TokenTypeToString(Token::Type type) {
     switch (type) {
@@ -1449,8 +1452,9 @@ class Type {
   };
 
   Type() {
-    type_ = TypeType::kBase;
+    type_ =TypeType::kBase;
     base_data_ = BaseType::NONE;
+    type_data_ = nullptr;
   }
   virtual void SetType(BaseType type) { base_data_ = type; }
   virtual ~Type() = default;
@@ -1749,6 +1753,7 @@ class ValueNode : public ExprNode {
 class UnaryNode : public ExprNode {
  public:
   enum class Operator {
+    NONE,
     kPostInc,
     kPostDec,
     kPreInc,
@@ -1763,7 +1768,11 @@ class UnaryNode : public ExprNode {
     CONVERT
   };
 
-  UnaryNode() { type_ = StmtType::kUnary; }
+  UnaryNode() {
+    type_ = StmtType::kUnary;
+    expr_ = nullptr;
+    op_ = Operator::NONE;
+  }
   void SetUnaryNode(Operator op, ExprNode* expr) {
     op_ = op;
     expr_ = expr;
@@ -1788,6 +1797,7 @@ class ArrayNode : public UnaryNode {
   ArrayNode() {
     type_ = StmtType::kArray;
     op_ = Operator::ARRAY;
+    index_ = nullptr;
   }
   void SetArrayNode(ExprNode* expr, ExprNode* index) {
     expr_ = expr;
@@ -1807,6 +1817,7 @@ class ConvertNode : public UnaryNode {
   ConvertNode() {
     type_ = StmtType::kConvert;
     op_ = Operator::CONVERT;
+    converted_type_ = nullptr;
   }
   void SetConvertNode(Type* type, ExprNode* expr) {
     converted_type_ = type;
@@ -1826,6 +1837,7 @@ class ConvertNode : public UnaryNode {
 class BinaryNode : public ExprNode {
  public:
   enum class Operator {
+    NONE,
     kAdd,        // +
     kSub,        // -
     kMul,        // *
@@ -1860,7 +1872,12 @@ class BinaryNode : public ExprNode {
     kPtrMemI,    // ->*
   };
 
-  BinaryNode() { type_ = StmtType::kBinary; }
+  BinaryNode() {
+    type_ = StmtType::kBinary;
+    left_ = nullptr;
+    op_ = Operator::NONE;
+    right_ = nullptr;
+  }
   void SetBinaryNode(Operator op, ExprNode* left, ExprNode* right) {
     op_ = op;
     left_ = left;
@@ -1884,7 +1901,12 @@ class BinaryNode : public ExprNode {
 
 class ConditionalNode : public ExprNode {
  public:
-  ConditionalNode() { type_ = StmtType::kConditional; }
+  ConditionalNode() {
+    type_ = StmtType::kConditional;
+    condition_ = nullptr;
+    false_expr_ = nullptr;
+    true_expr_ = nullptr;
+  }
   void SetConditionalNode(ExprNode* condition, ExprNode* true_expr,
                           ExprNode* false_expr) {
     condition_ = condition;
@@ -1907,7 +1929,10 @@ class ConditionalNode : public ExprNode {
 
 class FuncNode : public ExprNode {
  public:
-  FuncNode() { type_ = StmtType::kFunc; }
+  FuncNode() {
+    type_ = StmtType::kFunc;
+    name_ = nullptr;
+  }
   void SetFuncNode(ExprNode* name, std::vector<ExprNode*> args) {
     name_ = name;
     args_ = args;
@@ -1954,7 +1979,11 @@ class DeclNode : public StmtNode {
 
 class VarDeclNode : public DeclNode, public ExprNode {
  public:
-  VarDeclNode() { DeclNode::type_ = StmtType::kVarDecl; }
+  VarDeclNode() {
+    DeclNode::type_ = StmtType::kVarDecl;
+    name_ = nullptr;
+    var_type_ = nullptr;
+  }
   void SetVarDeclNode(Type* type, ExprNode* name) {
     var_type_ = type;
     name_ = name;
@@ -1983,7 +2012,10 @@ class VarDeclNode : public DeclNode, public ExprNode {
 
 class ArrayDeclNode : public VarDeclNode {
  public:
-  ArrayDeclNode() { DeclNode::type_ = StmtType::kArrayDecl; }
+  ArrayDeclNode() {
+    DeclNode::type_ = StmtType::kArrayDecl;
+    size_ = nullptr;
+  }
   void SetArrayDeclNode(Type* type, ExprNode* name, ExprNode* size) {
     var_type_ = type;
     name_ = name;
@@ -2009,7 +2041,12 @@ class ArrayDeclNode : public VarDeclNode {
 
 class FuncDeclNode : public DeclNode {
  public:
-  FuncDeclNode() { type_ = StmtType::kFuncDecl; }
+  FuncDeclNode() {
+    type_ = StmtType::kFuncDecl;
+    return_type_ = nullptr;
+    stat_ = nullptr;
+    stmts_ = nullptr;
+  }
   void SetFuncDeclNode(Type* type, FuncNode* stat, CompoundNode* stmts) {
     return_type_ = type;
     stat_ = stat;
@@ -2032,7 +2069,12 @@ class FuncDeclNode : public DeclNode {
 
 class IfNode : public StmtNode {
  public:
-  IfNode() { type_ = StmtType::kIf; }
+  IfNode() {
+    type_ = StmtType::kIf;
+    body_ = nullptr;
+    condition_ = nullptr;
+    else_body_ = nullptr;
+  }
   void SetIfNode(ExprNode* condition, StmtNode* body) {
     condition_ = condition;
     body_ = body;
@@ -2059,7 +2101,11 @@ class IfNode : public StmtNode {
 
 class WhileNode : public StmtNode {
  public:
-  WhileNode() { type_ = StmtType::kWhile; }
+  WhileNode() {
+    type_ = StmtType::kWhile;
+    body_ = nullptr;
+    condition_ = nullptr;
+  }
   virtual ~WhileNode() = default;
 
   void SetWhileNode(ExprNode* condition, StmtNode* body) {
@@ -2095,7 +2141,11 @@ class GotoNode : public StmtNode {
 
 class CastNode : public ExprNode {
  public:
-  CastNode() { type_ = StmtType::kCast; }
+  CastNode() {
+    type_ = StmtType::kCast;
+    cast_type_ = nullptr;
+    expr_=nullptr;
+  }
   void SetCastNode(Type* type, ExprNode* expr) {
     cast_type_ = type;
     expr_ = expr;
@@ -2181,7 +2231,10 @@ class PointerType : public Type {
 
 class ArrayType : public Type {
  public:
-  ArrayType() { type_ = TypeType::kArray; }
+  ArrayType() {
+    type_ = TypeType::kArray;
+    size_ = nullptr;
+  }
   void SetSubType(Type* type, ExprNode* size) {
     type_ = TypeType::kArray;
     type_data_ = type;
@@ -3596,6 +3649,7 @@ class BytecodeGenerator {
 
       void* memory_data = malloc(size);
 
+      if (memory_data == nullptr) return 0;
       std::memcpy(memory_data, data, size);
       /*std::size_t read_index = 0;
       while (read_index < size) {
