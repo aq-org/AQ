@@ -1452,7 +1452,7 @@ class Type {
   };
 
   Type() {
-    type_ =TypeType::kBase;
+    type_ = TypeType::kBase;
     base_data_ = BaseType::NONE;
     type_data_ = nullptr;
   }
@@ -2144,7 +2144,7 @@ class CastNode : public ExprNode {
   CastNode() {
     type_ = StmtType::kCast;
     cast_type_ = nullptr;
-    expr_=nullptr;
+    expr_ = nullptr;
   }
   void SetCastNode(Type* type, ExprNode* expr) {
     cast_type_ = type;
@@ -3627,7 +3627,7 @@ class BytecodeGenerator {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(0);
           // all_size_++;
-          type_[type_.size()-1] = (type_[type_.size()-1] << 4) | type;
+          type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
         } else {
           memory_.push_back(0);
           // all_size_ += 2;
@@ -3705,7 +3705,7 @@ class BytecodeGenerator {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
           // all_size_++;
-          type_[type_.size()-1] = (type_[type_.size()-1] << 4) | type;
+          type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
         } else {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
@@ -4772,27 +4772,32 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       std::cout << "kIf" << std::endl;
       std::size_t condition_index =
           HandleExpr(dynamic_cast<IfNode*>(stmt)->GetCondition(), code);
-      std::vector<Bytecode> true_code;
+
       std::string true_name("$" + std::to_string(++undefined_name_count_));
+      std::vector<Bytecode> true_code;
       HandleStmt(dynamic_cast<IfNode*>(stmt)->GetBody(), true_code);
       func_list_.push_back(
           std::pair<std::string, std::vector<Bytecode>>(true_name, true_code));
+
       size_t true_name_index =
           global_memory_.Add(0x01, true_name.size() + 1, true_name.c_str());
       size_t true_name_ptr_index = global_memory_.Add(0x06, 8);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_PTR, true_name_index, true_name_ptr_index));
+
       if (dynamic_cast<IfNode*>(stmt)->GetElseBody() != nullptr) {
         std::string false_name("$" + std::to_string(++undefined_name_count_));
         std::vector<Bytecode> false_code;
         HandleStmt(dynamic_cast<IfNode*>(stmt)->GetElseBody(), false_code);
         func_list_.push_back(std::pair<std::string, std::vector<Bytecode>>(
             false_name, false_code));
+
         size_t false_name_index =
             global_memory_.Add(0x01, false_name.size() + 1, false_name.c_str());
         size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
         code.push_back(Bytecode(_AQVM_OPERATOR_PTR, false_name_index,
                                 false_name_ptr_index));
+
         code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
                                 true_name_ptr_index, false_name_ptr_index));
       } else {
@@ -4800,6 +4805,7 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
         size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
         code.push_back(Bytecode(_AQVM_OPERATOR_PTR, false_name_index,
                                 false_name_ptr_index));
+
         code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
                                 true_name_ptr_index, false_name_ptr_index));
       }
@@ -4810,23 +4816,30 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       std::cout << "kWhile" << std::endl;
       std::size_t condition_index =
           HandleExpr(dynamic_cast<WhileNode*>(stmt)->GetCondition(), code);
-      std::vector<Bytecode> body_code;
+
       std::string body_name("$" + std::to_string(++undefined_name_count_));
-      HandleStmt(dynamic_cast<WhileNode*>(stmt)->GetBody(), body_code);
-      func_list_.push_back(
-          std::pair<std::string, std::vector<Bytecode>>(body_name, body_code));
       size_t body_name_index =
           global_memory_.Add(0x01, body_name.size() + 1, body_name.c_str());
       size_t body_name_ptr_index = global_memory_.Add(0x06, 8);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_PTR, body_name_index, body_name_ptr_index));
-      body_code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_name_ptr_index));
+
       size_t void_name_index = global_memory_.Add(0x01, 3, "$0");
       size_t void_name_ptr_index = global_memory_.Add(0x06, 8);
-      code.push_back(Bytecode(_AQVM_OPERATOR_PTR, void_name_index,
-                              void_name_ptr_index));
-      code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
-                              body_name_ptr_index, void_name_ptr_index));
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_PTR, void_name_index, void_name_ptr_index));
+
+      std::vector<Bytecode> body_code;
+      body_code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
+                                   body_name_ptr_index, void_name_ptr_index));
+      HandleStmt(dynamic_cast<WhileNode*>(stmt)->GetBody(), body_code);
+
+      body_code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_name_ptr_index));
+
+      func_list_.push_back(
+          std::pair<std::string, std::vector<Bytecode>>(body_name, body_code));
+
+      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, body_name_ptr_index));
       break;
     }
 
@@ -4932,8 +4945,8 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   std::size_t func_name_index =
       global_memory_.Add(0x01, func_name.size() + 1, func_name.c_str());
   std::size_t func_name_ptr_index = global_memory_.Add(0x06, 8);
-  code.push_back(Bytecode(_AQVM_OPERATOR_PTR, func_name_index,
-                          func_name_ptr_index));
+  code.push_back(
+      Bytecode(_AQVM_OPERATOR_PTR, func_name_index, func_name_ptr_index));
   vm_args.push_back(func_name_ptr_index);
   vm_args.push_back(args.size() + 1);
   std::cout << "vm_type: " << vm_type << ", Size: " << func_type->GetSize()
