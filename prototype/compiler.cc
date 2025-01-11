@@ -44,10 +44,6 @@ inline void EXIT_COMPILER(const char* func_name, const char* message) {
   exit(-1);
 }
 
-inline void DEBUG_OUTPUT(const char* func_name, const char* message) {
-  std::cerr << func_name << ": " << message << std::endl;
-}
-
 namespace Aq {
 namespace Compiler {
 // A hash table for the lexer. Used to find special definitions such as compiler
@@ -2287,9 +2283,6 @@ class ReferenceType : public Type {
 };
 
 Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
-  DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-               "Enter the func.");
-
   if (token == nullptr)
     EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                   "token is nullptr.");
@@ -2299,13 +2292,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
 
   Type* type = nullptr;
   while (index < length) {
-    DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                 "Enter while loop.");
-
     if (token[index].type == Token::Type::KEYWORD) {
-      DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                   "Enter if(token[index].type == Token::Type::KEYWORD).");
-
       switch (token[index].value.keyword) {
         case Token::KeywordType::Const: {
           ConstType* const_type = new ConstType();
@@ -2315,69 +2302,44 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
 
           if (index + 1 < length &&
               token[index + 1].type == Token::Type::KEYWORD) {
-            DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                         "Enter if (index + 1 < length && token[index + "
-                         "1].type == Token::Type::KEYWORD).");
             index++;
             switch (token[index].value.keyword) {
               case Token::KeywordType::Void:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Void.");
                 type->SetType(Type::BaseType::kVoid);
                 break;
+
               case Token::KeywordType::Bool:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Bool.");
                 type->SetType(Type::BaseType::kBool);
                 break;
+
               case Token::KeywordType::Char:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Char.");
                 type->SetType(Type::BaseType::kChar);
                 break;
               case Token::KeywordType::Short:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Short.");
                 type->SetType(Type::BaseType::kShort);
                 break;
+
               case Token::KeywordType::Int:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Int.");
                 type->SetType(Type::BaseType::kInt);
                 break;
+
               case Token::KeywordType::Long:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Long.");
                 type->SetType(Type::BaseType::kLong);
                 break;
+
               case Token::KeywordType::Float:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Float.");
                 type->SetType(Type::BaseType::kFloat);
                 break;
+
               case Token::KeywordType::Double:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Double.");
                 type->SetType(Type::BaseType::kDouble);
                 break;
+
               case Token::KeywordType::Auto:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case Token::KeywordType::Auto.");
                 type->SetType(Type::BaseType::kAuto);
                 break;
+
               default:
-                DEBUG_OUTPUT(
-                    "Type::CreateType(Token*,std::size_t,std::size_t&)",
-                    "Enter case default.");
                 break;
             }
           }
@@ -2391,92 +2353,75 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
           break;
         }
         case Token::KeywordType::Void:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Void.");
           type = new Type();
           type->SetType(Type::BaseType::kVoid);
           break;
+
         case Token::KeywordType::Bool:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Bool.");
           type = new Type();
           type->SetType(Type::BaseType::kBool);
           break;
+
         case Token::KeywordType::Char:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Char.");
           type = new Type();
           type->SetType(Type::BaseType::kChar);
           break;
+
         case Token::KeywordType::Short:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Short.");
           type = new Type();
           type->SetType(Type::BaseType::kShort);
           break;
+
         case Token::KeywordType::Int:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Int.");
           type = new Type();
           type->SetType(Type::BaseType::kInt);
           break;
+
         case Token::KeywordType::Long:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Long.");
           type = new Type();
           type->SetType(Type::BaseType::kLong);
           break;
+
         case Token::KeywordType::Float:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Float.");
           type = new Type();
           type->SetType(Type::BaseType::kFloat);
           break;
+
         case Token::KeywordType::Double:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Double.");
           type = new Type();
           type->SetType(Type::BaseType::kDouble);
           break;
+
         case Token::KeywordType::Struct:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Struct.");
           type = new Type();
           type->SetType(Type::BaseType::kStruct);
           return type;
+
         case Token::KeywordType::Union:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Union.");
           type = new Type();
           type->SetType(Type::BaseType::kUnion);
           return type;
+
         case Token::KeywordType::Enum:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Enum.");
           type = new Type();
           type->SetType(Type::BaseType::kEnum);
           return type;
+
         case Token::KeywordType::Auto:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::KeywordType::Auto.");
           type = new Type();
           type->SetType(Type::BaseType::kAuto);
           break;
+
         default:
           return type;
       }
     } else if (token[index].type == Token::Type::OPERATOR) {
-      DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                   "Enter if(token[index].type == Token::Type::OPERATOR).");
-
       if (type == nullptr)
         EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                       "type is nullptr.");
 
       switch (token[index].value._operator) {
         case Token::OperatorType::star: {
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::OperatorType::star.");
           PointerType* pointer_type = new PointerType();
           pointer_type->SetSubType(type);
           type = pointer_type;
@@ -2484,8 +2429,6 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
         }
 
         case Token::OperatorType::amp: {
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::OperatorType::amp.");
           ReferenceType* reference_type = new ReferenceType();
           reference_type->SetSubType(type);
           type = reference_type;
@@ -2493,14 +2436,9 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
         }
 
         default:
-          DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                       "Enter case Token::OperatorType::default.");
           return type;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
-      DEBUG_OUTPUT("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                   "Enter if(token[index].type == Token::Type::IDENTIFIER).");
-
       std::size_t index_temp = index;
       ExprNode* temp_expr = Parser::ParsePrimaryExpr(token, length, index_temp);
       if (temp_expr == nullptr)
@@ -2508,9 +2446,6 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
                       "ParsePrimaryExpr return nullptr.");
 
       if (temp_expr->GetType() == StmtNode::StmtType::kArray) {
-        DEBUG_OUTPUT(
-            "Type::CreateType(Token*,std::size_t,std::size_t&)",
-            "Enter if (temp_expr->GetType() == StmtNode::StmtType::kArray).");
         ArrayType* array_type = new ArrayType();
         array_type->SetSubType(type,
                                dynamic_cast<ArrayNode*>(temp_expr)->GetIndex());
@@ -2533,8 +2468,6 @@ Parser::Parser() = default;
 Parser::~Parser() = default;
 
 CompoundNode* Parser::Parse(std::vector<Token> token) {
-  DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)", "Enter the func.");
-
   Token* token_ptr = token.data();
   std::size_t index = 0;
   std::size_t length = token.size();
@@ -2542,19 +2475,10 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   std::vector<StmtNode*> stmts;
 
   while (index < token.size()) {
-    DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)",
-                 "Enter while (index < token.size()).");
     if (IsDecl(token_ptr, length, index)) {
-      DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)",
-                   "Enter if (IsDecl(token_ptr, length, index)).");
       if (IsFuncDecl(token_ptr, length, index)) {
-        DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)",
-                     "Enter if (IsFuncDecl(token_ptr, length, index)).");
         stmts.push_back(ParseFuncDecl(token_ptr, length, index));
       } else {
-        DEBUG_OUTPUT(
-            "Parser::Parse(std::vector<Token>)",
-            "Enter if (IsDecl(token_ptr, length, index)) else. (VarDecl)");
         stmts.push_back(
             dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
         if (token_ptr[index].type != Token::Type::OPERATOR ||
@@ -2565,6 +2489,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
         index++;
       }
     } else {
+      std::cout << token[index] << std::endl;
       EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "Unexpected code.");
     }
   }
@@ -2575,11 +2500,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
 }
 
 bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
-  DEBUG_OUTPUT("Parser::IsDecl(Token*,std::size_t,std::size_t)",
-               "Enter the func.");
   if (token[index].type == Token::Type::KEYWORD) {
-    DEBUG_OUTPUT("Parser::IsDecl(Token*,std::size_t,std::size_t)",
-                 "Enter if (token[index].type == Token::Type::KEYWORD).");
     if (token[index].value.keyword == Token::KeywordType::Auto ||
         token[index].value.keyword == Token::KeywordType::Bool ||
         token[index].value.keyword == Token::KeywordType::Char ||
@@ -2606,64 +2527,8 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
         token[index].value.keyword == Token::KeywordType::Unsigned ||
         token[index].value.keyword == Token::KeywordType::Virtual ||
         token[index].value.keyword == Token::KeywordType::Wchar_t) {
-      DEBUG_OUTPUT(
-          "Parser::IsDecl(Token*,std::size_t,std::size_t)",
-          "Enter if (token[index].value.keyword == Token::KeywordType::Auto || "
-          "token[index].value.keyword == Token::KeywordType::Bool || "
-          "token[index].value.keyword == Token::KeywordType::Char || "
-          "token[index].value.keyword == Token::KeywordType::Double || "
-          "token[index].value.keyword == Token::KeywordType::Float || "
-          "token[index].value.keyword == Token::KeywordType::Int || "
-          "token[index].value.keyword == Token::KeywordType::Long || "
-          "token[index].value.keyword == Token::KeywordType::Void || "
-          "token[index].value.keyword == Token::KeywordType::String || "
-          "token[index].value.keyword == Token::KeywordType::Struct || "
-          "token[index].value.keyword == Token::KeywordType::Union || "
-          "token[index].value.keyword == Token::KeywordType::Enum || "
-          "token[index].value.keyword == Token::KeywordType::Namespace || "
-          "token[index].value.keyword == Token::KeywordType::Template || "
-          "token[index].value.keyword == Token::KeywordType::Typedef || "
-          "token[index].value.keyword == Token::KeywordType::Extern || "
-          "token[index].value.keyword == Token::KeywordType::Class || "
-          "token[index].value.keyword == Token::KeywordType::Const || "
-          "token[index].value.keyword == Token::KeywordType::Friend || "
-          "token[index].value.keyword == Token::KeywordType::Inline || "
-          "token[index].value.keyword == Token::KeywordType::Number || "
-          "token[index].value.keyword == Token::KeywordType::Short || "
-          "token[index].value.keyword == Token::KeywordType::Signed || "
-          "token[index].value.keyword == Token::KeywordType::Unsigned || "
-          "token[index].value.keyword == Token::KeywordType::Virtual || "
-          "token[index].value.keyword == Token::KeywordType::Wchar_t).");
       return true;
     } else {
-      DEBUG_OUTPUT(
-          "Parser::IsDecl(Token*,std::size_t,std::size_t)",
-          "Enter if (token[index].value.keyword == Token::KeywordType::Auto || "
-          "token[index].value.keyword == Token::KeywordType::Bool || "
-          "token[index].value.keyword == Token::KeywordType::Char || "
-          "token[index].value.keyword == Token::KeywordType::Double || "
-          "token[index].value.keyword == Token::KeywordType::Float || "
-          "token[index].value.keyword == Token::KeywordType::Int || "
-          "token[index].value.keyword == Token::KeywordType::Long || "
-          "token[index].value.keyword == Token::KeywordType::Void || "
-          "token[index].value.keyword == Token::KeywordType::String || "
-          "token[index].value.keyword == Token::KeywordType::Struct || "
-          "token[index].value.keyword == Token::KeywordType::Union || "
-          "token[index].value.keyword == Token::KeywordType::Enum || "
-          "token[index].value.keyword == Token::KeywordType::Namespace || "
-          "token[index].value.keyword == Token::KeywordType::Template || "
-          "token[index].value.keyword == Token::KeywordType::Typedef || "
-          "token[index].value.keyword == Token::KeywordType::Extern || "
-          "token[index].value.keyword == Token::KeywordType::Class || "
-          "token[index].value.keyword == Token::KeywordType::Const || "
-          "token[index].value.keyword == Token::KeywordType::Friend || "
-          "token[index].value.keyword == Token::KeywordType::Inline || "
-          "token[index].value.keyword == Token::KeywordType::Number || "
-          "token[index].value.keyword == Token::KeywordType::Short || "
-          "token[index].value.keyword == Token::KeywordType::Signed || "
-          "token[index].value.keyword == Token::KeywordType::Unsigned || "
-          "token[index].value.keyword == Token::KeywordType::Virtual || "
-          "token[index].value.keyword == Token::KeywordType::Wchar_t) else.");
       return false;
     }
   } else if ((token[index].type == Token::Type::IDENTIFIER &&
@@ -2677,16 +2542,6 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
               token[index + 2].type == Token::Type::IDENTIFIER)) {
     // TODO: Change the processing logic of custom types and add support of
     // custom types.
-    DEBUG_OUTPUT(
-        "Parser::IsDecl(Token*,std::size_t,std::size_t)",
-        "Enter if ((token[index].type == Token::Type::IDENTIFIER && "
-        "token[index + 1].type == Token::Type::IDENTIFIER) || "
-        "(token[index].type == Token::Type::IDENTIFIER && token[index + "
-        "1].type == Token::Type::OPERATOR && (token[index + 1].value._operator "
-        "== Token::OperatorType::star || token[index + 1].value._operator == "
-        "Token::OperatorType::amp || token[index + 1].value._operator == "
-        "Token::OperatorType::ampamp) && token[index + 2].type == "
-        "Token::Type::IDENTIFIER)).");
     return true;
   }
 
