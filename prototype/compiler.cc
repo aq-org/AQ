@@ -2533,48 +2533,53 @@ Parser::Parser() = default;
 Parser::~Parser() = default;
 
 CompoundNode* Parser::Parse(std::vector<Token> token) {
+  DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)", "Enter the func.");
+
   Token* token_ptr = token.data();
   std::size_t index = 0;
   std::size_t length = token.size();
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
+
   while (index < token.size()) {
-    std::cout << "index: " << index << ", size: " << token.size() << " \n"
-              << token[index] << std::endl
-              << std::endl;
+    DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)",
+                 "Enter while (index < token.size()).");
     if (IsDecl(token_ptr, length, index)) {
+      DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)",
+                   "Enter if (IsDecl(token_ptr, length, index)).");
       if (IsFuncDecl(token_ptr, length, index)) {
+        DEBUG_OUTPUT("Parser::Parse(std::vector<Token>)",
+                     "Enter if (IsFuncDecl(token_ptr, length, index)).");
         stmts.push_back(ParseFuncDecl(token_ptr, length, index));
       } else {
-        std::cout << "VarDecl" << " \n"
-                  << token[index] << std::endl
-                  << std::endl;
+        DEBUG_OUTPUT(
+            "Parser::Parse(std::vector<Token>)",
+            "Enter if (IsDecl(token_ptr, length, index)) else. (VarDecl)");
         stmts.push_back(
             dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
         if (token_ptr[index].type != Token::Type::OPERATOR ||
             token_ptr[index].value._operator != Token::OperatorType::semi) {
-          std::cout << "Error" << " \n"
-                    << token[index] << std::endl
-                    << std::endl;
+          EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "not found semi.");
           return nullptr;
         }
         index++;
       }
     } else {
-      // ERROR
-      index++;
+      EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "Unexpected code.");
     }
   }
+
   ast = new CompoundNode();
   ast->SetCompoundNode(stmts);
   return ast;
 }
 
 bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
-  std::cout << "RUN Parser::IsDecl" << " \n"
-            << token[index] << std::endl
-            << std::endl;
+  DEBUG_OUTPUT("Parser::IsDecl(Token*,std::size_t,std::size_t)",
+               "Enter the func.");
   if (token[index].type == Token::Type::KEYWORD) {
+    DEBUG_OUTPUT("Parser::IsDecl(Token*,std::size_t,std::size_t)",
+                 "Enter if (token[index].type == Token::Type::KEYWORD).");
     if (token[index].value.keyword == Token::KeywordType::Auto ||
         token[index].value.keyword == Token::KeywordType::Bool ||
         token[index].value.keyword == Token::KeywordType::Char ||
@@ -2601,14 +2606,64 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
         token[index].value.keyword == Token::KeywordType::Unsigned ||
         token[index].value.keyword == Token::KeywordType::Virtual ||
         token[index].value.keyword == Token::KeywordType::Wchar_t) {
-      std::cout << "RETURN TRUE Parser::IsDecl 1" << " \n"
-                << token[index] << std::endl
-                << std::endl;
+      DEBUG_OUTPUT(
+          "Parser::IsDecl(Token*,std::size_t,std::size_t)",
+          "Enter if (token[index].value.keyword == Token::KeywordType::Auto || "
+          "token[index].value.keyword == Token::KeywordType::Bool || "
+          "token[index].value.keyword == Token::KeywordType::Char || "
+          "token[index].value.keyword == Token::KeywordType::Double || "
+          "token[index].value.keyword == Token::KeywordType::Float || "
+          "token[index].value.keyword == Token::KeywordType::Int || "
+          "token[index].value.keyword == Token::KeywordType::Long || "
+          "token[index].value.keyword == Token::KeywordType::Void || "
+          "token[index].value.keyword == Token::KeywordType::String || "
+          "token[index].value.keyword == Token::KeywordType::Struct || "
+          "token[index].value.keyword == Token::KeywordType::Union || "
+          "token[index].value.keyword == Token::KeywordType::Enum || "
+          "token[index].value.keyword == Token::KeywordType::Namespace || "
+          "token[index].value.keyword == Token::KeywordType::Template || "
+          "token[index].value.keyword == Token::KeywordType::Typedef || "
+          "token[index].value.keyword == Token::KeywordType::Extern || "
+          "token[index].value.keyword == Token::KeywordType::Class || "
+          "token[index].value.keyword == Token::KeywordType::Const || "
+          "token[index].value.keyword == Token::KeywordType::Friend || "
+          "token[index].value.keyword == Token::KeywordType::Inline || "
+          "token[index].value.keyword == Token::KeywordType::Number || "
+          "token[index].value.keyword == Token::KeywordType::Short || "
+          "token[index].value.keyword == Token::KeywordType::Signed || "
+          "token[index].value.keyword == Token::KeywordType::Unsigned || "
+          "token[index].value.keyword == Token::KeywordType::Virtual || "
+          "token[index].value.keyword == Token::KeywordType::Wchar_t).");
       return true;
     } else {
-      std::cout << "RETURN FALSE Parser::IsDecl" << " \n"
-                << token[index] << std::endl
-                << std::endl;
+      DEBUG_OUTPUT(
+          "Parser::IsDecl(Token*,std::size_t,std::size_t)",
+          "Enter if (token[index].value.keyword == Token::KeywordType::Auto || "
+          "token[index].value.keyword == Token::KeywordType::Bool || "
+          "token[index].value.keyword == Token::KeywordType::Char || "
+          "token[index].value.keyword == Token::KeywordType::Double || "
+          "token[index].value.keyword == Token::KeywordType::Float || "
+          "token[index].value.keyword == Token::KeywordType::Int || "
+          "token[index].value.keyword == Token::KeywordType::Long || "
+          "token[index].value.keyword == Token::KeywordType::Void || "
+          "token[index].value.keyword == Token::KeywordType::String || "
+          "token[index].value.keyword == Token::KeywordType::Struct || "
+          "token[index].value.keyword == Token::KeywordType::Union || "
+          "token[index].value.keyword == Token::KeywordType::Enum || "
+          "token[index].value.keyword == Token::KeywordType::Namespace || "
+          "token[index].value.keyword == Token::KeywordType::Template || "
+          "token[index].value.keyword == Token::KeywordType::Typedef || "
+          "token[index].value.keyword == Token::KeywordType::Extern || "
+          "token[index].value.keyword == Token::KeywordType::Class || "
+          "token[index].value.keyword == Token::KeywordType::Const || "
+          "token[index].value.keyword == Token::KeywordType::Friend || "
+          "token[index].value.keyword == Token::KeywordType::Inline || "
+          "token[index].value.keyword == Token::KeywordType::Number || "
+          "token[index].value.keyword == Token::KeywordType::Short || "
+          "token[index].value.keyword == Token::KeywordType::Signed || "
+          "token[index].value.keyword == Token::KeywordType::Unsigned || "
+          "token[index].value.keyword == Token::KeywordType::Virtual || "
+          "token[index].value.keyword == Token::KeywordType::Wchar_t) else.");
       return false;
     }
   } else if ((token[index].type == Token::Type::IDENTIFIER &&
@@ -2620,14 +2675,21 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
                token[index + 1].value._operator ==
                    Token::OperatorType::ampamp) &&
               token[index + 2].type == Token::Type::IDENTIFIER)) {
-    std::cout << "RETURN TRUE Parser::IsDecl 2" << " \n"
-              << token[index] << std::endl
-              << std::endl;
+    // TODO: Change the processing logic of custom types and add support of
+    // custom types.
+    DEBUG_OUTPUT(
+        "Parser::IsDecl(Token*,std::size_t,std::size_t)",
+        "Enter if ((token[index].type == Token::Type::IDENTIFIER && "
+        "token[index + 1].type == Token::Type::IDENTIFIER) || "
+        "(token[index].type == Token::Type::IDENTIFIER && token[index + "
+        "1].type == Token::Type::OPERATOR && (token[index + 1].value._operator "
+        "== Token::OperatorType::star || token[index + 1].value._operator == "
+        "Token::OperatorType::amp || token[index + 1].value._operator == "
+        "Token::OperatorType::ampamp) && token[index + 2].type == "
+        "Token::Type::IDENTIFIER)).");
     return true;
   }
-  std::cout << "RETURN FALSE Parser::IsDecl" << " \n"
-            << token[index] << std::endl
-            << std::endl;
+
   return false;
 }
 
