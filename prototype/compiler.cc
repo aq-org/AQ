@@ -9,6 +9,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <stack>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -43,6 +44,40 @@ inline void EXIT_COMPILER(const char* func_name, const char* message) {
   std::cerr << func_name << ": " << message << std::endl;
   exit(-1);
 }
+
+#define TRACE_FUNCTION Trace trace(__FUNCTION__)
+
+std::stack<std::string> call_stack;
+
+class Trace {
+ public:
+  explicit Trace(const std::string& function_name) {
+    call_stack.push(function_name);
+    printStack();
+  }
+
+  ~Trace() {
+    call_stack.pop();
+    printStack();
+  }
+
+ private:
+  void printStack() const {
+    std::stack<std::string> temp_stack = call_stack;
+    std::vector<std::string> reverse_stack;
+
+    while (!temp_stack.empty()) {
+      reverse_stack.push_back(temp_stack.top());
+      temp_stack.pop();
+    }
+
+    std::cout << "[INFO] Run: ";
+    for (auto it = reverse_stack.rbegin(); it != reverse_stack.rend(); ++it) {
+      std::cout << *it << " -> ";
+    }
+    std::cout << "Success" << std::endl;
+  }
+};
 
 namespace Aq {
 namespace Compiler {
@@ -2283,6 +2318,7 @@ class ReferenceType : public Type {
 };
 
 Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
+  TRACE_FUNCTION;
   if (token == nullptr)
     EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                   "token is nullptr.");
@@ -2468,11 +2504,14 @@ Parser::Parser() = default;
 Parser::~Parser() = default;
 
 CompoundNode* Parser::Parse(std::vector<Token> token) {
+  TRACE_FUNCTION;
   Token* token_ptr = token.data();
   std::size_t index = 0;
   std::size_t length = token.size();
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
+
+  std::cout << token.size() << std::endl;
 
   while (index < token.size()) {
     if (IsDecl(token_ptr, length, index)) {
@@ -2489,7 +2528,8 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
         index++;
       }
     } else {
-      std::cout << token[index] << std::endl;
+      std::cout << token[index] << token[index + 1] << token[index + 2]
+                << token[index + 3] << token[index + 4] << index << std::endl;
       EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "Unexpected code.");
     }
   }
@@ -2500,6 +2540,14 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
 }
 
 bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::IsDecl(Token*,std::size_t,std::size_t)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::IsDecl(Token*,std::size_t,std::size_t)",
+                  "index is out of range.");
+
   if (token[index].type == Token::Type::KEYWORD) {
     if (token[index].value.keyword == Token::KeywordType::Auto ||
         token[index].value.keyword == Token::KeywordType::Bool ||
@@ -2549,6 +2597,14 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
 }
 
 bool Parser::IsFuncDecl(Token* token, std::size_t length, std::size_t index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::IsFuncDecl(Token*,std::size_t,std::size_t)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::IsFuncDecl(Token*,std::size_t,std::size_t)",
+                  "index is out of range.");
+
   for (std::size_t i = index; i < length; i++) {
     if (token[i].type == Token::Type::OPERATOR &&
         token[i].value._operator == Token::OperatorType::semi) {
@@ -2564,209 +2620,225 @@ bool Parser::IsFuncDecl(Token* token, std::size_t length, std::size_t index) {
 
 StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
                             std::size_t& index) {
-  std::cout << "RUN Parser::ParseStmt" << " \n"
-            << token[index] << std::endl
-            << std::endl;
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                  "index is out of range.");
+
   if (IsDecl(token, length, index)) {
     if (IsFuncDecl(token, length, index)) {
-      return nullptr;
+      EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                    "FuncDecl not supported.");
+
     } else {
       VarDeclNode* result = ParseVarDecl(token, length, index);
       if (token[index].type != Token::Type::OPERATOR ||
           token[index].value._operator != Token::OperatorType::semi)
-        return nullptr;
+        EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                      "semi not found.");
+
       index++;
       return dynamic_cast<DeclNode*>(result);
     }
   }
-  std::cout << "RUN Parser::ParseStmt ISNT DECL" << " \n"
-            << token[index] << std::endl
-            << std::endl;
+
   switch (token[index].type) {
     case Token::Type::OPERATOR:
       switch (token[index].value._operator) {
         case Token::OperatorType::semi:
           index++;
-          return nullptr;
+          return new StmtNode();
+
         case Token::OperatorType::l_brace: {
-          std::cout << "COMPOUNDNODE" << " \n"
-                    << token[index] << std::endl
-                    << std::endl;
+          index++;
           CompoundNode* result = new CompoundNode();
           std::vector<StmtNode*> stmts;
-          index++;
+
           while (token[index].value._operator != Token::OperatorType::r_brace &&
                  index < length) {
             StmtNode* stmt = ParseStmt(token, length, index);
-            if (stmt == nullptr) break;
+            if (stmt == nullptr)
+              EXIT_COMPILER(
+                  "Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                  "StmtNode is nullptr.");
             stmts.push_back(stmt);
           }
+
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::r_brace)
-            return nullptr;
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "r_brace not found.");
+
           result->SetCompoundNode(stmts);
           index++;
           return result;
         }
+
         case Token::OperatorType::r_square:
         case Token::OperatorType::r_paren:
         case Token::OperatorType::r_brace:
-          return nullptr;
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::r_brace)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Unexpected r_brace.");
+
         default:
           StmtNode* stmt_node = ParseExpr(token, length, index);
-          if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::semi)
-            return nullptr;
-          index++;
+          if (token[index].type == Token::Type::OPERATOR ||
+              token[index].value._operator == Token::OperatorType::semi)
+            index++;
           return stmt_node;
       }
+
     case Token::Type::KEYWORD:
       switch (token[index].value.keyword) {
         case Token::KeywordType::If: {
-          std::cout << "IFNODE" << " \n"
-                    << token[index] << std::endl
-                    << std::endl;
-          IfNode* result = new IfNode();
           index++;
+          IfNode* result = new IfNode();
+
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::l_paren)
-            return nullptr;
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "l_paren not found.");
           ExprNode* condition = ParseExpr(token, length, ++index);
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::r_paren)
-            return nullptr;
-          index++;
-          StmtNode* body = ParseStmt(token, length, index);
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "r_paren not found.");
+
+          StmtNode* body = ParseStmt(token, length, ++index);
           result->SetIfNode(condition, body);
+
           if (token[index].type == Token::Type::KEYWORD &&
               token[index].value.keyword == Token::KeywordType::Else) {
-            result->SetIfNode(condition, body, ParseStmt(token, length, index));
+            result->SetIfNode(condition, body,
+                              ParseStmt(token, length, ++index));
           }
-          index++;
-          std::cout << "IFNODE END" << " \n"
-                    << token[index] << std::endl
-                    << std::endl;
           return result;
         }
+
         case Token::KeywordType::While: {
-          WhileNode* result = new WhileNode();
           index++;
+          WhileNode* result = new WhileNode();
+
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::l_paren)
-            return nullptr;
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "While condition l_paren not found.");
           ExprNode* condition = ParseExpr(token, length, ++index);
           if (token[index].type != Token::Type::OPERATOR ||
               token[index].value._operator != Token::OperatorType::r_paren)
-            return nullptr;
-          index++;
-          result->SetWhileNode(condition, ParseStmt(token, length, index));
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "While condition r_paren not found.");
+
+          result->SetWhileNode(condition, ParseStmt(token, length, ++index));
           return result;
         }
+
         case Token::KeywordType::Goto: {
-          GotoNode* result = new GotoNode();
           index++;
-          if (token[index].type != Token::Type::IDENTIFIER) return nullptr;
+          GotoNode* result = new GotoNode();
+
+          if (token[index].type != Token::Type::IDENTIFIER)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "IDENTIFIER not found.");
           IdentifierNode label;
           label.SetIdentifierNode(token[index]);
           index++;
           result->SetGotoNode(label);
           return result;
         }
+
         default:
           return nullptr;
       }
+
     default:
       StmtNode* stmt_node = ParseExpr(token, length, index);
-      if (token[index].type != Token::Type::OPERATOR ||
-          token[index].value._operator != Token::OperatorType::semi)
-        return nullptr;
-      index++;
+      if (token[index].type == Token::Type::OPERATOR ||
+          token[index].value._operator == Token::OperatorType::semi)
+        index++;
       return stmt_node;
   }
 }
 
 FuncDeclNode* Parser::ParseFuncDecl(Token* token, std::size_t length,
                                     std::size_t& index) {
-  std::cout << "ParseFuncDecl" << " \n"
-            << token[index] << std::endl
-            << std::endl;
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::ParseFuncDecl(Token*,std::size_t,std::size_t&)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::ParseFuncDecl(Token*,std::size_t,std::size_t&)",
+                  "index is out of range.");
+
   FuncDeclNode* func_decl = nullptr;
   Type* type = Type::CreateType(token, length, index);
-  std::cout << "C POINT" << " \n" << token[index] << std::endl << std::endl;
-  // if (token[index].type != Token::Type::IDENTIFIER) return nullptr;
   ExprNode* stat = Parser::ParsePrimaryExpr(token, length, index);
-  std::cout << "A POINT" << " \n" << token[index] << std::endl << std::endl;
-  if (stat->GetType() != StmtNode::StmtType::kFunc)
-    std::cout << "AP ERROR" << " \n" << token[index] << std::endl << std::endl;
+
   if (stat == nullptr || stat->GetType() != StmtNode::StmtType::kFunc)
-    return nullptr;
-  std::cout << "B POINT" << " \n" << token[index] << std::endl << std::endl;
+    EXIT_COMPILER("Parser::ParseFuncDecl(Token*,std::size_t,std::size_t&)",
+                  "stat is nullptr or not a function.");
 
   if (token[index].type != Token::Type::OPERATOR ||
       token[index].value._operator != Token::OperatorType::l_brace)
-    return func_decl;
-
-  /*index++;
-
-  std::vector<StmtNode*> stmts_vector;
-  while (true) {
-    if ((token[index].type == Token::Type::OPERATOR &&
-         token[index].value._operator == Token::OperatorType::r_brace) ||
-        index >= length)
-      break;
-    std::cout << index << "E POINT" << " \n"
-              << token[index] << std::endl
-              << std::endl;
-    StmtNode* stmt = ParseStmt(token, length, ++index);
-    stmts_vector.push_back(stmt);
-  }
-  index++;
-  CompoundNode* stmts = new CompoundNode();
-  stmts->SetCompoundNode(stmts_vector);*/
+    EXIT_COMPILER("Parser::ParseFuncDecl(Token*,std::size_t,std::size_t&)",
+                  "l_brace not found.");
 
   CompoundNode* stmts =
       dynamic_cast<CompoundNode*>(ParseStmt(token, length, index));
+
   func_decl = new FuncDeclNode();
   func_decl->SetFuncDeclNode(type, dynamic_cast<FuncNode*>(stat), stmts);
-
-  std::cout << "D POINT" << " \n" << token[index] << std::endl << std::endl;
 
   return func_decl;
 }
 
 VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
                                   std::size_t& index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                  "index is out of range.");
+
   VarDeclNode* var_decl = new VarDeclNode();
+  if (var_decl == nullptr)
+    EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                  "var_decl is nullptr.");
+
   Type* type = Type::CreateType(token, length, index);
+  if (type == nullptr)
+    EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                  "type is nullptr.");
   ExprNode* name = ParsePrimaryExpr(token, length, index);
+  if (name == nullptr)
+    EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                  "name is nullptr.");
   var_decl->SetVarDeclNode(type, name);
   if (token[index].type != Token::Type::OPERATOR) {
     return var_decl;
-    std::cout << "END ParseVarDecl FUNC E5" << " \n"
-              << token[index] << std::endl
-              << std::endl;
   }
-  if (token[index].value._operator == Token::OperatorType::equal)
-    std::cout << "IS  =  " << " \n" << token[index] << std::endl << std::endl;
+
   switch (token[index].value._operator) {
     case Token::OperatorType::l_square: {
       ExprNode* size = ParseExpr(token, length, ++index);
       if (token[index].type != Token::Type::OPERATOR ||
-          token[index].value._operator != Token::OperatorType::r_square) {
-        return var_decl;
-        std::cout << "END ParseVarDecl FUNC E4" << " \n"
-                  << token[index] << std::endl
-                  << std::endl;
-      }
+          token[index].value._operator != Token::OperatorType::r_square)
+        EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                      "r_square not found.");
       if (token[index].type == Token::Type::OPERATOR &&
           token[index].value._operator == Token::OperatorType::equal) {
         if (token[index].type != Token::Type::OPERATOR ||
-            token[index].value._operator != Token::OperatorType::l_brace) {
-          return var_decl;
-          std::cout << "END ParseVarDecl FUNC E3" << " \n"
-                    << token[index] << std::endl
-                    << std::endl;
-        }
+            token[index].value._operator != Token::OperatorType::l_brace)
+          EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                        "l_brace not found.");
+
         std::vector<ExprNode*> values;
         while (true) {
           values.push_back(ParseExpr(token, length, ++index));
@@ -2774,62 +2846,52 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
               token[index].value._operator == Token::OperatorType::r_brace)
             break;
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::comma) {
-            std::cout << "END ParseVarDecl FUNC E2" << " \n"
-                      << token[index] << std::endl
-                      << std::endl;
-            return var_decl;
-          }
+              token[index].value._operator != Token::OperatorType::comma)
+            EXIT_COMPILER(
+                "Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
+                "comma not found.");
         }
+
         var_decl = new ArrayDeclNode();
         dynamic_cast<ArrayDeclNode*>(var_decl)->SetArrayDeclNode(type, name,
                                                                  size, values);
       }
+
       dynamic_cast<ArrayDeclNode*>(var_decl)->SetArrayDeclNode(type, name,
                                                                size);
       break;
     }
+
     case Token::OperatorType::equal: {
-      std::cout << "EQUAL RUN IN ParseVarDecl FUNC" << " \n"
-                << token[index] << std::endl
-                << std::endl;
       ExprNode* value = ParseExpr(token, length, ++index);
       var_decl->SetVarDeclNode(type, name, value);
       break;
     }
+
     default:
-      std::cout << index;
-      std::cout << "END ParseVarDecl FUNC E1" << " \n"
-                << token[index] << std::endl
-                << std::endl;
       return var_decl;
   }
-  std::cout << "END ParseVarDecl FUNC" << " \n"
-            << token[index] << std::endl
-            << std::endl;
   return var_decl;
 }
 
 ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                                    std::size_t& index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                  "index is out of range.");
+
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
   ExprNode* full_expr = nullptr;
   ExprNode* main_expr = nullptr;
   ExprNode* preoper_expr = nullptr;
 
-  std::cout << "START ParsePrimaryExpr FUNC" << " \n"
-            << token[index] << std::endl
-            << std::endl;
-
   while (state != State::kEnd && index < length) {
-    std::cout << "WHILE ParsePrimaryExpr FUNC" << " \n"
-              << token[index] << std::endl
-              << std::endl;
     if (token[index].type == Token::Type::OPERATOR) {
-      std::cout << "OPER ParsePrimaryExpr FUNC" << " \n"
-                << token[index] << std::endl
-                << std::endl;
       switch (token[index].value._operator) {
         case Token::OperatorType::amp:  // &
           if (state == State::kPreOper) {
@@ -2977,9 +3039,6 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           state = State::kEnd;
           break;
         case Token::OperatorType::l_paren:  // (
-          std::cout << "LPAREN ParsePrimaryExpr FUNC" << " \n"
-                    << token[index] << std::endl
-                    << std::endl;
           if (state == State::kPreOper) {
             index++;
             if (full_expr == nullptr || preoper_expr == nullptr) {
@@ -3017,16 +3076,10 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           } else if (state == State::kPostOper &&
                      main_expr->GetType() == StmtNode::StmtType::kIdentifier &&
                      token[index - 1].type == Token::Type::IDENTIFIER) {
-            std::cout << "FN ParsePrimaryExpr FUNC" << " \n"
-                      << token[index] << std::endl
-                      << std::endl;
             std::vector<ExprNode*> args;
             index++;
             while (index < length && token[index].value._operator !=
                                          Token::OperatorType::r_paren) {
-              std::cout << "ARG ParsePrimaryExpr FUNC" << " \n"
-                        << token[index] << std::endl
-                        << std::endl;
               args.push_back(ParseExpr(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
                   token[index].value._operator == Token::OperatorType::comma) {
@@ -3042,42 +3095,19 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             }
             index++;
             FuncNode* func_node = new FuncNode();
-            std::cout << "NEW FUNC NODE ParsePrimaryExpr FUNC" << " \n"
-                      << token[index] << std::endl
-                      << std::endl;
             func_node->SetFuncNode(main_expr, args);
-            std::cout << "NEW FUNC NODE2 ParsePrimaryExpr FUNC" << " \n"
-                      << token[index] << std::endl
-                      << std::endl;
-            // UnaryNode* preoper_unary_node = nullptr;
-            /*if (preoper_expr != nullptr)
-              preoper_unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
-            if (preoper_unary_node != nullptr) {
-              preoper_unary_node->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                  func_node);
-            } else {
-              preoper_expr = func_node;
-            }
-            main_expr = func_node;*/
             if (full_expr == nullptr || preoper_expr == nullptr) {
               full_expr = main_expr = func_node;
             } else {
               if (preoper_expr != nullptr) {
                 UnaryNode* unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
                 if (unary_node == nullptr) {
-                  std::cout << "UNARY ERROR" << " \n"
-                            << token[index] << std::endl
-                            << std::endl;
                   return nullptr;
                 }
                 unary_node->SetUnaryNode(unary_node->GetOperator(), func_node);
               }
               main_expr = func_node;
             }
-            std::cout << "NEW FUNC NODE END ParsePrimaryExpr FUNC" << " \n"
-                      << token[index] << std::endl
-                      << std::endl;
           } else {
             state = State::kEnd;
           }
@@ -3151,9 +3181,6 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           break;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
-      std::cout << "IDENT ParsePrimaryExpr FUNC" << " \n"
-                << token[index] << std::endl
-                << std::endl;
       IdentifierNode* identifier_node = new IdentifierNode();
       identifier_node->SetIdentifierNode(token[index]);
       if (full_expr == nullptr || preoper_expr == nullptr) {
@@ -3194,33 +3221,55 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
     }
   }
 
-  std::cout << "END ParsePrimaryExpr FUNC" << " \n"
-            << token[index] << std::endl
-            << std::endl;
   return full_expr;
 }
 
 ExprNode* Parser::ParseExpr(Token* token, std::size_t length,
                             std::size_t& index) {
-  std::cout << "START ParseExpr" << " \n"
-            << token[index] << std::endl
-            << std::endl;
-  if (index >= length) return nullptr;
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::ParseExpr(Token*,std::size_t,std::size_t&)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::ParseExpr(Token*,std::size_t,std::size_t&)",
+                  "index is out of range.");
+
   if (IsDecl(token, length, index)) return ParseVarDecl(token, length, index);
   ExprNode* expr = ParsePrimaryExpr(token, length, index);
+  if (expr == nullptr)
+    EXIT_COMPILER("Parser::ParseExpr(Token*,std::size_t,std::size_t&)",
+                  "expr is nullptr.");
   expr = ParseBinaryExpr(token, length, index, expr, 0);
-  std::cout << "END ParseExpr" << " \n"
-            << token[index] << std::endl
-            << std::endl;
   return expr;
 }
 
 ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
                                   std::size_t& index, ExprNode* left,
                                   unsigned int priority) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER(
+        "Parser::ParseBinaryExpr(Token*,std::size_t,std::size_t&,ExprNode*,"
+        "unsigned int)",
+        "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER(
+        "Parser::ParseBinaryExpr(Token*,std::size_t,std::size_t&,ExprNode*,"
+        "unsigned int)",
+        "index is out of range.");
+  if (left == nullptr)
+    EXIT_COMPILER(
+        "Parser::ParseBinaryExpr(Token*,std::size_t,std::size_t&,ExprNode*,"
+        "unsigned int)",
+        "left is nullptr.");
+
   ExprNode* expr = left;
   while (index < length && GetPriority(token[index]) > priority) {
-    if (token[index].type != Token::Type::OPERATOR) return expr;
+    if (token[index].type != Token::Type::OPERATOR)
+      EXIT_COMPILER(
+          "Parser::ParseBinaryExpr(Token*,std::size_t,std::size_t&,ExprNode*,"
+          "unsigned int)",
+          "Unexpected code.");
     switch (token[index].value._operator) {
       case Token::OperatorType::periodstar: {
         BinaryNode* periodstar_node = new BinaryNode();
@@ -3564,11 +3613,11 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
     }
   }
 
-  // TODO(Parser::ParseBinaryExpr): Complete the function.
   return expr;
 }
 
 unsigned int Parser::GetPriority(Token token) {
+  TRACE_FUNCTION;
   if (token.type == Token::Type::OPERATOR) {
     switch (token.value._operator) {
       case Token::OperatorType::periodstar:
@@ -3622,6 +3671,7 @@ unsigned int Parser::GetPriority(Token token) {
         return 0;
     }
   }
+  EXIT_COMPILER("Parser::GetPriority(Token)", "Unexpected code.");
   return 0;
 }
 
@@ -3635,26 +3685,24 @@ class BytecodeGenerator {
  private:
   class Memory {
    public:
-    Memory() { IsBigEndian(); }
+    Memory() {
+      TRACE_FUNCTION;
+      IsBigEndian();
+    }
     ~Memory() = default;
 
     std::size_t Add(uint8_t type, std::size_t size) {
-      std::cout << "Add1" << std::endl;
+      TRACE_FUNCTION;
       std::size_t index = memory_.size();
-      // type_.push_back(type);
-      // memory_.resize(all_size_ + size);
-      // all_size_ += size;
 
       if (type > 0x0F) return index;
 
       for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(0);
-          // all_size_++;
           type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
         } else {
           memory_.push_back(0);
-          // all_size_ += 2;
           type_.push_back(type);
         }
       }
@@ -3663,11 +3711,8 @@ class BytecodeGenerator {
     }
 
     std::size_t Add(uint8_t type, std::size_t size, const void* data) {
-      std::cout << "Add2" << std::endl;
+      TRACE_FUNCTION;
       std::size_t index = memory_.size();
-      // type_.push_back(type);
-      // memory_.resize(all_size_ + size);
-      // all_size_ += size;
 
       if (type > 0x0F) return index;
 
@@ -3675,87 +3720,47 @@ class BytecodeGenerator {
 
       if (memory_data == nullptr) return 0;
       std::memcpy(memory_data, data, size);
-      /*std::size_t read_index = 0;
-      while (read_index < size) {
-        switch (type) {
-          case 0x01:
-            *(int8_t*)memory_data = *(int8_t*)data;
-            data = (void*)((uintptr_t)data + 1);
-            read_index += 1;
-            memory_data = (void*)((uintptr_t)memory_data + 1);
-            break;
-          case 0x02:
-            *(int*)(memory_data) =
-                is_big_endian ? *(int*)data : SwapInt(*(int*)data);
-            data = (void*)((uintptr_t)data + 4);
-            read_index += 4;
-            memory_data = (void*)((uintptr_t)memory_data + 4);
-            break;
-          case 0x03:
-            *(long*)(memory_data) =
-                is_big_endian ? *(long*)data : SwapLong(*(long*)data);
-            data = (void*)((uintptr_t)data + 8);
-            read_index += 8;
-            memory_data = (void*)((uintptr_t)memory_data + 8);
-            break;
-          case 0x04:
-            *(float*)(memory_data) =
-                is_big_endian ? *(float*)data : SwapFloat(*(float*)data);
-            data = (void*)((uintptr_t)data + 4);
-            read_index += 4;
-            memory_data = (void*)((uintptr_t)memory_data + 4);
-            break;
-          case 0x05:
-            *(double*)(memory_data) =
-                is_big_endian ? *(double*)data : SwapDouble(*(double*)data);
-            data = (void*)((uintptr_t)data + 8);
-            read_index += 8;
-            memory_data = (void*)((uintptr_t)memory_data + 8);
-            break;
-          case 0x06:
-            *(uint64_t*)(memory_data) = is_big_endian
-                                            ? *(uint64_t*)data
-                                            : SwapUint64t(*(uint64_t*)data);
-            data = (void*)((uintptr_t)data + 8);
-            read_index += 8;
-            memory_data = (void*)((uintptr_t)memory_data + 8);
-          default:
-            return index;
-        }
-      }*/
 
       for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
-          // all_size_++;
           type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
         } else {
           memory_.push_back(*(uint64_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
-          // all_size_ += 2;
           type_.push_back(type);
         }
       }
       return index;
     }
 
-    size_t GetSize() { return memory_.size(); }
-    std::vector<uint8_t> GetMemory() { return memory_; }
-    std::vector<uint8_t> GetType() { return type_; }
+    size_t GetSize() {
+      TRACE_FUNCTION;
+      return memory_.size();
+    }
+    std::vector<uint8_t> GetMemory() {
+      TRACE_FUNCTION;
+      return memory_;
+    }
+    std::vector<uint8_t> GetType() {
+      TRACE_FUNCTION;
+      return type_;
+    }
 
    private:
-    // std::size_t all_size_ = 0;
     std::vector<uint8_t> memory_;
     std::vector<uint8_t> type_;
     bool is_big_endian = false;
 
     void IsBigEndian() {
+      TRACE_FUNCTION;
       uint16_t test_data = 0x0011;
       is_big_endian = *(uint8_t*)&test_data == 0x00;
     }
 
     int SwapInt(int x) {
+      TRACE_FUNCTION;
       uint32_t ux = (uint32_t)x;
       ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
            ((ux >> 8) & 0x0000FF00) | ((ux >> 24) & 0x000000FF);
@@ -3763,6 +3768,7 @@ class BytecodeGenerator {
     }
 
     long SwapLong(long x) {
+      TRACE_FUNCTION;
       uint64_t ux = (uint64_t)x;
       ux = ((ux << 56) & 0xFF00000000000000ULL) |
            ((ux << 40) & 0x00FF000000000000ULL) |
@@ -3776,6 +3782,7 @@ class BytecodeGenerator {
     }
 
     float SwapFloat(float x) {
+      TRACE_FUNCTION;
       uint32_t ux;
       memcpy(&ux, &x, sizeof(uint32_t));
       ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
@@ -3786,6 +3793,7 @@ class BytecodeGenerator {
     }
 
     double SwapDouble(double x) {
+      TRACE_FUNCTION;
       uint64_t ux;
       memcpy(&ux, &x, sizeof(uint64_t));
       ux = ((ux << 56) & 0xFF00000000000000ULL) |
@@ -3802,6 +3810,7 @@ class BytecodeGenerator {
     }
 
     uint64_t SwapUint64t(uint64_t x) {
+      TRACE_FUNCTION;
       x = ((x << 56) & 0xFF00000000000000ULL) |
           ((x << 40) & 0x00FF000000000000ULL) |
           ((x << 24) & 0x0000FF0000000000ULL) |
@@ -3818,6 +3827,7 @@ class BytecodeGenerator {
    public:
     // Bytecode(std::size_t oper) { oper_ = oper; }
     Bytecode(std::size_t oper, ...) {
+      TRACE_FUNCTION;
       oper_ = oper;
       va_list args;
       va_start(args, oper);
@@ -3827,13 +3837,20 @@ class BytecodeGenerator {
       va_end(args);
     }
     Bytecode(std::size_t oper, std::vector<std::size_t> args) {
+      TRACE_FUNCTION;
       oper_ = oper;
       arg_ = args;
     }
     ~Bytecode() = default;
 
-    uint8_t GetOper() { return oper_; }
-    std::vector<std::size_t> GetArgs() { return arg_; }
+    uint8_t GetOper() {
+      TRACE_FUNCTION;
+      return oper_;
+    }
+    std::vector<std::size_t> GetArgs() {
+      TRACE_FUNCTION;
+      return arg_;
+    }
 
    private:
     uint8_t oper_;
@@ -3869,6 +3886,7 @@ class BytecodeGenerator {
 };
 
 BytecodeGenerator::BytecodeGenerator() {
+  TRACE_FUNCTION;
   std::vector<Bytecode> code;
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP));
   func_list_.push_back(
@@ -3896,6 +3914,7 @@ BytecodeGenerator::BytecodeGenerator() {
 }
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
+  TRACE_FUNCTION;
   if (stmt == nullptr) return;
   std::cout << "BytecodeGenerator::GenerateBytecode OK" << std::endl;
   for (std::size_t i = 0; i < stmt->GetStmts().size(); i++) {
@@ -4397,6 +4416,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 }
 
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
+  TRACE_FUNCTION;
   std::vector<Bytecode> code;
   std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
   func_table_.Insert(*func_decl->GetStat()->GetName(), *func_decl);
@@ -4407,6 +4427,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
                                       std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
   Type* var_type = var_decl->GetVarType();
   while (var_type->GetType() != Type::TypeType::kBase ||
@@ -4477,6 +4498,7 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 
 void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
                                         std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   Type* array_type = array_decl->GetVarType();
   if (array_type->GetType() == Type::TypeType::kConst)
     array_type = dynamic_cast<ConstType*>(array_type)->GetSubType();
@@ -4548,6 +4570,7 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
 
 std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
                                           std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
     return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), code);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
@@ -4558,6 +4581,7 @@ std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
 }
 std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
                                                std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   std::size_t sub_expr = HandleExpr(expr->GetExpr(), code);
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc: {  // ++ (postfix)
@@ -4624,6 +4648,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
 }
 std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
                                                 std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   std::size_t left = HandleExpr(expr->GetLeftExpr(), code);
   std::size_t right = HandleExpr(expr->GetRightExpr(), code);
   uint8_t left_type = GetExprVmType(expr->GetLeftExpr());
@@ -4778,6 +4803,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
 void BytecodeGenerator::HandleStmt(StmtNode* stmt,
                                    std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   if (stmt == nullptr) return;
   switch (stmt->GetType()) {
     case StmtNode::StmtType::kCompound:
@@ -4894,6 +4920,7 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
                                                 std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   std::cout << "BytecodeGenerator::HandleFuncInvoke OK" << std::endl;
   std::vector<ExprNode*> args = func->GetArgs();
   FuncDeclNode func_decl = func_table_.Find(*func->GetName());
@@ -4990,6 +5017,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
 std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
                                         std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
   switch (expr->GetType()) {
     case StmtNode::StmtType::kIdentifier:
       return var_table_.Find(*dynamic_cast<IdentifierNode*>(expr)).second;
@@ -5050,10 +5078,12 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
 }
 
 std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
+  TRACE_FUNCTION;
   return global_memory_.Add(0x01, 1, &value);
 }
 
 uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
+  TRACE_FUNCTION;
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::kAddrOf) {
@@ -5307,6 +5337,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
 }
 
 uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
+  TRACE_FUNCTION;
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::kAddrOf) {
@@ -5957,6 +5988,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
 }
 
 std::size_t BytecodeGenerator::GetExprVmSize(uint8_t type) {
+  TRACE_FUNCTION;
   switch (type) {
     case 0x01:
       return 1;
@@ -5975,6 +6007,7 @@ std::size_t BytecodeGenerator::GetExprVmSize(uint8_t type) {
   }
 }
 uint64_t BytecodeGenerator::SwapUint64t(uint64_t x) {
+  TRACE_FUNCTION;
   x = ((x << 56) & 0xFF00000000000000ULL) |
       ((x << 40) & 0x00FF000000000000ULL) |
       ((x << 24) & 0x0000FF0000000000ULL) | ((x << 8) & 0x000000FF00000000ULL) |
@@ -5984,6 +6017,7 @@ uint64_t BytecodeGenerator::SwapUint64t(uint64_t x) {
 }
 
 void BytecodeGenerator::InsertUint64ToCode(uint64_t value) {
+  TRACE_FUNCTION;
   for (int i = 0; i < 8; ++i) {
     code_.push_back(static_cast<uint8_t>((value >> (i * 8)) & 0xFF));
   }
@@ -5991,6 +6025,7 @@ void BytecodeGenerator::InsertUint64ToCode(uint64_t value) {
 
 size_t BytecodeGenerator::EncodeUleb128(size_t value,
                                         std::vector<uint8_t>& output) {
+  TRACE_FUNCTION;
   size_t count = 0;
   do {
     uint8_t byte = value & 0x7F;
