@@ -12,6 +12,7 @@
 #include <stack>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #define _AQVM_OPERATOR_NOP 0x00
@@ -41,8 +42,8 @@
 #define _AQVM_OPERATOR_WIDE 0xFF
 
 inline void EXIT_COMPILER(const char* func_name, const char* message) {
-  std::cerr << func_name << ": " << message << std::endl;
-  exit(-1);
+  std::cerr << "[ERROR] " << func_name << ": " << message << std::endl;
+  exit(EXIT_FAILURE);
 }
 
 #define TRACE_FUNCTION Trace trace(__FUNCTION__)
@@ -89,10 +90,11 @@ class LexMap {
   // Construct a LexMap class, and the default hash table memory size is 1024.
   // Do not modify it unless necessary.
   LexMap() {
+    TRACE_FUNCTION;
     std::size_t init_capacity = 1024;
     pair_list_ = new PairList[init_capacity];
-    if (!pair_list_) {
-      pair_list_ = new PairList[1];
+    if (pair_list_ == nullptr) {
+      EXIT_COMPILER("LexMap::LexMap()", "Memory allocation failed.");
     }
     capacity_ = init_capacity;
   };
@@ -2513,6 +2515,9 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
 
   std::cout << token.size() << std::endl;
 
+  // Delete the last NONE token.
+  if (token_ptr[token.size() - 1].type == Token::Type::NONE) token.pop_back();
+
   while (index < token.size()) {
     if (IsDecl(token_ptr, length, index)) {
       if (IsFuncDecl(token_ptr, length, index)) {
@@ -2528,8 +2533,6 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
         index++;
       }
     } else {
-      std::cout << token[index] << token[index + 1] << token[index + 2]
-                << token[index + 3] << token[index + 4] << index << std::endl;
       EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "Unexpected code.");
     }
   }
@@ -3874,10 +3877,11 @@ class BytecodeGenerator {
   void InsertUint64ToCode(uint64_t value);
   size_t EncodeUleb128(size_t value, std::vector<uint8_t>& output);
 
-  // enum class BytecodeType { kGlobal, KFunc, kCompound, kIf, kWhile, kFor };
-  LexMap<FuncDeclNode> func_table_;
-  LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;
-  // LexMap<ArrayDeclNode*> array_table_;
+  /*LexMap<FuncDeclNode> func_table_;
+  LexMap<std::pair<VarDeclNode*, std::size_t>> var_table_;*/
+  std::unordered_map<std::string, FuncDeclNode> func_table_;
+  std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
+      var_table_;
   std::vector<std::pair<std::string, std::vector<Bytecode>>> func_list_;
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
@@ -3915,8 +3919,10 @@ BytecodeGenerator::BytecodeGenerator() {
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   TRACE_FUNCTION;
-  if (stmt == nullptr) return;
-  std::cout << "BytecodeGenerator::GenerateBytecode OK" << std::endl;
+  if (stmt == nullptr)
+    EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                  "stmt is nullptr.");
+
   for (std::size_t i = 0; i < stmt->GetStmts().size(); i++) {
     switch (stmt->GetStmts()[i]->GetType()) {
       case StmtNode::StmtType::kFuncDecl:
@@ -3934,7 +3940,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         break;
 
       default:
-        break;
+        EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                      "Unexpected code.");
     }
   }
 
@@ -3947,11 +3954,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   code_.push_back(0x00);
   code_.push_back(0x00);
   code_.push_back(0x00);
-  code_.push_back(0x00);
+  code_.push_back(0x01);
 
   size_t memory_size = global_memory_.GetSize();
-  std::cout << "Memory Size: " << memory_size << std::endl;
-  // if (global_memory_.GetSize() % 2 != 0) memory_size++;
   uint16_t test_data = 0x0011;
   bool is_big_endian = *(uint8_t*)&test_data == 0x00;
   InsertUint64ToCode(is_big_endian ? memory_size : SwapUint64t(memory_size));
@@ -3961,28 +3966,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   for (size_t i = 0; i < global_memory_.GetType().size(); i++) {
     code_.push_back(global_memory_.GetType()[i]);
   }
-  /*std::cout << "code_ size: " << code_.size() << std::endl;
-  std::cout << "global_memory_ size: " << global_memory_.GetSize() << std::endl;
-  code_.insert(code_.end(), global_memory_.GetMemory().begin(),
-               global_memory_.GetMemory().end());
-  std::cout << "code_ size: " << code_.size() << std::endl;
-  try {
-    std::cout << "code_ size: " << code_.size() << std::endl;
-    std::cout << "code_ capacity: " << code_.capacity() << std::endl;
-    std::cout << "global_memory_.GetType() size: "
-              << global_memory_.GetType().size() << std::endl;
 
-    code_.insert(code_.end(), global_memory_.GetType().begin(),
-                 global_memory_.GetType().end());
-  } catch (const std::bad_alloc& e) {
-    std::cerr << "Memory allocation failed during code insertion: " << e.what()
-              << std::endl;
-    return;
-  }*/
   for (size_t i = 0; i < func_list_.size(); i++) {
     size_t func_size = 0;
     size_t func_size_index = code_.size();
     code_.insert(code_.end(), 8, 0);
+    // Function name (with '\0')
     code_.insert(code_.end(), func_list_[i].first.c_str(),
                  func_list_[i].first.c_str() + func_list_[i].first.size() + 1);
     func_size += func_list_[i].first.size() + 1;
@@ -3999,6 +3988,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_LOAD);
 
+          if (func_list_[i].second[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4013,6 +4006,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_STORE:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_STORE);
+
+          if (func_list_[i].second[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4029,6 +4026,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_NEW);
 
+          if (func_list_[i].second[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4044,6 +4045,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_FREE);
 
+          if (func_list_[i].second[j].GetArgs().size() != 1)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4053,6 +4058,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_PTR:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_PTR);
+
+          if (func_list_[i].second[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4068,6 +4077,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_ADD:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_ADD);
+
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4089,6 +4102,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SUB);
 
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4108,6 +4125,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_MUL:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_MUL);
+
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4129,6 +4150,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_DIV);
 
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4148,6 +4173,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_REM:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_REM);
+
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4169,6 +4198,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_NEG);
 
+          if (func_list_[i].second[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4183,6 +4216,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_SHL:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SHL);
+
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4204,6 +4241,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SHR);
 
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4223,6 +4264,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_SAR:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SAR);
+
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4244,6 +4289,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_IF);
 
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4263,6 +4312,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_AND:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_AND);
+
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4284,6 +4337,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_OR);
 
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4304,6 +4361,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_XOR);
 
+          if (func_list_[i].second[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4323,6 +4384,11 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_CMP:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_CMP);
+
+          if (func_list_[i].second[j].GetArgs().size() != 4)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -4348,6 +4414,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_INVOKE);
 
+          if (func_list_[i].second[j].GetArgs().size() < 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
+
           std::cout << "Args size: " << func_list_[i].second[j].GetArgs().size()
                     << std::endl;
           for (size_t k = 0; k < func_list_[i].second[j].GetArgs().size();
@@ -4368,6 +4438,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
         case _AQVM_OPERATOR_GOTO:
           func_size++;
           code_.push_back(_AQVM_OPERATOR_GOTO);
+
+          if (func_list_[i].second[j].GetArgs().size() != 1)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4391,8 +4465,6 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
     }
     func_size = is_big_endian ? func_size : SwapUint64t(func_size);
     for (int i = 0; i < 8; i++) {
-      /*code_.insert(code_.begin() + func_size_index + i,
-                   static_cast<uint8_t>((func_size >> (i * 8)) & 0xFF));*/
       code_[func_size_index + i] =
           static_cast<uint8_t>((func_size >> (i * 8)) & 0xFF);
     }
@@ -4401,7 +4473,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   std::string filename = "a.out";
   std::ofstream outFile(filename, std::ios::binary);
   if (!outFile) {
-    std::cerr << "Can't open file: " << filename << std::endl;
+    EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                  "Can't open file.");
     return;
   }
 
@@ -4409,7 +4482,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   outFile.close();
 
   if (!outFile) {
-    std::cerr << "Failed to write file: " << filename << std::endl;
+    EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                  "Failed to write file.");
   } else {
     std::cout << "Write file success: " << filename << std::endl;
   }
@@ -4417,9 +4491,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   TRACE_FUNCTION;
+  if (func_decl == nullptr)
+    EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
+                  "func_decl is nullptr.");
+
   std::vector<Bytecode> code;
-  std::cout << "BytecodeGenerator::HandleFuncDecl OK" << std::endl;
-  func_table_.Insert(*func_decl->GetStat()->GetName(), *func_decl);
+  func_table_.emplace(*func_decl->GetStat()->GetName(), *func_decl);
   HandleStmt(func_decl->GetStmts(), code);
   func_list_.push_back(std::pair<std::string, std::vector<Bytecode>>(
       *func_decl->GetStat()->GetName(), code));
@@ -4428,20 +4505,30 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
                                       std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  std::cout << "BytecodeGenerator::HandleVarDecl OK" << std::endl;
+  if (var_decl == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
+        "var_decl is nullptr.");
+
   Type* var_type = var_decl->GetVarType();
-  while (var_type->GetType() != Type::TypeType::kBase ||
-         var_type->GetType() != Type::TypeType::kPointer ||
-         var_type->GetType() != Type::TypeType::kArray ||
+  if (var_type == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
+        "var_type is nullptr.");
+
+  while (var_type->GetType() != Type::TypeType::kBase &&
+         var_type->GetType() != Type::TypeType::kPointer &&
+         var_type->GetType() != Type::TypeType::kArray &&
          var_type->GetType() != Type::TypeType::kReference) {
-    switch (var_type->GetType()) {
-      case Type::TypeType::kConst:
-        var_type = dynamic_cast<ConstType*>(var_type)->GetSubType();
-        break;
-      default:
-        return;
-    }
+    if (var_type->GetType() == Type::TypeType::NONE)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
+          ")",
+          "Unexpected code.");
+    if (var_type->GetType() == Type::TypeType::kConst)
+      var_type = dynamic_cast<ConstType*>(var_type)->GetSubType();
   }
+
   uint8_t vm_type = 0x00;
   if (var_type->GetType() == Type::TypeType::kBase) {
     switch (var_type->GetBaseType()) {
@@ -4476,15 +4563,18 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
         vm_type = 0x06;
         break;
       default:
-        vm_type = 0x00;
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected code.");
         break;
     }
   } else if (var_type->GetType() == Type::TypeType::kPointer ||
              var_type->GetType() == Type::TypeType::kReference) {
     vm_type = 0x06;
   }
-  if (var_decl->GetValue().empty()) {
-    var_table_.Insert(
+  if (var_decl->GetValue()[0] == nullptr) {
+    var_table_.emplace(
         *var_decl->GetName(),
         std::pair<VarDeclNode*, std::size_t>(
             var_decl, global_memory_.Add(vm_type, var_type->GetSize())));
@@ -4499,7 +4589,19 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
                                         std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
+  if (array_decl == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+        "Bytecode>&)",
+        "array_decl is nullptr.");
+
   Type* array_type = array_decl->GetVarType();
+  if (array_type == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+        "Bytecode>&)",
+        "array_type is nullptr.");
+
   if (array_type->GetType() == Type::TypeType::kConst)
     array_type = dynamic_cast<ConstType*>(array_type)->GetSubType();
   uint8_t vm_type = 0x00;
@@ -4536,7 +4638,10 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
         vm_type = 0x06;
         break;
       default:
-        vm_type = 0x00;
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected code.");
         break;
     }
   } else if (array_type->GetType() == Type::TypeType::kPointer ||
@@ -4548,7 +4653,8 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
     size_t array_ptr_index = global_memory_.Add(0x06, 8);
     code.push_back(Bytecode(_AQVM_OPERATOR_PTR, array_index, array_ptr_index));
-    var_table_.Insert(
+
+    var_table_.emplace(
         *array_decl->GetName(),
         std::pair<VarDeclNode*, std::size_t>(
             dynamic_cast<VarDeclNode*>(array_decl), array_ptr_index));
@@ -4556,12 +4662,14 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
     size_t array_ptr_index = global_memory_.Add(0x06, 8);
     code.push_back(Bytecode(_AQVM_OPERATOR_PTR, array_index, array_ptr_index));
+
     for (size_t i = 0; i < array_decl->GetValue().size(); i++) {
       size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, array_index, value_index,
                               AddConstInt8t(0)));
     }
-    var_table_.Insert(
+
+    var_table_.emplace(
         *array_decl->GetName(),
         std::pair<VarDeclNode*, std::size_t>(
             dynamic_cast<VarDeclNode*>(array_decl), array_ptr_index));
@@ -4571,6 +4679,11 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
 std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
                                           std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
+  if (expr == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleExpr(ExprNode*,std::vector<Bytecode>&)",
+        "expr is nullptr.");
+
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
     return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), code);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
@@ -4582,12 +4695,18 @@ std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
 std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
                                                std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
+  if (expr == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<Bytecode>&)",
+        "expr is nullptr.");
+
   std::size_t sub_expr = HandleExpr(expr->GetExpr(), code);
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc: {  // ++ (postfix)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+
       code.push_back(
           Bytecode(_AQVM_OPERATOR_ADD, new_index, sub_expr, AddConstInt8t(0)));
       code.push_back(
@@ -4598,6 +4717,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+
       code.push_back(
           Bytecode(_AQVM_OPERATOR_ADD, new_index, sub_expr, AddConstInt8t(0)));
       code.push_back(
@@ -4614,6 +4734,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       return sub_expr;
     case UnaryNode::Operator::kAddrOf: {  // & (address of)
       std::size_t ptr_index = global_memory_.Add(0x06, 8);
+
       code.push_back(Bytecode(_AQVM_OPERATOR_PTR, sub_expr, ptr_index));
       return ptr_index;
     }
@@ -4621,6 +4742,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+
       code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, sub_expr, new_index));
       return new_index;
     }
@@ -4630,6 +4752,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, new_index, sub_expr));
       return new_index;
     }
@@ -4637,6 +4760,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, new_index, sub_expr));
       return new_index;
     }
@@ -4649,6 +4773,12 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
 std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
                                                 std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
+  if (expr == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&"
+        ")",
+        "expr is nullptr.");
+
   std::size_t left = HandleExpr(expr->GetLeftExpr(), code);
   std::size_t right = HandleExpr(expr->GetRightExpr(), code);
   uint8_t left_type = GetExprVmType(expr->GetLeftExpr());
@@ -4797,17 +4927,28 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     case BinaryNode::Operator::kPtrMemI:  // ->*
     default:
       // TODO
-      return left;
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+          "Bytecode>&)",
+          "Unexpected code.");
+      break;
   }
+  EXIT_COMPILER(
+      "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)",
+      "Unexpected code.");
+  return 0;
 }
 
 void BytecodeGenerator::HandleStmt(StmtNode* stmt,
                                    std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  if (stmt == nullptr) return;
+  if (stmt == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleStmt(StmtNode*,std::vector<Bytecode>&)",
+        "stmt is nullptr.");
+
   switch (stmt->GetType()) {
     case StmtNode::StmtType::kCompound:
-      std::cout << "kCompound" << std::endl;
       for (std::size_t i = 0;
            i < dynamic_cast<CompoundNode*>(stmt)->GetStmts().size(); i++) {
         HandleStmt(dynamic_cast<CompoundNode*>(stmt)->GetStmts()[i], code);
@@ -4819,16 +4960,17 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       break;
 
     case StmtNode::StmtType::kIf: {
-      std::cout << "kIf" << std::endl;
       std::size_t condition_index =
           HandleExpr(dynamic_cast<IfNode*>(stmt)->GetCondition(), code);
 
+      // true branch name
       std::string true_name("$" + std::to_string(++undefined_name_count_));
       std::vector<Bytecode> true_code;
       HandleStmt(dynamic_cast<IfNode*>(stmt)->GetBody(), true_code);
       func_list_.push_back(
           std::pair<std::string, std::vector<Bytecode>>(true_name, true_code));
 
+      // true branch ptr
       size_t true_name_index =
           global_memory_.Add(0x01, true_name.size() + 1, true_name.c_str());
       size_t true_name_ptr_index = global_memory_.Add(0x06, 8);
@@ -4836,6 +4978,7 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
           Bytecode(_AQVM_OPERATOR_PTR, true_name_index, true_name_ptr_index));
 
       if (dynamic_cast<IfNode*>(stmt)->GetElseBody() != nullptr) {
+        // have else branch
         std::string false_name("$" + std::to_string(++undefined_name_count_));
         std::vector<Bytecode> false_code;
         HandleStmt(dynamic_cast<IfNode*>(stmt)->GetElseBody(), false_code);
@@ -4851,6 +4994,7 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
         code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
                                 true_name_ptr_index, false_name_ptr_index));
       } else {
+        // no else branch (void branch)
         size_t false_name_index = global_memory_.Add(0x01, 3, "$0");
         size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
         code.push_back(Bytecode(_AQVM_OPERATOR_PTR, false_name_index,
@@ -4863,10 +5007,10 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
     }
 
     case StmtNode::StmtType::kWhile: {
-      std::cout << "kWhile" << std::endl;
       std::size_t condition_index =
           HandleExpr(dynamic_cast<WhileNode*>(stmt)->GetCondition(), code);
 
+      // body branch (true)
       std::string body_name("$" + std::to_string(++undefined_name_count_));
       size_t body_name_index =
           global_memory_.Add(0x01, body_name.size() + 1, body_name.c_str());
@@ -4874,6 +5018,7 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       code.push_back(
           Bytecode(_AQVM_OPERATOR_PTR, body_name_index, body_name_ptr_index));
 
+      // void branch (false)
       size_t void_name_index = global_memory_.Add(0x01, 3, "$0");
       size_t void_name_ptr_index = global_memory_.Add(0x06, 8);
       code.push_back(
@@ -4894,26 +5039,25 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
     }
 
     case StmtNode::StmtType::kFuncDecl:
-      std::cout << "kFuncDecl" << std::endl;
       HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt));
       break;
 
     case StmtNode::StmtType::kVarDecl:
-      std::cout << "kVarDecl" << std::endl;
       HandleVarDecl(dynamic_cast<VarDeclNode*>(stmt), code);
       break;
 
     case StmtNode::StmtType::kArrayDecl:
-      std::cout << "kArrayDecl" << std::endl;
       HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(stmt), code);
       break;
 
     case StmtNode::StmtType::kFunc:
-      std::cout << "kFunc" << std::endl;
       HandleFuncInvoke(dynamic_cast<FuncNode*>(stmt), code);
       break;
 
     default:
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleStmt(StmtNode*,std::vector<Bytecode>&)",
+          "Unexpected code.");
       break;
   }
 }
@@ -4921,29 +5065,37 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
                                                 std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  std::cout << "BytecodeGenerator::HandleFuncInvoke OK" << std::endl;
-  std::vector<ExprNode*> args = func->GetArgs();
-  FuncDeclNode func_decl = func_table_.Find(*func->GetName());
+  if (func == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
+        "func is nullptr.");
 
-  std::cout << "func_decl OK" << std::endl;
+  std::vector<ExprNode*> args = func->GetArgs();
+  auto iterator = func_table_.find(*func->GetName());
+  if (iterator == func_table_.end())
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
+        "Not found function.");
+  FuncDeclNode func_decl = iterator->second;
 
   Type* func_type = func_decl.GetReturnType();
-
-  if (func_type == nullptr) std::cout << "ERROR NULLPTR func_type" << std::endl;
-
-  std::cout << "return_type OK1" << std::endl;
+  if (func_type == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
+        "func_type is nullptr.");
 
   while (func_type->GetType() != Type::TypeType::kBase &&
          func_type->GetType() != Type::TypeType::kPointer &&
          func_type->GetType() != Type::TypeType::kArray &&
          func_type->GetType() != Type::TypeType::kReference) {
-    std::cout << "return_type OK1.5" << std::endl;
-    if (func_type->GetType() == Type::TypeType::NONE) break;
+    if (func_type->GetType() == Type::TypeType::NONE)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&"
+          ")",
+          "Unexpected code.");
     if (func_type->GetType() == Type::TypeType::kConst)
       func_type = dynamic_cast<ConstType*>(func_type)->GetSubType();
   }
-
-  std::cout << "return_type OK2" << std::endl;
 
   uint8_t vm_type = 0x00;
   if (func_type->GetType() == Type::TypeType::kBase) {
@@ -4979,7 +5131,10 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
         vm_type = 0x06;
         break;
       default:
-        vm_type = 0x00;
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected code.");
         break;
     }
   } else if (func_type->GetType() == Type::TypeType::kPointer ||
@@ -4987,8 +5142,6 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
              func_type->GetType() == Type::TypeType::kReference) {
     vm_type = 0x06;
   }
-
-  std::cout << "vm_type OK" << std::endl;
 
   std::vector<std::size_t> vm_args;
 
@@ -4998,10 +5151,10 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   std::size_t func_name_ptr_index = global_memory_.Add(0x06, 8);
   code.push_back(
       Bytecode(_AQVM_OPERATOR_PTR, func_name_index, func_name_ptr_index));
+
   vm_args.push_back(func_name_ptr_index);
   vm_args.push_back(args.size() + 1);
-  std::cout << "vm_type: " << vm_type << ", Size: " << func_type->GetSize()
-            << std::endl;
+
   std::size_t return_value_index =
       global_memory_.Add(vm_type, func_type->GetSize());
   vm_args.push_back(return_value_index);
@@ -5018,45 +5171,57 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
                                         std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
+  if (expr == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::GetIndex(ExprNode*,std::vector<Bytecode>&)",
+        "expr is nullptr.");
+
   switch (expr->GetType()) {
-    case StmtNode::StmtType::kIdentifier:
-      return var_table_.Find(*dynamic_cast<IdentifierNode*>(expr)).second;
+    case StmtNode::StmtType::kIdentifier: {
+      auto iterator = var_table_.find(*dynamic_cast<IdentifierNode*>(expr));
+      if (iterator == var_table_.end())
+        EXIT_COMPILER(
+            "BytecodeGenerator::GetIndex(ExprNode*,std::vector<Bytecode>&)",
+            "Not found variable.");
+
+      return iterator->second.second;
+    }
+
     case StmtNode::StmtType::kValue: {
       std::size_t vm_type = dynamic_cast<ValueNode*>(expr)->GetVmType();
       switch (vm_type) {
         case 0x01: {
           int8_t value = dynamic_cast<ValueNode*>(expr)->GetCharValue();
-          // std::get<int8_t>(dynamic_cast<ValueNode*>(expr)->GetValue());
           return global_memory_.Add(
               vm_type, dynamic_cast<ValueNode*>(expr)->GetSize(), &value);
           break;
         }
+
         case 0x02: {
           int value = dynamic_cast<ValueNode*>(expr)->GetIntValue();
-          // std::get<int>(dynamic_cast<ValueNode*>(expr)->GetValue());
           return global_memory_.Add(vm_type, 4, &value);
         }
+
         case 0x03: {
           long value = dynamic_cast<ValueNode*>(expr)->GetLongValue();
-          // std::get<long>(dynamic_cast<ValueNode*>(expr)->GetValue());
           return global_memory_.Add(vm_type, 8, &value);
         }
+
         case 0x04: {
           float value = dynamic_cast<ValueNode*>(expr)->GetFloatValue();
-          // std::get<float>(dynamic_cast<ValueNode*>(expr)->GetValue());
           return global_memory_.Add(vm_type, 4, &value);
         }
+
         case 0x05: {
           double value = dynamic_cast<ValueNode*>(expr)->GetDoubleValue();
-          // std::get<double>(dynamic_cast<ValueNode*>(expr)->GetValue());
           return global_memory_.Add(vm_type, 8, &value);
         }
+
         case 0x06: {
           if (dynamic_cast<ValueNode*>(expr)->GetToken().type ==
               Token::Type::STRING) {
             std::string value =
                 dynamic_cast<ValueNode*>(expr)->GetStringValue();
-            // std::get<char*>(dynamic_cast<ValueNode*>(expr)->GetValue());
             std::size_t str_index =
                 global_memory_.Add(0x01, value.size() + 1,
                                    static_cast<const void*>(value.c_str()));
@@ -5065,13 +5230,20 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
             return ptr_index;
           }
           uint64_t value = dynamic_cast<ValueNode*>(expr)->GetUInt64Value();
-          // std::get<uint64_t>(dynamic_cast<ValueNode*>(expr)->GetValue());
           return global_memory_.Add(vm_type, 8, &value);
         }
+
+        default:
+          EXIT_COMPILER(
+              "BytecodeGenerator::GetIndex(ExprNode*,std::vector<Bytecode>&)",
+              "Unexpected code.");
+          break;
       }
     }
+
     case StmtNode::StmtType::kFunc:
       return HandleFuncInvoke(dynamic_cast<FuncNode*>(expr), code);
+
     default:
       return 0;
   }
@@ -5084,6 +5256,10 @@ std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
 
 uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   TRACE_FUNCTION;
+  if (expr == nullptr)
+    EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                  "expr is nullptr.");
+
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::kAddrOf) {
@@ -5121,7 +5297,9 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             case Type::BaseType::kAuto:
               return 0x06;
             default:
-              return 0x00;
+              EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                            "Unexpected code.");
+              break;
           }
 
         case Type::TypeType::kArray:
@@ -5130,9 +5308,12 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
           return 0x06;
 
         default:
-          return 0x00;
+          EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                        "Unexpected code.");
+          break;
       }
     }
+
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::ARRAY) {
       return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
@@ -5141,8 +5322,10 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
         UnaryNode::Operator::kDeref) {
       return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
     }
+
     return GetExprVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
   }
+
   if (expr->GetType() == StmtNode::StmtType::kBinary) {
     uint8_t left =
         GetExprVmType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
@@ -5151,9 +5334,11 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
 
     return left > right ? left : right;
   }
+
   if (expr->GetType() == StmtNode::StmtType::kValue) {
     return dynamic_cast<ValueNode*>(expr)->GetVmType();
   }
+
   if (expr->GetType() == StmtNode::StmtType::kConditional) {
     uint8_t true_value =
         GetExprVmType(dynamic_cast<ConditionalNode*>(expr)->GetTrueExpr());
@@ -5162,10 +5347,18 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
 
     return true_value > false_value ? true_value : false_value;
   }
+
   if (expr->GetType() == StmtNode::StmtType::kFunc) {
-    Type* return_type =
-        func_table_.Find(*dynamic_cast<FuncNode*>(expr)->GetName())
-            .GetReturnType();
+    auto iterator = func_table_.find(*dynamic_cast<FuncNode*>(expr)->GetName());
+    if (iterator == func_table_.end())
+      EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                    "Not found function define.");
+    Type* return_type = iterator->second.GetReturnType();
+
+    if (return_type == nullptr)
+      EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                    "return_type is nullptr.");
+
     switch (return_type->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
@@ -5194,7 +5387,9 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
           case Type::BaseType::kAuto:
             return 0x06;
           default:
-            return 0x00;
+            EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                          "Unexpected code.");
+            break;
         }
 
       case Type::TypeType::kArray:
@@ -5203,18 +5398,21 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
         return 0x06;
 
       default:
-        return 0x00;
+        EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                      "Unexpected code.");
+        break;
     }
   }
+
   if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
-    switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                .first->GetVarType()
-                ->GetType()) {
+    auto iterator = var_table_.find(*dynamic_cast<IdentifierNode*>(expr));
+    if (iterator == var_table_.end())
+      EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                    "Not found identifier define.");
+    switch (iterator->second.first->GetVarType()->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
-        switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                    .first->GetVarType()
-                    ->GetBaseType()) {
+        switch (iterator->second.first->GetVarType()->GetBaseType()) {
           case Type::BaseType::kVoid:
             return 0x00;
           case Type::BaseType::kBool:
@@ -5239,7 +5437,9 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
           case Type::BaseType::kAuto:
             return 0x06;
           default:
-            return 0x00;
+            EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                          "Unexpected code.");
+            break;
         }
 
       case Type::TypeType::kArray:
@@ -5248,7 +5448,9 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
         return 0x06;
 
       default:
-        return 0x00;
+        EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                      "Unexpected code.");
+        break;
     }
   }
   if (expr->GetType() == StmtNode::StmtType::kVarDecl) {
@@ -5280,7 +5482,9 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
           case Type::BaseType::kAuto:
             return 0x06;
           default:
-            return 0x00;
+            EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                          "Unexpected code.");
+            break;
         }
 
       case Type::TypeType::kArray:
@@ -5289,7 +5493,9 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
         return 0x06;
 
       default:
-        return 0x00;
+        EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                      "Unexpected code.");
+        break;
     }
   }
   if (expr->GetType() == StmtNode::StmtType::kCast) {
@@ -5321,7 +5527,9 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
           case Type::BaseType::kAuto:
             return 0x06;
           default:
-            return 0x00;
+            EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                          "Unexpected code.");
+            break;
         }
 
       case Type::TypeType::kArray:
@@ -5330,10 +5538,14 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
         return 0x06;
 
       default:
-        return 0x00;
+        EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                      "Unexpected code.");
+        break;
     }
   }
-  return 0x00;
+  EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
+                "Unexpected code.");
+  return 0;
 }
 
 uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
@@ -5414,9 +5626,14 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
     return true_value > false_value ? true_value : false_value;
   }
   if (expr->GetType() == StmtNode::StmtType::kFunc) {
-    Type* return_type =
-        func_table_.Find(*dynamic_cast<FuncNode*>(expr)->GetName())
-            .GetReturnType();
+    auto iterator = func_table_.find(*dynamic_cast<FuncNode*>(expr)->GetName());
+    if (iterator == func_table_.end())
+      EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                    "Not found func.");
+    Type* return_type = iterator->second.GetReturnType();
+    if (return_type == nullptr)
+      EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                    "return_type is nullptr.");
     switch (return_type->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
@@ -5582,14 +5799,14 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
         return 0x00;
     }
     if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
-      switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                  .first->GetVarType()
-                  ->GetType()) {
+      auto iterator = var_table_.find(*dynamic_cast<IdentifierNode*>(expr));
+      if (iterator == var_table_.end())
+        EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                      "Not found variable.");
+      switch (iterator->second.first->GetVarType()->GetType()) {
         case Type::TypeType::kBase:
         case Type::TypeType::kConst:
-          switch (var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                      .first->GetVarType()
-                      ->GetBaseType()) {
+          switch (iterator->second.first->GetVarType()->GetBaseType()) {
             case Type::BaseType::kVoid:
               return 0x00;
             case Type::BaseType::kBool:
@@ -5617,19 +5834,18 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               return 0x00;
           }
 
-        case Type::TypeType::kArray:
-          switch (dynamic_cast<ArrayType*>(
-                      var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                          .first->GetVarType())
-                      ->GetSubType()
-                      ->GetType()) {
+        case Type::TypeType::kArray: {
+          auto iterator = var_table_.find(*dynamic_cast<IdentifierNode*>(expr));
+          if (iterator == var_table_.end())
+            EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                          "Not found variable.");
+          switch (iterator->second.first->GetVarType()->GetType()) {
             case Type::TypeType::kBase:
             case Type::TypeType::kConst:
-              switch (dynamic_cast<ArrayType*>(
-                          var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                              .first->GetVarType())
-                          ->GetSubType()
-                          ->GetBaseType()) {
+              switch (
+                  dynamic_cast<ArrayType*>(iterator->second.first->GetVarType())
+                      ->GetSubType()
+                      ->GetBaseType()) {
                 case Type::BaseType::kVoid:
                   return 0x00;
                 case Type::BaseType::kBool:
@@ -5665,17 +5881,18 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
             default:
               return 0x00;
           }
-        case Type::TypeType::kPointer:
-          switch (dynamic_cast<PointerType*>(
-                      var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                          .first->GetVarType())
-                      ->GetSubType()
-                      ->GetType()) {
+        }
+
+        case Type::TypeType::kPointer: {
+          auto iterator = var_table_.find(*dynamic_cast<IdentifierNode*>(expr));
+          if (iterator == var_table_.end())
+            EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                          "Not found variable.");
+          switch (iterator->second.first->GetVarType()->GetType()) {
             case Type::TypeType::kBase:
             case Type::TypeType::kConst:
               switch (dynamic_cast<PointerType*>(
-                          var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                              .first->GetVarType())
+                          iterator->second.first->GetVarType())
                           ->GetSubType()
                           ->GetBaseType()) {
                 case Type::BaseType::kVoid:
@@ -5713,17 +5930,18 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
             default:
               return 0x00;
           }
-        case Type::TypeType::kReference:
-          switch (dynamic_cast<ReferenceType*>(
-                      var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                          .first->GetVarType())
-                      ->GetSubType()
-                      ->GetType()) {
+        }
+
+        case Type::TypeType::kReference: {
+          auto iterator = var_table_.find(*dynamic_cast<IdentifierNode*>(expr));
+          if (iterator == var_table_.end())
+            EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                          "Not found variable.");
+          switch (iterator->second.first->GetVarType()->GetType()) {
             case Type::TypeType::kBase:
             case Type::TypeType::kConst:
               switch (dynamic_cast<ReferenceType*>(
-                          var_table_.Find(*dynamic_cast<IdentifierNode*>(expr))
-                              .first->GetVarType())
+                          iterator->second.first->GetVarType())
                           ->GetSubType()
                           ->GetBaseType()) {
                 case Type::BaseType::kVoid:
@@ -5761,6 +5979,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
             default:
               return 0x00;
           }
+        }
 
         default:
           return 0x00;
