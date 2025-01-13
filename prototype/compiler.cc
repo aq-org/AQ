@@ -3864,6 +3864,10 @@ class BytecodeGenerator {
   void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   void HandleArrayDecl(ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
   void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
+  void HandleCompoundStmt(CompoundNode* stmt, std::vector<Bytecode>& code);
+  void HandleIfStmt(IfNode* stmt, std::vector<Bytecode>& code);
+  void HandleWhileStmt(WhileNode* stmt, std::vector<Bytecode>& code);
+
   std::size_t HandleExpr(ExprNode* expr, std::vector<Bytecode>& code);
   std::size_t HandleUnaryExpr(UnaryNode* expr, std::vector<Bytecode>& code);
   std::size_t HandleBinaryExpr(BinaryNode* expr, std::vector<Bytecode>& code);
@@ -3988,9 +3992,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_LOAD);
 
-          if (func_list_[i].second[j].GetArgs().size() != 2)
+          if (func_list_[i].second[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected LOAD args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4007,9 +4011,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_STORE);
 
-          if (func_list_[i].second[j].GetArgs().size() != 2)
+          if (func_list_[i].second[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected STORE args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4026,9 +4030,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_NEW);
 
-          if (func_list_[i].second[j].GetArgs().size() != 2)
+          if (func_list_[i].second[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected NEW args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4045,9 +4049,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_FREE);
 
-          if (func_list_[i].second[j].GetArgs().size() != 1)
+          if (func_list_[i].second[j].GetArgs().size() < 1)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected FREE args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4059,9 +4063,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_PTR);
 
-          if (func_list_[i].second[j].GetArgs().size() != 2)
-            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+          if (func_list_[i].second[j].GetArgs().size() < 2)
+            std::cout << func_list_[i].second[j].GetArgs().size() << std::endl;
+          EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                        "Unexpected PTR args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4078,9 +4083,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_ADD);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected ADD args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4102,9 +4107,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SUB);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected SUB args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4126,9 +4131,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_MUL);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected MUL args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4150,9 +4155,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_DIV);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected DIV args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4174,9 +4179,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_REM);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected REM args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4198,9 +4203,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_NEG);
 
-          if (func_list_[i].second[j].GetArgs().size() != 2)
+          if (func_list_[i].second[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected NEG args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4217,9 +4222,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SHL);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected SHL args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4241,9 +4246,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SHR);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected SHR args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4265,9 +4270,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_SAR);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected SAR args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4289,9 +4294,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_IF);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected IF args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4313,9 +4318,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_AND);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected AND args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4337,9 +4342,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_OR);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected OR args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4361,9 +4366,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_XOR);
 
-          if (func_list_[i].second[j].GetArgs().size() != 3)
+          if (func_list_[i].second[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected XOR args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4385,9 +4390,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_CMP);
 
-          if (func_list_[i].second[j].GetArgs().size() != 4)
+          if (func_list_[i].second[j].GetArgs().size() < 4)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected CMP args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4416,7 +4421,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 
           if (func_list_[i].second[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected INVOKE args size.");
 
           std::cout << "Args size: " << func_list_[i].second[j].GetArgs().size()
                     << std::endl;
@@ -4439,9 +4444,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
           func_size++;
           code_.push_back(_AQVM_OPERATOR_GOTO);
 
-          if (func_list_[i].second[j].GetArgs().size() != 1)
+          if (func_list_[i].second[j].GetArgs().size() < 1)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected args size.");
+                          "Unexpected GOTO args size.");
 
           func_size +=
               EncodeUleb128(func_list_[i].second[j].GetArgs()[0], buffer);
@@ -4692,6 +4697,7 @@ std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
 
   return GetIndex(expr, code);
 }
+
 std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
                                                std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
@@ -4949,94 +4955,20 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 
   switch (stmt->GetType()) {
     case StmtNode::StmtType::kCompound:
-      for (std::size_t i = 0;
-           i < dynamic_cast<CompoundNode*>(stmt)->GetStmts().size(); i++) {
-        HandleStmt(dynamic_cast<CompoundNode*>(stmt)->GetStmts()[i], code);
-      }
+      HandleCompoundStmt(dynamic_cast<CompoundNode*>(stmt), code);
       break;
 
     case StmtNode::StmtType::kExpr:
       HandleExpr(dynamic_cast<ExprNode*>(stmt), code);
       break;
 
-    case StmtNode::StmtType::kIf: {
-      std::size_t condition_index =
-          HandleExpr(dynamic_cast<IfNode*>(stmt)->GetCondition(), code);
-
-      // true branch name
-      std::string true_name("$" + std::to_string(++undefined_name_count_));
-      std::vector<Bytecode> true_code;
-      HandleStmt(dynamic_cast<IfNode*>(stmt)->GetBody(), true_code);
-      func_list_.push_back(
-          std::pair<std::string, std::vector<Bytecode>>(true_name, true_code));
-
-      // true branch ptr
-      size_t true_name_index =
-          global_memory_.Add(0x01, true_name.size() + 1, true_name.c_str());
-      size_t true_name_ptr_index = global_memory_.Add(0x06, 8);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_PTR, true_name_index, true_name_ptr_index));
-
-      if (dynamic_cast<IfNode*>(stmt)->GetElseBody() != nullptr) {
-        // have else branch
-        std::string false_name("$" + std::to_string(++undefined_name_count_));
-        std::vector<Bytecode> false_code;
-        HandleStmt(dynamic_cast<IfNode*>(stmt)->GetElseBody(), false_code);
-        func_list_.push_back(std::pair<std::string, std::vector<Bytecode>>(
-            false_name, false_code));
-
-        size_t false_name_index =
-            global_memory_.Add(0x01, false_name.size() + 1, false_name.c_str());
-        size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
-        code.push_back(Bytecode(_AQVM_OPERATOR_PTR, false_name_index,
-                                false_name_ptr_index));
-
-        code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
-                                true_name_ptr_index, false_name_ptr_index));
-      } else {
-        // no else branch (void branch)
-        size_t false_name_index = global_memory_.Add(0x01, 3, "$0");
-        size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
-        code.push_back(Bytecode(_AQVM_OPERATOR_PTR, false_name_index,
-                                false_name_ptr_index));
-
-        code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
-                                true_name_ptr_index, false_name_ptr_index));
-      }
+    case StmtNode::StmtType::kIf:
+      HandleIfStmt(dynamic_cast<IfNode*>(stmt), code);
       break;
-    }
 
-    case StmtNode::StmtType::kWhile: {
-      std::size_t condition_index =
-          HandleExpr(dynamic_cast<WhileNode*>(stmt)->GetCondition(), code);
-
-      // body branch (true)
-      std::string body_name("$" + std::to_string(++undefined_name_count_));
-      size_t body_name_index =
-          global_memory_.Add(0x01, body_name.size() + 1, body_name.c_str());
-      size_t body_name_ptr_index = global_memory_.Add(0x06, 8);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_PTR, body_name_index, body_name_ptr_index));
-
-      // void branch (false)
-      size_t void_name_index = global_memory_.Add(0x01, 3, "$0");
-      size_t void_name_ptr_index = global_memory_.Add(0x06, 8);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_PTR, void_name_index, void_name_ptr_index));
-
-      std::vector<Bytecode> body_code;
-      body_code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
-                                   body_name_ptr_index, void_name_ptr_index));
-      HandleStmt(dynamic_cast<WhileNode*>(stmt)->GetBody(), body_code);
-
-      body_code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_name_ptr_index));
-
-      func_list_.push_back(
-          std::pair<std::string, std::vector<Bytecode>>(body_name, body_code));
-
-      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, body_name_ptr_index));
+    case StmtNode::StmtType::kWhile:
+      HandleWhileStmt(dynamic_cast<WhileNode*>(stmt), code);
       break;
-    }
 
     case StmtNode::StmtType::kFuncDecl:
       HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt));
@@ -5060,6 +4992,109 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
           "Unexpected code.");
       break;
   }
+}
+
+void BytecodeGenerator::HandleCompoundStmt(CompoundNode* stmt,
+                                           std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
+  if (stmt == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleCompoundStmt(CompoundNode*,std::vector<"
+        "Bytecode>&)",
+        "stmt is nullptr.");
+
+  for (std::size_t i = 0; i < stmt->GetStmts().size(); i++) {
+    HandleStmt(stmt->GetStmts()[i], code);
+  }
+}
+
+void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
+                                     std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
+  if (stmt == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleIfStmt(IfNode*,std::vector<Bytecode>&)",
+        "stmt is nullptr.");
+
+  std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
+
+  // true branch name
+  std::string true_name("$" + std::to_string(++undefined_name_count_));
+  std::vector<Bytecode> true_code;
+  HandleStmt(stmt->GetBody(), true_code);
+  func_list_.push_back(
+      std::pair<std::string, std::vector<Bytecode>>(true_name, true_code));
+
+  // true branch ptr
+  size_t true_name_index =
+      global_memory_.Add(0x01, true_name.size() + 1, true_name.c_str());
+  size_t true_name_ptr_index = global_memory_.Add(0x06, 8);
+  code.push_back(
+      Bytecode(_AQVM_OPERATOR_PTR, true_name_index, true_name_ptr_index));
+
+  if (stmt->GetElseBody() != nullptr) {
+    // have else branch
+    std::string false_name("$" + std::to_string(++undefined_name_count_));
+    std::vector<Bytecode> false_code;
+    HandleStmt(stmt->GetElseBody(), false_code);
+    func_list_.push_back(
+        std::pair<std::string, std::vector<Bytecode>>(false_name, false_code));
+
+    size_t false_name_index =
+        global_memory_.Add(0x01, false_name.size() + 1, false_name.c_str());
+    size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
+    code.push_back(
+        Bytecode(_AQVM_OPERATOR_PTR, false_name_index, false_name_ptr_index));
+
+    code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
+                            true_name_ptr_index, false_name_ptr_index));
+  } else {
+    // no else branch (void branch)
+    size_t false_name_index = global_memory_.Add(0x01, 3, "$0");
+    size_t false_name_ptr_index = global_memory_.Add(0x06, 8);
+    code.push_back(
+        Bytecode(_AQVM_OPERATOR_PTR, false_name_index, false_name_ptr_index));
+
+    code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
+                            true_name_ptr_index, false_name_ptr_index));
+  }
+}
+
+void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
+                                        std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
+  if (stmt == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleWhileStmt(WhileNode*,std::vector<Bytecode>&)",
+        "stmt is nullptr.");
+
+  std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
+
+  // body branch (true)
+  std::string body_name("$" + std::to_string(++undefined_name_count_));
+  size_t body_name_index =
+      global_memory_.Add(0x01, body_name.size() + 1, body_name.c_str());
+  size_t body_name_ptr_index = global_memory_.Add(0x06, 8);
+  code.push_back(
+      Bytecode(_AQVM_OPERATOR_PTR, body_name_index, body_name_ptr_index));
+
+  // void branch (false)
+  size_t void_name_index = global_memory_.Add(0x01, 3, "$0");
+  size_t void_name_ptr_index = global_memory_.Add(0x06, 8);
+  code.push_back(
+      Bytecode(_AQVM_OPERATOR_PTR, void_name_index, void_name_ptr_index));
+
+  std::vector<Bytecode> body_code;
+  body_code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
+                               body_name_ptr_index, void_name_ptr_index));
+  HandleStmt(stmt->GetBody(), body_code);
+
+  body_code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_name_ptr_index));
+
+  func_list_.push_back(
+      std::pair<std::string, std::vector<Bytecode>>(body_name, body_code));
+
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, body_name_ptr_index));
 }
 
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
