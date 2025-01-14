@@ -2,13 +2,14 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
+
 
 typedef struct {
   size_t size;
@@ -191,8 +192,9 @@ int8_t GetByteData(size_t index) {
     case 0x01:
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
-      return (int8_t)is_big_endian ? *(int*)((uintptr_t)memory->data + index)
-                           : SwapInt(*(int*)((uintptr_t)memory->data + index));
+      return (int8_t)is_big_endian
+                 ? *(int*)((uintptr_t)memory->data + index)
+                 : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
       return (int8_t)is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
@@ -2497,7 +2499,7 @@ void* AddFunction(void* location) {
   void* origin_location = location;
   size_t all_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
-  printf("AddFunction Size: %zu\n", all_size);
+  // printf("AddFunction Size: %zu\n", all_size);
   size_t commands_size = all_size;
   location = (void*)((uintptr_t)location + 8);
   struct FuncList* table = &func_table[hash(location)];
@@ -2507,7 +2509,7 @@ void* AddFunction(void* location) {
   table->pair.second.location = origin_location;
   table->pair.first = location;
   table->pair.second.name = location;
-  printf("AddFunction: %s\n", table->pair.second.name);
+  // printf("AddFunction: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
     commands_size--;
@@ -2566,7 +2568,7 @@ FuncInfo GOTO(size_t offset);
 int THROW();
 int WIDE();
 int InvokeCustomFunction(const char* name) {
-  printf("InvokeCustomFunction: %s\n", name);
+  // printf("InvokeCustomFunction: %s\n", name);
   FuncInfo func_info = GetCustomFunction(name);
   /*void* temp_memory = malloc(func_info.memory_size);
   void* temp_types = NULL;
@@ -2652,7 +2654,7 @@ int InvokeCustomFunction(const char* name) {
       returnvalue;
   while (run_code <
          (void*)((uintptr_t)func_info.commands + func_info.commands_size)) {
-    printf("0x%02X\n", *(uint8_t*)run_code);
+    // printf("0x%02X\n", *(uint8_t*)run_code);
     switch (*(uint8_t*)run_code) {
       case 0x00:
         run_code = (void*)((uintptr_t)run_code + 1);
@@ -2888,10 +2890,10 @@ int main(int argc, char* argv[]) {
     bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2);
   }
 
-  printf("Memory size: %hhu\n", *(uint8_t*)bytecode_file);
+  // printf("Memory size: %hhu\n", *(uint8_t*)bytecode_file);
 
   while (bytecode_file < bytecode_end) {
-    printf("AddFunction\n");
+    // printf("AddFunction\n");
 
     bytecode_file = AddFunction(bytecode_file);
   }
