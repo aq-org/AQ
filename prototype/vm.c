@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 typedef struct {
   size_t size;
   size_t* index;
@@ -1508,11 +1507,12 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int InvokeCustomFunction(const char* name);
-void IF(size_t condition, size_t true_branche, size_t false_branche) {
+size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
+  printf("%d\n", GetByteData(condition));
   if (GetByteData(condition) != 0) {
-    InvokeCustomFunction((char*)GetPtrData(true_branche));
+    return GetUint64tData(true_branche);
   } else {
-    InvokeCustomFunction((char*)GetPtrData(false_branche));
+    return GetUint64tData(false_branche);
   }
 }
 int AND(size_t result, size_t operand1, size_t operand2) {
@@ -2461,9 +2461,7 @@ int INVOKE(const size_t* func, const size_t return_value,
   return InvokeCustomFunction((char*)GetPtrData(*func));
 }
 int RETURN() { return 0; }
-FuncInfo GOTO(size_t label) {
-  return GetCustomFunction((char*)GetPtrData(label));
-}
+size_t GOTO(size_t location) { return GetUint64tData(location); }
 int THROW() { return 0; }
 int WIDE() { return 0; }
 
@@ -2514,26 +2512,11 @@ void* AddFunction(void* location) {
     location = (void*)((uintptr_t)location + 1);
     commands_size--;
   }
-  location = (void*)((uintptr_t)location + 1);
-  commands_size--;
-  /*table->pair.second.memory_size = SwapUint64t(*(uint64_t*)location);
-  commands_size -= 8;
-  location = (void*)((uintptr_t)location + 8);
-  table->pair.second.memory = location;
-  commands_size -= table->pair.second.memory_size;
-  location = (void*)((uintptr_t)location + table->pair.second.memory_size);
-  table->pair.second.types = location;
-  if (table->pair.second.memory_size % 2 != 0) {
-    commands_size -= table->pair.second.memory_size / 2 + 1;
-    location =
-        (void*)((uintptr_t)location + table->pair.second.memory_size / 2 + 1);
-  } else {
-    commands_size -= table->pair.second.memory_size / 2;
-    location =
-        (void*)((uintptr_t)location + table->pair.second.memory_size / 2);
-  }*/
-  table->pair.second.commands = location;
-  table->pair.second.commands_size = commands_size;
+
+  table->pair.second.commands = (void*)((uintptr_t)location + 1);
+  table->pair.second.commands_size = commands_size - 1;
+  printf("Func: %s, Size: %zu\n", table->pair.first,
+         table->pair.second.commands_size);
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
   AddFreePtr(table->next);
   return (void*)((uintptr_t)origin_location + 8 + all_size);
@@ -2564,97 +2547,20 @@ func_ptr GetFunction(const char* name) {
 }
 
 int RETURN();
-FuncInfo GOTO(size_t offset);
+size_t GOTO(size_t location);
 int THROW();
 int WIDE();
 int InvokeCustomFunction(const char* name) {
-  // printf("InvokeCustomFunction: %s\n", name);
+  printf("InvokeCustomFunction: %s, ", name);
   FuncInfo func_info = GetCustomFunction(name);
-  /*void* temp_memory = malloc(func_info.memory_size);
-  void* temp_types = NULL;
-  if (func_info.memory_size % 2 != 0) {
-    temp_types = malloc(func_info.memory_size / 2 + 1);
-  } else {
-    temp_types = malloc(func_info.memory_size / 2);
-  }
-  if (temp_memory == NULL || temp_types == NULL) {
-    return -1;
-  }
-  memcpy(temp_memory, func_info.memory, func_info.memory_size);
-  if (func_info.memory_size % 2 != 0) {
-    memcpy(temp_types, func_info.types, func_info.memory_size / 2 + 1);
-  } else {
-    memcpy(temp_types, func_info.types, func_info.memory_size / 2);
-  }
-  struct Memory* memory_info =
-      InitializeMemory(temp_memory, temp_types, func_info.memory_size);
-
-  struct Memory* old_memory = memory;
-  memory = memory_info;
-  size_t arg_index = 1;
-  for (size_t i = 0; i < args.size; i++) {
-    while (GetType(memory, arg_index) != 0x00) arg_index++;
-    int8_t byte_data;
-    int int_data;
-    long long_data;
-    float float_data;
-    double double_data;
-    uint64_t uint64t_data;
-    void* ptr_data;
-    switch (GetType(memory, arg_index)) {
-      case 0x01:
-        memory = old_memory;
-        byte_data = GetByteData(args.index[i]);
-        memory = memory_info;
-        SetByteData(arg_index, byte_data);
-        break;
-      case 0x02:
-        memory = old_memory;
-        int_data = GetIntData(args.index[i]);
-        memory = memory_info;
-        SetIntData(arg_index, int_data);
-        break;
-      case 0x03:
-        memory = old_memory;
-        long_data = GetLongData(args.index[i]);
-        memory = memory_info;
-        SetLongData(arg_index, long_data);
-        break;
-      case 0x04:
-        memory = old_memory;
-        float_data = GetFloatData(args.index[i]);
-        memory = memory_info;
-        SetFloatData(arg_index, float_data);
-        break;
-      case 0x05:
-        memory = old_memory;
-        double_data = GetDoubleData(args.index[i]);
-        memory = memory_info;
-        SetDoubleData(arg_index, double_data);
-        break;
-      case 0x06:
-        memory = old_memory;
-        uint64t_data = GetUint64tData(args.index[i]);
-        memory = memory_info;
-        SetUint64tData(arg_index, uint64t_data);
-        break;
-      case 0x0F:
-        memory = old_memory;
-        ptr_data = GetPtrData(args.index[i]);
-        memory = memory_info;
-        SetPtrData(arg_index, ptr_data);
-        break;
-      default:
-        break;
-    }
-  }*/
-
   void* run_code = func_info.commands;
   size_t first, second, result, operand1, operand2, opcode, arg_count,
       returnvalue;
+  printf("0x%08X, 0x%08X\n", func_info.commands,
+         (void*)((uintptr_t)func_info.commands + func_info.commands_size));
   while (run_code <
          (void*)((uintptr_t)func_info.commands + func_info.commands_size)) {
-    // printf("0x%02X\n", *(uint8_t*)run_code);
+    printf("0x%08X\n", run_code);
     switch (*(uint8_t*)run_code) {
       case 0x00:
         run_code = (void*)((uintptr_t)run_code + 1);
@@ -2733,7 +2639,7 @@ int InvokeCustomFunction(const char* name) {
       case 0x0F:
         run_code = (void*)((uintptr_t)run_code + 1);
         run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        IF(result, operand1, operand2);
+        run_code = (void*)func_info.commands + IF(result, operand1, operand2);
         break;
       case 0x10:
         run_code = (void*)((uintptr_t)run_code + 1);
@@ -2760,7 +2666,7 @@ int InvokeCustomFunction(const char* name) {
         run_code = (void*)((uintptr_t)run_code + 1);
         run_code = GetUnknownCountParamentAndINVOKE(run_code, &returnvalue,
                                                     &arg_count);
-        // memory = memory_info;
+        // printf("\n 0x%08X\n", run_code);
         break;
       case 0x15:
         run_code = (void*)((uintptr_t)run_code + 1);
@@ -2769,8 +2675,7 @@ int InvokeCustomFunction(const char* name) {
       case 0x16:
         run_code = (void*)((uintptr_t)run_code + 1);
         run_code = Get1Parament(run_code, &operand1);
-        func_info = GOTO(operand1);
-        run_code = func_info.commands;
+        run_code = (void*)func_info.commands + GOTO(operand1);
         break;
       case 0x17:
         run_code = (void*)((uintptr_t)run_code + 1);
@@ -2784,65 +2689,8 @@ int InvokeCustomFunction(const char* name) {
         break;
     }
   }
-  /*if (GetType(memory, return_value) != 0x00) {
-    int8_t bytedata;
-    int intdata;
-    long longdata;
-    float floatdata;
-    double doubledata;
-    uint64_t uint64tdata;
-    void* ptrdata;
-    switch (GetType(memory, return_value)) {
-      case 0x01:
-        bytedata = GetByteData(return_value);
-        memory = old_memory;
-        SetByteData(return_value, bytedata);
-        memory = memory_info;
-        break;
-      case 0x02:
-        intdata = GetIntData(return_value);
-        memory = old_memory;
-        SetIntData(return_value, intdata);
-        memory = memory_info;
-        break;
-      case 0x03:
-        longdata = GetLongData(return_value);
-        memory = old_memory;
-        SetLongData(return_value, longdata);
-        memory = memory_info;
-        break;
-      case 0x04:
-        floatdata = GetFloatData(return_value);
-        memory = old_memory;
-        SetFloatData(return_value, floatdata);
-        memory = memory_info;
-        break;
-      case 0x05:
-        doubledata = GetDoubleData(return_value);
-        memory = old_memory;
-        SetDoubleData(return_value, doubledata);
-        memory = memory_info;
-        break;
-      case 0x06:
-        uint64tdata = GetUint64tData(return_value);
-        memory = old_memory;
-        SetUint64tData(return_value, uint64tdata);
-        memory = memory_info;
-        break;
-      case 0x0F:
-        ptrdata = GetPtrData(return_value);
-        memory = old_memory;
-        SetPtrData(return_value, ptrdata);
-        memory = memory_info;
-        break;
-      default:
-        break;
-    }
-  }
-  FreeMemory(memory_info);
-  free(temp_types);
-  free(temp_memory);
-  memory = NULL;*/
+
+  printf("\n 0x%08X\n", run_code);
   return 0;
 }
 
