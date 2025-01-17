@@ -22,11 +22,44 @@ struct Pair {
   func_ptr second;
 };
 
+enum Operator {
+  OPERATOR_NOP = 0x00,
+  OPERATOR_LOAD,
+  OPERATOR_STORE,
+  OPERATOR_NEW,
+  OPERATOR_FREE,
+  OPERATOR_PTR,
+  OPERATOR_ADD,
+  OPERATOR_SUB,
+  OPERATOR_MUL,
+  OPERATOR_DIV,
+  OPERATOR_REM,
+  OPERATOR_NEG,
+  OPERATOR_SHL,
+  OPERATOR_SHR,
+  OPERATOR_SAR,
+  OPERATOR_IF,
+  OPERATOR_AND,
+  OPERATOR_OR,
+  OPERATOR_XOR,
+  OPERATOR_CMP,
+  OPERATOR_INVOKE,
+  OPERATOR_RETURN,
+  OPERATOR_GOTO,
+  OPERATOR_THROW,
+  OPERATOR_WIDE = 0xFF
+};
+
+struct Bytecode {
+  enum Operator operator;
+  size_t* args;
+};
+
 typedef struct {
   const char* name;
   void* location;
   size_t commands_size;
-  void* commands;
+  struct Bytecode* commands;
 } FuncInfo;
 
 struct FuncPair {
@@ -577,33 +610,26 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
   return ptr;
 }
 
-int INVOKE(const size_t* func, const size_t return_value,
-           const InternalObject args);
+int INVOKE(size_t* args);
 
-void* GetUnknownCountParamentAndINVOKE(void* ptr, size_t* return_value,
-                                       size_t* arg_count) {
+size_t* GetUnknownCountParament(void* ptr) {
   size_t func = 0;
+  size_t arg_count = 0;
+  size_t return_value = 0;
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &func));
-  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, arg_count));
-  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, return_value));
-  arg_count--;
-  InternalObject args_obj = {*arg_count, NULL};
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &arg_count));
+  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &return_value));
 
-  size_t* args = malloc(*arg_count * sizeof(size_t));
+  size_t* args = malloc((arg_count + 3) * sizeof(size_t));
+  args[0] = func;
+  args[1] = arg_count;
+  args[2] = return_value;
 
-  size_t read_arg = 0;
-  while (read_arg < *arg_count) {
-    ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, args + read_arg));
-    read_arg++;
+  for (size_t i = 3; i < arg_count + 3; i++) {
+    ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, args + i));
   }
 
-  args_obj.index = args;
-
-  INVOKE(&func, *return_value, args_obj);
-
-  free(args);
-
-  return ptr;
+  return args;
 }
 
 int NOP() { return 0; }
@@ -2450,15 +2476,22 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int INVOKE(const size_t* func, const size_t return_value,
-           const InternalObject args) {
-  func_ptr invoke_func = GetFunction((char*)GetPtrData(*func));
+int INVOKE(size_t* args) {
+  size_t func = args[0];
+  size_t arg_count = args[1];
+  size_t return_value = args[2];
+  size_t* invoke_args = NULL;
+  if (arg_count > 0) {
+    invoke_args = args + 3;
+  }
+  InternalObject args_obj = {arg_count, invoke_args};
+  func_ptr invoke_func = GetFunction((char*)GetPtrData(func));
   if (invoke_func != NULL) {
-    invoke_func(args, return_value);
+    invoke_func(args_obj, return_value);
     return 0;
   }
 
-  return InvokeCustomFunction((char*)GetPtrData(*func));
+  return InvokeCustomFunction((char*)GetPtrData(func));
 }
 int RETURN() { return 0; }
 size_t GOTO(size_t location) { return GetUint64tData(location); }
@@ -2495,11 +2528,7 @@ void InitializeNameTable(struct LinkedList* list) {
 
 void* AddFunction(void* location) {
   void* origin_location = location;
-  size_t all_size =
-      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
-  // printf("AddFunction Size: %zu\n", all_size);
-  size_t commands_size = all_size;
-  location = (void*)((uintptr_t)location + 8);
+
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
     table = table->next;
@@ -2507,19 +2536,173 @@ void* AddFunction(void* location) {
   table->pair.second.location = origin_location;
   table->pair.first = location;
   table->pair.second.name = location;
-  // printf("AddFunction: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
-    commands_size--;
   }
 
-  table->pair.second.commands = (void*)((uintptr_t)location + 1);
-  table->pair.second.commands_size = commands_size - 1;
-  printf("Func: %s, Size: %zu\n", table->pair.first,
-         table->pair.second.commands_size);
+  table->pair.second.commands_size =
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+  location = (void*)((uintptr_t)location + 8);
+
+  struct Bytecode* bytecode = (struct Bytecode*)malloc(
+      table->pair.second.commands_size * sizeof(struct Bytecode));
+  AddFreePtr(bytecode);
+
+  table->pair.second.commands = bytecode;
+
+  for (size_t i = 0; i < table->pair.second.commands_size; i++) {
+    bytecode[i].operator= *(uint8_t*) location;
+    location = (void*)((uintptr_t)location + 1);
+    switch (bytecode[i].operator) {
+      case OPERATOR_NOP:
+        bytecode[i].args = NULL;
+        break;
+
+      case OPERATOR_LOAD:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_STORE:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_NEW:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_FREE:
+        bytecode[i].args = (size_t*)malloc(sizeof(size_t));
+        location = Get1Parament(location, bytecode[i].args);
+        break;
+
+      case OPERATOR_PTR:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_ADD:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_SUB:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_MUL:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_DIV:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_REM:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_NEG:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_SHL:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_SHR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_SAR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_AND:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_OR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_XOR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_IF:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_CMP:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_GOTO:
+        bytecode[i].args = (size_t*)malloc(sizeof(size_t));
+        location = Get1Parament(location, bytecode[i].args);
+        break;
+
+      case OPERATOR_INVOKE:
+        location = GetUnknownCountParament(location);
+        break;
+
+      case OPERATOR_RETURN:
+        bytecode[i].args = NULL;
+        break;
+
+      case OPERATOR_THROW:
+        bytecode[i].args = NULL;
+        break;
+
+      case OPERATOR_WIDE:
+        bytecode[i].args = NULL;
+        break;
+
+      default:
+        bytecode[i].args = NULL;
+        break;
+    }
+    AddFreePtr(bytecode[i].args);
+  }
+
   table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
   AddFreePtr(table->next);
-  return (void*)((uintptr_t)origin_location + 8 + all_size);
+
+  return location;
 }
 
 FuncInfo GetCustomFunction(const char* name) {
@@ -2553,136 +2736,83 @@ int WIDE();
 int InvokeCustomFunction(const char* name) {
   printf("InvokeCustomFunction: %s, ", name);
   FuncInfo func_info = GetCustomFunction(name);
-  void* run_code = func_info.commands;
-  size_t first, second, result, operand1, operand2, opcode, arg_count,
-      returnvalue;
-  printf("0x%08X, 0x%08X\n", func_info.commands,
-         (void*)((uintptr_t)func_info.commands + func_info.commands_size));
-  while (run_code <
-         (void*)((uintptr_t)func_info.commands + func_info.commands_size)) {
-    printf("0x%08X\n", run_code);
-    switch (*(uint8_t*)run_code) {
+  struct Bytecode* run_code = func_info.commands;
+  for (size_t i = 0; i < func_info.commands_size; i++) {
+    switch (run_code[i].operator) {
       case 0x00:
-        run_code = (void*)((uintptr_t)run_code + 1);
         NOP();
         break;
       case 0x01:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get2Parament(run_code, &first, &second);
-        LOAD(first, second);
+        LOAD(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x02:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get2Parament(run_code, &first, &second);
-        STORE(first, second);
+        STORE(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x03:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get2Parament(run_code, &first, &second);
-        NEW(first, second);
+        NEW(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x04:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get1Parament(run_code, &first);
-        FREE(first);
+        FREE(run_code[i].args[0]);
         break;
       case 0x05:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get2Parament(run_code, &first, &second);
-        PTR(first, second);
+        PTR(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x06:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        ADD(result, operand1, operand2);
+        ADD(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x07:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        SUB(result, operand1, operand2);
+        SUB(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x08:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        MUL(result, operand1, operand2);
+        MUL(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x09:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        DIV(result, operand1, operand2);
+        DIV(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x0A:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        REM(result, operand1, operand2);
+        REM(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x0B:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get2Parament(run_code, &result, &operand1);
-        NEG(result, operand1);
+        NEG(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x0C:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        SHL(result, operand1, operand2);
+        SHL(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x0D:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        SHR(result, operand1, operand2);
+        SHR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x0E:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        SAR(result, operand1, operand2);
+        SAR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x0F:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        run_code = (void*)func_info.commands + IF(result, operand1, operand2);
+        i = IF(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x10:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        AND(result, operand1, operand2);
+        AND(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x11:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        OR(result, operand1, operand2);
+        OR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x12:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get3Parament(run_code, &result, &operand1, &operand2);
-        XOR(result, operand1, operand2);
+        XOR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x13:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code =
-            Get4Parament(run_code, &result, &opcode, &operand1, &operand2);
-        CMP(result, opcode, operand1, operand2);
+        CMP(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2],
+            run_code[i].args[3]);
         break;
       case 0x14:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = GetUnknownCountParamentAndINVOKE(run_code, &returnvalue,
-                                                    &arg_count);
-        // printf("\n 0x%08X\n", run_code);
+        INVOKE(run_code[i].args);
         break;
       case 0x15:
-        run_code = (void*)((uintptr_t)run_code + 1);
         RETURN();
         break;
       case 0x16:
-        run_code = (void*)((uintptr_t)run_code + 1);
-        run_code = Get1Parament(run_code, &operand1);
-        run_code = (void*)func_info.commands + GOTO(operand1);
+        i = GOTO(run_code[i].args[0]);
         break;
       case 0x17:
-        run_code = (void*)((uintptr_t)run_code + 1);
         THROW();
         break;
       case 0xFF:
-        run_code = (void*)((uintptr_t)run_code + 1);
         WIDE();
         break;
       default:
@@ -2690,7 +2820,6 @@ int InvokeCustomFunction(const char* name) {
     }
   }
 
-  printf("\n 0x%08X\n", run_code);
   return 0;
 }
 
@@ -2738,11 +2867,7 @@ int main(int argc, char* argv[]) {
     bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2);
   }
 
-  // printf("Memory size: %hhu\n", *(uint8_t*)bytecode_file);
-
   while (bytecode_file < bytecode_end) {
-    // printf("AddFunction\n");
-
     bytecode_file = AddFunction(bytecode_file);
   }
 
