@@ -3903,33 +3903,9 @@ class BytecodeGenerator {
       return code_;
     }
 
-    void AddLabel(std::unordered_map<std::string, std::size_t> label) {
-      TRACE_FUNCTION;
-      label_map_ = label;
-    }
-
-    void AddLabelOffset(
-        std::unordered_map<std::string, std::vector<std::size_t>> label) {
-      TRACE_FUNCTION;
-      label_offset_map_ = label;
-    }
-
-    std::unordered_map<std::string, std::size_t> GetLabelMap() {
-      TRACE_FUNCTION;
-      return label_map_;
-    }
-
-    std::unordered_map<std::string, std::vector<std::size_t>>
-    GetLabelOffsetMap() {
-      TRACE_FUNCTION;
-      return label_offset_map_;
-    }
-
    private:
     std::string name_;
     std::vector<Bytecode> code_;
-    std::unordered_map<std::string, std::size_t> label_map_;
-    std::unordered_map<std::string, std::vector<std::size_t>> label_offset_map_;
   };
 
   void HandleFuncDecl(FuncDeclNode* func_decl);
@@ -3952,14 +3928,6 @@ class BytecodeGenerator {
   uint64_t SwapUint64t(uint64_t x);
   void InsertUint64ToCode(uint64_t value);
   size_t EncodeUleb128(size_t value, std::vector<uint8_t>& output);
-  void AddLabel(std::string label, std::size_t index) {
-    TRACE_FUNCTION;
-    label_map_.insert(std::make_pair(label, index));
-  }
-  void AddLabelOffset(std::string label, std::size_t offset) {
-    TRACE_FUNCTION;
-    label_offset_map_[label].push_back(offset);
-  }
 
   std::unordered_map<std::string, FuncDeclNode> func_decl_map;
   std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
@@ -3969,8 +3937,6 @@ class BytecodeGenerator {
   std::vector<Bytecode> global_code_;
   std::vector<uint8_t> code_;
   std::size_t undefined_name_count_ = 0;
-  std::unordered_map<std::string, std::size_t> label_map_;
-  std::unordered_map<std::string, std::vector<std::size_t>> label_offset_map_;
 };
 
 BytecodeGenerator::BytecodeGenerator() {
@@ -4031,474 +3997,394 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   }
 
   for (size_t i = 0; i < func_list_.size(); i++) {
-    size_t func_size = 0;
-    size_t func_size_index = code_.size();
-    code_.insert(code_.end(), 8, 0);
-
-    std::unordered_map<std::string, std::size_t> label_map =
-        func_list_[i].GetLabelMap();
-    std::unordered_map<std::string, std::vector<std::size_t>> label_offset_map =
-        func_list_[i].GetLabelOffsetMap();
-
-    std::unordered_map<std::size_t, std::vector<std::string>> label_index_map;
-    for (auto it = label_map.begin(); it != label_map.end(); ++it) {
-      label_index_map[it->second].push_back(it->first);
-    }
-
-    std::vector<std::string> label_name_list;
-    for (auto it = label_map.begin(); it != label_map.end(); ++it) {
-      label_name_list.push_back(it->first);
-    }
-
     // Function name (with '\0')
     code_.insert(
         code_.end(), func_list_[i].GetName().c_str(),
         func_list_[i].GetName().c_str() + func_list_[i].GetName().size() + 1);
-    func_size += func_list_[i].GetName().size() + 1;
+    code_.insert(code_.end(), 8,
+                 is_big_endian ? func_list_[i].GetCode().size()
+                               : SwapUint64t(func_list_[i].GetCode().size()));
 
     for (size_t j = 0; j < func_list_[i].GetCode().size(); j++) {
-      if (!label_index_map[j].empty()) {
-        for (size_t k = 0; k < label_index_map[j].size(); k++) {
-          label_map[label_index_map[j][k]] =
-              func_size - func_list_[i].GetName().size() - 1;
-        }
-      }
-
       std::vector<uint8_t> buffer;
       switch (func_list_[i].GetCode()[j].GetOper()) {
         case _AQVM_OPERATOR_NOP:
-          func_size++;
           code_.push_back(_AQVM_OPERATOR_NOP);
           break;
 
         case _AQVM_OPERATOR_LOAD:
-          func_size++;
           code_.push_back(_AQVM_OPERATOR_LOAD);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected LOAD args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_STORE:
-          func_size++;
           code_.push_back(_AQVM_OPERATOR_STORE);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected STORE args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_NEW:
-          func_size++;
           code_.push_back(_AQVM_OPERATOR_NEW);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected NEW args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_FREE:
-          func_size++;
           code_.push_back(_AQVM_OPERATOR_FREE);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 1)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected FREE args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_PTR:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_PTR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected PTR args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_ADD:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_ADD);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected ADD args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SUB:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_SUB);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected SUB args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_MUL:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_MUL);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected MUL args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_DIV:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_DIV);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected DIV args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_REM:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_REM);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected REM args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_NEG:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_NEG);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected NEG args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SHL:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_SHL);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected SHL args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SHR:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_SHR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected SHR args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_SAR:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_SAR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected SAR args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_IF:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_IF);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected IF args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_AND:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_AND);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected AND args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_OR:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_OR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected OR args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_XOR:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_XOR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected XOR args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_CMP:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_CMP);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 4)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected CMP args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[3], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[3], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_INVOKE:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_INVOKE);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
@@ -4507,56 +4393,42 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 
           for (size_t k = 0; k < func_list_[i].GetCode()[j].GetArgs()[1] + 2;
                k++) {
-            func_size +=
-                EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[k], buffer);
+            EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[k], buffer);
             code_.insert(code_.end(), buffer.begin(), buffer.end());
             buffer.clear();
           }
           break;
 
         case _AQVM_OPERATOR_RETURN:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_RETURN);
           break;
 
         case _AQVM_OPERATOR_GOTO:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_GOTO);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 1)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected GOTO args size.");
 
-          func_size +=
-              EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
 
         case _AQVM_OPERATOR_THROW:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_THROW);
           break;
 
         case _AQVM_OPERATOR_WIDE:
-          func_size++;
+
           code_.push_back(_AQVM_OPERATOR_WIDE);
           break;
 
         default:
           break;
-      }
-    }
-    func_size = is_big_endian ? func_size : SwapUint64t(func_size);
-    for (size_t j = 0; j < 8; j++) {
-      code_[func_size_index + i] =
-          static_cast<uint8_t>((func_size >> (j * 8)) & 0xFF);
-    }
-
-    for (size_t j = 0; j < label_name_list.size(); j++) {
-      for (size_t k = 0; k < label_offset_map[label_name_list[j]].size(); k++) {
-        global_memory_.Set(label_offset_map[label_name_list[j]][k], &func_size,
-                           8);
       }
     }
   }
@@ -4603,12 +4475,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
       for (size_t j = 0; j < func_list_[i].GetCode().size(); j++) {
         switch (func_list_[i].GetCode()[j].GetOper()) {
           case _AQVM_OPERATOR_NOP:
-            func_size++;
+
             std::cout << "NOP" << std::endl;
             break;
 
           case _AQVM_OPERATOR_LOAD:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4619,7 +4491,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_STORE:
-            func_size++;
+
             std::cout << "STORE: " << func_list_[i].GetCode()[j].GetArgs()[0]
                       << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
                       << std::endl;
@@ -4630,7 +4502,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_NEW:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4641,7 +4513,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_FREE:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 1)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4649,7 +4521,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_PTR:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4660,7 +4532,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_ADD:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4671,7 +4543,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_SUB:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4682,7 +4554,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_MUL:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4693,7 +4565,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_DIV:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4704,7 +4576,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_REM:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4715,7 +4587,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_NEG:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4726,7 +4598,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_SHL:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4737,7 +4609,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_SHR:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4748,7 +4620,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_SAR:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4759,7 +4631,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_IF:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4770,7 +4642,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_AND:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4781,7 +4653,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_OR:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4792,7 +4664,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_XOR:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4803,7 +4675,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_CMP:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 4)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4815,7 +4687,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_INVOKE:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4829,12 +4701,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_RETURN:
-            func_size++;
+
             std::cout << "RETURN" << std::endl;
             break;
 
           case _AQVM_OPERATOR_GOTO:
-            func_size++;
+
             if (func_list_[i].GetCode()[j].GetArgs().size() < 1)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
@@ -4844,12 +4716,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
 
           case _AQVM_OPERATOR_THROW:
-            func_size++;
+
             std::cout << "THROW" << std::endl;
             break;
 
           case _AQVM_OPERATOR_WIDE:
-            func_size++;
+
             std::cout << "WIDE" << std::endl;
             break;
 
@@ -4869,8 +4741,6 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
 
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   TRACE_FUNCTION;
-  label_map_.clear();
-  label_offset_map_.clear();
   if (func_decl == nullptr)
     EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
                   "func_decl is nullptr.");
@@ -4879,8 +4749,6 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   func_decl_map.emplace(*func_decl->GetStat()->GetName(), *func_decl);
   HandleStmt(func_decl->GetStmts(), code);
   Function func_decl_bytecode(*func_decl->GetStat()->GetName(), code);
-  func_decl_bytecode.AddLabel(label_map_);
-  func_decl_bytecode.AddLabelOffset(label_offset_map_);
   func_list_.push_back(func_decl_bytecode);
 }
 
@@ -5395,27 +5263,32 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
 
   std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
 
-  std::string true_name("$" + std::to_string(++undefined_name_count_));
-  size_t true_index = global_memory_.Add(0x06, 8);
-  label_offset_map_[true_name].push_back(true_index);
-  std::string false_name("$" + std::to_string(++undefined_name_count_));
+  size_t memory_size = global_memory_.GetSize();
+  uint16_t test_data = 0x0011;
+  bool is_big_endian = *(uint8_t*)&test_data == 0x00;
+
+  size_t true_location = is_big_endian?code.size()+1:SwapUint64t(code.size()+1);
+
+  size_t true_index = global_memory_.Add(0x06, 8,&true_location);
   size_t false_index = global_memory_.Add(0x06, 8);
-  label_offset_map_[false_name].push_back(false_index);
-  std::string exit_name("$" + std::to_string(++undefined_name_count_));
   size_t exit_index = global_memory_.Add(0x06, 8);
-  label_offset_map_[exit_name].push_back(exit_index);
+
+  size_t false_location, exit_location;
 
   code.push_back(
       Bytecode(_AQVM_OPERATOR_IF, condition_index, true_index, false_index));
-
-  label_map_[true_name] = code.size();
   HandleStmt(stmt->GetBody(), code);
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, exit_index));
-  label_map_[false_name] = code.size();
+  false_location = is_big_endian ? code.size()
+                                                : SwapUint64t(code.size());
   if (stmt->GetElseBody() != nullptr) {
     HandleStmt(stmt->GetElseBody(), code);
   }
-  label_map_[exit_name] = code.size();
+  exit_location = is_big_endian ?code.size() : SwapUint64t(code.size());
+
+  global_memory_.Set(false_index, &false_location,8);
+  global_memory_.Set(
+      exit_index,&exit_location  ,8);
 
   /*  // true branch name
     std::string true_name("$" + std::to_string(++undefined_name_count_));
@@ -5467,19 +5340,26 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
 
   std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
 
-  std::string body_name("$" + std::to_string(++undefined_name_count_));
-  size_t body_index = global_memory_.Add(0x06, 8);
-  label_offset_map_[body_name].push_back(body_index);
-  std::string exit_name("$" + std::to_string(++undefined_name_count_));
-  size_t exit_index = global_memory_.Add(0x06, 8);
-  label_offset_map_[exit_name].push_back(exit_index);
+    size_t memory_size = global_memory_.GetSize();
+  uint16_t test_data = 0x0011;
+  bool is_big_endian = *(uint8_t*)&test_data == 0x00;
 
-  label_map_[body_name] = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index, body_index,
-                          exit_index));
+    size_t body_location = is_big_endian?code.size():SwapUint64t(code.size());
+    size_t body_index = global_memory_.Add(0x06, 8,&body_location);
+  size_t exit_index = global_memory_.Add(0x06, 8);
+
+  size_t exit_location;
+
+
+  code.push_back(
+      Bytecode(_AQVM_OPERATOR_IF, condition_index, body_index, exit_index));
   HandleStmt(stmt->GetBody(), code);
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_index));
-  label_map_[exit_name] = code.size();
+
+  exit_location = is_big_endian?code.size():SwapUint64t(code.size());
+  
+  global_memory_.Set(
+      exit_index,&exit_location  ,8);
   /*// condition branch
   std::string condition_name("$condition_" +
                              std::to_string(++undefined_name_count_));
