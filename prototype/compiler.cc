@@ -2,6 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
+#include <cassert>
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
@@ -3939,12 +3940,7 @@ class BytecodeGenerator {
   std::size_t undefined_name_count_ = 0;
 };
 
-BytecodeGenerator::BytecodeGenerator() {
-  TRACE_FUNCTION;
-  std::vector<Bytecode> code;
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP));
-  func_list_.push_back(Function("$0", code));
-}
+BytecodeGenerator::BytecodeGenerator() { TRACE_FUNCTION; }
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   TRACE_FUNCTION;
@@ -4467,10 +4463,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
     std::cout << std::endl << std::endl << std::endl;
 
     for (size_t i = 0; i < func_list_.size(); i++) {
-      size_t func_size = 0;
-      size_t func_size_index = code_.size();
-
-      std::cout << "Function Name: " << func_list_[i].GetName() << std::endl;
+      std::cout << "Function Name: " << func_list_[i].GetName()
+                << ", Size: " << func_list_[i].GetCode().size() << std::endl;
 
       for (size_t j = 0; j < func_list_[i].GetCode().size(); j++) {
         switch (func_list_[i].GetCode()[j].GetOper()) {
@@ -4729,8 +4723,6 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
             break;
         }
       }
-
-      std::cout << "Function Size: " << func_size << std::endl;
       std::cout << std::endl << std::endl << std::endl;
     }
 
@@ -5267,9 +5259,10 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
   uint16_t test_data = 0x0011;
   bool is_big_endian = *(uint8_t*)&test_data == 0x00;
 
-  size_t true_location = is_big_endian?code.size()+1:SwapUint64t(code.size()+1);
+  size_t true_location =
+      is_big_endian ? code.size() + 1 : SwapUint64t(code.size() + 1);
 
-  size_t true_index = global_memory_.Add(0x06, 8,&true_location);
+  size_t true_index = global_memory_.Add(0x06, 8, &true_location);
   size_t false_index = global_memory_.Add(0x06, 8);
   size_t exit_index = global_memory_.Add(0x06, 8);
 
@@ -5279,16 +5272,14 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
       Bytecode(_AQVM_OPERATOR_IF, condition_index, true_index, false_index));
   HandleStmt(stmt->GetBody(), code);
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, exit_index));
-  false_location = is_big_endian ? code.size()
-                                                : SwapUint64t(code.size());
+  false_location = is_big_endian ? code.size() : SwapUint64t(code.size());
   if (stmt->GetElseBody() != nullptr) {
     HandleStmt(stmt->GetElseBody(), code);
   }
-  exit_location = is_big_endian ?code.size() : SwapUint64t(code.size());
+  exit_location = is_big_endian ? code.size() : SwapUint64t(code.size());
 
-  global_memory_.Set(false_index, &false_location,8);
-  global_memory_.Set(
-      exit_index,&exit_location  ,8);
+  global_memory_.Set(false_index, &false_location, 8);
+  global_memory_.Set(exit_index, &exit_location, 8);
 
   /*  // true branch name
     std::string true_name("$" + std::to_string(++undefined_name_count_));
@@ -5340,26 +5331,24 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
 
   std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
 
-    size_t memory_size = global_memory_.GetSize();
+  size_t memory_size = global_memory_.GetSize();
   uint16_t test_data = 0x0011;
   bool is_big_endian = *(uint8_t*)&test_data == 0x00;
 
-    size_t body_location = is_big_endian?code.size():SwapUint64t(code.size());
-    size_t body_index = global_memory_.Add(0x06, 8,&body_location);
+  size_t body_location = is_big_endian ? code.size() : SwapUint64t(code.size());
+  size_t body_index = global_memory_.Add(0x06, 8, &body_location);
   size_t exit_index = global_memory_.Add(0x06, 8);
 
   size_t exit_location;
-
 
   code.push_back(
       Bytecode(_AQVM_OPERATOR_IF, condition_index, body_index, exit_index));
   HandleStmt(stmt->GetBody(), code);
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, body_index));
 
-  exit_location = is_big_endian?code.size():SwapUint64t(code.size());
-  
-  global_memory_.Set(
-      exit_index,&exit_location  ,8);
+  exit_location = is_big_endian ? code.size() : SwapUint64t(code.size());
+
+  global_memory_.Set(exit_index, &exit_location, 8);
   /*// condition branch
   std::string condition_name("$condition_" +
                              std::to_string(++undefined_name_count_));
