@@ -101,6 +101,10 @@ struct FreeList* free_list;
 
 bool is_big_endian;
 
+void EXIT_VM(const char* func_name, const char* message) {
+  fprintf(stderr, "[ERROR] %s: %s\n", func_name, message);
+}
+
 void AddFreePtr(void* ptr) {
   struct FreeList* new_free_list =
       (struct FreeList*)malloc(sizeof(struct FreeList));
@@ -2527,6 +2531,7 @@ void InitializeNameTable(struct LinkedList* list) {
 }
 
 void* AddFunction(void* location) {
+  printf("point 1\n");
   void* origin_location = location;
 
   struct FuncList* table = &func_table[hash(location)];
@@ -2539,14 +2544,20 @@ void* AddFunction(void* location) {
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
+  location = (void*)((uintptr_t)location + 1);
+  printf("point 2\n");
 
   table->pair.second.commands_size =
-      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+      is_big_endian ? *(uint64_t*)location : *(uint64_t*)location;
   location = (void*)((uintptr_t)location + 8);
 
+  printf("point 3\n");
   struct Bytecode* bytecode = (struct Bytecode*)malloc(
       table->pair.second.commands_size * sizeof(struct Bytecode));
+  printf("size: %zu",table->pair.second.commands_size);
+  if(bytecode == NULL)EXIT_VM("AddFunction(void*)","malloc failed.");
   AddFreePtr(bytecode);
+  printf("point 4\n");
 
   table->pair.second.commands = bytecode;
 
