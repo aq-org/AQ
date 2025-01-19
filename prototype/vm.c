@@ -616,21 +616,21 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
 
 int INVOKE(size_t* args);
 
-size_t* GetUnknownCountParament(void* ptr) {
+size_t* GetUnknownCountParament(void** ptr) {
   size_t func = 0;
   size_t arg_count = 0;
   size_t return_value = 0;
-  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &func));
-  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &arg_count));
-  ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, &return_value));
+  *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &func));
+  *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &arg_count));
+  *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &return_value));
 
   size_t* args = malloc((arg_count + 3) * sizeof(size_t));
   args[0] = func;
   args[1] = arg_count;
   args[2] = return_value;
 
-  for (size_t i = 3; i < arg_count + 3; i++) {
-    ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, args + i));
+  for (size_t i = 3; i < arg_count + 2; i++) {
+    *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, args + i));
   }
 
   return args;
@@ -707,6 +707,8 @@ int FREE(size_t ptr) {
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
+  printf("index: %zu\n", index);
+  printf("PTR: %p\n", (void*)((uintptr_t)memory->data + index));
   SetPtrData(ptr, (void*)((uintptr_t)memory->data + index));
   return 0;
 }
@@ -1538,11 +1540,10 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
 }
 int InvokeCustomFunction(const char* name);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
-  printf("%d\n", GetByteData(condition));
   if (GetByteData(condition) != 0) {
-    return GetUint64tData(true_branche);
+    return true_branche;
   } else {
-    return GetUint64tData(false_branche);
+    return false_branche;
   }
 }
 int AND(size_t result, size_t operand1, size_t operand2) {
@@ -2498,7 +2499,7 @@ int INVOKE(size_t* args) {
   return InvokeCustomFunction((char*)GetPtrData(func));
 }
 int RETURN() { return 0; }
-size_t GOTO(size_t location) { return GetUint64tData(location); }
+size_t GOTO(size_t location) { return location; }
 int THROW() { return 0; }
 int WIDE() { return 0; }
 
@@ -2531,31 +2532,34 @@ void InitializeNameTable(struct LinkedList* list) {
 }
 
 void* AddFunction(void* location) {
+  void* original_location = location;
   printf("point 1\n");
-  void* origin_location = location;
 
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
     table = table->next;
   }
-  table->pair.second.location = origin_location;
+  table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
+  printf("Add: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
   location = (void*)((uintptr_t)location + 1);
   printf("point 2\n");
 
+  printf("offset: %zu\n", (uintptr_t)location - (uintptr_t)original_location);
+
   table->pair.second.commands_size =
-      is_big_endian ? *(uint64_t*)location : *(uint64_t*)location;
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
   printf("point 3\n");
   struct Bytecode* bytecode = (struct Bytecode*)malloc(
       table->pair.second.commands_size * sizeof(struct Bytecode));
-  printf("size: %zu",table->pair.second.commands_size);
-  if(bytecode == NULL)EXIT_VM("AddFunction(void*)","malloc failed.");
+  printf("size: %zu", table->pair.second.commands_size);
+  if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "malloc failed.");
   AddFreePtr(bytecode);
   printf("point 4\n");
 
@@ -2564,6 +2568,7 @@ void* AddFunction(void* location) {
   for (size_t i = 0; i < table->pair.second.commands_size; i++) {
     bytecode[i].operator= *(uint8_t*) location;
     location = (void*)((uintptr_t)location + 1);
+    printf("operator: 0x%02x\n", bytecode[i].operator);
     switch (bytecode[i].operator) {
       case OPERATOR_NOP:
         bytecode[i].args = NULL;
@@ -2677,9 +2682,10 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_CMP:
-        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
-        location = Get3Parament(location, bytecode[i].args,
-                                bytecode[i].args + 1, bytecode[i].args + 2);
+        bytecode[i].args = (size_t*)malloc(4 * sizeof(size_t));
+        location =
+            Get4Parament(location, bytecode[i].args, bytecode[i].args + 1,
+                         bytecode[i].args + 2, bytecode[i].args + 3);
         break;
 
       case OPERATOR_GOTO:
@@ -2688,7 +2694,7 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_INVOKE:
-        location = GetUnknownCountParament(location);
+        bytecode[i].args = GetUnknownCountParament(&location);
         break;
 
       case OPERATOR_RETURN:
@@ -2749,6 +2755,7 @@ int InvokeCustomFunction(const char* name) {
   FuncInfo func_info = GetCustomFunction(name);
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
+    printf("run index: %i, run operator: 0x%02x\n", i, run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -2797,6 +2804,7 @@ int InvokeCustomFunction(const char* name) {
         break;
       case 0x0F:
         i = IF(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        i--;
         break;
       case 0x10:
         AND(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
@@ -2819,6 +2827,7 @@ int InvokeCustomFunction(const char* name) {
         break;
       case 0x16:
         i = GOTO(run_code[i].args[0]);
+        i--;
         break;
       case 0x17:
         THROW();
@@ -2827,6 +2836,7 @@ int InvokeCustomFunction(const char* name) {
         WIDE();
         break;
       default:
+        EXIT_VM("InvokeCustomFunction(const char*)", "Invalid operator.");
         break;
     }
   }
@@ -2879,6 +2889,9 @@ int main(int argc, char* argv[]) {
   }
 
   while (bytecode_file < bytecode_end) {
+    printf("bytecode_file: %p\n", bytecode_file);
+    printf("bytecode_end: %p\n", bytecode_end);
+    printf("offset: %zu\n", (uintptr_t)bytecode_end - (uintptr_t)bytecode_file);
     bytecode_file = AddFunction(bytecode_file);
   }
 
