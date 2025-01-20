@@ -37,7 +37,7 @@
 #define _AQVM_OPERATOR_XOR 0x12
 #define _AQVM_OPERATOR_CMP 0x13
 #define _AQVM_OPERATOR_INVOKE 0x14
-#define _AQVM_OPERATOR_RETURN 0x15
+#define _AQVM_OPERATOR_EQUAL 0x15
 #define _AQVM_OPERATOR_GOTO 0x16
 #define _AQVM_OPERATOR_THROW 0x17
 #define _AQVM_OPERATOR_WIDE 0xFF
@@ -3706,10 +3706,10 @@ class BytecodeGenerator {
       for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
           memory_.push_back(0);
-          type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
+          type_[type_.size() - 1] = (type_[type_.size() - 1]) | type;
         } else {
           memory_.push_back(0);
-          type_.push_back(type);
+          type_.push_back(type << 4);
         }
       }
 
@@ -3734,13 +3734,13 @@ class BytecodeGenerator {
 
       for (std::size_t i = 0; i < size; i++) {
         if (memory_.size() % 2 != 0) {
-          memory_.push_back(*(uint64_t*)memory_data);
+          memory_.push_back(*(uint8_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
-          type_[type_.size() - 1] = (type_[type_.size() - 1] << 4) | type;
+          type_[type_.size() - 1] = (type_[type_.size() - 1]) | type;
         } else {
-          memory_.push_back(*(uint64_t*)memory_data);
+          memory_.push_back(*(uint8_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
-          type_.push_back(type);
+          type_.push_back(type<<4);
         }
       }
       return index;
@@ -3758,7 +3758,7 @@ class BytecodeGenerator {
       std::memcpy(memory_data, data, size);
 
       for (std::size_t i = 0; i < size; i++) {
-        memory_.push_back(*(uint64_t*)memory_data);
+        memory_.push_back(*(uint8_t*)memory_data);
         memory_data = (void*)((uintptr_t)memory_data + 1);
       }
     }
@@ -4418,9 +4418,20 @@ void BytecodeGenerator::GenerateBytecodeFile() {
           }
           break;
 
-        case _AQVM_OPERATOR_RETURN:
+        case _AQVM_OPERATOR_EQUAL:
+          code_.push_back(_AQVM_OPERATOR_EQUAL);
 
-          code_.push_back(_AQVM_OPERATOR_RETURN);
+          if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected EQUAL args size.");
+          
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_GOTO:
@@ -4704,9 +4715,9 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           std::cout << std::endl;
           break;
 
-        case _AQVM_OPERATOR_RETURN:
-
-          std::cout << "RETURN" << std::endl;
+        case _AQVM_OPERATOR_EQUAL:
+          std::cout << "EQUAL: " << func_list_[i].GetCode()[j].GetArgs()[0]
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1] << std::endl;
           break;
 
         case _AQVM_OPERATOR_GOTO:
@@ -4832,7 +4843,7 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     size_t var_index = global_memory_.Add(vm_type, var_type->GetSize());
     size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     code.push_back(
-        Bytecode(_AQVM_OPERATOR_ADD, var_index, value_index, AddConstInt8t(0)));
+        Bytecode(_AQVM_OPERATOR_EQUAL, var_index, value_index));
   }
 }
 
@@ -4915,8 +4926,7 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
 
     for (size_t i = 0; i < array_decl->GetValue().size(); i++) {
       size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
-      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, array_index, value_index,
-                              AddConstInt8t(0)));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, array_index, value_index));
     }
 
     var_decl_map.emplace(
@@ -4959,7 +4969,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
 
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_ADD, new_index, sub_expr, AddConstInt8t(0)));
+          Bytecode(_AQVM_OPERATOR_EQUAL, new_index, sub_expr));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_ADD, sub_expr, sub_expr, AddConstInt8t(1)));
       return new_index;
@@ -4970,7 +4980,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
 
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_ADD, new_index, sub_expr, AddConstInt8t(0)));
+          Bytecode(_AQVM_OPERATOR_EQUAL, new_index, sub_expr));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_SUB, sub_expr, sub_expr, AddConstInt8t(1)));
       return new_index;
@@ -5141,7 +5151,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     }
     case BinaryNode::Operator::kAssign:  // =
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_ADD, left, right, AddConstInt8t(0)));
+          Bytecode(_AQVM_OPERATOR_EQUAL, left, right));
       return left;
     case BinaryNode::Operator::kAddAssign:  // +=
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, left, left, right));
@@ -5205,6 +5215,14 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 
     case StmtNode::StmtType::kExpr:
       HandleExpr(dynamic_cast<ExprNode*>(stmt), code);
+      break;
+
+    case StmtNode::StmtType::kUnary:
+      HandleUnaryExpr(dynamic_cast<UnaryNode*>(stmt), code);
+      break;
+
+    case StmtNode::StmtType::kBinary:
+      HandleBinaryExpr(dynamic_cast<BinaryNode*>(stmt), code);
       break;
 
     case StmtNode::StmtType::kIf:
@@ -5338,6 +5356,9 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
         "BytecodeGenerator::HandleWhileStmt(WhileNode*,std::vector<Bytecode>&)",
         "stmt is nullptr.");
 
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP));
+  size_t start_location = code.size();
+
   std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
 
   size_t if_location = code.size();
@@ -5347,9 +5368,10 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   size_t body_location = code.size();
 
   HandleStmt(stmt->GetBody(), code);
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, if_location));
+  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, start_location));
 
   size_t exit_location = code.size();
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP));
 
   std::vector<size_t> if_args;
   if_args.push_back(condition_index);

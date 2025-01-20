@@ -44,7 +44,7 @@ enum Operator {
   OPERATOR_XOR,
   OPERATOR_CMP,
   OPERATOR_INVOKE,
-  OPERATOR_RETURN,
+  OPERATOR_EQUAL,
   OPERATOR_GOTO,
   OPERATOR_THROW,
   OPERATOR_WIDE = 0xFF
@@ -397,6 +397,7 @@ void SetPtrData(size_t index, void* ptr) {
 }
 
 void SetByteData(size_t index, int8_t value) {
+  printf("SetByteData: %d\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -426,6 +427,7 @@ void SetByteData(size_t index, int8_t value) {
 }
 
 void SetIntData(size_t index, int value) {
+  printf("SetIntData: %d\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -455,6 +457,7 @@ void SetIntData(size_t index, int value) {
 }
 
 void SetLongData(size_t index, long value) {
+  printf("SetLongData: %ld\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -484,6 +487,7 @@ void SetLongData(size_t index, long value) {
 }
 
 void SetFloatData(size_t index, float value) {
+  printf("SetFloatData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -513,6 +517,7 @@ void SetFloatData(size_t index, float value) {
 }
 
 void SetDoubleData(size_t index, double value) {
+  printf("SetDoubleData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -542,6 +547,7 @@ void SetDoubleData(size_t index, double value) {
 }
 
 void SetUint64tData(size_t index, uint64_t value) {
+  printf("SetUint64tData: %lu\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -834,6 +840,8 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
     }
   } else {
   }
+
+  printf("Add Result: %zu\n", GetUint64tData(result));
   return 0;
 }
 int SUB(size_t result, size_t operand1, size_t operand2) {
@@ -1540,7 +1548,8 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
 }
 int InvokeCustomFunction(const char* name);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
-  if (GetByteData(condition) != 0) {
+   printf("condition: %d\n", GetByteData(condition));
+   if (GetByteData(condition) != 0) {
     return true_branche;
   } else {
     return false_branche;
@@ -1739,7 +1748,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
-  switch (GetByteData(opcode)) {
+  switch (opcode) {
     case 0x00:
       if (GetType(memory, result) == 0x06 ||
           GetType(memory, operand1) == 0x06 ||
@@ -2498,7 +2507,31 @@ int INVOKE(size_t* args) {
 
   return InvokeCustomFunction((char*)GetPtrData(func));
 }
-int RETURN() { return 0; }
+int EQUAL(size_t result,size_t value) { 
+  switch(GetType(memory, result)) {
+    case 0x01:
+      SetByteData(value, GetByteData(result));
+      break;
+    case 0x02:
+      SetIntData(value, GetIntData(result));
+      break;
+    case 0x03:
+      SetLongData(value, GetLongData(result));
+      break;
+    case 0x04:
+      SetFloatData(value, GetFloatData(result));
+      break;
+    case 0x05:
+      SetDoubleData(value, GetDoubleData(result));
+      break;
+    case 0x06:
+      SetUint64tData(value, GetUint64tData(result));
+      break;
+    default:
+      break;
+  }
+  return 0;
+ }
 size_t GOTO(size_t location) { return location; }
 int THROW() { return 0; }
 int WIDE() { return 0; }
@@ -2697,8 +2730,10 @@ void* AddFunction(void* location) {
         bytecode[i].args = GetUnknownCountParament(&location);
         break;
 
-      case OPERATOR_RETURN:
-        bytecode[i].args = NULL;
+      case OPERATOR_EQUAL:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
       case OPERATOR_THROW:
@@ -2746,7 +2781,7 @@ func_ptr GetFunction(const char* name) {
   return (func_ptr)NULL;
 }
 
-int RETURN();
+int EQUAL(size_t result,size_t value);
 size_t GOTO(size_t location);
 int THROW();
 int WIDE();
@@ -2823,7 +2858,7 @@ int InvokeCustomFunction(const char* name) {
         INVOKE(run_code[i].args);
         break;
       case 0x15:
-        RETURN();
+        EQUAL(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x16:
         i = GOTO(run_code[i].args[0]);
