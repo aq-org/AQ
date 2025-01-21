@@ -216,13 +216,14 @@ int WriteData(const struct Memory* memory, const size_t index,
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index >= memory->size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
-    printf("GetType: %zu, Type: %d\n", index,
+    // ERROR
+    printf("1GetType: %zu, Type: %d\n", index,
            (*(memory->type + (index / 2)) & 0x0F));
-    return (*(memory->type + (index / 2)) & 0xF0) >> 4;
+    return (*(memory->type + (index / 2)) & 0x0F);
   } else {
-    printf("GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0x0F));
-    return *(memory->type + (index / 2)) & 0x0F;
+    printf("2GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0xF0) >> 4);
+    return *(memory->type + (index / 2)) & 0xF0 >> 4;
   }
 }
 
@@ -297,6 +298,8 @@ int8_t GetByteData(size_t index) {
 }
 
 int GetIntData(size_t index) {
+  printf("index: %zu\n", index);
+  printf("GetType: %hhu\n", GetType(memory, index));
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
