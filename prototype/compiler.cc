@@ -4842,11 +4842,13 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     vm_type = 0x06;
   }
   if (var_decl->GetValue()[0] == nullptr) {
+    std::cout<<"None Value"<<std::endl;
     var_decl_map.emplace(
         *var_decl->GetName(),
         std::pair<VarDeclNode*, std::size_t>(
             var_decl, global_memory_.Add(vm_type, var_type->GetSize())));
   } else {
+    std::cout<<"Has Value"<<std::endl;
     size_t var_index = global_memory_.Add(vm_type, var_type->GetSize());
     size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, var_index, value_index));
