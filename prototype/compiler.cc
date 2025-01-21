@@ -3740,7 +3740,7 @@ class BytecodeGenerator {
         } else {
           memory_.push_back(*(uint8_t*)memory_data);
           memory_data = (void*)((uintptr_t)memory_data + 1);
-          type_.push_back(type<<4);
+          type_.push_back(type << 4);
         }
       }
       return index;
@@ -3779,12 +3779,12 @@ class BytecodeGenerator {
    private:
     std::vector<uint8_t> memory_;
     std::vector<uint8_t> type_;
-    bool is_big_endian = false;
+    bool is_big_endian_ = false;
 
     void IsBigEndian() {
       TRACE_FUNCTION;
       uint16_t test_data = 0x0011;
-      is_big_endian = *(uint8_t*)&test_data == 0x00;
+      is_big_endian_ = *(uint8_t*)&test_data == 0x00;
     }
 
     int SwapInt(int x) {
@@ -3934,12 +3934,17 @@ class BytecodeGenerator {
   uint8_t GetExprVmType(ExprNode* expr);
   uint8_t GetExprPtrValueVmType(ExprNode* expr);
   std::size_t GetExprVmSize(uint8_t type);
+  int SwapInt(int x);
+  long SwapLong(long x);
+  float SwapFloat(float x);
+  double SwapDouble(double x);
   uint64_t SwapUint64t(uint64_t x);
   void InsertUint64ToCode(uint64_t value);
   size_t EncodeUleb128(size_t value, std::vector<uint8_t>& output);
   void GenerateBytecodeFile();
   void GenerateMnemonicFile();
 
+  bool is_big_endian_;
   std::unordered_map<std::string, FuncDeclNode> func_decl_map;
   std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
       var_decl_map;
@@ -3949,7 +3954,10 @@ class BytecodeGenerator {
   std::vector<uint8_t> code_;
 };
 
-BytecodeGenerator::BytecodeGenerator() { TRACE_FUNCTION; }
+BytecodeGenerator::BytecodeGenerator() { TRACE_FUNCTION;
+  uint16_t test_data = 0x0011;
+  is_big_endian_ = *(uint8_t*)&test_data == 0x00; 
+  }
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt) {
   TRACE_FUNCTION;
@@ -3997,9 +4005,7 @@ void BytecodeGenerator::GenerateBytecodeFile() {
   code_.push_back(0x01);
 
   size_t memory_size = global_memory_.GetSize();
-  uint16_t test_data = 0x0011;
-  bool is_big_endian = *(uint8_t*)&test_data == 0x00;
-  InsertUint64ToCode(is_big_endian ? memory_size : SwapUint64t(memory_size));
+  InsertUint64ToCode(is_big_endian_ ? memory_size : SwapUint64t(memory_size));
   for (size_t i = 0; i < global_memory_.GetMemory().size(); i++) {
     code_.push_back(global_memory_.GetMemory()[i]);
   }
@@ -4018,7 +4024,7 @@ void BytecodeGenerator::GenerateBytecodeFile() {
                  reinterpret_cast<const uint8_t*>(
                      func_name + func_list_[i].GetName().size() + 1));
 
-    uint64_t value = is_big_endian
+    uint64_t value = is_big_endian_
                          ? func_list_[i].GetCode().size()
                          : SwapUint64t(func_list_[i].GetCode().size());
     code_.insert(code_.end(), reinterpret_cast<uint8_t*>(&value),
@@ -4424,7 +4430,7 @@ void BytecodeGenerator::GenerateBytecodeFile() {
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected EQUAL args size.");
-          
+
           EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
@@ -4717,7 +4723,8 @@ void BytecodeGenerator::GenerateMnemonicFile() {
 
         case _AQVM_OPERATOR_EQUAL:
           std::cout << "EQUAL: " << func_list_[i].GetCode()[j].GetArgs()[0]
-                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1] << std::endl;
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
+                    << std::endl;
           break;
 
         case _AQVM_OPERATOR_GOTO:
@@ -4842,8 +4849,7 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
   } else {
     size_t var_index = global_memory_.Add(vm_type, var_type->GetSize());
     size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
-    code.push_back(
-        Bytecode(_AQVM_OPERATOR_EQUAL, var_index, value_index));
+    code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, var_index, value_index));
   }
 }
 
@@ -4968,8 +4974,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
 
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, new_index, sub_expr));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, new_index, sub_expr));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_ADD, sub_expr, sub_expr, AddConstInt8t(1)));
       return new_index;
@@ -4979,8 +4984,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
 
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, new_index, sub_expr));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, new_index, sub_expr));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_SUB, sub_expr, sub_expr, AddConstInt8t(1)));
       return new_index;
@@ -5150,8 +5154,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       return result;
     }
     case BinaryNode::Operator::kAssign:  // =
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, left, right));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, left, right));
       return left;
     case BinaryNode::Operator::kAddAssign:  // +=
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, left, left, right));
@@ -5379,7 +5382,6 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   if_args.push_back(exit_location);
   code[if_location].SetArgs(if_args);
 
-
   /*// condition branch
   std::string condition_name("$condition_" +
                              std::to_string(++undefined_name_count_));
@@ -5559,21 +5561,26 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
 
         case 0x02: {
           int value = dynamic_cast<ValueNode*>(expr)->GetIntValue();
+          std::cout<<"value: "<<value<<std::endl;
+          value = is_big_endian_? value : SwapInt(value);
           return global_memory_.Add(vm_type, 4, &value);
         }
 
         case 0x03: {
           long value = dynamic_cast<ValueNode*>(expr)->GetLongValue();
+          value = is_big_endian_? value : SwapLong(value);
           return global_memory_.Add(vm_type, 8, &value);
         }
 
         case 0x04: {
           float value = dynamic_cast<ValueNode*>(expr)->GetFloatValue();
+          value = is_big_endian_? value : SwapFloat(value);
           return global_memory_.Add(vm_type, 4, &value);
         }
 
         case 0x05: {
           double value = dynamic_cast<ValueNode*>(expr)->GetDoubleValue();
+          value = is_big_endian_? value : SwapDouble(value);
           return global_memory_.Add(vm_type, 8, &value);
         }
 
@@ -5590,6 +5597,7 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
             return ptr_index;
           }
           uint64_t value = dynamic_cast<ValueNode*>(expr)->GetUInt64Value();
+          value = is_big_endian_? value : SwapUint64t(value);
           return global_memory_.Add(vm_type, 8, &value);
         }
 
@@ -6590,6 +6598,55 @@ std::size_t BytecodeGenerator::GetExprVmSize(uint8_t type) {
       return 0;
   }
 }
+  int BytecodeGenerator::SwapInt(int x) {
+    TRACE_FUNCTION;
+    uint32_t ux = (uint32_t)x;
+    ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
+         ((ux >> 8) & 0x0000FF00) | ((ux >> 24) & 0x000000FF);
+    return (int)ux;
+  }
+
+  long BytecodeGenerator::SwapLong(long x) {
+    TRACE_FUNCTION;
+    uint64_t ux = (uint64_t)x;
+    ux = ((ux << 56) & 0xFF00000000000000ULL) |
+         ((ux << 40) & 0x00FF000000000000ULL) |
+         ((ux << 24) & 0x0000FF0000000000ULL) |
+         ((ux << 8) & 0x000000FF00000000ULL) |
+         ((ux >> 8) & 0x00000000FF000000ULL) |
+         ((ux >> 24) & 0x0000000000FF0000ULL) |
+         ((ux >> 40) & 0x000000000000FF00ULL) |
+         ((ux >> 56) & 0x00000000000000FFULL);
+    return (long)ux;
+  }
+
+  float BytecodeGenerator::SwapFloat(float x) {
+    TRACE_FUNCTION;
+    uint32_t ux;
+    memcpy(&ux, &x, sizeof(uint32_t));
+    ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
+         ((ux >> 8) & 0x0000FF00) | ((ux >> 24) & 0x000000FF);
+    float result;
+    memcpy(&result, &ux, sizeof(float));
+    return result;
+  }
+
+  double BytecodeGenerator::SwapDouble(double x) {
+    TRACE_FUNCTION;
+    uint64_t ux;
+    memcpy(&ux, &x, sizeof(uint64_t));
+    ux = ((ux << 56) & 0xFF00000000000000ULL) |
+         ((ux << 40) & 0x00FF000000000000ULL) |
+         ((ux << 24) & 0x0000FF0000000000ULL) |
+         ((ux << 8) & 0x000000FF00000000ULL) |
+         ((ux >> 8) & 0x00000000FF000000ULL) |
+         ((ux >> 24) & 0x0000000000FF0000ULL) |
+         ((ux >> 40) & 0x000000000000FF00ULL) |
+         ((ux >> 56) & 0x00000000000000FFULL);
+    double result;
+    memcpy(&result, &ux, sizeof(double));
+    return result;
+  }
 uint64_t BytecodeGenerator::SwapUint64t(uint64_t x) {
   TRACE_FUNCTION;
   x = ((x << 56) & 0xFF00000000000000ULL) |

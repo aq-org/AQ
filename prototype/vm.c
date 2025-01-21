@@ -108,7 +108,7 @@ void EXIT_VM(const char* func_name, const char* message) {
 void AddFreePtr(void* ptr) {
   struct FreeList* new_free_list =
       (struct FreeList*)malloc(sizeof(struct FreeList));
-  if (new_free_list == NULL) return;
+  if (new_free_list == NULL) EXIT_VM("AddFreePtr(void*)", "Out of memory.");
   new_free_list->ptr = ptr;
   new_free_list->next = free_list;
   free_list = new_free_list;
@@ -186,7 +186,8 @@ uint64_t SwapUint64t(uint64_t x) {
 
 struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   struct Memory* memory_ptr = (struct Memory*)malloc(sizeof(struct Memory));
-  if (memory_ptr == NULL) return NULL;
+  if (memory_ptr == NULL)
+    EXIT_VM("InitializeMemory(void*, void*, size_t)", "Out of memory.");
   memory_ptr->data = data;
   memory_ptr->type = type;
   memory_ptr->size = size;
@@ -213,70 +214,112 @@ int WriteData(const struct Memory* memory, const size_t index,
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index % 2 != 0) {
-    return *(memory->type + (index / 2)) & 0x0F;
-  } else {
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
+  } else {
+    return *(memory->type + (index / 2)) & 0x0F;
   }
 }
 
 void* GetPtrData(size_t index) {
+  printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
   return *(void**)((uintptr_t)memory->data + index);
 }
 
 int8_t GetByteData(size_t index) {
   switch (GetType(memory, index)) {
     case 0x01:
+      printf("GetByteData: %d\n", *(int8_t*)((uintptr_t)memory->data + index));
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      printf("GetByteData: %d\n",
+             is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(int*)((uintptr_t)memory->data + index)
                  : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      printf("GetByteData: %ld\n",
+             is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      printf("GetByteData: %f\n",
+             is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      printf("GetByteData: %f\n",
+             is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      printf("GetByteData: %zu\n",
+             is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetByteData(size_t)", "Invalid type.");
   }
 }
 
 int GetIntData(size_t index) {
   switch (GetType(memory, index)) {
     case 0x01:
+      printf("GetIntData: %zu, value: %d\n", index,
+             *(int8_t*)((uintptr_t)memory->data + index));
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      printf("GetIntData: %zu, value: %d\n", index,
+             is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index)));
       return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      printf("GetIntData: %ld\n",
+             is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      printf("GetIntData: %f\n",
+             is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      printf("GetIntData: %f\n",
+             is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      printf("GetIntData: %zu\n",
+             is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetIntData(size_t)", "Invalid type.");
   }
 }
 
@@ -397,7 +440,7 @@ void SetPtrData(size_t index, void* ptr) {
 }
 
 void SetByteData(size_t index, int8_t value) {
-  printf("SetByteData: %d\n", value);
+  printf("SetByteData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -427,7 +470,7 @@ void SetByteData(size_t index, int8_t value) {
 }
 
 void SetIntData(size_t index, int value) {
-  printf("SetIntData: %d\n", value);
+  printf("SetIntData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
       *(int8_t*)((uintptr_t)memory->data + index) = value;
@@ -454,6 +497,7 @@ void SetIntData(size_t index, int value) {
     default:
       break;
   }
+  printf("SetIntData: %zu, Result: %d\n", index, GetIntData(index));
 }
 
 void SetLongData(size_t index, long value) {
@@ -823,6 +867,8 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
       case 0x02:
+        printf("Operand1: %d\n", GetIntData(operand1));
+        printf("Operand2: %d\n", GetIntData(operand2));
         SetIntData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
       default:
@@ -1548,8 +1594,8 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
 }
 int InvokeCustomFunction(const char* name);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
-   printf("condition: %d\n", GetByteData(condition));
-   if (GetByteData(condition) != 0) {
+  printf("condition: %d\n", GetByteData(condition));
+  if (GetByteData(condition) != 0) {
     return true_branche;
   } else {
     return false_branche;
@@ -2507,8 +2553,8 @@ int INVOKE(size_t* args) {
 
   return InvokeCustomFunction((char*)GetPtrData(func));
 }
-int EQUAL(size_t result,size_t value) { 
-  switch(GetType(memory, result)) {
+int EQUAL(size_t result, size_t value) {
+  switch (GetType(memory, result)) {
     case 0x01:
       SetByteData(value, GetByteData(result));
       break;
@@ -2531,7 +2577,7 @@ int EQUAL(size_t result,size_t value) {
       break;
   }
   return 0;
- }
+}
 size_t GOTO(size_t location) { return location; }
 int THROW() { return 0; }
 int WIDE() { return 0; }
@@ -2781,7 +2827,7 @@ func_ptr GetFunction(const char* name) {
   return (func_ptr)NULL;
 }
 
-int EQUAL(size_t result,size_t value);
+int EQUAL(size_t result, size_t value);
 size_t GOTO(size_t location);
 int THROW();
 int WIDE();
