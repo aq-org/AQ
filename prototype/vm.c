@@ -197,13 +197,13 @@ struct Memory* InitializeMemory(void* data, void* type, size_t size) {
 
 void FreeMemory(struct Memory* memory_ptr) { free(memory_ptr); }
 
-int SetType(const struct Memory* memory, size_t index, uint8_t type) {
+/*int SetType(const struct Memory* memory, size_t index, uint8_t type) {
   if (index % 2 != 0) {
     return memory->type[index / 2] & 0x0F;
   } else {
     return (memory->type[index / 2] & 0xF0) >> 4;
   }
-}
+}*/
 
 int WriteData(const struct Memory* memory, const size_t index,
               const void* data_ptr, const size_t size) {
@@ -272,6 +272,7 @@ int8_t GetByteData(size_t index) {
     default:
       EXIT_VM("GetByteData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 int GetIntData(size_t index) {
@@ -321,6 +322,7 @@ int GetIntData(size_t index) {
     default:
       EXIT_VM("GetIntData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 long GetLongData(size_t index) {
@@ -347,8 +349,9 @@ long GetLongData(size_t index) {
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetLongData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 float GetFloatData(size_t index) {
@@ -375,8 +378,9 @@ float GetFloatData(size_t index) {
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetFloatData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 double GetDoubleData(size_t index) {
@@ -403,8 +407,9 @@ double GetDoubleData(size_t index) {
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetDoubleData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 uint64_t GetUint64tData(size_t index) {
@@ -431,8 +436,9 @@ uint64_t GetUint64tData(size_t index) {
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetUint64tData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 void SetPtrData(size_t index, void* ptr) {
@@ -465,7 +471,7 @@ void SetByteData(size_t index, int8_t value) {
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetByteData(size_t, int8_t)", "Invalid type.");
   }
 }
 
@@ -495,7 +501,7 @@ void SetIntData(size_t index, int value) {
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetIntData(size_t, int)", "Invalid type.");
   }
   printf("SetIntData: %zu, Result: %d\n", index, GetIntData(index));
 }
@@ -526,7 +532,7 @@ void SetLongData(size_t index, long value) {
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetLongData(size_t, long)", "Invalid type.");
   }
 }
 
@@ -556,7 +562,7 @@ void SetFloatData(size_t index, float value) {
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetFloatData(size_t, float)", "Invalid type.");
   }
 }
 
@@ -586,7 +592,7 @@ void SetDoubleData(size_t index, double value) {
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetDoubleData(size_t, double)", "Invalid type.");
   }
 }
 
@@ -616,7 +622,7 @@ void SetUint64tData(size_t index, uint64_t value) {
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetUint64tData(size_t, uint64_t)", "Invalid type.");
   }
 }
 
@@ -714,7 +720,7 @@ int LOAD(size_t ptr, size_t operand) {
       SetPtrData(operand, *(void**)((uintptr_t)memory->data + ptr));
       break;
     default:
-      break;
+      EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -742,7 +748,7 @@ int STORE(size_t ptr, size_t operand) {
       *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
       break;
     default:
-      break;
+      EXIT_VM("STORE(size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -799,7 +805,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) + GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -822,7 +828,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) + GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -841,7 +847,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) + GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -857,7 +863,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -872,7 +878,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -882,9 +888,10 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
   }
 
   printf("Add Result: %zu\n", GetUint64tData(result));
@@ -931,7 +938,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) - GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -954,7 +961,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) - GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -973,7 +980,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) - GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -989,7 +996,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) - GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1002,7 +1009,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) - GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1012,9 +1019,10 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) - GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1045,7 +1053,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) * GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -1068,7 +1076,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) * GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -1087,7 +1095,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) * GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1103,7 +1111,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) * GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1116,7 +1124,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) * GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1126,9 +1134,10 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) * GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1159,7 +1168,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) / GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -1182,7 +1191,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) / GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -1201,7 +1210,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) / GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1217,7 +1226,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) / GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1230,7 +1239,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) / GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1240,9 +1249,10 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) / GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1273,7 +1283,7 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) % GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1289,7 +1299,7 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) % GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1302,7 +1312,7 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) % GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1312,9 +1322,10 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) % GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1337,7 +1348,7 @@ int NEG(size_t result, size_t operand1) {
         SetDoubleData(result, -GetDoubleData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04) {
@@ -1355,7 +1366,7 @@ int NEG(size_t result, size_t operand1) {
         SetFloatData(result, -GetFloatData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03) {
@@ -1370,7 +1381,7 @@ int NEG(size_t result, size_t operand1) {
         SetLongData(result, -GetLongData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02) {
@@ -1382,7 +1393,7 @@ int NEG(size_t result, size_t operand1) {
         SetIntData(result, -GetIntData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01) {
@@ -1391,9 +1402,10 @@ int NEG(size_t result, size_t operand1) {
         SetByteData(result, -GetByteData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1417,7 +1429,7 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result, GetUint64tData(operand1)
                                    << GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1433,7 +1445,7 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) << GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1446,7 +1458,7 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) << GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1456,9 +1468,10 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) << GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1482,7 +1495,7 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) >> GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1498,7 +1511,7 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1511,7 +1524,7 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) >> GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1521,9 +1534,10 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) >> GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1547,7 +1561,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) >> GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1563,7 +1577,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1576,7 +1590,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) >> GetIntData(operand2));
         break;
       default:
-        break;
+       EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1586,9 +1600,9 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) >> GetByteData(operand2));
         break;
       default:
-        break;
+       EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
-  } else {
+  } else {EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1620,7 +1634,7 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) & GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1636,7 +1650,7 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) & GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1649,7 +1663,7 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) & GetIntData(operand2));
         break;
       default:
-        break;
+      EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1659,9 +1673,9 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) & GetByteData(operand2));
         break;
       default:
-        break;
+     EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
-  } else {
+  } else {EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1684,7 +1698,7 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) | GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1700,7 +1714,7 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) | GetLongData(operand2));
         break;
       default:
-        break;
+       EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1713,7 +1727,7 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) | GetIntData(operand2));
         break;
       default:
-        break;
+  EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1723,9 +1737,9 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) | GetByteData(operand2));
         break;
       default:
-        break;
+      EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
-  } else {
+  } else {EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1748,7 +1762,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) ^ GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1764,7 +1778,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) ^ GetLongData(operand2));
         break;
       default:
-        break;
+      EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1777,7 +1791,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) ^ GetIntData(operand2));
         break;
       default:
-        break;
+   EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1787,9 +1801,9 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) ^ GetByteData(operand2));
         break;
       default:
-        break;
+    EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
-  } else {
+  } else {EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1824,7 +1838,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) == GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -1851,7 +1865,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) == GetDoubleData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -1874,7 +1888,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) == GetFloatData(operand2));
             break;
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -1890,7 +1904,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) == GetLongData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -1903,7 +1917,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) == GetIntData(operand2));
             break;
           default:
-            break;
+EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -1913,9 +1927,9 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) == GetByteData(operand2));
             break;
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
-      } else {
+      } else {EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x01:
@@ -1947,7 +1961,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) != GetUint64tData(operand2));
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -1974,7 +1988,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) != GetDoubleData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -1997,7 +2011,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) != GetFloatData(operand2));
             break;
           default:
-            break;
+         EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2013,7 +2027,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) != GetLongData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2026,7 +2040,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) != GetIntData(operand2));
             break;
           default:
-            break;
+         EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2036,9 +2050,9 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) != GetByteData(operand2));
             break;
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
-      } else {
+      } else {EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x02:
@@ -2070,7 +2084,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(result,
                            GetUint64tData(operand1) > GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2097,7 +2111,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) > GetDoubleData(operand2));
             break;
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2119,7 +2133,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) > GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2135,7 +2149,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) > GetLongData(operand2));
             break;
           default:
-            break;
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2148,7 +2162,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) > GetIntData(operand2));
             break;
           default:
-            break;
+      EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2158,9 +2172,9 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) > GetByteData(operand2));
             break;
           default:
-            break;
+         EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
-      } else {
+      } else {EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x03:
@@ -2192,7 +2206,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) >= GetUint64tData(operand2));
           default:
-            break;
+         EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2219,7 +2233,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) >= GetDoubleData(operand2));
             break;
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2242,7 +2256,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) >= GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2258,7 +2272,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) >= GetLongData(operand2));
             break;
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2271,7 +2285,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) >= GetIntData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2281,9 +2295,9 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) >= GetByteData(operand2));
             break;
           default:
-            break;
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
-      } else {
+      } else {EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x04:
@@ -2315,7 +2329,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(result,
                            GetUint64tData(operand1) < GetUint64tData(operand2));
           default:
-            break;
+          EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2342,7 +2356,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) < GetDoubleData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2364,7 +2378,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) < GetFloatData(operand2));
             break;
           default:
-            break;
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2380,7 +2394,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) < GetLongData(operand2));
             break;
           default:
-            break;
+EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2393,7 +2407,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) < GetIntData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2403,9 +2417,9 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) < GetByteData(operand2));
             break;
           default:
-            break;
+   EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
-      } else {
+      } else {EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x05:
@@ -2437,7 +2451,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) <= GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2464,7 +2478,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) <= GetDoubleData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2487,7 +2501,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) <= GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2503,7 +2517,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) <= GetLongData(operand2));
             break;
           default:
-            break;
+           EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2516,7 +2530,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) <= GetIntData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2526,13 +2540,13 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
-      } else {
+      } else {EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     default:
-      break;
+      EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid opcode.");
   }
   return 0;
 }
@@ -2574,7 +2588,7 @@ int EQUAL(size_t result, size_t value) {
       SetUint64tData(value, GetUint64tData(result));
       break;
     default:
-      break;
+      EXIT_VM("EQUAL(size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -2791,8 +2805,7 @@ void* AddFunction(void* location) {
         break;
 
       default:
-        bytecode[i].args = NULL;
-        break;
+        EXIT_VM("AddFunction(void*)", "Invalid operator.");
     }
     AddFreePtr(bytecode[i].args);
   }
@@ -2812,6 +2825,8 @@ FuncInfo GetCustomFunction(const char* name) {
     }
     table = table->next;
   }
+
+  EXIT_VM("GetCustomFunction(const char*)", "Function not found.");
   return (FuncInfo){NULL, NULL, 0, NULL};
 }
 
@@ -2836,7 +2851,7 @@ int InvokeCustomFunction(const char* name) {
   FuncInfo func_info = GetCustomFunction(name);
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    printf("run index: %i, run operator: 0x%02x\n", i, run_code[i].operator);
+    printf("run index: %zu, run operator: 0x%02x\n", i, run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -2928,12 +2943,14 @@ int InvokeCustomFunction(const char* name) {
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);
+    EXIT_VM("main(int, char**)", "Invalid arguments.");
     return -1;
   }
 
   FILE* bytecode = fopen(argv[1], "rb");
   if (bytecode == NULL) {
     printf("Error: Could not open file %s\n", argv[1]);
+    EXIT_VM("main(int, char**)", "Could not open file.");
     return -2;
   }
 
@@ -2951,6 +2968,7 @@ int main(int argc, char* argv[]) {
   if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
       ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
     printf("Error: Invalid bytecode file\n");
+    EXIT_VM("main(int, char**)", "Invalid bytecode file.");
     return -3;
   }
 
