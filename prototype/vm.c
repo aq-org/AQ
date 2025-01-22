@@ -216,13 +216,12 @@ int WriteData(const struct Memory* memory, const size_t index,
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index >= memory->size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
-    // ERROR
-    /*printf("1GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0x0F));*/
+    printf("GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0x0F));
     return (*(memory->type + (index / 2)) & 0x0F);
   } else {
-    /*printf("2GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0xF0) >> 4);*/
+    printf("GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0xF0) >> 4);
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
 }
@@ -298,8 +297,8 @@ int8_t GetByteData(size_t index) {
 }
 
 int GetIntData(size_t index) {
-  //printf("index: %zu\n", index);
-  //printf("GetType: %hhu\n", GetType(memory, index));
+  // printf("index: %zu\n", index);
+  // printf("GetType: %hhu\n", GetType(memory, index));
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -816,6 +815,8 @@ void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, third));
+
+  printf("Decoded Parameters: %zu, %zu, %zu\n", *first, *second, *third);
   return ptr;
 }
 
@@ -2738,22 +2739,22 @@ int INVOKE(size_t* args) {
 int EQUAL(size_t result, size_t value) {
   switch (GetType(memory, result)) {
     case 0x01:
-      SetByteData(value, GetByteData(result));
+      SetByteData(result, GetByteData(value));
       break;
     case 0x02:
-      SetIntData(value, GetIntData(result));
+      SetIntData(result, GetIntData(value));
       break;
     case 0x03:
-      SetLongData(value, GetLongData(result));
+      SetLongData(result, GetLongData(value));
       break;
     case 0x04:
-      SetFloatData(value, GetFloatData(result));
+      SetFloatData(result, GetFloatData(value));
       break;
     case 0x05:
-      SetDoubleData(value, GetDoubleData(result));
+      SetDoubleData(result, GetDoubleData(value));
       break;
     case 0x06:
-      SetUint64tData(value, GetUint64tData(result));
+      SetUint64tData(result, GetUint64tData(value));
       break;
     default:
       EXIT_VM("EQUAL(size_t, size_t)", "Invalid type.");
