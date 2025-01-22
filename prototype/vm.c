@@ -103,12 +103,13 @@ bool is_big_endian;
 
 void EXIT_VM(const char* func_name, const char* message) {
   fprintf(stderr, "[ERROR] %s: %s\n", func_name, message);
+  exit(1);
 }
 
 void AddFreePtr(void* ptr) {
   struct FreeList* new_free_list =
       (struct FreeList*)malloc(sizeof(struct FreeList));
-  if (new_free_list == NULL) return;
+  if (new_free_list == NULL) EXIT_VM("AddFreePtr(void*)", "Out of memory.");
   new_free_list->ptr = ptr;
   new_free_list->next = free_list;
   free_list = new_free_list;
@@ -186,7 +187,8 @@ uint64_t SwapUint64t(uint64_t x) {
 
 struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   struct Memory* memory_ptr = (struct Memory*)malloc(sizeof(struct Memory));
-  if (memory_ptr == NULL) return NULL;
+  if (memory_ptr == NULL)
+    EXIT_VM("InitializeMemory(void*, void*, size_t)", "Out of memory.");
   memory_ptr->data = data;
   memory_ptr->type = type;
   memory_ptr->size = size;
@@ -196,13 +198,13 @@ struct Memory* InitializeMemory(void* data, void* type, size_t size) {
 
 void FreeMemory(struct Memory* memory_ptr) { free(memory_ptr); }
 
-int SetType(const struct Memory* memory, size_t index, uint8_t type) {
+/*int SetType(const struct Memory* memory, size_t index, uint8_t type) {
   if (index % 2 != 0) {
     return memory->type[index / 2] & 0x0F;
   } else {
     return (memory->type[index / 2] & 0xF0) >> 4;
   }
-}
+}*/
 
 int WriteData(const struct Memory* memory, const size_t index,
               const void* data_ptr, const size_t size) {
@@ -212,277 +214,447 @@ int WriteData(const struct Memory* memory, const size_t index,
 }
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
+  if (index >= memory->size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
-    return *(memory->type + (index / 2)) & 0x0F;
+    // ERROR
+    /*printf("1GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0x0F));*/
+    return (*(memory->type + (index / 2)) & 0x0F);
   } else {
+    /*printf("2GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0xF0) >> 4);*/
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
 }
 
 void* GetPtrData(size_t index) {
+  if (index + 7 >= memory->size)
+    EXIT_VM("GetPtrData(size_t)", "Out of memory.");
+
+  printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
   return *(void**)((uintptr_t)memory->data + index);
 }
 
 int8_t GetByteData(size_t index) {
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("GetByteData(size_t)", "Out of memory.");
+      printf("GetByteData: %d\n", *(int8_t*)((uintptr_t)memory->data + index));
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetByteData(size_t)", "Out of memory.");
+      printf("GetByteData: %d\n",
+             is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(int*)((uintptr_t)memory->data + index)
                  : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetByteData(size_t)", "Out of memory.");
+      printf("GetByteData: %ld\n",
+             is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetByteData(size_t)", "Out of memory.");
+      printf("GetByteData: %f\n",
+             is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetByteData(size_t)", "Out of memory.");
+      printf("GetByteData: %f\n",
+             is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetByteData(size_t)", "Out of memory.");
+      printf("GetByteData: %zu\n",
+             is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
       return (int8_t)is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetByteData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 int GetIntData(size_t index) {
+  //printf("index: %zu\n", index);
+  //printf("GetType: %hhu\n", GetType(memory, index));
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("GetIntData(size_t)", "Out of memory.");
+      printf("GetIntData: %zu, value: %d\n", index,
+             *(int8_t*)((uintptr_t)memory->data + index));
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetIntData(size_t)", "0x02 Out of memory.");
+      printf("GetIntData: %zu, value: %d\n", index,
+             is_big_endian ? *(int*)((uintptr_t)memory->data + index)
+                           : SwapInt(*(int*)((uintptr_t)memory->data + index)));
       return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetIntData(size_t)", "Out of memory.");
+      printf("GetIntData: %ld\n",
+             is_big_endian
+                 ? *(long*)((uintptr_t)memory->data + index)
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetIntData(size_t)", "Out of memory.");
+      printf("GetIntData: %f\n",
+             is_big_endian
+                 ? *(float*)((uintptr_t)memory->data + index)
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetIntData(size_t)", "Out of memory.");
+      printf("GetIntData: %f\n",
+             is_big_endian
+                 ? *(double*)((uintptr_t)memory->data + index)
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetIntData(size_t)", "Out of memory.");
+      printf("GetIntData: %zu\n",
+             is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetIntData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 long GetLongData(size_t index) {
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetLongData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 float GetFloatData(size_t index) {
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetFloatData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 double GetDoubleData(size_t index) {
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetDoubleData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 uint64_t GetUint64tData(size_t index) {
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
       return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
     default:
-      return 0;
+      EXIT_VM("GetUint64tData(size_t)", "Invalid type.");
   }
+  return -1;
 }
 
 void SetPtrData(size_t index, void* ptr) {
+  if (index + 7 >= memory->size)
+    EXIT_VM("SetPtrData(size_t, void*)", "Out of memory.");
   *(void**)((uintptr_t)memory->data + index) = ptr;
 }
 
 void SetByteData(size_t index, int8_t value) {
-  printf("SetByteData: %d\n", value);
+  printf("SetByteData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
       *(int*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
       *(long*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
       *(float*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetByteData(size_t, int8_t)", "Invalid type.");
   }
 }
 
 void SetIntData(size_t index, int value) {
-  printf("SetIntData: %d\n", value);
+  printf("SetIntData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
       *(int*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
       *(long*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
       *(float*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetIntData(size_t, int)", "Invalid type.");
   }
+  printf("SetIntData: %zu, Result: %d\n", index, GetIntData(index));
 }
 
 void SetLongData(size_t index, long value) {
   printf("SetLongData: %ld\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
       *(int*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
       *(long*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
       *(float*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetLongData(size_t, long)", "Invalid type.");
   }
 }
 
@@ -490,29 +662,41 @@ void SetFloatData(size_t index, float value) {
   printf("SetFloatData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
       *(int*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
       *(long*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
       *(float*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetFloatData(size_t, float)", "Invalid type.");
   }
 }
 
@@ -520,59 +704,83 @@ void SetDoubleData(size_t index, double value) {
   printf("SetDoubleData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
       *(int*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
       *(long*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
       *(float*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetDoubleData(size_t, double)", "Invalid type.");
   }
 }
 
 void SetUint64tData(size_t index, uint64_t value) {
-  printf("SetUint64tData: %lu\n", value);
+  printf("SetUint64tData: %zu\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
+      if (index >= memory->size)
+        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
       *(int8_t*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x02:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
       *(int*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapInt(value);
       break;
     case 0x03:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
       *(long*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapLong(value);
       break;
     case 0x04:
+      if (index + 3 >= memory->size)
+        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
       *(float*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapFloat(value);
       break;
     case 0x05:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
       *(double*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapDouble(value);
       break;
     case 0x06:
+      if (index + 7 >= memory->size)
+        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
     default:
-      break;
+      EXIT_VM("SetUint64tData(size_t, uint64_t)", "Invalid type.");
   }
 }
 
@@ -670,7 +878,7 @@ int LOAD(size_t ptr, size_t operand) {
       SetPtrData(operand, *(void**)((uintptr_t)memory->data + ptr));
       break;
     default:
-      break;
+      EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -698,7 +906,7 @@ int STORE(size_t ptr, size_t operand) {
       *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
       break;
     default:
-      break;
+      EXIT_VM("STORE(size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -755,7 +963,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) + GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -778,7 +986,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) + GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -797,7 +1005,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) + GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -813,7 +1021,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -823,10 +1031,12 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
       case 0x02:
+        printf("Operand1: %d\n", GetIntData(operand1));
+        printf("Operand2: %d\n", GetIntData(operand2));
         SetIntData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -836,9 +1046,10 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
   }
 
   printf("Add Result: %zu\n", GetUint64tData(result));
@@ -885,7 +1096,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) - GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -908,7 +1119,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) - GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -927,7 +1138,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) - GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -943,7 +1154,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) - GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -956,7 +1167,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) - GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -966,9 +1177,10 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) - GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("SUB(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -999,7 +1211,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) * GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -1022,7 +1234,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) * GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -1041,7 +1253,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) * GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1057,7 +1269,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) * GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1070,7 +1282,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) * GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1080,9 +1292,10 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) * GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("MUL(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1113,7 +1326,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) / GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x05 ||
              GetType(memory, operand1) == 0x05 ||
@@ -1136,7 +1349,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
                       GetDoubleData(operand1) / GetDoubleData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04 ||
@@ -1155,7 +1368,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetFloatData(result, GetFloatData(operand1) / GetFloatData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1171,7 +1384,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) / GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1184,7 +1397,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) / GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1194,9 +1407,10 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) / GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("DIV(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1227,7 +1441,7 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) % GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1243,7 +1457,7 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) % GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1256,7 +1470,7 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) % GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1266,9 +1480,10 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) % GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("REM(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1291,7 +1506,7 @@ int NEG(size_t result, size_t operand1) {
         SetDoubleData(result, -GetDoubleData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x04 ||
              GetType(memory, operand1) == 0x04) {
@@ -1309,7 +1524,7 @@ int NEG(size_t result, size_t operand1) {
         SetFloatData(result, -GetFloatData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03) {
@@ -1324,7 +1539,7 @@ int NEG(size_t result, size_t operand1) {
         SetLongData(result, -GetLongData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02) {
@@ -1336,7 +1551,7 @@ int NEG(size_t result, size_t operand1) {
         SetIntData(result, -GetIntData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01) {
@@ -1345,9 +1560,10 @@ int NEG(size_t result, size_t operand1) {
         SetByteData(result, -GetByteData(operand1));
         break;
       default:
-        break;
+        EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("NEG(size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1371,7 +1587,7 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result, GetUint64tData(operand1)
                                    << GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1387,7 +1603,7 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) << GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1400,7 +1616,7 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) << GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1410,9 +1626,10 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) << GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("SHL(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1436,7 +1653,7 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) >> GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1452,7 +1669,7 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1465,7 +1682,7 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) >> GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1475,9 +1692,10 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) >> GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("SHR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1501,7 +1719,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) >> GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1517,7 +1735,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1530,7 +1748,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) >> GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1540,16 +1758,17 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) >> GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("SAR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
 int InvokeCustomFunction(const char* name);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
-   printf("condition: %d\n", GetByteData(condition));
-   if (GetByteData(condition) != 0) {
+  printf("condition: %d\n", GetByteData(condition));
+  if (GetByteData(condition) != 0) {
     return true_branche;
   } else {
     return false_branche;
@@ -1574,7 +1793,7 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) & GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1590,7 +1809,7 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) & GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1603,7 +1822,7 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) & GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1613,9 +1832,10 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) & GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("AND(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1638,7 +1858,7 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) | GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1654,7 +1874,7 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) | GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1667,7 +1887,7 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) | GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1677,9 +1897,10 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) | GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("OR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1702,7 +1923,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetUint64tData(result,
                        GetUint64tData(operand1) ^ GetUint64tData(operand2));
       default:
-        break;
+        EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x03 ||
              GetType(memory, operand1) == 0x03 ||
@@ -1718,7 +1939,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetLongData(result, GetLongData(operand1) ^ GetLongData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x02 ||
              GetType(memory, operand1) == 0x02 ||
@@ -1731,7 +1952,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetIntData(result, GetIntData(operand1) ^ GetIntData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else if (GetType(memory, result) == 0x01 ||
              GetType(memory, operand1) == 0x01 ||
@@ -1741,9 +1962,10 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetByteData(operand1) ^ GetByteData(operand2));
         break;
       default:
-        break;
+        EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
     }
   } else {
+    EXIT_VM("XOR(size_t, size_t, size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -1778,7 +2000,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) == GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -1805,7 +2027,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) == GetDoubleData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -1828,7 +2050,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) == GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -1844,7 +2066,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) == GetLongData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -1857,7 +2079,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) == GetIntData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -1867,9 +2089,10 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) == GetByteData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else {
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x01:
@@ -1901,7 +2124,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) != GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -1928,7 +2151,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) != GetDoubleData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -1951,7 +2174,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) != GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -1967,7 +2190,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) != GetLongData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -1980,7 +2203,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) != GetIntData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -1990,9 +2213,10 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) != GetByteData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else {
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x02:
@@ -2024,7 +2248,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(result,
                            GetUint64tData(operand1) > GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2051,7 +2275,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) > GetDoubleData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2073,7 +2297,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) > GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2089,7 +2313,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) > GetLongData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2102,7 +2326,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) > GetIntData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2112,9 +2336,10 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) > GetByteData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else {
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x03:
@@ -2146,7 +2371,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) >= GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2173,7 +2398,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) >= GetDoubleData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2196,7 +2421,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) >= GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2212,7 +2437,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) >= GetLongData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2225,7 +2450,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) >= GetIntData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2235,9 +2460,10 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) >= GetByteData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else {
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x04:
@@ -2269,7 +2495,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(result,
                            GetUint64tData(operand1) < GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2296,7 +2522,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) < GetDoubleData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2318,7 +2544,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) < GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2334,7 +2560,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) < GetLongData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2347,7 +2573,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) < GetIntData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2357,9 +2583,10 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) < GetByteData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else {
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     case 0x05:
@@ -2391,7 +2618,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetUint64tData(
                 result, GetUint64tData(operand1) <= GetUint64tData(operand2));
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x05 ||
                  GetType(memory, operand1) == 0x05 ||
@@ -2418,7 +2645,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                           GetDoubleData(operand1) <= GetDoubleData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x04 ||
                  GetType(memory, operand1) == 0x04 ||
@@ -2441,7 +2668,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
                          GetFloatData(operand1) <= GetFloatData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x03 ||
                  GetType(memory, operand1) == 0x03 ||
@@ -2457,7 +2684,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) <= GetLongData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x02 ||
                  GetType(memory, operand1) == 0x02 ||
@@ -2470,7 +2697,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) <= GetIntData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else if (GetType(memory, result) == 0x01 ||
                  GetType(memory, operand1) == 0x01 ||
@@ -2480,13 +2707,14 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
             break;
           default:
-            break;
+            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
         }
       } else {
+        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
       }
       break;
     default:
-      break;
+      EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid opcode.");
   }
   return 0;
 }
@@ -2507,8 +2735,8 @@ int INVOKE(size_t* args) {
 
   return InvokeCustomFunction((char*)GetPtrData(func));
 }
-int EQUAL(size_t result,size_t value) { 
-  switch(GetType(memory, result)) {
+int EQUAL(size_t result, size_t value) {
+  switch (GetType(memory, result)) {
     case 0x01:
       SetByteData(value, GetByteData(result));
       break;
@@ -2528,10 +2756,10 @@ int EQUAL(size_t result,size_t value) {
       SetUint64tData(value, GetUint64tData(result));
       break;
     default:
-      break;
+      EXIT_VM("EQUAL(size_t, size_t)", "Invalid type.");
   }
   return 0;
- }
+}
 size_t GOTO(size_t location) { return location; }
 int THROW() { return 0; }
 int WIDE() { return 0; }
@@ -2745,8 +2973,7 @@ void* AddFunction(void* location) {
         break;
 
       default:
-        bytecode[i].args = NULL;
-        break;
+        EXIT_VM("AddFunction(void*)", "Invalid operator.");
     }
     AddFreePtr(bytecode[i].args);
   }
@@ -2766,6 +2993,8 @@ FuncInfo GetCustomFunction(const char* name) {
     }
     table = table->next;
   }
+
+  EXIT_VM("GetCustomFunction(const char*)", "Function not found.");
   return (FuncInfo){NULL, NULL, 0, NULL};
 }
 
@@ -2781,7 +3010,7 @@ func_ptr GetFunction(const char* name) {
   return (func_ptr)NULL;
 }
 
-int EQUAL(size_t result,size_t value);
+int EQUAL(size_t result, size_t value);
 size_t GOTO(size_t location);
 int THROW();
 int WIDE();
@@ -2790,7 +3019,7 @@ int InvokeCustomFunction(const char* name) {
   FuncInfo func_info = GetCustomFunction(name);
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    printf("run index: %i, run operator: 0x%02x\n", i, run_code[i].operator);
+    printf("run index: %zu, run operator: 0x%02x\n", i, run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -2882,12 +3111,14 @@ int InvokeCustomFunction(const char* name) {
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);
+    EXIT_VM("main(int, char**)", "Invalid arguments.");
     return -1;
   }
 
   FILE* bytecode = fopen(argv[1], "rb");
   if (bytecode == NULL) {
     printf("Error: Could not open file %s\n", argv[1]);
+    EXIT_VM("main(int, char**)", "Could not open file.");
     return -2;
   }
 
@@ -2905,6 +3136,7 @@ int main(int argc, char* argv[]) {
   if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
       ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
     printf("Error: Invalid bytecode file\n");
+    EXIT_VM("main(int, char**)", "Invalid bytecode file.");
     return -3;
   }
 
