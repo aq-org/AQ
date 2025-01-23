@@ -1057,7 +1057,7 @@ class Lexer {
 
   // Lexical analysis |buffer_ptr_|, and store the analyzed token into
   // |return_token|.
-  int LexToken(Token& return_token);
+  int LexToken(Token last_token, Token& return_token);
 
   // Return true if the lexer is at the end of |buffer_ptr_|.
   bool IsReadEnd() const;
@@ -1076,7 +1076,7 @@ bool Lexer::IsReadEnd() const {
   }
 }
 
-int Lexer::LexToken(Token& return_token) {
+int Lexer::LexToken(Token last_token, Token& return_token) {
   // Set the return token type to start.
   return_token.type = Token::Type::START;
 
@@ -1204,11 +1204,13 @@ LexStart:
     case '+':
     case '-':
       if (return_token.type == Token::Type::START) {
-        if (*(read_ptr + 1) == '0' || *(read_ptr + 1) == '1' ||
-            *(read_ptr + 1) == '2' || *(read_ptr + 1) == '3' ||
-            *(read_ptr + 1) == '4' || *(read_ptr + 1) == '5' ||
-            *(read_ptr + 1) == '6' || *(read_ptr + 1) == '7' ||
-            *(read_ptr + 1) == '8' || *(read_ptr + 1) == '9') {
+        if (last_token.type != Token::Type::IDENTIFIER &&
+            last_token.type != Token::Type::NUMBER &&
+            (*(read_ptr + 1) == '0' || *(read_ptr + 1) == '1' ||
+             *(read_ptr + 1) == '2' || *(read_ptr + 1) == '3' ||
+             *(read_ptr + 1) == '4' || *(read_ptr + 1) == '5' ||
+             *(read_ptr + 1) == '6' || *(read_ptr + 1) == '7' ||
+             *(read_ptr + 1) == '8' || *(read_ptr + 1) == '9')) {
           return_token.type = Token::Type::NUMBER;
         } else {
           return_token.type = Token::Type::OPERATOR;
@@ -5057,10 +5059,12 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         ")",
         "expr is nullptr.");
 
-  std::size_t left = HandleExpr(expr->GetLeftExpr(), code);
-  std::size_t right = HandleExpr(expr->GetRightExpr(), code);
-  uint8_t left_type = GetExprVmType(expr->GetLeftExpr());
-  uint8_t right_type = GetExprVmType(expr->GetRightExpr());
+  ExprNode* left_expr = expr->GetLeftExpr();
+  ExprNode* right_expr = expr->GetRightExpr();
+  std::size_t right = HandleExpr(right_expr, code);
+  std::size_t left = HandleExpr(left_expr, code);
+  uint8_t left_type = GetExprVmType(left_expr);
+  uint8_t right_type = GetExprVmType(right_expr);
   uint8_t result_type = left_type > right_type ? left_type : right_type;
 
   switch (expr->GetOperator()) {
@@ -6731,9 +6735,12 @@ int main(int argc, char* argv[]) {
   char* buffer_ptr_ = code.data();
   Aq::Compiler::Lexer lexer(buffer_ptr_, code.size());
   std::vector<Aq::Compiler::Token> token;
+  Aq::Compiler::Token first_token_buffer;
+  lexer.LexToken(first_token_buffer,first_token_buffer);
+  token.push_back(first_token_buffer);
   while (true) {
     Aq::Compiler::Token token_buffer;
-    lexer.LexToken(token_buffer);
+    lexer.LexToken(token.back(),token_buffer);
     token.push_back(token_buffer);
     if (lexer.IsReadEnd()) {
       break;
