@@ -3862,6 +3862,9 @@ class BytecodeGenerator {
       va_start(args, args_count);
       for (std::size_t i = 0; i < args_count; i++) {
         arg_.push_back(va_arg(args, std::size_t));
+        if (oper == _AQVM_OPERATOR_CMP && i == 1) {
+          std::cout << "CMP OPCODE: " << arg_[1] << std::endl;
+        }
       }
       va_end(args);
     }
@@ -5124,37 +5127,37 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     case BinaryNode::Operator::kLT: {  // <
       std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_CMP, 4, result, 0x04, left, right));
+          Bytecode(_AQVM_OPERATOR_CMP, 4, result, (size_t)0x04, left, right));
       return result;
     }
     case BinaryNode::Operator::kGT: {  // >
       std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_CMP, 4, result, 0x02, left, right));
+          Bytecode(_AQVM_OPERATOR_CMP, 4, result, (size_t)0x02, left, right));
       return result;
     }
     case BinaryNode::Operator::kLE: {  // <=
       std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_CMP, 4, result, 0x05, left, right));
+          Bytecode(_AQVM_OPERATOR_CMP, 4, result, (size_t)0x05, left, right));
       return result;
     }
     case BinaryNode::Operator::kGE: {  // >=
       std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_CMP, 4, result, 0x03, left, right));
+          Bytecode(_AQVM_OPERATOR_CMP, 4, result, (size_t)0x03, left, right));
       return result;
     }
     case BinaryNode::Operator::kEQ: {  // ==
       std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_CMP, 4, result, 0x00, left, right));
+          Bytecode(_AQVM_OPERATOR_CMP, 4, result, (size_t)0x00, left, right));
       return result;
     }
     case BinaryNode::Operator::kNE: {  // !=
       std::size_t result = global_memory_.Add(0x01, 1);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_CMP, 4, result, 0x01, left, right));
+          Bytecode(_AQVM_OPERATOR_CMP, 4, result, (size_t)0x01, left, right));
       return result;
     }
     case BinaryNode::Operator::kLAnd: {  // &&
