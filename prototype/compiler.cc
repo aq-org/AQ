@@ -1804,18 +1804,18 @@ class UnaryNode : public ExprNode {
  public:
   enum class Operator {
     NONE,
-    kPostInc,
-    kPostDec,
-    kPreInc,
-    kPreDec,
-    kAddrOf,
-    kDeref,
-    kPlus,
-    kMinus,
-    kNot,
-    kBitwiseNot,
-    ARRAY,
-    CONVERT
+    kPostInc,     // ++
+    kPostDec,     // --
+    kPreInc,      // ++
+    kPreDec,      // --
+    kAddrOf,      // &
+    kDeref,       // *
+    kPlus,        // +
+    kMinus,       // -
+    kNot,         // !
+    kBitwiseNot,  // ~
+    ARRAY,        // []
+    CONVERT       // ()
   };
 
   UnaryNode() {
@@ -4002,7 +4002,8 @@ class BytecodeGenerator {
   size_t EncodeUleb128(size_t value, std::vector<uint8_t>& output);
   void GenerateBytecodeFile(const char* output_file);
   void GenerateMnemonicFile();
-  std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr);
+  Type* GetExprType(ExprNode* expr);
+  std::string GetExprTypeString(ExprNode* expr);
 
   bool is_big_endian_;
   std::unordered_map<std::string, FuncDeclNode> func_decl_map;
@@ -6805,47 +6806,110 @@ size_t BytecodeGenerator::EncodeUleb128(size_t value,
   return count;
 }
 
-std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr) {
+Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
   if (expr->GetType() == StmtNode::StmtType::kArray) {
     auto iterator =
         var_decl_map.find(*dynamic_cast<ArrayNode*>(expr)->GetExpr());
     if (iterator == var_decl_map.end()) {
-      EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)",
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                     "Not found array.");
     }
     ArrayDeclNode* array_decl = (ArrayDeclNode*)iterator->second.second;
     if (array_decl->GetVarType()->GetType() == Type::TypeType::kArray) {
-      return
-          *dynamic_cast<ArrayType*>(array_decl->GetVarType())->GetSubType();
+      return dynamic_cast<ArrayType*>(array_decl->GetVarType())->GetSubType();
     } else if (array_decl->GetVarType()->GetType() ==
                Type::TypeType::kPointer) {
-      return
-          *dynamic_cast<PointerType*>(array_decl->GetVarType())->GetSubType();
+      return dynamic_cast<PointerType*>(array_decl->GetVarType())
+                  ->GetSubType();
     } else {
-      EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)", );
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Unknown type.");
     }
   } else if (expr->GetType() == StmtNode::StmtType::kArrayDecl) {
-    return *dynamic_cast<ArrayDeclNode*>(expr)->GetVarType();
+    return dynamic_cast<ArrayDeclNode*>(expr)->GetVarType();
   } else if (expr->GetType() == StmtNode::StmtType::kValue) {
     // TODO
   } else if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
     auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
     if (iterator == var_decl_map.end()) {
-      EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)",
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                     "Not found variable.");
     }
-    return *iterator->second.first->GetVarType();
+    return iterator->second.first->GetVarType();
   } else if (expr->GetType() == StmtNode::StmtType::kUnary) {
-    
+    switch (dynamic_cast<UnaryNode*>(expr)->GetOperator()){
+      case UnaryNode::Operator::kPostInc:
+      case UnaryNode::Operator::kPostDec:
+      case UnaryNode::Operator::kPreInc:
+      case UnaryNode::Operator::kPreDec:
+      case UnaryNode::Operator::kPlus:
+      case UnaryNode::Operator::kMinus:
+      case UnaryNode::Operator::kNot:
+      case UnaryNode::Operator::kBitwiseNot:
+        return GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+      case UnaryNode::Operator::kAddrOf:{
+        PointerType* ptr = new PointerType();
+        ptr->SetSubType(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()));
+        return ptr;
+      }
+      case UnaryNode::Operator::kDeref:
+        if(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr())->GetType()==Type::TypeType::kPointer){
+          return dynamic_cast<PointerType*>(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()))->GetSubType();
+        }
+        else if(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr())->GetType()==Type::TypeType::kArray){
+          return dynamic_cast<ArrayType*>(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()))->GetSubType();
+        }else{
+          EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Unknown type.");
+        }
+      case UnaryNode::Operator::ARRAY:
+        EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unexpected code.");
+      case UnaryNode::Operator::CONVERT:
+        return dynamic_cast<CastNode*>(expr)->GetCastType();       
+      default:
+        EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unexpected code.");
+
+    }
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
+    Type* left = GetExprType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
+    Type* right = GetExprType(dynamic_cast<BinaryNode*>(expr)->GetRightExpr());
+
+    if(left->GetType()==Type::TypeType::kConst)left = dynamic_cast<ConstType*>(left)->GetSubType();
+    if(right->GetType()==Type::TypeType::kConst)right = dynamic_cast<ConstType*>(right)->GetSubType();
+    if(left->GetType()==Type::TypeType::kReference)left = dynamic_cast<ReferenceType*>(left)->GetSubType();
+    if(right->GetType()==Type::TypeType::kReference)right = dynamic_cast<ReferenceType*>(right)->GetSubType();
+    if(left->GetType()==Type::TypeType::NONE||right->GetType()==Type::TypeType::NONE)EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unknown Type.");
+
+    if(left->GetType()==Type::TypeType::kPointer||right->GetType()==Type::TypeType::kPointer||left->GetType()==Type::TypeType::kArray||right->GetType()==Type::TypeType::kArray){
+      if(left->GetType()==Type::TypeType::kPointer||left->GetType()==Type::TypeType::kArray)return left;
+      if(right->GetType()==Type::TypeType::kPointer||right->GetType()==Type::TypeType::kArray)return right;
+    }
+
+    if(left->GetBaseType()==right->GetBaseType())return left;
+
+    Type* result = nullptr;
+    if(left->GetSize()>right->GetSize()){
+      result = left;
+    }else if(left->GetSize()<right->GetSize()){
+      result = right;
+    }else{
+      
+    }
+
   } else if (expr->GetType() == StmtNode::StmtType::kFunc) {
   } else if (expr->GetType() == StmtNode::StmtType::kVarDecl) {
   } else if (expr->GetType() == StmtNode::StmtType::kConditional) {
   } else if (expr->GetType() == StmtNode::StmtType::kCast) {
   } else {
-    EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)", );
+    EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                  "Unsupport type.");
   }
 }
+std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr){
+  return *GetExprType(expr);
+}
+
+
 }  // namespace Compiler
 }  // namespace Aq
 
