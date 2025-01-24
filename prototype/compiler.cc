@@ -4002,6 +4002,7 @@ class BytecodeGenerator {
   size_t EncodeUleb128(size_t value, std::vector<uint8_t>& output);
   void GenerateBytecodeFile(const char* output_file);
   void GenerateMnemonicFile();
+  std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr);
 
   bool is_big_endian_;
   std::unordered_map<std::string, FuncDeclNode> func_decl_map;
@@ -5554,18 +5555,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
       func_name += ",";
     }
 
-    if (args[i]->GetType() == StmtNode::StmtType::kArray) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kArrayDecl) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kValue) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kIdentifier) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kUnary) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kBinary) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kFunc) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kConditional) {
-    } else if (args[i]->GetType() == StmtNode::StmtType::kCast) {
-    } else {
-    }
+    func_name += GetExprTypeString(args[i]);
   }
 
   auto iterator = func_decl_map.find(*func->GetName());
@@ -5642,7 +5632,6 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
   std::vector<std::size_t> vm_args;
 
-  std::string func_name = std::string(*func->GetName());
   std::size_t func_name_index =
       global_memory_.Add(0x01, func_name.size() + 1, func_name.c_str());
   std::size_t func_name_ptr_index = global_memory_.Add(0x06, 8);
@@ -6816,6 +6805,47 @@ size_t BytecodeGenerator::EncodeUleb128(size_t value,
   return count;
 }
 
+std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr) {
+  if (expr->GetType() == StmtNode::StmtType::kArray) {
+    auto iterator =
+        var_decl_map.find(*dynamic_cast<ArrayNode*>(expr)->GetExpr());
+    if (iterator == var_decl_map.end()) {
+      EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)",
+                    "Not found array.");
+    }
+    ArrayDeclNode* array_decl = (ArrayDeclNode*)iterator->second.second;
+    if (array_decl->GetVarType()->GetType() == Type::TypeType::kArray) {
+      return
+          *dynamic_cast<ArrayType*>(array_decl->GetVarType())->GetSubType();
+    } else if (array_decl->GetVarType()->GetType() ==
+               Type::TypeType::kPointer) {
+      return
+          *dynamic_cast<PointerType*>(array_decl->GetVarType())->GetSubType();
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)", );
+    }
+  } else if (expr->GetType() == StmtNode::StmtType::kArrayDecl) {
+    return *dynamic_cast<ArrayDeclNode*>(expr)->GetVarType();
+  } else if (expr->GetType() == StmtNode::StmtType::kValue) {
+    // TODO
+  } else if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
+    auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+    if (iterator == var_decl_map.end()) {
+      EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)",
+                    "Not found variable.");
+    }
+    return *iterator->second.first->GetVarType();
+  } else if (expr->GetType() == StmtNode::StmtType::kUnary) {
+    
+  } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
+  } else if (expr->GetType() == StmtNode::StmtType::kFunc) {
+  } else if (expr->GetType() == StmtNode::StmtType::kVarDecl) {
+  } else if (expr->GetType() == StmtNode::StmtType::kConditional) {
+  } else if (expr->GetType() == StmtNode::StmtType::kCast) {
+  } else {
+    EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)", );
+  }
+}
 }  // namespace Compiler
 }  // namespace Aq
 
