@@ -1537,8 +1537,9 @@ class Type {
       case BaseType::kAuto:
         return 8;
       default:
-        EXIT_COMPILER("Type::GetSize()", "Unknown type.")
+        EXIT_COMPILER("Type::GetSize()", "Unknown type.");
     }
+    return 0;
   }
 
   virtual operator std::string();
@@ -1767,6 +1768,8 @@ class ValueNode : public ExprNode {
 
     return 0x00;
   }
+
+  Type* GetValueType();
 
   std::size_t GetSize() {
     if (value_.type == Token::Type::CHARACTER) {
@@ -2375,6 +2378,87 @@ Type::operator std::string() {
     EXIT_COMPILER("Type::operator std::string()", "Unknown type.");
   }
   return std::string();
+}
+
+Type* ValueNode::GetValueType() {
+  if (value_.type == Token::Type::CHARACTER) {
+    Type* type = new Type();
+    type->SetType(Type::BaseType::kChar);
+    return type;
+  }
+  if (value_.type == Token::Type::STRING) {
+    Type* type = new Type();
+    type->SetType(Type::BaseType::kChar);
+    ConstType* const_type = new ConstType();
+    const_type->SetSubType(type);
+    PointerType* pointer_type = new PointerType();
+    pointer_type->SetSubType(const_type);
+    return pointer_type;
+  }
+
+  std::string str(value_.value.number.location, value_.value.number.length);
+  try {
+    std::size_t pos;
+    (void)std::stoi(str, &pos);
+    if (pos == str.size()) {
+      Type* type = new Type();
+      type->SetType(Type::BaseType::kInt);
+      return type;
+    }
+  } catch (const std::invalid_argument&) {
+  } catch (const std::out_of_range&) {
+  }
+
+  try {
+    std::size_t pos;
+    (void)std::stol(str, &pos);
+    if (pos == str.size()) {
+      Type* type = new Type();
+      type->SetType(Type::BaseType::kLong);
+      return type;
+    }
+  } catch (const std::invalid_argument&) {
+  } catch (const std::out_of_range&) {
+  }
+
+  try {
+    std::size_t pos;
+    (void)std::stoull(str, &pos);
+    if (pos == str.size()) {
+      Type* type = new Type();
+      // TODO(Uint64t, etc.)
+      type->SetType(Type::BaseType::kLong);
+      return type;
+    }
+  } catch (const std::invalid_argument&) {
+  } catch (const std::out_of_range&) {
+  }
+
+  try {
+    std::size_t pos;
+    (void)std::stof(str, &pos);
+    if (pos == str.size()) {
+      Type* type = new Type();
+      type->SetType(Type::BaseType::kFloat);
+      return type;
+    }
+  } catch (const std::invalid_argument&) {
+  } catch (const std::out_of_range&) {
+  }
+
+  try {
+    std::size_t pos;
+    (void)std::stod(str, &pos);
+    if (pos == str.size()) {
+      Type* type = new Type();
+      type->SetType(Type::BaseType::kDouble);
+      return type;
+    }
+  } catch (const std::invalid_argument&) {
+  } catch (const std::out_of_range&) {
+  }
+
+  return nullptr;
 }
 
 Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
@@ -6819,8 +6903,7 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
       return dynamic_cast<ArrayType*>(array_decl->GetVarType())->GetSubType();
     } else if (array_decl->GetVarType()->GetType() ==
                Type::TypeType::kPointer) {
-      return dynamic_cast<PointerType*>(array_decl->GetVarType())
-                  ->GetSubType();
+      return dynamic_cast<PointerType*>(array_decl->GetVarType())->GetSubType();
     } else {
       EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                     "Unknown type.");
@@ -6837,7 +6920,7 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
     }
     return iterator->second.first->GetVarType();
   } else if (expr->GetType() == StmtNode::StmtType::kUnary) {
-    switch (dynamic_cast<UnaryNode*>(expr)->GetOperator()){
+    switch (dynamic_cast<UnaryNode*>(expr)->GetOperator()) {
       case UnaryNode::Operator::kPostInc:
       case UnaryNode::Operator::kPostDec:
       case UnaryNode::Operator::kPreInc:
@@ -6847,144 +6930,289 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
       case UnaryNode::Operator::kNot:
       case UnaryNode::Operator::kBitwiseNot:
         return GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
-      case UnaryNode::Operator::kAddrOf:{
+      case UnaryNode::Operator::kAddrOf: {
         PointerType* ptr = new PointerType();
         ptr->SetSubType(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()));
         return ptr;
       }
       case UnaryNode::Operator::kDeref:
-        if(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr())->GetType()==Type::TypeType::kPointer){
-          return dynamic_cast<PointerType*>(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()))->GetSubType();
-        }
-        else if(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr())->GetType()==Type::TypeType::kArray){
-          return dynamic_cast<ArrayType*>(GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()))->GetSubType();
-        }else{
+        if (GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr())->GetType() ==
+            Type::TypeType::kPointer) {
+          return dynamic_cast<PointerType*>(
+                     GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()))
+              ->GetSubType();
+        } else if (GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr())
+                       ->GetType() == Type::TypeType::kArray) {
+          return dynamic_cast<ArrayType*>(
+                     GetExprType(dynamic_cast<UnaryNode*>(expr)->GetExpr()))
+              ->GetSubType();
+        } else {
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
-                    "Unknown type.");
+                        "Unknown type.");
         }
       case UnaryNode::Operator::ARRAY:
-        EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unexpected code.");
+        EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                      "Unexpected code.");
       case UnaryNode::Operator::CONVERT:
-        return dynamic_cast<CastNode*>(expr)->GetCastType();       
+        return dynamic_cast<CastNode*>(expr)->GetCastType();
       default:
-        EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unexpected code.");
-
+        EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                      "Unexpected code.");
     }
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
     Type* left = GetExprType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
     Type* right = GetExprType(dynamic_cast<BinaryNode*>(expr)->GetRightExpr());
 
-    if(left->GetType()==Type::TypeType::kConst)left = dynamic_cast<ConstType*>(left)->GetSubType();
-    if(right->GetType()==Type::TypeType::kConst)right = dynamic_cast<ConstType*>(right)->GetSubType();
-    if(left->GetType()==Type::TypeType::kReference)left = dynamic_cast<ReferenceType*>(left)->GetSubType();
-    if(right->GetType()==Type::TypeType::kReference)right = dynamic_cast<ReferenceType*>(right)->GetSubType();
-    if(left->GetType()==Type::TypeType::NONE||right->GetType()==Type::TypeType::NONE)EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unknown Type.");
+    if (left->GetType() == Type::TypeType::kConst)
+      left = dynamic_cast<ConstType*>(left)->GetSubType();
+    if (right->GetType() == Type::TypeType::kConst)
+      right = dynamic_cast<ConstType*>(right)->GetSubType();
+    if (left->GetType() == Type::TypeType::kReference)
+      left = dynamic_cast<ReferenceType*>(left)->GetSubType();
+    if (right->GetType() == Type::TypeType::kReference)
+      right = dynamic_cast<ReferenceType*>(right)->GetSubType();
+    if (left->GetType() == Type::TypeType::NONE ||
+        right->GetType() == Type::TypeType::NONE)
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Unknown Type.");
 
-    if(left->GetType()==Type::TypeType::kPointer||right->GetType()==Type::TypeType::kPointer||left->GetType()==Type::TypeType::kArray||right->GetType()==Type::TypeType::kArray){
-      if(left->GetType()==Type::TypeType::kPointer||left->GetType()==Type::TypeType::kArray)return left;
-      if(right->GetType()==Type::TypeType::kPointer||right->GetType()==Type::TypeType::kArray)return right;
+    if (left->GetType() == Type::TypeType::kPointer ||
+        right->GetType() == Type::TypeType::kPointer ||
+        left->GetType() == Type::TypeType::kArray ||
+        right->GetType() == Type::TypeType::kArray) {
+      if (left->GetType() == Type::TypeType::kPointer ||
+          left->GetType() == Type::TypeType::kArray)
+        return left;
+      if (right->GetType() == Type::TypeType::kPointer ||
+          right->GetType() == Type::TypeType::kArray)
+        return right;
     }
 
-    if(left->GetBaseType()==right->GetBaseType())return left;
+    if (left->GetBaseType() == right->GetBaseType()) return left;
 
-    Type* result = nullptr;
-    if(left->GetSize()>right->GetSize()){
-      result = left;
-    }else if(left->GetSize()<right->GetSize()){
-      result = right;
-    }else{
+    if (left->GetSize() > right->GetSize()) {
+      return left;
+    } else if (left->GetSize() < right->GetSize()) {
+      return right;
+    } else {
       int left_priority = 0;
       int right_priority = 0;
-      switch(left->GetBaseType()){
-      case Type::BaseType::kVoid:
-      left_priority = 0;
-      case Type::BaseType::kBool:
-      left_priority = 1;
-      case Type::BaseType::kChar:
-        left_priority = 2;
-      case Type::BaseType::kShort:
-      left_priority = 3;
-      case Type::BaseType::kInt:
-      left_priority = 4;
-      case Type::BaseType::kFloat:
-        left_priority = 5;
-      case Type::BaseType::kLong:
-      left_priority = 6;
-      case Type::BaseType::kDouble:
-      left_priority = 7;
-      case Type::BaseType::kAuto:
-      left_priority = 8;
-      case Type::BaseType::kTypedef:
-      left_priority = 9;
-      case Type::BaseType::kPointer:
-      left_priority = 10;
-      case Type::BaseType::kArray:
-      left_priority = 11;
-      case Type::BaseType::kEnum:
-      left_priority = 12;
-      case Type::BaseType::kUnion:
-      left_priority = 13;
-      case Type::BaseType::kStruct:
-      left_priority = 14;
-      case Type::BaseType::kFunction:
-      left_priority = 15;
-      default:
-      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unknown type.");
+      switch (left->GetBaseType()) {
+        case Type::BaseType::kVoid:
+          left_priority = 0;
+        case Type::BaseType::kBool:
+          left_priority = 1;
+        case Type::BaseType::kChar:
+          left_priority = 2;
+        case Type::BaseType::kShort:
+          left_priority = 3;
+        case Type::BaseType::kInt:
+          left_priority = 4;
+        case Type::BaseType::kFloat:
+          left_priority = 5;
+        case Type::BaseType::kLong:
+          left_priority = 6;
+        case Type::BaseType::kDouble:
+          left_priority = 7;
+        case Type::BaseType::kAuto:
+          left_priority = 8;
+        case Type::BaseType::kTypedef:
+          left_priority = 9;
+        case Type::BaseType::kPointer:
+          left_priority = 10;
+        case Type::BaseType::kArray:
+          left_priority = 11;
+        case Type::BaseType::kEnum:
+          left_priority = 12;
+        case Type::BaseType::kUnion:
+          left_priority = 13;
+        case Type::BaseType::kStruct:
+          left_priority = 14;
+        case Type::BaseType::kFunction:
+          left_priority = 15;
+        default:
+          EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                        "Unknown type.");
       }
-            switch(right->GetBaseType()){
-      case Type::BaseType::kVoid:
-      right_priority = 0;
-      case Type::BaseType::kBool:
-      right_priority = 1;
-      case Type::BaseType::kChar:
-        right_priority = 2;
-      case Type::BaseType::kShort:
-      right_priority = 3;
-      case Type::BaseType::kInt:
-      right_priority = 4;
-      case Type::BaseType::kFloat:
-        right_priority = 5;
-      case Type::BaseType::kLong:
-      right_priority = 6;
-      case Type::BaseType::kDouble:
-      right_priority = 7;
-      case Type::BaseType::kAuto:
-      right_priority = 8;
-      case Type::BaseType::kTypedef:
-      right_priority = 9;
-      case Type::BaseType::kPointer:
-      right_priority = 10;
-      case Type::BaseType::kArray:
-      right_priority = 11;
-      case Type::BaseType::kEnum:
-      right_priority = 12;
-      case Type::BaseType::kUnion:
-      right_priority = 13;
-      case Type::BaseType::kStruct:
-      right_priority = 14;
-      case Type::BaseType::kFunction:
-      right_priority = 15;
-      default:
-      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unknown type.");
+      switch (right->GetBaseType()) {
+        case Type::BaseType::kVoid:
+          right_priority = 0;
+        case Type::BaseType::kBool:
+          right_priority = 1;
+        case Type::BaseType::kChar:
+          right_priority = 2;
+        case Type::BaseType::kShort:
+          right_priority = 3;
+        case Type::BaseType::kInt:
+          right_priority = 4;
+        case Type::BaseType::kFloat:
+          right_priority = 5;
+        case Type::BaseType::kLong:
+          right_priority = 6;
+        case Type::BaseType::kDouble:
+          right_priority = 7;
+        case Type::BaseType::kAuto:
+          right_priority = 8;
+        case Type::BaseType::kTypedef:
+          right_priority = 9;
+        case Type::BaseType::kPointer:
+          right_priority = 10;
+        case Type::BaseType::kArray:
+          right_priority = 11;
+        case Type::BaseType::kEnum:
+          right_priority = 12;
+        case Type::BaseType::kUnion:
+          right_priority = 13;
+        case Type::BaseType::kStruct:
+          right_priority = 14;
+        case Type::BaseType::kFunction:
+          right_priority = 15;
+        default:
+          EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                        "Unknown type.");
       }
-      if(left_priority>right_priority)return left;
-      if(left_priority<right_priority)return right;
-      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unexpected code.");
+      if (left_priority > right_priority) return left;
+      if (left_priority < right_priority) return right;
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Unexpected code.");
     }
 
   } else if (expr->GetType() == StmtNode::StmtType::kFunc) {
+    return dynamic_cast<FuncDeclNode*>(expr)->GetReturnType();
   } else if (expr->GetType() == StmtNode::StmtType::kVarDecl) {
+    return dynamic_cast<VarDeclNode*>(expr)->GetVarType();
+  } else if (expr->GetType() == StmtNode::StmtType::kValue) {
+    return dynamic_cast<ValueNode*>(expr)->GetValueType();
   } else if (expr->GetType() == StmtNode::StmtType::kConditional) {
+    Type* true_expr =
+        GetExprType(dynamic_cast<ConditionalNode*>(expr)->GetTrueExpr());
+    Type* false_expr =
+        GetExprType(dynamic_cast<ConditionalNode*>(expr)->GetFalseExpr());
+
+    if (true_expr->GetType() == Type::TypeType::kConst)
+      true_expr = dynamic_cast<ConstType*>(true_expr)->GetSubType();
+    if (false_expr->GetType() == Type::TypeType::kConst)
+      false_expr = dynamic_cast<ConstType*>(false_expr)->GetSubType();
+    if (true_expr->GetType() == Type::TypeType::kReference)
+      true_expr = dynamic_cast<ReferenceType*>(true_expr)->GetSubType();
+    if (false_expr->GetType() == Type::TypeType::kReference)
+      false_expr = dynamic_cast<ReferenceType*>(false_expr)->GetSubType();
+    if (true_expr->GetType() == Type::TypeType::NONE ||
+        false_expr->GetType() == Type::TypeType::NONE)
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Unknown Type.");
+
+    if (true_expr->GetType() == Type::TypeType::kPointer ||
+        false_expr->GetType() == Type::TypeType::kPointer ||
+        true_expr->GetType() == Type::TypeType::kArray ||
+        false_expr->GetType() == Type::TypeType::kArray) {
+      if (true_expr->GetType() == Type::TypeType::kPointer ||
+          true_expr->GetType() == Type::TypeType::kArray)
+        return true_expr;
+      if (false_expr->GetType() == Type::TypeType::kPointer ||
+          false_expr->GetType() == Type::TypeType::kArray)
+        return false_expr;
+    }
+
+    if (true_expr->GetBaseType() == false_expr->GetBaseType()) return true_expr;
+
+    if (true_expr->GetSize() > false_expr->GetSize()) {
+      return true_expr;
+    } else if (true_expr->GetSize() < false_expr->GetSize()) {
+      return false_expr;
+    } else {
+      int true_expr_priority = 0;
+      int false_expr_priority = 0;
+      switch (true_expr->GetBaseType()) {
+        case Type::BaseType::kVoid:
+          true_expr_priority = 0;
+        case Type::BaseType::kBool:
+          true_expr_priority = 1;
+        case Type::BaseType::kChar:
+          true_expr_priority = 2;
+        case Type::BaseType::kShort:
+          true_expr_priority = 3;
+        case Type::BaseType::kInt:
+          true_expr_priority = 4;
+        case Type::BaseType::kFloat:
+          true_expr_priority = 5;
+        case Type::BaseType::kLong:
+          true_expr_priority = 6;
+        case Type::BaseType::kDouble:
+          true_expr_priority = 7;
+        case Type::BaseType::kAuto:
+          true_expr_priority = 8;
+        case Type::BaseType::kTypedef:
+          true_expr_priority = 9;
+        case Type::BaseType::kPointer:
+          true_expr_priority = 10;
+        case Type::BaseType::kArray:
+          true_expr_priority = 11;
+        case Type::BaseType::kEnum:
+          true_expr_priority = 12;
+        case Type::BaseType::kUnion:
+          true_expr_priority = 13;
+        case Type::BaseType::kStruct:
+          true_expr_priority = 14;
+        case Type::BaseType::kFunction:
+          true_expr_priority = 15;
+        default:
+          EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                        "Unknown type.");
+      }
+      switch (false_expr->GetBaseType()) {
+        case Type::BaseType::kVoid:
+          false_expr_priority = 0;
+        case Type::BaseType::kBool:
+          false_expr_priority = 1;
+        case Type::BaseType::kChar:
+          false_expr_priority = 2;
+        case Type::BaseType::kShort:
+          false_expr_priority = 3;
+        case Type::BaseType::kInt:
+          false_expr_priority = 4;
+        case Type::BaseType::kFloat:
+          false_expr_priority = 5;
+        case Type::BaseType::kLong:
+          false_expr_priority = 6;
+        case Type::BaseType::kDouble:
+          false_expr_priority = 7;
+        case Type::BaseType::kAuto:
+          false_expr_priority = 8;
+        case Type::BaseType::kTypedef:
+          false_expr_priority = 9;
+        case Type::BaseType::kPointer:
+          false_expr_priority = 10;
+        case Type::BaseType::kArray:
+          false_expr_priority = 11;
+        case Type::BaseType::kEnum:
+          false_expr_priority = 12;
+        case Type::BaseType::kUnion:
+          false_expr_priority = 13;
+        case Type::BaseType::kStruct:
+          false_expr_priority = 14;
+        case Type::BaseType::kFunction:
+          false_expr_priority = 15;
+        default:
+          EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                        "Unknown type.");
+      }
+      if (true_expr_priority > false_expr_priority) return true_expr;
+      if (true_expr_priority < false_expr_priority) return false_expr;
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Unexpected code.");
+    }
   } else if (expr->GetType() == StmtNode::StmtType::kCast) {
+    return dynamic_cast<CastNode*>(expr)->GetCastType();
   } else {
     EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                   "Unsupport type.");
   }
+  return nullptr;
 }
-std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr){
+std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr) {
   return *GetExprType(expr);
 }
-
 
 }  // namespace Compiler
 }  // namespace Aq
