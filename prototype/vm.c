@@ -3126,8 +3126,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  FILE* bytecode;
-  fopen_s(&bytecode,argv[1], "rb");
+  FILE* bytecode = fopen(argv[1], "rb");
   if (bytecode == NULL) {
     printf("Error: Could not open file %s\n", argv[1]);
     EXIT_VM("main(int, char**)", "Could not open file.");
