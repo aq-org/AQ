@@ -1537,7 +1537,7 @@ class Type {
       case BaseType::kAuto:
         return 8;
       default:
-        return 1;
+        EXIT_COMPILER("Type::GetSize()", "Unknown type.")
     }
   }
 
@@ -6893,7 +6893,83 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
     }else if(left->GetSize()<right->GetSize()){
       result = right;
     }else{
-      
+      int left_priority = 0;
+      int right_priority = 0;
+      switch(left->GetBaseType()){
+      case Type::BaseType::kVoid:
+      left_priority = 0;
+      case Type::BaseType::kBool:
+      left_priority = 1;
+      case Type::BaseType::kChar:
+        left_priority = 2;
+      case Type::BaseType::kShort:
+      left_priority = 3;
+      case Type::BaseType::kInt:
+      left_priority = 4;
+      case Type::BaseType::kFloat:
+        left_priority = 5;
+      case Type::BaseType::kLong:
+      left_priority = 6;
+      case Type::BaseType::kDouble:
+      left_priority = 7;
+      case Type::BaseType::kAuto:
+      left_priority = 8;
+      case Type::BaseType::kTypedef:
+      left_priority = 9;
+      case Type::BaseType::kPointer:
+      left_priority = 10;
+      case Type::BaseType::kArray:
+      left_priority = 11;
+      case Type::BaseType::kEnum:
+      left_priority = 12;
+      case Type::BaseType::kUnion:
+      left_priority = 13;
+      case Type::BaseType::kStruct:
+      left_priority = 14;
+      case Type::BaseType::kFunction:
+      left_priority = 15;
+      default:
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unknown type.");
+      }
+            switch(right->GetBaseType()){
+      case Type::BaseType::kVoid:
+      right_priority = 0;
+      case Type::BaseType::kBool:
+      right_priority = 1;
+      case Type::BaseType::kChar:
+        right_priority = 2;
+      case Type::BaseType::kShort:
+      right_priority = 3;
+      case Type::BaseType::kInt:
+      right_priority = 4;
+      case Type::BaseType::kFloat:
+        right_priority = 5;
+      case Type::BaseType::kLong:
+      right_priority = 6;
+      case Type::BaseType::kDouble:
+      right_priority = 7;
+      case Type::BaseType::kAuto:
+      right_priority = 8;
+      case Type::BaseType::kTypedef:
+      right_priority = 9;
+      case Type::BaseType::kPointer:
+      right_priority = 10;
+      case Type::BaseType::kArray:
+      right_priority = 11;
+      case Type::BaseType::kEnum:
+      right_priority = 12;
+      case Type::BaseType::kUnion:
+      right_priority = 13;
+      case Type::BaseType::kStruct:
+      right_priority = 14;
+      case Type::BaseType::kFunction:
+      right_priority = 15;
+      default:
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unknown type.");
+      }
+      if(left_priority>right_priority)return left;
+      if(left_priority<right_priority)return right;
+      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)","Unexpected code.");
     }
 
   } else if (expr->GetType() == StmtNode::StmtType::kFunc) {
