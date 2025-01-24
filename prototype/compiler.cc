@@ -17,7 +17,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 #define _AQVM_OPERATOR_NOP 0x00
 #define _AQVM_OPERATOR_LOAD 0x01
 #define _AQVM_OPERATOR_STORE 0x02
@@ -1542,6 +1541,8 @@ class Type {
     }
   }
 
+  virtual operator std::string();
+
  protected:
   TypeType type_ = TypeType::NONE;
   Type* type_data_;
@@ -1575,8 +1576,7 @@ class StmtNode {
     kFunc,
     kCast,
     kArrayDecl,
-    kArray,
-    kConvert
+    kArray
   };
 
   StmtType GetType() { return type_; }
@@ -1865,28 +1865,6 @@ class ArrayNode : public UnaryNode {
   ExprNode* index_;
 };
 
-class ConvertNode : public UnaryNode {
- public:
-  ConvertNode() {
-    type_ = StmtType::kConvert;
-    op_ = Operator::CONVERT;
-    converted_type_ = nullptr;
-  }
-  void SetConvertNode(Type* type, ExprNode* expr) {
-    converted_type_ = type;
-    expr_ = expr;
-  }
-  virtual ~ConvertNode() = default;
-
-  Type* GetConvertedType() { return converted_type_; }
-
-  ConvertNode(const ConvertNode&) = default;
-  ConvertNode& operator=(const ConvertNode&) = default;
-
- private:
-  Type* converted_type_;
-};
-
 class BinaryNode : public ExprNode {
  public:
   enum class Operator {
@@ -2034,6 +2012,7 @@ class VarDeclNode : public DeclNode, public ExprNode {
  public:
   VarDeclNode() {
     DeclNode::type_ = StmtType::kVarDecl;
+    ExprNode::type_ = StmtType::kVarDecl;
     name_ = nullptr;
     var_type_ = nullptr;
   }
@@ -2262,6 +2241,19 @@ class ConstType : public Type {
 
   std::size_t GetSize() override { return type_data_->GetSize(); }
 
+  operator std::string() override {
+    if (this->GetSubType()->GetType() == TypeType::kPointer ||
+        this->GetSubType()->GetType() == TypeType::kArray) {
+      std::cout << std::string(*this->GetSubType()) + std::string(" const")
+                << std::endl;
+      return std::string(*this->GetSubType()) + std::string(" const");
+    } else {
+      std::cout << std::string("const ") + std::string(*this->GetSubType())
+                << std::endl;
+      return std::string("const ") + std::string(*this->GetSubType());
+    }
+  }
+
   ConstType(const ConstType&) = default;
   ConstType& operator=(const ConstType&) = default;
 };
@@ -2278,6 +2270,8 @@ class PointerType : public Type {
   Type* GetSubType() { return type_data_; }
 
   std::size_t GetSize() override { return 8; }
+
+  operator std::string() override { return std::string(*type_data_) + "*"; }
 
   PointerType(const PointerType&) = default;
   PointerType& operator=(const PointerType&) = default;
@@ -2302,6 +2296,11 @@ class ArrayType : public Type {
 
   std::size_t GetSize() override { return 8; }
 
+  operator std::string() override {
+    // return std::string(*type_data_) + "[" + std::string(*size_) + "]";
+    return std::string(*type_data_) + "*";
+  }
+
   ArrayType(const ArrayType&) = default;
   ArrayType& operator=(const ArrayType&) = default;
 
@@ -2320,9 +2319,63 @@ class ReferenceType : public Type {
 
   Type* GetSubType() { return type_data_; }
 
+  operator std::string() override { return std::string(*type_data_) + "&"; }
+
   ReferenceType(const ReferenceType&) = default;
   ReferenceType& operator=(const ReferenceType&) = default;
 };
+
+Type::operator std::string() {
+  if (this->GetType() == TypeType::kBase) {
+    switch (this->GetBaseType()) {
+      case BaseType::kVoid:
+        return "void";
+      case BaseType::kBool:
+        return "bool";
+      case BaseType::kChar:
+        return "char";
+      case BaseType::kShort:
+        return "short";
+      case BaseType::kInt:
+        return "int";
+      case BaseType::kLong:
+        return "long";
+      case BaseType::kFloat:
+        return "float";
+      case BaseType::kDouble:
+        return "double";
+      case BaseType::kStruct:
+        return "struct";
+      case BaseType::kUnion:
+        return "union";
+      case BaseType::kEnum:
+        return "enum";
+      case BaseType::kPointer:
+        return "*";
+      case BaseType::kArray:
+        return "[]";
+      case BaseType::kFunction:
+        return "()";
+      case BaseType::kTypedef:
+        return "typedef";
+      case BaseType::kAuto:
+        return "auto";
+      default:
+        EXIT_COMPILER("Type::operator std::string()", "Unknown base type.");
+    }
+  } else if (this->GetType() == TypeType::kConst) {
+    return *dynamic_cast<ConstType*>(this);
+  } else if (this->GetType() == TypeType::kPointer) {
+    return *dynamic_cast<PointerType*>(this);
+  } else if (this->GetType() == TypeType::kArray) {
+    return *dynamic_cast<ArrayType*>(this);
+  } else if (this->GetType() == TypeType::kReference) {
+    return *dynamic_cast<ReferenceType*>(this);
+  } else {
+    EXIT_COMPILER("Type::operator std::string()", "Unknown type.");
+  }
+  return std::string();
+}
 
 Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
   TRACE_FUNCTION;
@@ -2346,6 +2399,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
           if (index + 1 < length &&
               token[index + 1].type == Token::Type::KEYWORD) {
             index++;
+            type = new Type();
             switch (token[index].value.keyword) {
               case Token::KeywordType::Void:
                 type->SetType(Type::BaseType::kVoid);
@@ -2386,11 +2440,11 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
                 break;
             }
           }
-
           if (type == nullptr)
             EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                           "type is nullptr.");
 
+          std::cout << "ConstType" << std::endl;
           const_type->SetSubType(type);
           type = const_type;
           break;
@@ -3052,8 +3106,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             index++;
             if (full_expr == nullptr || preoper_expr == nullptr) {
               if (token[index].type == Token::Type::KEYWORD) {
-                full_expr = new ConvertNode();
-                dynamic_cast<ConvertNode*>(full_expr)->SetConvertNode(
+                full_expr = new CastNode();
+                dynamic_cast<CastNode*>(full_expr)->SetCastNode(
                     Type::CreateType(token, length, index), nullptr);
               } else {
                 full_expr = ParseExpr(token, length, index);
@@ -3062,8 +3116,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               preoper_expr = full_expr;
             } else {
               if (token[index].type == Token::Type::KEYWORD) {
-                ConvertNode* convert_node = new ConvertNode();
-                convert_node->SetConvertNode(
+                CastNode* convert_node = new CastNode();
+                convert_node->SetCastNode(
                     Type::CreateType(token, length, index), nullptr);
                 if (preoper_expr != nullptr)
                   dynamic_cast<UnaryNode*>(preoper_expr)
@@ -4777,7 +4831,29 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
                   "func_decl is nullptr.");
 
   std::vector<Bytecode> code;
-  func_decl_map.emplace(*func_decl->GetStat()->GetName(), *func_decl);
+  std::string func_name = *func_decl->GetStat()->GetName();
+  std::cout << "func_name: " << func_name << std::endl;
+  std::vector<ExprNode*> args = func_decl->GetStat()->GetArgs();
+  for (size_t i = 0; i < args.size(); i++) {
+    if (i == 0) {
+      func_name += "@";
+    } else {
+      func_name += ",";
+    }
+
+    if (args[i]->GetType() != StmtNode::StmtType::kVarDecl &&
+        args[i]->GetType() != StmtNode::StmtType::kArrayDecl) {
+      EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
+                    "args is not VarDeclNode or ArrayDeclNode.");
+    }
+    if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
+      func_name += *dynamic_cast<VarDeclNode*>(args[i])->GetVarType();
+    } else {
+      func_name += *dynamic_cast<ArrayDeclNode*>(args[i])->GetVarType();
+    }
+  }
+  std::cout << "func_name: " << func_name << std::endl;
+  func_decl_map.emplace(func_name, *func_decl);
   HandleStmt(func_decl->GetStmts(), code);
   Function func_decl_bytecode(*func_decl->GetStat()->GetName(), code);
   func_list_.push_back(func_decl_bytecode);
@@ -4788,13 +4864,15 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
   TRACE_FUNCTION;
   if (var_decl == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
+        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
+        ")",
         "var_decl is nullptr.");
 
   Type* var_type = var_decl->GetVarType();
   if (var_type == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
+        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
+        ")",
         "var_type is nullptr.");
 
   while (var_type->GetType() != Type::TypeType::kBase &&
@@ -4803,7 +4881,8 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
          var_type->GetType() != Type::TypeType::kReference) {
     if (var_type->GetType() == Type::TypeType::NONE)
       EXIT_COMPILER(
-          "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
+          "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<"
+          "Bytecode>&"
           ")",
           "Unexpected code.");
     if (var_type->GetType() == Type::TypeType::kConst)
@@ -4985,7 +5064,8 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
   TRACE_FUNCTION;
   if (expr == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<Bytecode>&)",
+        "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<Bytecode>&"
+        ")",
         "expr is nullptr.");
 
   std::size_t sub_expr = HandleExpr(expr->GetExpr(), code);
@@ -5061,7 +5141,8 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
   TRACE_FUNCTION;
   if (expr == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&"
+        "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+        "Bytecode>&"
         ")",
         "expr is nullptr.");
 
@@ -5227,7 +5308,8 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       break;
   }
   EXIT_COMPILER(
-      "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)",
+      "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&"
+      ")",
       "Unexpected code.");
   return 0;
 }
@@ -5443,13 +5525,15 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
 
   std::vector<Bytecode> condition_code;
   condition_code.push_back(Bytecode(_AQVM_OPERATOR_IF, condition_index,
-                                    body_name_ptr_index, exit_name_ptr_index));
+                                    body_name_ptr_index,
+  exit_name_ptr_index));
 
   func_list_.push_back(Function(condition_name, condition_code));
 
   func_list_.push_back(Function(body_name, body_code));
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, condition_name_ptr_index, 0));
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, condition_name_ptr_index,
+  0));
   */
 }
 
@@ -5461,7 +5545,29 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
         "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
         "func is nullptr.");
 
+  std::string func_name = *func->GetName();
   std::vector<ExprNode*> args = func->GetArgs();
+  for (size_t i = 0; i < args.size(); i++) {
+    if (i == 0) {
+      func_name += "@";
+    } else {
+      func_name += ",";
+    }
+
+    if (args[i]->GetType() == StmtNode::StmtType::kArray) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kArrayDecl) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kValue) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kIdentifier) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kUnary) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kBinary) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kFunc) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kConditional) {
+    } else if (args[i]->GetType() == StmtNode::StmtType::kCast) {
+    } else {
+    }
+  }
+
   auto iterator = func_decl_map.find(*func->GetName());
   if (iterator == func_decl_map.end())
     EXIT_COMPILER(
@@ -5481,8 +5587,8 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
          func_type->GetType() != Type::TypeType::kReference) {
     if (func_type->GetType() == Type::TypeType::NONE)
       EXIT_COMPILER(
-          "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&"
-          ")",
+          "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<"
+          "Bytecode>&)",
           "Unexpected code.");
     if (func_type->GetType() == Type::TypeType::kConst)
       func_type = dynamic_cast<ConstType*>(func_type)->GetSubType();
@@ -5669,12 +5775,10 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
     }
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::CONVERT) {
-      switch (dynamic_cast<ConvertNode*>(expr)->GetConvertedType()->GetType()) {
+      switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetType()) {
         case Type::TypeType::kBase:
         case Type::TypeType::kConst:
-          switch (dynamic_cast<ConvertNode*>(expr)
-                      ->GetConvertedType()
-                      ->GetBaseType()) {
+          switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetBaseType()) {
             case Type::BaseType::kVoid:
               return 0x00;
             case Type::BaseType::kBool:
@@ -5960,12 +6064,10 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
     }
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::CONVERT) {
-      switch (dynamic_cast<ConvertNode*>(expr)->GetConvertedType()->GetType()) {
+      switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetType()) {
         case Type::TypeType::kBase:
         case Type::TypeType::kConst:
-          switch (dynamic_cast<ConvertNode*>(expr)
-                      ->GetConvertedType()
-                      ->GetBaseType()) {
+          switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetBaseType()) {
             case Type::BaseType::kVoid:
               return 0x00;
             case Type::BaseType::kBool:
