@@ -54,13 +54,13 @@ std::stack<std::string> call_stack;
 class Trace {
  public:
   explicit Trace(const std::string& function_name) {
-    call_stack.push(function_name);
-    printStack();
+    // call_stack.push(function_name);
+    // printStack();
   }
 
   ~Trace() {
-    call_stack.pop();
-    printStack();
+    // call_stack.pop();
+    // printStack();
   }
 
  private:
@@ -2516,7 +2516,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
   CompoundNode* ast = nullptr;
   std::vector<StmtNode*> stmts;
 
-  std::cout << token.size() << std::endl;
+  // std::cout << token.size() << std::endl;
 
   // Delete the last NONE token.
   if (token_ptr[token.size() - 1].type == Token::Type::NONE) token.pop_back();
@@ -2869,7 +2869,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
     }
 
     case Token::OperatorType::equal: {
-      std::cout << "VarDecl has EQUAL." << std::endl;
+      //std::cout << "VarDecl has EQUAL." << std::endl;
       ExprNode* value = ParseExpr(token, length, ++index);
       var_decl->SetVarDeclNode(type, name, value);
       break;
@@ -3864,9 +3864,6 @@ class BytecodeGenerator {
       va_start(args, args_count);
       for (std::size_t i = 0; i < args_count; i++) {
         arg_.push_back(va_arg(args, std::size_t));
-        if (oper == _AQVM_OPERATOR_CMP && i == 1) {
-          std::cout << "CMP OPCODE: " << arg_[1] << std::endl;
-        }
       }
       va_end(args);
     }
@@ -4022,9 +4019,9 @@ void BytecodeGenerator::GenerateBytecodeFile() {
 
   for (size_t i = 0; i < func_list_.size(); i++) {
     // Function name (with '\0')
-    std::cout << "function name size: " << func_list_[i].GetName().size()
+    /*std::cout << "function name size: " << func_list_[i].GetName().size()
               << std::endl;
-    std::cout << "code size: " << func_list_[i].GetCode().size() << std::endl;
+    std::cout << "code size: " << func_list_[i].GetCode().size() << std::endl;*/
     std::string func_name_str = func_list_[i].GetName();
     const char* func_name = func_name_str.c_str();
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(func_name),
@@ -4494,10 +4491,10 @@ void BytecodeGenerator::GenerateBytecodeFile() {
     std::cout << "Write file success: " << filename << std::endl;
   }
 
-  bool is_output_mnemonic = true;
+  /*bool is_output_mnemonic = false;
   if (is_output_mnemonic) {
     GenerateMnemonicFile();
-  }
+  }*/
 }
 
 void BytecodeGenerator::GenerateMnemonicFile() {
@@ -4849,13 +4846,13 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     vm_type = 0x06;
   }
   if (var_decl->GetValue()[0] == nullptr) {
-    std::cout << "None Value" << std::endl;
+    //std::cout << "None Value" << std::endl;
     var_decl_map.emplace(
         *var_decl->GetName(),
         std::pair<VarDeclNode*, std::size_t>(
             var_decl, global_memory_.Add(vm_type, var_type->GetSize())));
   } else {
-    std::cout << "Has Value" << std::endl;
+    //std::cout << "Has Value" << std::endl;
     size_t var_index = global_memory_.Add(vm_type, var_type->GetSize());
     size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
@@ -5565,9 +5562,9 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
     case StmtNode::StmtType::kIdentifier: {
       auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
       if (iterator == var_decl_map.end()) {
-        std::cout << "Identifier: "
+        /*std::cout << "Identifier: "
                   << (std::string) * dynamic_cast<IdentifierNode*>(expr)
-                  << std::endl;
+                  << std::endl;*/
         EXIT_COMPILER(
             "BytecodeGenerator::GetIndex(ExprNode*,std::vector<Bytecode>&)",
             "Not found variable.");
@@ -5588,7 +5585,7 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
 
         case 0x02: {
           int value = dynamic_cast<ValueNode*>(expr)->GetIntValue();
-          std::cout << "value: " << value << std::endl;
+          //std::cout << "value: " << value << std::endl;
           value = is_big_endian_ ? value : SwapInt(value);
           return global_memory_.Add(vm_type, 4, &value);
         }
@@ -6736,28 +6733,30 @@ int main(int argc, char* argv[]) {
   Aq::Compiler::Lexer lexer(buffer_ptr_, code.size());
   std::vector<Aq::Compiler::Token> token;
   Aq::Compiler::Token first_token_buffer;
-  lexer.LexToken(first_token_buffer,first_token_buffer);
+  lexer.LexToken(first_token_buffer, first_token_buffer);
   token.push_back(first_token_buffer);
   while (true) {
     Aq::Compiler::Token token_buffer;
-    lexer.LexToken(token.back(),token_buffer);
+    lexer.LexToken(token.back(), token_buffer);
     token.push_back(token_buffer);
     if (lexer.IsReadEnd()) {
       break;
     }
   }
 
-  std::cout << "Lex End." << std::endl;
+  //std::cout << "Lex End." << std::endl;
 
   Aq::Compiler::CompoundNode* ast = Aq::Compiler::Parser::Parse(token);
 
   if (ast == nullptr) printf("ast is nullptr\n");
 
-  std::cout << "Parse End." << std::endl;
+  //std::cout << "Parse End." << std::endl;
 
   Aq::Compiler::BytecodeGenerator bytecode_generator;
 
   bytecode_generator.GenerateBytecode(ast);
+
+  std::cout<<"Generate Bytecode SUCCESS!"<<std::endl;
 
   return 0;
 }

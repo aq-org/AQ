@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct {
   size_t size;
@@ -216,12 +217,12 @@ int WriteData(const struct Memory* memory, const size_t index,
 uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index >= memory->size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
-    printf("GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0x0F));
+    /*printf("GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0x0F));*/
     return (*(memory->type + (index / 2)) & 0x0F);
   } else {
-    printf("GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0xF0) >> 4);
+    /*printf("GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0xF0) >> 4);*/
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
 }
@@ -230,7 +231,7 @@ void* GetPtrData(size_t index) {
   if (index + 7 >= memory->size)
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
 
-  printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
+  // printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
   return *(void**)((uintptr_t)memory->data + index);
 }
 
@@ -239,54 +240,57 @@ int8_t GetByteData(size_t index) {
     case 0x01:
       if (index >= memory->size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      printf("GetByteData: %d\n", *(int8_t*)((uintptr_t)memory->data + index));
+      // printf("GetByteData: %d\n", *(int8_t*)((uintptr_t)memory->data +
+      // index));
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
       if (index + 3 >= memory->size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      printf("GetByteData: %d\n",
+      /*printf("GetByteData: %d\n",
              is_big_endian ? *(int*)((uintptr_t)memory->data + index)
-                           : SwapInt(*(int*)((uintptr_t)memory->data + index)));
+                           : SwapInt(*(int*)((uintptr_t)memory->data +
+         index)));*/
       return (int8_t)is_big_endian
                  ? *(int*)((uintptr_t)memory->data + index)
                  : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
       if (index + 7 >= memory->size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      printf("GetByteData: %ld\n",
+      /*printf("GetByteData: %ld\n",
              is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
-                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));*/
       return (int8_t)is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
       if (index + 3 >= memory->size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      printf("GetByteData: %f\n",
+      /*printf("GetByteData: %f\n",
              is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
-                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));*/
       return (int8_t)is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
       if (index + 7 >= memory->size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      printf("GetByteData: %f\n",
+      /*printf("GetByteData: %f\n",
              is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
-                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));*/
       return (int8_t)is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
       if (index + 7 >= memory->size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      printf("GetByteData: %zu\n",
+      /*printf("GetByteData: %zu\n",
              is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
-                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data +
+         index)));*/
       return (int8_t)is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
@@ -303,54 +307,56 @@ int GetIntData(size_t index) {
     case 0x01:
       if (index >= memory->size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
-      printf("GetIntData: %zu, value: %d\n", index,
-             *(int8_t*)((uintptr_t)memory->data + index));
+      /*printf("GetIntData: %zu, value: %d\n", index,
+       *(int8_t*)((uintptr_t)memory->data + index));*/
       return *(int8_t*)((uintptr_t)memory->data + index);
     case 0x02:
       if (index + 3 >= memory->size)
         EXIT_VM("GetIntData(size_t)", "0x02 Out of memory.");
-      printf("GetIntData: %zu, value: %d\n", index,
+      /*printf("GetIntData: %zu, value: %d\n", index,
              is_big_endian ? *(int*)((uintptr_t)memory->data + index)
-                           : SwapInt(*(int*)((uintptr_t)memory->data + index)));
+                           : SwapInt(*(int*)((uintptr_t)memory->data +
+         index)));*/
       return is_big_endian ? *(int*)((uintptr_t)memory->data + index)
                            : SwapInt(*(int*)((uintptr_t)memory->data + index));
     case 0x03:
       if (index + 7 >= memory->size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
-      printf("GetIntData: %ld\n",
+      /*printf("GetIntData: %ld\n",
              is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
-                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));
+                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));*/
       return is_big_endian
                  ? *(long*)((uintptr_t)memory->data + index)
                  : SwapLong(*(long*)((uintptr_t)memory->data + index));
     case 0x04:
       if (index + 3 >= memory->size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
-      printf("GetIntData: %f\n",
+      /*printf("GetIntData: %f\n",
              is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
-                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));
+                 : SwapFloat(*(float*)((uintptr_t)memory->data + index)));*/
       return is_big_endian
                  ? *(float*)((uintptr_t)memory->data + index)
                  : SwapFloat(*(float*)((uintptr_t)memory->data + index));
     case 0x05:
       if (index + 7 >= memory->size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
-      printf("GetIntData: %f\n",
+      /*printf("GetIntData: %f\n",
              is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
-                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));
+                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));*/
       return is_big_endian
                  ? *(double*)((uintptr_t)memory->data + index)
                  : SwapDouble(*(double*)((uintptr_t)memory->data + index));
     case 0x06:
       if (index + 7 >= memory->size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
-      printf("GetIntData: %zu\n",
+      /*printf("GetIntData: %zu\n",
              is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
-                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data +
+         index)));*/
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
@@ -531,7 +537,7 @@ void SetPtrData(size_t index, void* ptr) {
 }
 
 void SetByteData(size_t index, int8_t value) {
-  printf("SetByteData: %zu, value: %d\n", index, value);
+  // printf("SetByteData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -573,7 +579,7 @@ void SetByteData(size_t index, int8_t value) {
 }
 
 void SetIntData(size_t index, int value) {
-  printf("SetIntData: %zu, value: %d\n", index, value);
+  // printf("SetIntData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -612,11 +618,11 @@ void SetIntData(size_t index, int value) {
     default:
       EXIT_VM("SetIntData(size_t, int)", "Invalid type.");
   }
-  printf("SetIntData: %zu, Result: %d\n", index, GetIntData(index));
+  // printf("SetIntData: %zu, Result: %d\n", index, GetIntData(index));
 }
 
 void SetLongData(size_t index, long value) {
-  printf("SetLongData: %ld\n", value);
+  // printf("SetLongData: %ld\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -658,7 +664,7 @@ void SetLongData(size_t index, long value) {
 }
 
 void SetFloatData(size_t index, float value) {
-  printf("SetFloatData: %f\n", value);
+  // printf("SetFloatData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -700,7 +706,7 @@ void SetFloatData(size_t index, float value) {
 }
 
 void SetDoubleData(size_t index, double value) {
-  printf("SetDoubleData: %f\n", value);
+  // printf("SetDoubleData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -742,7 +748,7 @@ void SetDoubleData(size_t index, double value) {
 }
 
 void SetUint64tData(size_t index, uint64_t value) {
-  printf("SetUint64tData: %zu\n", value);
+  // printf("SetUint64tData: %zu\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -816,7 +822,7 @@ void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, third));
 
-  printf("Decoded Parameters: %zu, %zu, %zu\n", *first, *second, *third);
+  // printf("Decoded Parameters: %zu, %zu, %zu\n", *first, *second, *third);
   return ptr;
 }
 
@@ -922,8 +928,8 @@ int FREE(size_t ptr) {
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
-  printf("index: %zu\n", index);
-  printf("PTR: %p\n", (void*)((uintptr_t)memory->data + index));
+  // printf("index: %zu\n", index);
+  // printf("PTR: %p\n", (void*)((uintptr_t)memory->data + index));
   SetPtrData(ptr, (void*)((uintptr_t)memory->data + index));
   return 0;
 }
@@ -1032,8 +1038,8 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         SetByteData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
       case 0x02:
-        printf("Operand1: %d\n", GetIntData(operand1));
-        printf("Operand2: %d\n", GetIntData(operand2));
+        // printf("Operand1: %d\n", GetIntData(operand1));
+        // printf("Operand2: %d\n", GetIntData(operand2));
         SetIntData(result, GetIntData(operand1) + GetIntData(operand2));
         break;
       default:
@@ -1053,7 +1059,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
     EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
   }
 
-  printf("Add Result: %zu\n", GetUint64tData(result));
+  // printf("Add Result: %zu\n", GetUint64tData(result));
   return 0;
 }
 int SUB(size_t result, size_t operand1, size_t operand2) {
@@ -1768,7 +1774,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
 }
 int InvokeCustomFunction(const char* name);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
-  printf("condition: %d\n", GetByteData(condition));
+  // printf("condition: %d\n", GetByteData(condition));
   if (GetByteData(condition) != 0) {
     return true_branche;
   } else {
@@ -2794,8 +2800,8 @@ void InitializeNameTable(struct LinkedList* list) {
 }
 
 void* AddFunction(void* location) {
-  void* original_location = location;
-  printf("point 1\n");
+  // void* original_location = location;
+  // printf("point 1\n");
 
   struct FuncList* table = &func_table[hash(location)];
   while (table->next != NULL) {
@@ -2804,33 +2810,34 @@ void* AddFunction(void* location) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  printf("Add: %s\n", table->pair.second.name);
+  // printf("Add: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
   location = (void*)((uintptr_t)location + 1);
-  printf("point 2\n");
+  // printf("point 2\n");
 
-  printf("offset: %zu\n", (uintptr_t)location - (uintptr_t)original_location);
+  // printf("offset: %zu\n", (uintptr_t)location -
+  // (uintptr_t)original_location);
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
-  printf("point 3\n");
+  // printf("point 3\n");
   struct Bytecode* bytecode = (struct Bytecode*)malloc(
       table->pair.second.commands_size * sizeof(struct Bytecode));
-  printf("size: %zu", table->pair.second.commands_size);
+  // printf("size: %zu", table->pair.second.commands_size);
   if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "malloc failed.");
   AddFreePtr(bytecode);
-  printf("point 4\n");
+  // printf("point 4\n");
 
   table->pair.second.commands = bytecode;
 
   for (size_t i = 0; i < table->pair.second.commands_size; i++) {
     bytecode[i].operator= *(uint8_t*) location;
     location = (void*)((uintptr_t)location + 1);
-    printf("operator: 0x%02x\n", bytecode[i].operator);
+    // printf("operator: 0x%02x\n", bytecode[i].operator);
     switch (bytecode[i].operator) {
       case OPERATOR_NOP:
         bytecode[i].args = NULL;
@@ -3016,11 +3023,12 @@ size_t GOTO(size_t location);
 int THROW();
 int WIDE();
 int InvokeCustomFunction(const char* name) {
-  printf("InvokeCustomFunction: %s, ", name);
+  // printf("InvokeCustomFunction: %s, ", name);
   FuncInfo func_info = GetCustomFunction(name);
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    printf("run index: %zu, run operator: 0x%02x\n", i, run_code[i].operator);
+    // printf("run index: %zu, run operator: 0x%02x\n", i,
+    // run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -3110,13 +3118,16 @@ int InvokeCustomFunction(const char* name) {
 }
 
 int main(int argc, char* argv[]) {
+  time_t start_time = clock();
+
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);
     EXIT_VM("main(int, char**)", "Invalid arguments.");
     return -1;
   }
 
-  FILE* bytecode = fopen(argv[1], "rb");
+  FILE* bytecode;
+  fopen_s(&bytecode,argv[1], "rb");
   if (bytecode == NULL) {
     printf("Error: Could not open file %s\n", argv[1]);
     EXIT_VM("main(int, char**)", "Could not open file.");
@@ -3157,9 +3168,10 @@ int main(int argc, char* argv[]) {
   }
 
   while (bytecode_file < bytecode_end) {
-    printf("bytecode_file: %p\n", bytecode_file);
-    printf("bytecode_end: %p\n", bytecode_end);
-    printf("offset: %zu\n", (uintptr_t)bytecode_end - (uintptr_t)bytecode_file);
+    // printf("bytecode_file: %p\n", bytecode_file);
+    // printf("bytecode_end: %p\n", bytecode_end);
+    // printf("offset: %zu\n", (uintptr_t)bytecode_end -
+    // (uintptr_t)bytecode_file);
     bytecode_file = AddFunction(bytecode_file);
   }
 
@@ -3174,6 +3186,11 @@ int main(int argc, char* argv[]) {
   FreeAllPtr();
   FreeMemory(memory);
   free(bytecode_begin);
+
+  time_t end_time = clock();
+
+  time_t time_diff = end_time - start_time;
+  printf("Execution time: %zu ms\n", time_diff);
 
   return 0;
 }
