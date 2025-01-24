@@ -5642,8 +5642,9 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
     func_name += GetExprTypeString(args[i]);
   }
+  std::cout<<"func_name: "<<func_name<<std::endl;
 
-  auto iterator = func_decl_map.find(*func->GetName());
+  auto iterator = func_decl_map.find(func_name);
   if (iterator == func_decl_map.end())
     EXIT_COMPILER(
         "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
@@ -6910,8 +6911,6 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
     }
   } else if (expr->GetType() == StmtNode::StmtType::kArrayDecl) {
     return dynamic_cast<ArrayDeclNode*>(expr)->GetVarType();
-  } else if (expr->GetType() == StmtNode::StmtType::kValue) {
-    // TODO
   } else if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
     auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
     if (iterator == var_decl_map.end()) {
@@ -7211,7 +7210,19 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
   return nullptr;
 }
 std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr) {
-  return *GetExprType(expr);
+  Type* type = GetExprType(expr);
+  if(type == nullptr)EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)","type is nullptr.");
+  if(type->GetType()==Type::TypeType::NONE)
+    EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)","Unknown type.");
+  if(type->GetType()==Type::TypeType::kConst)return *dynamic_cast<ConstType*>(type);
+  if(type->GetType()==Type::TypeType::kPointer)return *dynamic_cast<PointerType*>(type);
+  if(type->GetType()==Type::TypeType::kArray)return *dynamic_cast<ArrayType*>(type);
+  if(type->GetType()==Type::TypeType::kReference)return *dynamic_cast<ReferenceType*>(type);
+  if(type->GetType()==Type::TypeType::kBase)return *type;
+
+  EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)","Unexpected code.");
+
+  return std::string();
 }
 
 }  // namespace Compiler
