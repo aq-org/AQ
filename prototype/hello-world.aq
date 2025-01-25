@@ -1,4 +1,4 @@
-int print(const char* str){}
+int print(const char* str);
 void main(){
   print("Hello World!\n");
 }

@@ -2991,6 +2991,13 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, std::size_t length,
     EXIT_COMPILER("Parser::ParseFuncDecl(Token*,std::size_t,std::size_t&)",
                   "stat is nullptr or not a function.");
 
+  if (token[index].type == Token::Type::OPERATOR &&
+      token[index].value._operator == Token::OperatorType::semi) {
+    func_decl = new FuncDeclNode();
+    func_decl->SetFuncDeclNode(type, dynamic_cast<FuncNode*>(stat), nullptr);
+    index++;    return func_decl;
+  }
+
   if (token[index].type != Token::Type::OPERATOR ||
       token[index].value._operator != Token::OperatorType::l_brace)
     EXIT_COMPILER("Parser::ParseFuncDecl(Token*,std::size_t,std::size_t&)",
@@ -5001,7 +5008,11 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
     }
   }
   // std::cout << "func_name: " << func_name << std::endl;
-  func_decl_map.emplace(func_name, *func_decl);
+  if (func_decl_map.find(func_name) == func_decl_map.end())
+    func_decl_map.emplace(func_name, *func_decl);
+
+  if (func_decl->GetStmts() == nullptr) return;
+
   HandleStmt(func_decl->GetStmts(), code);
   Function func_decl_bytecode(func_name, code);
   func_list_.push_back(func_decl_bytecode);
