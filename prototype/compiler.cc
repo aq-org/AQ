@@ -1177,7 +1177,7 @@ LexStart:
         goto LexEnd;
       }
 
-    // Escape character.
+      // Escape character.
     case '\\':
       if (return_token.type == Token::Type::START) {
         return_token.type = Token::Type::OPERATOR;
@@ -1185,9 +1185,71 @@ LexStart:
         goto LexStart;
       } else if (return_token.type == Token::Type::CHARACTER ||
                  return_token.type == Token::Type::STRING) {
-        // Skip escape characters.
         if (read_ptr + 2 <= buffer_end_) {
-          read_ptr += 2;
+          char escaped_char = *(read_ptr + 1);
+          if (escaped_char == 'x' && read_ptr + 3 <= buffer_end_ &&
+              isxdigit(*(read_ptr + 2)) && isxdigit(*(read_ptr + 3))) {
+            char hex_value[3] = {*(read_ptr + 2), *(read_ptr + 3), '\0'};
+            *read_ptr = static_cast<char>(strtol(hex_value, nullptr, 16));
+            read_ptr++;
+            memmove(read_ptr, read_ptr + 3, buffer_end_ - read_ptr - 3);
+            buffer_end_ -= 3;
+          } else if (isdigit(escaped_char) && escaped_char < '8' &&
+                     read_ptr + 3 <= buffer_end_ && isdigit(*(read_ptr + 2)) &&
+                     isdigit(*(read_ptr + 3))) {
+            char oct_value[4] = {escaped_char, *(read_ptr + 2), *(read_ptr + 3),
+                                 '\0'};
+            *read_ptr = static_cast<char>(strtol(oct_value, nullptr, 8));
+            read_ptr++;
+            memmove(read_ptr, read_ptr + 3, buffer_end_ - read_ptr - 3);
+            buffer_end_ -= 3;
+          } else {
+            switch (escaped_char) {
+              case 'n':
+                *read_ptr = '\n';
+                break;
+              case 't':
+                *read_ptr = '\t';
+                break;
+              case 'r':
+                *read_ptr = '\r';
+                break;
+              case 'b':
+                *read_ptr = '\b';
+                break;
+              case 'f':
+                *read_ptr = '\f';
+                break;
+              case 'v':
+                *read_ptr = '\v';
+                break;
+              case 'a':
+                *read_ptr = '\a';
+                break;
+              case '\\':
+                *read_ptr = '\\';
+                break;
+              case '\'':
+                *read_ptr = '\'';
+                break;
+              case '\"':
+                *read_ptr = '\"';
+                break;
+              case '\?':
+                *read_ptr = '\?';
+                break;
+              case '0':
+                *read_ptr = '\0';
+                break;
+              default:
+                EXIT_COMPILER("Lexer::LexToken(Token,Token&)",
+                              "Unknown escape character.");
+                break;
+            }
+            read_ptr++;
+            memmove(read_ptr, read_ptr + 1, buffer_end_ - read_ptr - 1);
+            buffer_end_--;
+          }
           goto LexStart;
         } else {
           read_ptr++;
