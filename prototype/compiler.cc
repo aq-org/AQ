@@ -2995,7 +2995,8 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, std::size_t length,
       token[index].value._operator == Token::OperatorType::semi) {
     func_decl = new FuncDeclNode();
     func_decl->SetFuncDeclNode(type, dynamic_cast<FuncNode*>(stat), nullptr);
-    index++;    return func_decl;
+    index++;
+    return func_decl;
   }
 
   if (token[index].type != Token::Type::OPERATOR ||
