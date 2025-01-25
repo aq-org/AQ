@@ -262,7 +262,7 @@ class LexMap {
     struct Node {
       Pair data;
       Node* next = nullptr;
-      Node(Pair pair) : data(pair){};
+      Node(Pair pair) : data(pair) {};
     };
 
     // The head pointer of the linked list.
@@ -1048,7 +1048,7 @@ class Lexer {
  public:
   // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
   Lexer(char* source_code, std::size_t length)
-      : buffer_ptr_(source_code), buffer_end_(source_code + length - 1){};
+      : buffer_ptr_(source_code), buffer_end_(source_code + length - 1) {};
   ~Lexer() = default;
 
   Lexer(const Lexer&) = default;
@@ -2247,12 +2247,12 @@ class ConstType : public Type {
   operator std::string() override {
     if (this->GetSubType()->GetType() == TypeType::kPointer ||
         this->GetSubType()->GetType() == TypeType::kArray) {
-      std::cout << std::string(*this->GetSubType()) + std::string(" const")
-                << std::endl;
+      /*std::cout << std::string(*this->GetSubType()) + std::string(" const")
+                << std::endl;*/
       return std::string(*this->GetSubType()) + std::string(" const");
     } else {
-      std::cout << std::string("const ") + std::string(*this->GetSubType())
-                << std::endl;
+      /*std::cout << std::string("const ") + std::string(*this->GetSubType())
+                << std::endl;*/
       return std::string("const ") + std::string(*this->GetSubType());
     }
   }
@@ -2528,7 +2528,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
             EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                           "type is nullptr.");
 
-          std::cout << "ConstType" << std::endl;
+          // std::cout << "ConstType" << std::endl;
           const_type->SetSubType(type);
           type = const_type;
           break;
@@ -4633,7 +4633,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
     EXIT_COMPILER("BytecodeGenerator::GenerateBytecodeFile(const char*)",
                   "Failed to write file.");
   } else {
-    std::cout << "Write file success: " << filename << std::endl;
+    std::cout << "[INFO] " << "Write file success: " << filename << std::endl;
   }
 
   /*bool is_output_mnemonic = false;
@@ -4918,7 +4918,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::vector<Bytecode> code;
   std::string func_name = *func_decl->GetStat()->GetName();
-  std::cout << "func_name: " << func_name << std::endl;
+  // std::cout << "func_name: " << func_name << std::endl;
   std::vector<ExprNode*> args = func_decl->GetStat()->GetArgs();
   for (size_t i = 0; i < args.size(); i++) {
     if (i == 0) {
@@ -4938,7 +4938,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
       func_name += *dynamic_cast<ArrayDeclNode*>(args[i])->GetVarType();
     }
   }
-  std::cout << "func_name: " << func_name << std::endl;
+  // std::cout << "func_name: " << func_name << std::endl;
   func_decl_map.emplace(func_name, *func_decl);
   HandleStmt(func_decl->GetStmts(), code);
   Function func_decl_bytecode(func_name, code);
@@ -5642,7 +5642,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
     func_name += GetExprTypeString(args[i]);
   }
-  std::cout<<"func_name: "<<func_name<<std::endl;
+  // std::cout<<"func_name: "<<func_name<<std::endl;
 
   auto iterator = func_decl_map.find(func_name);
   if (iterator == func_decl_map.end())
@@ -7211,16 +7211,24 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
 }
 std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr) {
   Type* type = GetExprType(expr);
-  if(type == nullptr)EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)","type is nullptr.");
-  if(type->GetType()==Type::TypeType::NONE)
-    EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)","Unknown type.");
-  if(type->GetType()==Type::TypeType::kConst)return *dynamic_cast<ConstType*>(type);
-  if(type->GetType()==Type::TypeType::kPointer)return *dynamic_cast<PointerType*>(type);
-  if(type->GetType()==Type::TypeType::kArray)return *dynamic_cast<ArrayType*>(type);
-  if(type->GetType()==Type::TypeType::kReference)return *dynamic_cast<ReferenceType*>(type);
-  if(type->GetType()==Type::TypeType::kBase)return *type;
+  if (type == nullptr)
+    EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)",
+                  "type is nullptr.");
+  if (type->GetType() == Type::TypeType::NONE)
+    EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)",
+                  "Unknown type.");
+  if (type->GetType() == Type::TypeType::kConst)
+    return *dynamic_cast<ConstType*>(type);
+  if (type->GetType() == Type::TypeType::kPointer)
+    return *dynamic_cast<PointerType*>(type);
+  if (type->GetType() == Type::TypeType::kArray)
+    return *dynamic_cast<ArrayType*>(type);
+  if (type->GetType() == Type::TypeType::kReference)
+    return *dynamic_cast<ReferenceType*>(type);
+  if (type->GetType() == Type::TypeType::kBase) return *type;
 
-  EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)","Unexpected code.");
+  EXIT_COMPILER("BytecodeGenerator::GetExprTypeString(ExprNode*)",
+                "Unexpected code.");
 
   return std::string();
 }
@@ -7278,12 +7286,13 @@ int main(int argc, char* argv[]) {
 
   bytecode_generator.GenerateBytecode(ast, argv[2]);
 
-  std::cout << "Generate Bytecode SUCCESS!" << std::endl;
+  std::cout << "[INFO] " << "Generate Bytecode SUCCESS!" << std::endl;
 
   auto end_time = std::chrono::high_resolution_clock::now();
   auto time_diff = std::chrono::duration_cast<std::chrono::milliseconds>(
       end_time - start_time);
-  std::cout << "Execution time: " << time_diff.count() << " ms" << std::endl;
+  std::cout << "[INFO] " << "Execution time: " << time_diff.count() << " ms"
+            << std::endl;
 
   return 0;
 }
