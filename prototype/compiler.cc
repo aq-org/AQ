@@ -4941,7 +4941,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   std::cout << "func_name: " << func_name << std::endl;
   func_decl_map.emplace(func_name, *func_decl);
   HandleStmt(func_decl->GetStmts(), code);
-  Function func_decl_bytecode(*func_decl->GetStat()->GetName(), code);
+  Function func_decl_bytecode(func_name, code);
   func_list_.push_back(func_decl_bytecode);
 }
 
