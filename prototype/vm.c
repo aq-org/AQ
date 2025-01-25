@@ -2785,12 +2785,12 @@ unsigned int hash(const char* str) {
 }
 
 void InitializeNameTable(struct LinkedList* list) {
-  const unsigned int name_hash = hash("print");
+  const unsigned int name_hash = hash("print@const char*");
   struct LinkedList* table = &list[name_hash];
   while (table->next != NULL) {
     table = table->next;
   }
-  table->pair.first = "print";
+  table->pair.first = "print@const char*";
   table->pair.second = print;
   table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
   AddFreePtr(table->next);
