@@ -3177,11 +3177,11 @@ int main(int argc, char* argv[]) {
   free_list = NULL;
 
   InitializeNameTable(name_table);
-  printf("\nProgram started.\n");
+  // printf("\nProgram started.\n");
 
   InvokeCustomFunction("main");
 
-  printf("\nProgram finished\n");
+  // printf("\nProgram finished\n");
   FreeAllPtr();
   FreeMemory(memory);
   free(bytecode_begin);
@@ -3189,7 +3189,7 @@ int main(int argc, char* argv[]) {
   time_t end_time = clock();
 
   time_t time_diff = end_time - start_time;
-  printf("Execution time: %zu ms\n", time_diff);
+  printf("\n[INFO] Execution time: %zu ms\n", time_diff);
 
   return 0;
 }
