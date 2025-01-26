@@ -56,16 +56,16 @@ class Trace {
  public:
   explicit Trace(const std::string& function_name) {
     // call_stack.push(function_name);
-    // printStack();
+    // PrintStack();
   }
 
   ~Trace() {
     // call_stack.pop();
-    // printStack();
+    // PrintStack();
   }
 
  private:
-  void printStack() const {
+  void PrintStack() const {
     std::stack<std::string> temp_stack = call_stack;
     std::vector<std::string> reverse_stack;
 
@@ -4159,6 +4159,7 @@ class BytecodeGenerator {
   void GenerateMnemonicFile();
   Type* GetExprType(ExprNode* expr);
   std::string GetExprTypeString(ExprNode* expr);
+  bool IsDereferenced(ExprNode* expr);
 
   bool is_big_endian_;
   std::unordered_map<std::string, FuncDeclNode> func_decl_map;
@@ -4168,6 +4169,7 @@ class BytecodeGenerator {
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
   std::vector<uint8_t> code_;
+  std::size_t dereference_ptr_index_;
 };
 
 BytecodeGenerator::BytecodeGenerator() {
@@ -4707,10 +4709,10 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
     std::cout << "[INFO] " << "Write file success: " << filename << std::endl;
   }
 
-  /*bool is_output_mnemonic = false;
+  bool is_output_mnemonic = true;
   if (is_output_mnemonic) {
     GenerateMnemonicFile();
-  }*/
+  }
 }
 
 void BytecodeGenerator::GenerateMnemonicFile() {
@@ -5239,6 +5241,9 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
+      if (IsDereferenced(expr->GetExpr()))
+        code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
+                                sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::kPostDec: {  // -- (postfix)
@@ -5249,15 +5254,24 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
+      if (IsDereferenced(expr->GetExpr()))
+        code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
+                                sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::kPreInc:  // ++ (prefix)
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
+      if (IsDereferenced(expr->GetExpr()))
+        code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
+                                sub_expr));
       return sub_expr;
     case UnaryNode::Operator::kPreDec:  // -- (prefix)
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
+      if (IsDereferenced(expr->GetExpr()))
+        code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
+                                sub_expr));
       return sub_expr;
     case UnaryNode::Operator::kAddrOf: {  // & (address of)
       std::size_t ptr_index = global_memory_.Add(0x06, 8);
@@ -5269,6 +5283,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      dereference_ptr_index_ = sub_expr;
 
       code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
       return new_index;
@@ -5302,12 +5317,19 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     case UnaryNode::Operator::ARRAY: {  // []
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
       uint8_t vm_type = 0;
+      std::size_t offset =
+          HandleExpr(dynamic_cast<ArrayNode*>(expr)->GetIndex(), code);
+
       if (array_type->GetType() == Type::TypeType::kArray) {
         vm_type = ConvertTypeToVmType(
             dynamic_cast<ArrayType*>(array_type)->GetSubType());
+        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset, offset,
+                                AddConstInt8t(GetExprVmSize(vm_type))));
       } else if (array_type->GetType() == Type::TypeType::kPointer) {
         vm_type = ConvertTypeToVmType(
             dynamic_cast<PointerType*>(array_type)->GetSubType());
+        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset, offset,
+                                AddConstInt8t(GetExprVmSize(vm_type))));
       } else {
         EXIT_COMPILER(
             "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<"
@@ -5315,10 +5337,15 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
             "Unsupported type.");
       }
 
+      dereference_ptr_index_ = global_memory_.Add(0x06, 8);
+      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, dereference_ptr_index_,
+                              sub_expr, offset));
+
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_LOAD, 2, dereference_ptr_index_, new_index));
       return new_index;
     }
     case UnaryNode::Operator::kBitwiseNot:  // ~ (bitwise NOT)
@@ -5333,16 +5360,15 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
   if (expr == nullptr)
     EXIT_COMPILER(
         "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
-        "Bytecode>&"
-        ")",
+        "Bytecode>&)",
         "expr is nullptr.");
 
-  ExprNode* left_expr = expr->GetLeftExpr();
   ExprNode* right_expr = expr->GetRightExpr();
+  ExprNode* left_expr = expr->GetLeftExpr();
   std::size_t right = HandleExpr(right_expr, code);
   std::size_t left = HandleExpr(left_expr, code);
-  uint8_t left_type = GetExprVmType(left_expr);
   uint8_t right_type = GetExprVmType(right_expr);
+  uint8_t left_type = GetExprVmType(left_expr);
   uint8_t result_type = left_type > right_type ? left_type : right_type;
 
   switch (expr->GetOperator()) {
@@ -5456,36 +5482,69 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     }
     case BinaryNode::Operator::kAssign:  // =
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kAddAssign:  // +=
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kSubAssign:  // -=
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kMulAssign:  // *=
       code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kDivAssign:  // /=
       code.push_back(Bytecode(_AQVM_OPERATOR_DIV, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kRemAssign:  // %=
       code.push_back(Bytecode(_AQVM_OPERATOR_REM, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kAndAssign:  // &=
       code.push_back(Bytecode(_AQVM_OPERATOR_AND, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kOrAssign:  // |=
       code.push_back(Bytecode(_AQVM_OPERATOR_OR, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kXorAssign:  // ^=
       code.push_back(Bytecode(_AQVM_OPERATOR_XOR, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kShlAssign:  // <<=
       code.push_back(Bytecode(_AQVM_OPERATOR_SHL, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kShrAssign:  // >>=
       code.push_back(Bytecode(_AQVM_OPERATOR_SHR, 3, left, left, right));
+      if (IsDereferenced(left_expr))
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kComma:    // :
     case BinaryNode::Operator::kPtrMemD:  // .*
@@ -7064,6 +7123,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
 std::size_t BytecodeGenerator::GetExprVmSize(uint8_t type) {
   TRACE_FUNCTION;
   switch (type) {
+    case 0x00:
     case 0x01:
       return 1;
     case 0x02:
@@ -7502,6 +7562,16 @@ std::string BytecodeGenerator::GetExprTypeString(ExprNode* expr) {
                 "Unexpected code.");
 
   return std::string();
+}
+
+bool BytecodeGenerator::IsDereferenced(ExprNode* expr) {
+  if (expr->GetType() == StmtNode::StmtType::kUnary) {
+    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
+        UnaryNode::Operator::kDeref) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace Compiler

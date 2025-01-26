@@ -11,6 +11,68 @@
 #include <string.h>
 #include <time.h>
 
+// #define TRACE_FUNCTION Trace trace(__FUNCTION__)
+
+typedef struct StackNode {
+  char* function_name;
+  struct StackNode* next;
+} StackNode;
+
+StackNode* call_stack = NULL;
+
+void PushStack(const char* function_name) {
+  StackNode* new_node = (StackNode*)malloc(sizeof(StackNode));
+  new_node->function_name = strdup(function_name);
+  new_node->next = call_stack;
+  call_stack = new_node;
+}
+
+void PopStack() {
+  if (call_stack != NULL) {
+    StackNode* temp = call_stack;
+    call_stack = call_stack->next;
+    free(temp->function_name);
+    free(temp);
+  }
+}
+
+void PrintStack() {
+  StackNode* temp_stack = call_stack;
+  printf("[INFO] Run: ");
+  while (temp_stack != NULL) {
+    printf("%s -> ", temp_stack->function_name);
+    temp_stack = temp_stack->next;
+  }
+  printf("Success\n");
+}
+
+typedef struct Trace {
+  const char* function_name;
+} Trace;
+
+Trace TraceCreate(const char* function_name) {
+  Trace trace;
+  trace.function_name = function_name;
+  PushStack(function_name);
+  PrintStack();
+  return trace;
+}
+
+void TraceDestroy(Trace* trace) {
+  if (trace) {
+    PopStack();
+    PrintStack();
+  }
+}
+
+#define Trace(trace)                       \
+  Trace trace = TraceCreate(__FUNCTION__); \
+  __attribute__((cleanup(TraceDestroy))) Trace* trace_ptr = &trace;
+
+#define TRACE_FUNCTION                                  \
+  Trace _trace __attribute__((cleanup(TraceDestroy))) = \
+      TraceCreate(__FUNCTION__)
+
 typedef struct {
   size_t size;
   size_t* index;
@@ -108,6 +170,7 @@ void EXIT_VM(const char* func_name, const char* message) {
 }
 
 void AddFreePtr(void* ptr) {
+  TRACE_FUNCTION;
   struct FreeList* new_free_list =
       (struct FreeList*)malloc(sizeof(struct FreeList));
   if (new_free_list == NULL) EXIT_VM("AddFreePtr(void*)", "Out of memory.");
@@ -748,7 +811,7 @@ void SetDoubleData(size_t index, double value) {
 }
 
 void SetUint64tData(size_t index, uint64_t value) {
-  // printf("SetUint64tData: %zu\n", value);
+  printf("SetUint64tData: %zu\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
