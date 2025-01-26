@@ -4146,6 +4146,7 @@ class BytecodeGenerator {
   std::size_t AddConstInt8t(int8_t value);
   uint8_t GetExprVmType(ExprNode* expr);
   uint8_t GetExprPtrValueVmType(ExprNode* expr);
+  uint8_t ConvertTypeToVmType(Type* type);
   std::size_t GetExprVmSize(uint8_t type);
   int SwapInt(int x);
   long SwapLong(long x);
@@ -5288,6 +5289,36 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
 
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, 2, new_index, sub_expr));
+      return new_index;
+    }
+    case UnaryNode::Operator::CONVERT: {  // ()
+      uint8_t vm_type = GetExprVmType(expr);
+      std::size_t new_index =
+          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
+      return new_index;
+    }
+
+    case UnaryNode::Operator::ARRAY: {  // []
+      Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
+      uint8_t vm_type = 0;
+      if (array_type->GetType() == Type::TypeType::kArray) {
+        vm_type = ConvertTypeToVmType(
+            dynamic_cast<ArrayType*>(array_type)->GetSubType());
+      } else if (array_type->GetType() == Type::TypeType::kPointer) {
+        vm_type = ConvertTypeToVmType(
+            dynamic_cast<PointerType*>(array_type)->GetSubType());
+      } else {
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<"
+            "Bytecode>&)",
+            "Unsupported type.");
+      }
+
+      std::size_t new_index =
+          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+
+      code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
       return new_index;
     }
     case UnaryNode::Operator::kBitwiseNot:  // ~ (bitwise NOT)
@@ -6862,6 +6893,172 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
     }
   }
   return 0x00;
+}
+
+uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
+  TRACE_FUNCTION;
+  switch (type->GetType()) {
+    case Type::TypeType::kBase:
+    case Type::TypeType::kConst:
+      switch (type->GetBaseType()) {
+        case Type::BaseType::kVoid:
+          return 0x00;
+        case Type::BaseType::kBool:
+        case Type::BaseType::kChar:
+          return 0x01;
+        case Type::BaseType::kShort:
+        case Type::BaseType::kInt:
+          return 0x02;
+        case Type::BaseType::kLong:
+          return 0x03;
+        case Type::BaseType::kFloat:
+          return 0x04;
+        case Type::BaseType::kDouble:
+          return 0x05;
+        case Type::BaseType::kStruct:
+        case Type::BaseType::kUnion:
+        case Type::BaseType::kEnum:
+        case Type::BaseType::kPointer:
+        case Type::BaseType::kArray:
+        case Type::BaseType::kFunction:
+        case Type::BaseType::kTypedef:
+        case Type::BaseType::kAuto:
+          return 0x06;
+        default:
+          return 0x00;
+      }
+
+    case Type::TypeType::kArray: {
+      switch (type->GetType()) {
+        case Type::TypeType::kBase:
+        case Type::TypeType::kConst:
+          switch (dynamic_cast<ArrayType*>(type)->GetSubType()->GetBaseType()) {
+            case Type::BaseType::kVoid:
+              return 0x00;
+            case Type::BaseType::kBool:
+            case Type::BaseType::kChar:
+              return 0x01;
+            case Type::BaseType::kShort:
+            case Type::BaseType::kInt:
+              return 0x02;
+            case Type::BaseType::kLong:
+              return 0x03;
+            case Type::BaseType::kFloat:
+              return 0x04;
+            case Type::BaseType::kDouble:
+              return 0x05;
+            case Type::BaseType::kStruct:
+            case Type::BaseType::kUnion:
+            case Type::BaseType::kEnum:
+            case Type::BaseType::kPointer:
+            case Type::BaseType::kArray:
+            case Type::BaseType::kFunction:
+            case Type::BaseType::kTypedef:
+            case Type::BaseType::kAuto:
+              return 0x06;
+            default:
+              return 0x00;
+          }
+
+        case Type::TypeType::kArray:
+        case Type::TypeType::kPointer:
+        case Type::TypeType::kReference:
+          return 0x06;
+
+        default:
+          return 0x00;
+      }
+    }
+
+    case Type::TypeType::kPointer: {
+      switch (type->GetType()) {
+        case Type::TypeType::kBase:
+        case Type::TypeType::kConst:
+          switch (
+              dynamic_cast<PointerType*>(type)->GetSubType()->GetBaseType()) {
+            case Type::BaseType::kVoid:
+              return 0x00;
+            case Type::BaseType::kBool:
+            case Type::BaseType::kChar:
+              return 0x01;
+            case Type::BaseType::kShort:
+            case Type::BaseType::kInt:
+              return 0x02;
+            case Type::BaseType::kLong:
+              return 0x03;
+            case Type::BaseType::kFloat:
+              return 0x04;
+            case Type::BaseType::kDouble:
+              return 0x05;
+            case Type::BaseType::kStruct:
+            case Type::BaseType::kUnion:
+            case Type::BaseType::kEnum:
+            case Type::BaseType::kPointer:
+            case Type::BaseType::kArray:
+            case Type::BaseType::kFunction:
+            case Type::BaseType::kTypedef:
+            case Type::BaseType::kAuto:
+              return 0x06;
+            default:
+              return 0x00;
+          }
+
+        case Type::TypeType::kArray:
+        case Type::TypeType::kPointer:
+        case Type::TypeType::kReference:
+          return 0x06;
+
+        default:
+          return 0x00;
+      }
+    }
+
+    case Type::TypeType::kReference: {
+      switch (type->GetType()) {
+        case Type::TypeType::kBase:
+        case Type::TypeType::kConst:
+          switch (
+              dynamic_cast<ReferenceType*>(type)->GetSubType()->GetBaseType()) {
+            case Type::BaseType::kVoid:
+              return 0x00;
+            case Type::BaseType::kBool:
+            case Type::BaseType::kChar:
+              return 0x01;
+            case Type::BaseType::kShort:
+            case Type::BaseType::kInt:
+              return 0x02;
+            case Type::BaseType::kLong:
+              return 0x03;
+            case Type::BaseType::kFloat:
+              return 0x04;
+            case Type::BaseType::kDouble:
+              return 0x05;
+            case Type::BaseType::kStruct:
+            case Type::BaseType::kUnion:
+            case Type::BaseType::kEnum:
+            case Type::BaseType::kPointer:
+            case Type::BaseType::kArray:
+            case Type::BaseType::kFunction:
+            case Type::BaseType::kTypedef:
+            case Type::BaseType::kAuto:
+              return 0x06;
+            default:
+              return 0x00;
+          }
+
+        case Type::TypeType::kArray:
+        case Type::TypeType::kPointer:
+        case Type::TypeType::kReference:
+          return 0x06;
+
+        default:
+          return 0x00;
+      }
+    }
+
+    default:
+      return 0x00;
+  }
 }
 
 std::size_t BytecodeGenerator::GetExprVmSize(uint8_t type) {
