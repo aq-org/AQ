@@ -55,13 +55,13 @@ std::stack<std::string> call_stack;
 class Trace {
  public:
   explicit Trace(const std::string& function_name) {
-    // call_stack.push(function_name);
-    // PrintStack();
+     call_stack.push(function_name);
+     PrintStack();
   }
 
   ~Trace() {
-    // call_stack.pop();
-    // PrintStack();
+     call_stack.pop();
+     PrintStack();
   }
 
  private:

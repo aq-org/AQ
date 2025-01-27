@@ -1,4 +1,9 @@
 int print(const char* str);
 void main(){
-  print("Hello World!\n");
+  /*const char* str_ptr = "Hello World!\n";
+  print(str_ptr);
+  const char** ptr_ptr = &str_ptr;
+  print(*ptr_ptr);*/
+  const char* ptr_array[2] = {"test A","test B"};
+  print(ptr_array[0]);
 }
