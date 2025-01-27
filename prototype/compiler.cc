@@ -74,11 +74,11 @@ class Trace {
       temp_stack.pop();
     }
 
-    std::cerr << "[INFO] Run: ";
+    //std::cerr << "[INFO] Run: ";
     for (auto it = reverse_stack.rbegin(); it != reverse_stack.rend(); ++it) {
-      std::cerr << *it << " -> ";
+      //std::cerr << *it << " -> ";
     }
-    std::cerr << "Success" << std::endl;
+    //std::cerr << "Success" << std::endl;
   }
 };
 
@@ -5523,9 +5523,11 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     }
     case BinaryNode::Operator::kAssign:  // =
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, left, right));
-      if (IsDereferenced(left_expr))
+      if (IsDereferenced(left_expr)) {
+        std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }
       return left;
     case BinaryNode::Operator::kAddAssign:  // +=
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, left, left, right));
@@ -7632,6 +7634,8 @@ bool BytecodeGenerator::IsDereferenced(ExprNode* expr) {
         UnaryNode::Operator::kDeref) {
       return true;
     }
+  } else if (expr->GetType() == StmtNode::StmtType::kArray) {
+    return true;
   }
   return false;
 }

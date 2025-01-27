@@ -38,16 +38,16 @@ void PopStack() {
 
 void PrintStackRecursive(StackNode* node) {
   if (node == NULL) {
-    printf("[INFO] Run: ");
+    //printf("[INFO] Run: ");
     return;
   }
   PrintStackRecursive(node->next);
-  printf("%s -> ", node->function_name);
+  //printf("%s -> ", node->function_name);
 }
 
 void PrintStack() {
   PrintStackRecursive(call_stack);
-  printf("Success\n");
+  //printf("Success\n");
 }
 
 typedef struct Trace {
@@ -625,6 +625,7 @@ uint64_t GetUint64tData(size_t index) {
     case 0x06:
       if (index + 7 >= memory->size)
         EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
+      printf("GetUint64tData: %zu\n", *(uint64_t*)((uintptr_t)memory->data + index));
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
