@@ -180,6 +180,7 @@ void AddFreePtr(void* ptr) {
 }
 
 void FreeAllPtr() {
+  TRACE_FUNCTION;
   struct FreeList* current = free_list;
   while (current != NULL) {
     struct FreeList* next = current->next;
@@ -190,11 +191,13 @@ void FreeAllPtr() {
 }
 
 void IsBigEndian() {
+  TRACE_FUNCTION;
   uint16_t test_data = 0x0011;
   is_big_endian = (*(uint8_t*)&test_data == 0x00);
 }
 
 int SwapInt(int x) {
+  TRACE_FUNCTION;
   uint32_t ux = (uint32_t)x;
   ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
        ((ux >> 8) & 0x0000FF00) | ((ux >> 24) & 0x000000FF);
@@ -202,6 +205,7 @@ int SwapInt(int x) {
 }
 
 long SwapLong(long x) {
+  TRACE_FUNCTION;
   uint64_t ux = (uint64_t)x;
   ux = ((ux << 56) & 0xFF00000000000000ULL) |
        ((ux << 40) & 0x00FF000000000000ULL) |
@@ -215,6 +219,7 @@ long SwapLong(long x) {
 }
 
 float SwapFloat(float x) {
+  TRACE_FUNCTION;
   uint32_t ux;
   memcpy(&ux, &x, sizeof(uint32_t));
   ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
@@ -225,6 +230,7 @@ float SwapFloat(float x) {
 }
 
 double SwapDouble(double x) {
+  TRACE_FUNCTION;
   uint64_t ux;
   memcpy(&ux, &x, sizeof(uint64_t));
   ux = ((ux << 56) & 0xFF00000000000000ULL) |
@@ -241,6 +247,7 @@ double SwapDouble(double x) {
 }
 
 uint64_t SwapUint64t(uint64_t x) {
+  TRACE_FUNCTION;
   x = ((x << 56) & 0xFF00000000000000ULL) |
       ((x << 40) & 0x00FF000000000000ULL) |
       ((x << 24) & 0x0000FF0000000000ULL) | ((x << 8) & 0x000000FF00000000ULL) |
@@ -250,6 +257,7 @@ uint64_t SwapUint64t(uint64_t x) {
 }
 
 struct Memory* InitializeMemory(void* data, void* type, size_t size) {
+  TRACE_FUNCTION;
   struct Memory* memory_ptr = (struct Memory*)malloc(sizeof(struct Memory));
   if (memory_ptr == NULL)
     EXIT_VM("InitializeMemory(void*, void*, size_t)", "Out of memory.");
@@ -260,7 +268,10 @@ struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   return memory_ptr;
 }
 
-void FreeMemory(struct Memory* memory_ptr) { free(memory_ptr); }
+void FreeMemory(struct Memory* memory_ptr) {
+  TRACE_FUNCTION;
+  free(memory_ptr);
+}
 
 /*int SetType(const struct Memory* memory, size_t index, uint8_t type) {
   if (index % 2 != 0) {
@@ -272,12 +283,14 @@ void FreeMemory(struct Memory* memory_ptr) { free(memory_ptr); }
 
 int WriteData(const struct Memory* memory, const size_t index,
               const void* data_ptr, const size_t size) {
+  TRACE_FUNCTION;
   memcpy((void*)((uintptr_t)memory->data + index), data_ptr, size);
 
   return 0;
 }
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
+  TRACE_FUNCTION;
   if (index >= memory->size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
     /*printf("GetType: %zu, Type: %d\n", index,
@@ -291,6 +304,7 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
 }
 
 void* GetPtrData(size_t index) {
+  TRACE_FUNCTION;
   if (index + 7 >= memory->size)
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
 
@@ -299,6 +313,7 @@ void* GetPtrData(size_t index) {
 }
 
 int8_t GetByteData(size_t index) {
+  TRACE_FUNCTION;
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -364,6 +379,7 @@ int8_t GetByteData(size_t index) {
 }
 
 int GetIntData(size_t index) {
+  TRACE_FUNCTION;
   // printf("index: %zu\n", index);
   // printf("GetType: %hhu\n", GetType(memory, index));
   switch (GetType(memory, index)) {
@@ -430,6 +446,7 @@ int GetIntData(size_t index) {
 }
 
 long GetLongData(size_t index) {
+  TRACE_FUNCTION;
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -471,6 +488,7 @@ long GetLongData(size_t index) {
 }
 
 float GetFloatData(size_t index) {
+  TRACE_FUNCTION;
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -512,6 +530,7 @@ float GetFloatData(size_t index) {
 }
 
 double GetDoubleData(size_t index) {
+  TRACE_FUNCTION;
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -553,6 +572,7 @@ double GetDoubleData(size_t index) {
 }
 
 uint64_t GetUint64tData(size_t index) {
+  TRACE_FUNCTION;
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -594,12 +614,14 @@ uint64_t GetUint64tData(size_t index) {
 }
 
 void SetPtrData(size_t index, void* ptr) {
+  TRACE_FUNCTION;
   if (index + 7 >= memory->size)
     EXIT_VM("SetPtrData(size_t, void*)", "Out of memory.");
   *(void**)((uintptr_t)memory->data + index) = ptr;
 }
 
 void SetByteData(size_t index, int8_t value) {
+  TRACE_FUNCTION;
   // printf("SetByteData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
@@ -642,6 +664,7 @@ void SetByteData(size_t index, int8_t value) {
 }
 
 void SetIntData(size_t index, int value) {
+  TRACE_FUNCTION;
   // printf("SetIntData: %zu, value: %d\n", index, value);
   switch (GetType(memory, index)) {
     case 0x01:
@@ -727,6 +750,7 @@ void SetLongData(size_t index, long value) {
 }
 
 void SetFloatData(size_t index, float value) {
+  TRACE_FUNCTION;
   // printf("SetFloatData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
@@ -769,6 +793,7 @@ void SetFloatData(size_t index, float value) {
 }
 
 void SetDoubleData(size_t index, double value) {
+  TRACE_FUNCTION;
   // printf("SetDoubleData: %f\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
@@ -811,6 +836,7 @@ void SetDoubleData(size_t index, double value) {
 }
 
 void SetUint64tData(size_t index, uint64_t value) {
+  TRACE_FUNCTION;
   printf("SetUint64tData: %zu\n", value);
   switch (GetType(memory, index)) {
     case 0x01:
@@ -853,6 +879,7 @@ void SetUint64tData(size_t index, uint64_t value) {
 }
 
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
+  TRACE_FUNCTION;
   *result = 0;
   size_t shift = 0;
   size_t count = 0;
@@ -870,17 +897,20 @@ size_t DecodeUleb128(const uint8_t* input, size_t* result) {
 }
 
 void* Get1Parament(void* ptr, size_t* first) {
+  TRACE_FUNCTION;
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
   return ptr;
 }
 
 void* Get2Parament(void* ptr, size_t* first, size_t* second) {
+  TRACE_FUNCTION;
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
   return ptr;
 }
 
 void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
+  TRACE_FUNCTION;
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, third));
@@ -891,6 +921,7 @@ void* Get3Parament(void* ptr, size_t* first, size_t* second, size_t* third) {
 
 void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
                    size_t* fourth) {
+  TRACE_FUNCTION;
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, first));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, second));
   ptr = (void*)((uintptr_t)ptr + DecodeUleb128(ptr, third));
@@ -901,6 +932,7 @@ void* Get4Parament(void* ptr, size_t* first, size_t* second, size_t* third,
 int INVOKE(size_t* args);
 
 size_t* GetUnknownCountParament(void** ptr) {
+  TRACE_FUNCTION;
   size_t func = 0;
   size_t arg_count = 0;
   size_t return_value = 0;
@@ -920,8 +952,12 @@ size_t* GetUnknownCountParament(void** ptr) {
   return args;
 }
 
-int NOP() { return 0; }
+int NOP() {
+  TRACE_FUNCTION;
+  return 0;
+}
 int LOAD(size_t ptr, size_t operand) {
+  TRACE_FUNCTION;
   switch (GetType(memory, operand)) {
     case 0x01:
       SetByteData(operand, *(int8_t*)((uintptr_t)memory->data + ptr));
@@ -953,6 +989,7 @@ int LOAD(size_t ptr, size_t operand) {
   return 0;
 }
 int STORE(size_t ptr, size_t operand) {
+  TRACE_FUNCTION;
   switch (GetType(memory, operand)) {
     case 0x01:
       *(uint64_t*)((uintptr_t)memory->data + ptr) = GetByteData(operand);
@@ -981,6 +1018,7 @@ int STORE(size_t ptr, size_t operand) {
   return 0;
 }
 int NEW(size_t ptr, size_t size) {
+  TRACE_FUNCTION;
   size_t size_value = GetUint64tData(size);
   void* data = malloc(size_value);
   WriteData(memory, ptr, &data, sizeof(data));
@@ -991,12 +1029,14 @@ int FREE(size_t ptr) {
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
+  TRACE_FUNCTION;
   // printf("index: %zu\n", index);
   // printf("PTR: %p\n", (void*)((uintptr_t)memory->data + index));
   SetPtrData(ptr, (void*)((uintptr_t)memory->data + index));
   return 0;
 }
 int ADD(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x0F && (GetType(memory, operand1) == 0x0F ||
                                           GetType(memory, operand2) == 0x0F)) {
     if (GetType(memory, operand1) == 0x0F) {
@@ -1126,6 +1166,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SUB(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x0F && (GetType(memory, operand1) == 0x0F ||
                                           GetType(memory, operand2) == 0x0F)) {
     if (GetType(memory, operand1) == 0x0F) {
@@ -1255,6 +1296,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int MUL(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -1370,6 +1412,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int DIV(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -1485,6 +1528,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int REM(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -1558,6 +1602,7 @@ int REM(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int NEG(size_t result, size_t operand1) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x05 || GetType(memory, operand1) == 0x05) {
     switch (GetType(memory, result)) {
       case 0x01:
@@ -1638,6 +1683,7 @@ int NEG(size_t result, size_t operand1) {
   return 0;
 }
 int SHL(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -1704,6 +1750,7 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SHR(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -1770,6 +1817,7 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int SAR(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -1837,6 +1885,7 @@ int SAR(size_t result, size_t operand1, size_t operand2) {
 }
 int InvokeCustomFunction(const char* name);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
+  TRACE_FUNCTION;
   // printf("condition: %d\n", GetByteData(condition));
   if (GetByteData(condition) != 0) {
     return true_branche;
@@ -1910,6 +1959,7 @@ int AND(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int OR(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -1975,6 +2025,7 @@ int OR(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int XOR(size_t result, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   if (GetType(memory, result) == 0x06 || GetType(memory, operand1) == 0x06 ||
       GetType(memory, operand2) == 0x06) {
     switch (GetType(memory, result)) {
@@ -2040,6 +2091,7 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
   return 0;
 }
 int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
+  TRACE_FUNCTION;
   switch (opcode) {
     case 0x00:
       if (GetType(memory, result) == 0x06 ||
@@ -2789,6 +2841,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
   return 0;
 }
 int INVOKE(size_t* args) {
+  TRACE_FUNCTION;
   size_t func = args[0];
   size_t arg_count = args[1];
   size_t return_value = args[2];
@@ -2806,6 +2859,7 @@ int INVOKE(size_t* args) {
   return InvokeCustomFunction((char*)GetPtrData(func));
 }
 int EQUAL(size_t result, size_t value) {
+  TRACE_FUNCTION;
   switch (GetType(memory, result)) {
     case 0x01:
       SetByteData(result, GetByteData(value));
@@ -2830,15 +2884,26 @@ int EQUAL(size_t result, size_t value) {
   }
   return 0;
 }
-size_t GOTO(size_t location) { return location; }
-int THROW() { return 0; }
-int WIDE() { return 0; }
+size_t GOTO(size_t location) {
+  TRACE_FUNCTION;
+  return location;
+}
+int THROW() {
+  TRACE_FUNCTION;
+  return 0;
+}
+int WIDE() {
+  TRACE_FUNCTION;
+  return 0;
+}
 
 void print(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
   SetIntData(return_value, printf("%s", (char*)GetPtrData(*args.index)));
 }
 
 unsigned int hash(const char* str) {
+  TRACE_FUNCTION;
   unsigned long hash = 5381;
   int c;
   while ((c = *str++)) {
@@ -2848,6 +2913,7 @@ unsigned int hash(const char* str) {
 }
 
 void InitializeNameTable(struct LinkedList* list) {
+  TRACE_FUNCTION;
   const unsigned int name_hash = hash("print@const char*");
   struct LinkedList* table = &list[name_hash];
   while (table->next != NULL) {
@@ -2863,6 +2929,7 @@ void InitializeNameTable(struct LinkedList* list) {
 }
 
 void* AddFunction(void* location) {
+  TRACE_FUNCTION;
   // void* original_location = location;
   // printf("point 1\n");
 
@@ -3056,6 +3123,7 @@ void* AddFunction(void* location) {
 }
 
 FuncInfo GetCustomFunction(const char* name) {
+  TRACE_FUNCTION;
   const unsigned int name_hash = hash(name);
   const struct FuncList* table = &func_table[name_hash];
   while (table != NULL && table->pair.first != NULL) {
@@ -3070,6 +3138,7 @@ FuncInfo GetCustomFunction(const char* name) {
 }
 
 func_ptr GetFunction(const char* name) {
+  TRACE_FUNCTION;
   const unsigned int name_hash = hash(name);
   const struct LinkedList* table = &name_table[name_hash];
   while (table->pair.first != NULL) {
@@ -3086,6 +3155,7 @@ size_t GOTO(size_t location);
 int THROW();
 int WIDE();
 int InvokeCustomFunction(const char* name) {
+  TRACE_FUNCTION;
   // printf("InvokeCustomFunction: %s, ", name);
   FuncInfo func_info = GetCustomFunction(name);
   struct Bytecode* run_code = func_info.commands;
