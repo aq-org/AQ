@@ -1,4 +1,12 @@
 int print(const char* str);
 void main(){
-  print("Hello World!\n");
+  /*const char* str_ptr = "Hello World!\n";
+  print(str_ptr);
+  const char** ptr_ptr = &str_ptr;
+  print(*ptr_ptr);*/
+  const char* ptr_array[2];// = {"test A","test B"};
+  ptr_array[0] = "test A";
+  ptr_array[1] = "test B";
+  const char* str_array_ptr = ptr_array[0];
+  print(str_array_ptr);
 }
