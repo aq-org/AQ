@@ -5252,7 +5252,8 @@ std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
         "BytecodeGenerator::HandleExpr(ExprNode*,std::vector<Bytecode>&)",
         "expr is nullptr.");
 
-  if (expr->GetType() == StmtNode::StmtType::kUnary) {
+  if (expr->GetType() == StmtNode::StmtType::kUnary ||
+      expr->GetType() == StmtNode::StmtType::kArray) {
     return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), code);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
     return HandleBinaryExpr(dynamic_cast<BinaryNode*>(expr), code);
@@ -5354,6 +5355,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     }
 
     case UnaryNode::Operator::ARRAY: {  // []
+      std::cout << "ARRAY" << std::endl;
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
       uint8_t vm_type = 0;
       std::size_t offset =
@@ -5834,9 +5836,9 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
         "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
         "func is nullptr.");
 
-  std::cout<<"A point"<<std::endl;
+  std::cout << "A point" << std::endl;
   ExprNode* func_name_node = func->GetName();
-  if(func_name_node == nullptr)
+  if (func_name_node == nullptr)
     EXIT_COMPILER(
         "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
         "func_name_node is nullptr.");
@@ -5851,7 +5853,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
     func_name += GetExprTypeString(args[i]);
   }
-  std::cout<<"func_name: "<<func_name<<std::endl;
+  std::cout << "func_name: " << func_name << std::endl;
 
   auto iterator = func_decl_map.find(func_name);
   if (iterator == func_decl_map.end())
