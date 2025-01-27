@@ -55,13 +55,13 @@ std::stack<std::string> call_stack;
 class Trace {
  public:
   explicit Trace(const std::string& function_name) {
-     call_stack.push(function_name);
-     PrintStack();
+    call_stack.push(function_name);
+    PrintStack();
   }
 
   ~Trace() {
-     call_stack.pop();
-     PrintStack();
+    call_stack.pop();
+    PrintStack();
   }
 
  private:
@@ -3041,7 +3041,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
     return var_decl;
   }
 
-  switch (token[index].value._operator) {
+  /*switch (token[index].value._operator) {
     case Token::OperatorType::l_square: {
       ExprNode* size = ParseExpr(token, length, ++index);
       if (token[index].type != Token::Type::OPERATOR ||
@@ -3087,7 +3087,33 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
 
     default:
       return var_decl;
+  }*/
+
+  if (name->GetType() == StmtNode::StmtType::kArray) {
+    ArrayNode* array = dynamic_cast<ArrayNode*>(name);
+    ArrayDeclNode* array_decl = dynamic_cast<ArrayDeclNode*>(name);
+    array_decl->SetVarDeclNode(type, array->GetExpr());
+  } else {
+    var_decl->SetVarDeclNode(type, name);
   }
+
+  // TODO
+
+  if (token[index].value._operator == Token::OperatorType::equal) {
+    index++;
+    if (token[index].type == Token::Type::OPERATOR &&
+        token[index].value._operator == Token::OperatorType::l_brace) {
+      std::vector<ExprNode*> values;
+      while (true) {
+        values.push_back(ParseExpr(token, length, ++index));
+        if (token[index].type == Token::Type::OPERATOR &&
+            token[index].value._operator == Token::OperatorType::r_brace) {
+          break;
+        }
+      }
+    }
+  }
+
   return var_decl;
 }
 
