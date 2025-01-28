@@ -5442,18 +5442,19 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       std::cout << "ARRAY" << std::endl;
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
       uint8_t vm_type = 0;
+      std::size_t offset_expr = global_memory_.Add(0x06, 8);
       std::size_t offset =
           HandleExpr(dynamic_cast<ArrayNode*>(expr)->GetIndex(), code);
 
       if (array_type->GetType() == Type::TypeType::kArray) {
         vm_type = ConvertTypeToVmType(
             dynamic_cast<ArrayType*>(array_type)->GetSubType());
-        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset, offset,
+        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset_expr, offset,
                                 AddConstInt8t(GetExprVmSize(vm_type))));
       } else if (array_type->GetType() == Type::TypeType::kPointer) {
         vm_type = ConvertTypeToVmType(
             dynamic_cast<PointerType*>(array_type)->GetSubType());
-        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset, offset,
+        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset_expr, offset,
                                 AddConstInt8t(GetExprVmSize(vm_type))));
       } else {
         EXIT_COMPILER(
@@ -5464,7 +5465,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
 
       dereference_ptr_index_ = global_memory_.Add(0x06, 8);
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, dereference_ptr_index_,
-                              sub_expr, offset));
+                              sub_expr, offset_expr));
 
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));

@@ -1027,24 +1027,25 @@ int LOAD(size_t ptr, size_t operand) {
 }
 int STORE(size_t ptr, size_t operand) {
   TRACE_FUNCTION;
+  void* data = GetPtrData(ptr);
   switch (GetType(memory, operand)) {
     case 0x01:
-      *(uint64_t*)((uintptr_t)memory->data + ptr) = GetByteData(operand);
+      *(int8_t*)data = GetByteData(operand);
       break;
     case 0x02:
-      *(int*)((uintptr_t)memory->data + ptr) = GetIntData(operand);
+      *(int*)data = GetIntData(operand);
       break;
     case 0x03:
-      *(long*)((uintptr_t)memory->data + ptr) = GetLongData(operand);
+      *(long*)data = GetLongData(operand);
       break;
     case 0x04:
-      *(float*)((uintptr_t)memory->data + ptr) = GetFloatData(operand);
+      *(float*)data = GetFloatData(operand);
       break;
     case 0x05:
-      *(double*)((uintptr_t)memory->data + ptr) = GetDoubleData(operand);
+      *(double*)data = GetDoubleData(operand);
       break;
     case 0x06:
-      *(uint64_t*)((uintptr_t)memory->data + ptr) = GetUint64tData(operand);
+      *(uint64_t*)data = GetUint64tData(operand);
       break;
     /*case 0x0F:
       *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
