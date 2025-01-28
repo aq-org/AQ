@@ -5724,8 +5724,9 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
 
     for (size_t i = 0; i < array_decl->GetValue().size(); i++) {
       size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, array_index, value_index));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2,
+                              array_index + array_type->GetSize() * i,
+                              value_index));
     }
 
     var_decl_map.emplace(
