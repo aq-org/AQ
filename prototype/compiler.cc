@@ -2129,6 +2129,8 @@ class ArrayDeclNode : public VarDeclNode {
 
   virtual ~ArrayDeclNode() = default;
 
+  ExprNode* GetSize() { return size_; }
+
   ArrayDeclNode(const ArrayDeclNode&) = default;
   ArrayDeclNode& operator=(const ArrayDeclNode&) = default;
 
@@ -5216,7 +5218,48 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     vm_type = 0x06;
   }
   if (array_decl->GetValue().empty()) {
-    size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
+    if (array_decl->GetSize()->GetType() != StmtNode::StmtType::kValue)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+          "Bytecode>&)",
+          "array_decl->GetSize() is not ValueNode.");
+    std::size_t array_size = 0;
+    std::size_t value_vm_type =
+        dynamic_cast<ValueNode*>(array_decl->GetSize())->GetVmType();
+    switch (value_vm_type) {
+      case 0x01:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetCharValue();
+        break;
+      case 0x02:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetIntValue();
+        break;
+      case 0x03:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetLongValue();
+        break;
+      case 0x04:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetFloatValue();
+        break;
+      case 0x05:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetDoubleValue();
+        break;
+      case 0x06:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetUInt64Value();
+        break;
+      default:
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected code.");
+        break;
+    }
+    size_t array_index =
+        global_memory_.Add(vm_type, array_type->GetSize() * array_size);
     size_t array_ptr_index = global_memory_.Add(0x06, 8);
     code.push_back(
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));
@@ -5226,7 +5269,48 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
         std::pair<VarDeclNode*, std::size_t>(
             dynamic_cast<VarDeclNode*>(array_decl), array_ptr_index));
   } else {
-    size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
+    if (array_decl->GetSize()->GetType() != StmtNode::StmtType::kValue)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+          "Bytecode>&)",
+          "array_decl->GetSize() is not ValueNode.");
+    std::size_t array_size = 0;
+    std::size_t value_vm_type =
+        dynamic_cast<ValueNode*>(array_decl->GetSize())->GetVmType();
+    switch (value_vm_type) {
+      case 0x01:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetCharValue();
+        break;
+      case 0x02:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetIntValue();
+        break;
+      case 0x03:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetLongValue();
+        break;
+      case 0x04:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetFloatValue();
+        break;
+      case 0x05:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetDoubleValue();
+        break;
+      case 0x06:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetUInt64Value();
+        break;
+      default:
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected code.");
+        break;
+    }
+    size_t array_index =
+        global_memory_.Add(vm_type, array_type->GetSize() * array_size);
     size_t array_ptr_index = global_memory_.Add(0x06, 8);
     code.push_back(
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));
