@@ -38,16 +38,16 @@ void PopStack() {
 
 void PrintStackRecursive(StackNode* node) {
   if (node == NULL) {
-    //printf("[INFO] Run: ");
+    // printf("[INFO] Run: ");
     return;
   }
   PrintStackRecursive(node->next);
-  //printf("%s -> ", node->function_name);
+  // printf("%s -> ", node->function_name);
 }
 
 void PrintStack() {
   PrintStackRecursive(call_stack);
-  //printf("Success\n");
+  // printf("Success\n");
 }
 
 typedef struct Trace {
@@ -625,7 +625,8 @@ uint64_t GetUint64tData(size_t index) {
     case 0x06:
       if (index + 7 >= memory->size)
         EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
-      printf("GetUint64tData: %zu\n", *(uint64_t*)((uintptr_t)memory->data + index));
+      printf("GetUint64tData: %zu, %zu\n", index,
+             *(uint64_t*)((uintptr_t)memory->data + index));
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
@@ -871,7 +872,7 @@ void SetDoubleData(size_t index, double value) {
 
 void SetUint64tData(size_t index, uint64_t value) {
   TRACE_FUNCTION;
-  printf("SetUint64tData: %zu\n", index);
+  printf("SetUint64tData: %zu, %zu\n", index, value);
   printf("Type: %hhu\n", GetType(memory, index));
   switch (GetType(memory, index)) {
     case 0x01:
@@ -998,28 +999,26 @@ int LOAD(size_t ptr, size_t operand) {
   if (GetType(memory, ptr) != 0x06)
     EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
   void* data = GetPtrData(ptr);
+  printf("LOAD: %zu\n", (uint64_t)data);
   switch (GetType(memory, operand)) {
     case 0x01:
       SetByteData(operand, *(int8_t*)(data));
       break;
     case 0x02:
-      SetIntData(operand, is_big_endian ? *(int*)data : SwapInt(*(int*)data));
+      SetIntData(operand, *(int*)data);
       break;
     case 0x03:
-      SetLongData(operand,
-                  is_big_endian ? *(long*)data : SwapLong(*(long*)data));
+      SetLongData(operand, *(long*)data);
       break;
     case 0x04:
-      SetFloatData(operand,
-                   is_big_endian ? *(float*)data : SwapFloat(*(float*)data));
+      SetFloatData(operand, *(float*)data);
       break;
     case 0x05:
-      SetDoubleData(
-          operand, is_big_endian ? *(double*)data : SwapDouble(*(double*)data));
+      SetDoubleData(operand, *(double*)data);
       break;
     case 0x06:
-      SetUint64tData(operand, is_big_endian ? *(uint64_t*)data
-                                            : SwapUint64t(*(uint64_t*)data));
+      printf("LOAD value: %zu\n", *(uint64_t*)data);
+      SetUint64tData(operand, *(uint64_t*)data);
       break;
     default:
       EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
@@ -3308,8 +3307,8 @@ int InvokeCustomFunction(const char* name) {
   FuncInfo func_info = GetCustomFunction(name);
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    // printf("run index: %zu, run operator: 0x%02x\n", i,
-    // run_code[i].operator);
+    printf("        run index: %zu, run operator: 0x%02x\n", i,
+           run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();

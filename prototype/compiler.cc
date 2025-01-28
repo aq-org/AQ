@@ -74,11 +74,11 @@ class Trace {
       temp_stack.pop();
     }
 
-    //std::cerr << "[INFO] Run: ";
+    // std::cerr << "[INFO] Run: ";
     for (auto it = reverse_stack.rbegin(); it != reverse_stack.rend(); ++it) {
-      //std::cerr << *it << " -> ";
+      // std::cerr << *it << " -> ";
     }
-    //std::cerr << "Success" << std::endl;
+    // std::cerr << "Success" << std::endl;
   }
 };
 
