@@ -74,11 +74,11 @@ class Trace {
       temp_stack.pop();
     }
 
-    std::cerr << "[INFO] Run: ";
+    // std::cerr << "[INFO] Run: ";
     for (auto it = reverse_stack.rbegin(); it != reverse_stack.rend(); ++it) {
-      std::cerr << *it << " -> ";
+      // std::cerr << *it << " -> ";
     }
-    std::cerr << "Success" << std::endl;
+    // std::cerr << "Success" << std::endl;
   }
 };
 
@@ -2129,6 +2129,8 @@ class ArrayDeclNode : public VarDeclNode {
 
   virtual ~ArrayDeclNode() = default;
 
+  ExprNode* GetSize() { return size_; }
+
   ArrayDeclNode(const ArrayDeclNode&) = default;
   ArrayDeclNode& operator=(const ArrayDeclNode&) = default;
 
@@ -2275,6 +2277,9 @@ class Parser {
   static ExprNode* ParseExpr(Token* token, std::size_t length,
                              std::size_t& index);
 
+  static ExprNode* ParseExprWithoutComma(Token* token, std::size_t length,
+                                         std::size_t& index);
+
   static ExprNode* ParsePrimaryExpr(Token* token, std::size_t length,
                                     std::size_t& index);
 
@@ -2290,6 +2295,10 @@ class Parser {
   static ExprNode* ParseBinaryExpr(Token* token, std::size_t length,
                                    std::size_t& index, ExprNode* left,
                                    unsigned int priority);
+  static ExprNode* ParseBinaryExprWithoutComma(Token* token, std::size_t length,
+                                               std::size_t& index,
+                                               ExprNode* left,
+                                               unsigned int priority);
   static unsigned int GetPriority(Token token);
 };
 
@@ -3096,7 +3105,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
         std::vector<ExprNode*> values;
         while (true) {
           // Skip the l_brace or comma.
-          values.push_back(ParseExpr(token, length, ++index));
+          values.push_back(ParseExprWithoutComma(token, length, ++index));
           if (token[index].type == Token::Type::OPERATOR &&
               token[index].value._operator == Token::OperatorType::r_brace) {
             index++;
@@ -3121,7 +3130,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
     var_decl->SetVarDeclNode(type, name);
     if (token[index].value._operator == Token::OperatorType::equal) {
       index++;
-      ExprNode* value = ParseExpr(token, length, index);
+      ExprNode* value = ParseExprWithoutComma(token, length, index);
       var_decl->SetVarDeclNode(type, name, value);
     }
     return var_decl;
@@ -3336,7 +3345,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             index++;
             while (index < length && token[index].value._operator !=
                                          Token::OperatorType::r_paren) {
-              args.push_back(ParseExpr(token, length, index));
+              args.push_back(ParseExprWithoutComma(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
                   token[index].value._operator == Token::OperatorType::comma) {
                 index++;
@@ -3496,6 +3505,28 @@ ExprNode* Parser::ParseExpr(Token* token, std::size_t length,
     EXIT_COMPILER("Parser::ParseExpr(Token*,std::size_t,std::size_t&)",
                   "expr is nullptr.");
   expr = ParseBinaryExpr(token, length, index, expr, 0);
+  return expr;
+}
+
+ExprNode* Parser::ParseExprWithoutComma(Token* token, std::size_t length,
+                                        std::size_t& index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER(
+        "Parser::ParseExprWithoutComma(Token*,std::size_t,std::size_t&)",
+        "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER(
+        "Parser::ParseExprWithoutComma(Token*,std::size_t,std::size_t&)",
+        "index is out of range.");
+
+  if (IsDecl(token, length, index)) return ParseVarDecl(token, length, index);
+  ExprNode* expr = ParsePrimaryExpr(token, length, index);
+  if (expr == nullptr)
+    EXIT_COMPILER(
+        "Parser::ParseExprWithoutComma(Token*,std::size_t,std::size_t&)",
+        "expr is nullptr.");
+  expr = ParseBinaryExprWithoutComma(token, length, index, expr, 0);
   return expr;
 }
 
@@ -3863,6 +3894,384 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
         expr = comma_node;
         break;
       }
+
+      default:
+        return expr;
+    }
+  }
+
+  return expr;
+}
+
+ExprNode* Parser::ParseBinaryExprWithoutComma(Token* token, std::size_t length,
+                                              std::size_t& index,
+                                              ExprNode* left,
+                                              unsigned int priority) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER(
+        "Parser::ParseBinaryExprWithoutComma(Token*,std::size_t,std::size_t&,"
+        "ExprNode*,"
+        "unsigned int)",
+        "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER(
+        "Parser::ParseBinaryExprWithoutComma(Token*,std::size_t,std::size_t&,"
+        "ExprNode*,"
+        "unsigned int)",
+        "index is out of range.");
+  if (left == nullptr)
+    EXIT_COMPILER(
+        "Parser::ParseBinaryExprWithoutComma(Token*,std::size_t,std::size_t&,"
+        "ExprNode*,"
+        "unsigned int)",
+        "left is nullptr.");
+
+  ExprNode* expr = left;
+  while (index < length && GetPriority(token[index]) > priority) {
+    if (token[index].type != Token::Type::OPERATOR)
+      EXIT_COMPILER(
+          "Parser::ParseBinaryExprWithoutComma(Token*,std::size_t,std::size_t&,"
+          "ExprNode*,"
+          "unsigned int)",
+          "Unexpected code.");
+    switch (token[index].value._operator) {
+      case Token::OperatorType::periodstar: {
+        BinaryNode* periodstar_node = new BinaryNode();
+        index++;
+        periodstar_node->SetBinaryNode(
+            BinaryNode::Operator::kPtrMemD, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 14));
+        expr = periodstar_node;
+        break;
+      }
+      case Token::OperatorType::arrowstar: {
+        BinaryNode* arrowstar_node = new BinaryNode();
+        index++;
+        arrowstar_node->SetBinaryNode(
+            BinaryNode::Operator::kPtrMemI, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 14));
+        expr = arrowstar_node;
+        break;
+      }
+
+      case Token::OperatorType::star: {
+        BinaryNode* star_node = new BinaryNode();
+        index++;
+        star_node->SetBinaryNode(
+            BinaryNode::Operator::kMul, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 13));
+        expr = star_node;
+        break;
+      }
+      case Token::OperatorType::slash: {
+        BinaryNode* slash_node = new BinaryNode();
+        index++;
+        slash_node->SetBinaryNode(
+            BinaryNode::Operator::kDiv, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 13));
+        expr = slash_node;
+        break;
+      }
+      case Token::OperatorType::percent: {
+        BinaryNode* percent_node = new BinaryNode();
+        index++;
+        percent_node->SetBinaryNode(
+            BinaryNode::Operator::kRem, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 13));
+        expr = percent_node;
+        break;
+      }
+
+      case Token::OperatorType::plus: {
+        BinaryNode* plus_node = new BinaryNode();
+        index++;
+        plus_node->SetBinaryNode(
+            BinaryNode::Operator::kAdd, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 12));
+        expr = plus_node;
+        break;
+      }
+      case Token::OperatorType::minus: {
+        BinaryNode* minus_node = new BinaryNode();
+        index++;
+        minus_node->SetBinaryNode(
+            BinaryNode::Operator::kSub, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 12));
+        expr = minus_node;
+        break;
+      }
+
+      case Token::OperatorType::lessless: {
+        BinaryNode* lessless_node = new BinaryNode();
+        index++;
+        lessless_node->SetBinaryNode(
+            BinaryNode::Operator::kShl, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 11));
+        expr = lessless_node;
+        break;
+      }
+      case Token::OperatorType::greatergreater: {
+        BinaryNode* greatergreater_node = new BinaryNode();
+        index++;
+        greatergreater_node->SetBinaryNode(
+            BinaryNode::Operator::kShr, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 11));
+        expr = greatergreater_node;
+        break;
+      }
+
+      case Token::OperatorType::less: {
+        BinaryNode* less_node = new BinaryNode();
+        index++;
+        less_node->SetBinaryNode(
+            BinaryNode::Operator::kLT, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 10));
+        expr = less_node;
+        break;
+      }
+      case Token::OperatorType::lessequal: {
+        BinaryNode* lessequal_node = new BinaryNode();
+        index++;
+        lessequal_node->SetBinaryNode(
+            BinaryNode::Operator::kLE, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 10));
+        expr = lessequal_node;
+        break;
+      }
+      case Token::OperatorType::greater: {
+        BinaryNode* greater_node = new BinaryNode();
+        index++;
+        greater_node->SetBinaryNode(
+            BinaryNode::Operator::kGT, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 10));
+        expr = greater_node;
+        break;
+      }
+      case Token::OperatorType::greaterequal: {
+        BinaryNode* greaterequal_node = new BinaryNode();
+        index++;
+        greaterequal_node->SetBinaryNode(
+            BinaryNode::Operator::kGE, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 10));
+        expr = greaterequal_node;
+        break;
+      }
+
+      case Token::OperatorType::equalequal: {
+        BinaryNode* equalequal_node = new BinaryNode();
+        index++;
+        equalequal_node->SetBinaryNode(
+            BinaryNode::Operator::kEQ, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 9));
+        expr = equalequal_node;
+        break;
+      }
+      case Token::OperatorType::exclaimequal: {
+        BinaryNode* exclaimequal_node = new BinaryNode();
+        index++;
+        exclaimequal_node->SetBinaryNode(
+            BinaryNode::Operator::kNE, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 9));
+        expr = exclaimequal_node;
+        break;
+      }
+
+      case Token::OperatorType::amp: {
+        BinaryNode* amp_node = new BinaryNode();
+        index++;
+        amp_node->SetBinaryNode(
+            BinaryNode::Operator::kAnd, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 8));
+        expr = amp_node;
+        break;
+      }
+
+      case Token::OperatorType::caret: {
+        BinaryNode* caret_node = new BinaryNode();
+        index++;
+        caret_node->SetBinaryNode(
+            BinaryNode::Operator::kXor, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 7));
+        expr = caret_node;
+        break;
+      }
+
+      case Token::OperatorType::pipe: {
+        BinaryNode* pipe_node = new BinaryNode();
+        index++;
+        pipe_node->SetBinaryNode(
+            BinaryNode::Operator::kOr, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 6));
+        expr = pipe_node;
+        break;
+      }
+
+      case Token::OperatorType::ampamp: {
+        BinaryNode* ampamp_node = new BinaryNode();
+        index++;
+        ampamp_node->SetBinaryNode(
+            BinaryNode::Operator::kLAnd, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 5));
+        expr = ampamp_node;
+        break;
+      }
+
+      case Token::OperatorType::pipepipe: {
+        BinaryNode* pipepipe_node = new BinaryNode();
+        index++;
+        pipepipe_node->SetBinaryNode(
+            BinaryNode::Operator::kLOr, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 4));
+        expr = pipepipe_node;
+        break;
+      }
+
+      case Token::OperatorType::question:
+        // TODO(TriExpr): Complete the case.
+        break;
+
+      case Token::OperatorType::equal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::plusequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kAddAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::minusequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kSubAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::starequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kMulAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::slashequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kDivAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::percentequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kRemAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::ampequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kAndAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::caretequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kXorAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::pipeequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kOrAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::lesslessequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kShlAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+      case Token::OperatorType::greatergreaterequal: {
+        BinaryNode* equal_node = new BinaryNode();
+        index++;
+        equal_node->SetBinaryNode(
+            BinaryNode::Operator::kShrAssign, expr,
+            ParseBinaryExpr(token, length, index,
+                            ParsePrimaryExpr(token, length, index), 2));
+        expr = equal_node;
+        break;
+      }
+
+        /*case Token::OperatorType::comma: {
+          BinaryNode* comma_node = new BinaryNode();
+          index++;
+          comma_node->SetBinaryNode(
+              BinaryNode::Operator::kComma, expr,
+              ParseBinaryExpr(token, length, index,
+                              ParsePrimaryExpr(token, length, index), 1));
+          expr = comma_node;
+          break;
+        }*/
 
       default:
         return expr;
@@ -5216,7 +5625,48 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     vm_type = 0x06;
   }
   if (array_decl->GetValue().empty()) {
-    size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
+    if (array_decl->GetSize()->GetType() != StmtNode::StmtType::kValue)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+          "Bytecode>&)",
+          "array_decl->GetSize() is not ValueNode.");
+    std::size_t array_size = 0;
+    std::size_t value_vm_type =
+        dynamic_cast<ValueNode*>(array_decl->GetSize())->GetVmType();
+    switch (value_vm_type) {
+      case 0x01:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetCharValue();
+        break;
+      case 0x02:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetIntValue();
+        break;
+      case 0x03:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetLongValue();
+        break;
+      case 0x04:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetFloatValue();
+        break;
+      case 0x05:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetDoubleValue();
+        break;
+      case 0x06:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetUInt64Value();
+        break;
+      default:
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected code.");
+        break;
+    }
+    size_t array_index =
+        global_memory_.Add(vm_type, array_type->GetSize() * array_size);
     size_t array_ptr_index = global_memory_.Add(0x06, 8);
     code.push_back(
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));
@@ -5226,15 +5676,57 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
         std::pair<VarDeclNode*, std::size_t>(
             dynamic_cast<VarDeclNode*>(array_decl), array_ptr_index));
   } else {
-    size_t array_index = global_memory_.Add(vm_type, array_type->GetSize());
+    if (array_decl->GetSize()->GetType() != StmtNode::StmtType::kValue)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+          "Bytecode>&)",
+          "array_decl->GetSize() is not ValueNode.");
+    std::size_t array_size = 0;
+    std::size_t value_vm_type =
+        dynamic_cast<ValueNode*>(array_decl->GetSize())->GetVmType();
+    switch (value_vm_type) {
+      case 0x01:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetCharValue();
+        break;
+      case 0x02:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetIntValue();
+        break;
+      case 0x03:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetLongValue();
+        break;
+      case 0x04:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetFloatValue();
+        break;
+      case 0x05:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetDoubleValue();
+        break;
+      case 0x06:
+        array_size =
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetUInt64Value();
+        break;
+      default:
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected code.");
+        break;
+    }
+    size_t array_index =
+        global_memory_.Add(vm_type, array_type->GetSize() * array_size);
     size_t array_ptr_index = global_memory_.Add(0x06, 8);
     code.push_back(
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));
 
     for (size_t i = 0; i < array_decl->GetValue().size(); i++) {
       size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, array_index, value_index));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2,
+                              array_index + array_type->GetSize() * i,
+                              value_index));
     }
 
     var_decl_map.emplace(
@@ -5358,18 +5850,19 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       std::cout << "ARRAY" << std::endl;
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
       uint8_t vm_type = 0;
+      std::size_t offset_expr = global_memory_.Add(0x06, 8);
       std::size_t offset =
           HandleExpr(dynamic_cast<ArrayNode*>(expr)->GetIndex(), code);
 
       if (array_type->GetType() == Type::TypeType::kArray) {
         vm_type = ConvertTypeToVmType(
             dynamic_cast<ArrayType*>(array_type)->GetSubType());
-        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset, offset,
+        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset_expr, offset,
                                 AddConstInt8t(GetExprVmSize(vm_type))));
       } else if (array_type->GetType() == Type::TypeType::kPointer) {
         vm_type = ConvertTypeToVmType(
             dynamic_cast<PointerType*>(array_type)->GetSubType());
-        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset, offset,
+        code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset_expr, offset,
                                 AddConstInt8t(GetExprVmSize(vm_type))));
       } else {
         EXIT_COMPILER(
@@ -5380,7 +5873,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
 
       dereference_ptr_index_ = global_memory_.Add(0x06, 8);
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, dereference_ptr_index_,
-                              sub_expr, offset));
+                              sub_expr, offset_expr));
 
       std::size_t new_index =
           global_memory_.Add(vm_type, GetExprVmSize(vm_type));
@@ -5523,9 +6016,11 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     }
     case BinaryNode::Operator::kAssign:  // =
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, left, right));
-      if (IsDereferenced(left_expr))
+      if (IsDereferenced(left_expr)) {
+        std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }
       return left;
     case BinaryNode::Operator::kAddAssign:  // +=
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, left, left, right));
@@ -5587,7 +6082,8 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
-    case BinaryNode::Operator::kComma:    // :
+    case BinaryNode::Operator::kComma:  // ,
+      std::cout << "Comma" << std::endl;
     case BinaryNode::Operator::kPtrMemD:  // .*
     case BinaryNode::Operator::kPtrMemI:  // ->*
     default:
@@ -7632,6 +8128,8 @@ bool BytecodeGenerator::IsDereferenced(ExprNode* expr) {
         UnaryNode::Operator::kDeref) {
       return true;
     }
+  } else if (expr->GetType() == StmtNode::StmtType::kArray) {
+    return true;
   }
   return false;
 }
