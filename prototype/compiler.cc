@@ -1639,7 +1639,8 @@ class StmtNode {
     kFunc,
     kCast,
     kArrayDecl,
-    kArray
+    kArray,
+    kReturn
   };
 
   StmtType GetType() { return type_; }
@@ -2258,6 +2259,21 @@ class CastNode : public ExprNode {
 
  private:
   Type* cast_type_;
+  ExprNode* expr_;
+};
+
+class ReturnNode : public StmtNode {
+ public:
+  ReturnNode() { type_ = StmtType::kReturn; }
+  void SetReturnNode(ExprNode* expr) { expr_ = expr; }
+  virtual ~ReturnNode() = default;
+
+  ExprNode* GetExpr() { return expr_; }
+
+  ReturnNode(const ReturnNode&) = default;
+  ReturnNode& operator=(const ReturnNode&) = default;
+
+ private:
   ExprNode* expr_;
 };
 
@@ -2966,6 +2982,24 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           label.SetIdentifierNode(token[index]);
           index++;
           result->SetGotoNode(label);
+          return result;
+        }
+
+        case Token::KeywordType::Return: {
+          index++;
+          ReturnNode* result = new ReturnNode();
+
+          if (token[index].type == Token::Type::OPERATOR ||
+              token[index].value._operator == Token::OperatorType::semi) {
+            result->SetReturnNode(nullptr);
+            return result;
+          }
+
+          ExprNode* return_expr = ParseExpr(token, length, index);
+          if (return_expr == nullptr)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "return_expr is nullptr.");
+          result->SetReturnNode(return_expr);
           return result;
         }
 
@@ -5465,6 +5499,14 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   if (func_decl->GetStmts() == nullptr) return;
 
+  std::size_t return_value_index =
+      global_memory_.Add(ConvertTypeToVmType(func_decl->GetReturnType()),
+                         func_decl->GetReturnType()->GetSize());
+
+  var_decl_map.emplace(
+      func_name + std::string(">!return"),
+      std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
+
   HandleStmt(func_decl->GetStmts(), code);
   Function func_decl_bytecode(func_name, code);
   func_list_.push_back(func_decl_bytecode);
@@ -5475,15 +5517,13 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
   TRACE_FUNCTION;
   if (var_decl == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
-        ")",
+        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
         "var_decl is nullptr.");
 
   Type* var_type = var_decl->GetVarType();
   if (var_type == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
-        ")",
+        "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
         "var_type is nullptr.");
 
   while (var_type->GetType() != Type::TypeType::kBase &&
@@ -5493,8 +5533,7 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     if (var_type->GetType() == Type::TypeType::NONE)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<"
-          "Bytecode>&"
-          ")",
+          "Bytecode>&)",
           "Unexpected code.");
     if (var_type->GetType() == Type::TypeType::kConst)
       var_type = dynamic_cast<ConstType*>(var_type)->GetSubType();
@@ -5759,8 +5798,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
   TRACE_FUNCTION;
   if (expr == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<Bytecode>&"
-        ")",
+        "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<Bytecode>&)",
         "expr is nullptr.");
 
   std::size_t sub_expr = HandleExpr(expr->GetExpr(), code);
@@ -6082,8 +6120,8 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
-    case BinaryNode::Operator::kComma:  // ,
-                                        // std::cout << "Comma" << std::endl;
+    case BinaryNode::Operator::kComma:    // ,
+                                          // std::cout << "Comma" << std::endl;
     case BinaryNode::Operator::kPtrMemD:  // .*
     case BinaryNode::Operator::kPtrMemI:  // ->*
     default:
@@ -6095,8 +6133,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       break;
   }
   EXIT_COMPILER(
-      "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&"
-      ")",
+      "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)",
       "Unexpected code.");
   return 0;
 }
