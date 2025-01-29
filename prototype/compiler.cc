@@ -3090,7 +3090,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
   }*/
 
   if (name->GetType() == StmtNode::StmtType::kArray) {
-    std::cout << "Array" << std::endl;
+    // std::cout << "Array" << std::endl;
     ArrayDeclNode* array_decl = new ArrayDeclNode();
     if (array_decl == nullptr)
       EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
@@ -3121,7 +3121,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
     }
     return array_decl;
   } else {
-    std::cout << "Var" << std::endl;
+    // std::cout << "Var" << std::endl;
     VarDeclNode* var_decl = new VarDeclNode();
     if (var_decl == nullptr)
       EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
@@ -5847,7 +5847,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     }
 
     case UnaryNode::Operator::ARRAY: {  // []
-      std::cout << "ARRAY" << std::endl;
+      // std::cout << "ARRAY" << std::endl;
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
       uint8_t vm_type = 0;
       std::size_t offset_expr = global_memory_.Add(0x06, 8);
@@ -6017,7 +6017,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     case BinaryNode::Operator::kAssign:  // =
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, left, right));
       if (IsDereferenced(left_expr)) {
-        std::cout << "dereferenced" << std::endl;
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       }
@@ -6083,7 +6083,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       return left;
     case BinaryNode::Operator::kComma:  // ,
-      std::cout << "Comma" << std::endl;
+                                        // std::cout << "Comma" << std::endl;
     case BinaryNode::Operator::kPtrMemD:  // .*
     case BinaryNode::Operator::kPtrMemI:  // ->*
     default:
@@ -6332,7 +6332,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
         "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
         "func is nullptr.");
 
-  std::cout << "A point" << std::endl;
+  // std::cout << "A point" << std::endl;
   ExprNode* func_name_node = func->GetName();
   if (func_name_node == nullptr)
     EXIT_COMPILER(
@@ -6349,7 +6349,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
     func_name += GetExprTypeString(args[i]);
   }
-  std::cout << "func_name: " << func_name << std::endl;
+  // std::cout << "func_name: " << func_name << std::endl;
 
   auto iterator = func_decl_map.find(func_name);
   if (iterator == func_decl_map.end())
@@ -6551,7 +6551,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
                   "expr is nullptr.");
 
   if (expr->GetType() == StmtNode::StmtType::kUnary) {
-    std::cout << "Unary" << std::endl;
+    // std::cout << "Unary" << std::endl;
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::kAddrOf) {
       return 0x06;
@@ -6616,7 +6616,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   }
 
   if (expr->GetType() == StmtNode::StmtType::kBinary) {
-    std::cout << "Binary" << std::endl;
+    // std::cout << "Binary" << std::endl;
     uint8_t left =
         GetExprVmType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
     uint8_t right =
@@ -6626,12 +6626,12 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   }
 
   if (expr->GetType() == StmtNode::StmtType::kValue) {
-    std::cout << "Value" << std::endl;
+    // std::cout << "Value" << std::endl;
     return dynamic_cast<ValueNode*>(expr)->GetVmType();
   }
 
   if (expr->GetType() == StmtNode::StmtType::kConditional) {
-    std::cout << "Conditional" << std::endl;
+    // std::cout << "Conditional" << std::endl;
     uint8_t true_value =
         GetExprVmType(dynamic_cast<ConditionalNode*>(expr)->GetTrueExpr());
     uint8_t false_value =
@@ -6641,7 +6641,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   }
 
   if (expr->GetType() == StmtNode::StmtType::kFunc) {
-    std::cout << "Func" << std::endl;
+    // std::cout << "Func" << std::endl;
     auto iterator =
         func_decl_map.find(*dynamic_cast<FuncNode*>(expr)->GetName());
     if (iterator == func_decl_map.end())
@@ -6699,7 +6699,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   }
 
   if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
-    std::cout << "Identifier" << std::endl;
+    // std::cout << "Identifier" << std::endl;
     auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
     if (iterator == var_decl_map.end())
       EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
@@ -6749,7 +6749,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
     }
   }
   if (expr->GetType() == StmtNode::StmtType::kVarDecl) {
-    std::cout << "VarDecl" << std::endl;
+    // std::cout << "VarDecl" << std::endl;
     switch (dynamic_cast<VarDeclNode*>(expr)->GetVarType()->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
@@ -6798,7 +6798,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
     return 0x06;
   }
   if (expr->GetType() == StmtNode::StmtType::kCast) {
-    std::cout << "Cast" << std::endl;
+    // std::cout << "Cast" << std::endl;
     switch (dynamic_cast<CastNode*>(expr)->GetCastType()->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
@@ -6846,7 +6846,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   if (expr->GetType() == StmtNode::StmtType::kArray) {
     return GetExprPtrValueVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
   }
-  std::cout << "Unexpected" << std::endl;
+  // std::cout << "Unexpected" << std::endl;
   EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
                 "Unexpected code.");
   return 0;

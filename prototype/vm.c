@@ -627,10 +627,11 @@ uint64_t GetUint64tData(size_t index) {
     case 0x06:
       if (index + 7 >= memory->size)
         EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
-      printf("GetUint64tData: %zu, %zu\n", index,
+      /*printf("GetUint64tData: %zu, %zu\n", index,
              is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
-                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data +
+         index)));*/
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
@@ -876,8 +877,8 @@ void SetDoubleData(size_t index, double value) {
 
 void SetUint64tData(size_t index, uint64_t value) {
   TRACE_FUNCTION;
-  printf("SetUint64tData: %zu, %zu\n", index, value);
-  // printf("Type: %hhu\n", GetType(memory, index));
+  // printf("SetUint64tData: %zu, %zu\n", index, value);
+  //  printf("Type: %hhu\n", GetType(memory, index));
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -1006,7 +1007,7 @@ int LOAD(size_t ptr, size_t operand) {
   if (GetType(memory, ptr) != 0x06)
     EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
   void* data = GetPtrData(ptr);
-  printf("LOAD: %zu\n", (uint64_t)data);
+  // printf("LOAD: %zu\n", (uint64_t)data);
   switch (GetType(memory, operand)) {
     case 0x01:
       SetByteData(operand, *(int8_t*)(data));
@@ -1027,7 +1028,7 @@ int LOAD(size_t ptr, size_t operand) {
           operand, is_big_endian ? *(double*)data : SwapDouble(*(double*)data));
       break;
     case 0x06:
-      printf("LOAD value: %zu\n", *(uint64_t*)data);
+      // printf("LOAD value: %zu\n", *(uint64_t*)data);
       SetUint64tData(operand, is_big_endian ? *(uint64_t*)data
                                             : SwapUint64t(*(uint64_t*)data));
       break;
@@ -3007,19 +3008,19 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
 int INVOKE(size_t* args) {
   TRACE_FUNCTION;
   if (args == NULL) EXIT_VM("INVOKE(size_t*)", "Invalid args.");
-  printf("INVOKE: %zu\n", args[0]);
+  // printf("INVOKE: %zu\n", args[0]);
   size_t func = args[0];
   size_t arg_count = args[1];
   size_t return_value = args[2];
   size_t* invoke_args = NULL;
-  printf("arg_count: %zu\n", arg_count);
+  // printf("arg_count: %zu\n", arg_count);
   if (arg_count > 0) {
     invoke_args = args + 3;
   }
   InternalObject args_obj = {arg_count - 1, invoke_args};
   func_ptr invoke_func = GetFunction((char*)GetPtrData(func));
   if (invoke_func != NULL) {
-    printf("invoke_func: %p\n", invoke_func);
+    // printf("invoke_func: %p\n", invoke_func);
     invoke_func(args_obj, return_value);
     return 0;
   }
@@ -3330,8 +3331,8 @@ int InvokeCustomFunction(const char* name) {
   FuncInfo func_info = GetCustomFunction(name);
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    printf("        run index: %zu, run operator: 0x%02x\n", i,
-           run_code[i].operator);
+    /*printf("        run index: %zu, run operator: 0x%02x\n", i,
+           run_code[i].operator);*/
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
