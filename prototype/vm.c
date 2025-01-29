@@ -13,7 +13,7 @@
 
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
-typedef struct StackNode {
+/*typedef struct StackNode {
   char* function_name;
   struct StackNode* next;
 } StackNode;
@@ -75,7 +75,9 @@ void TraceDestroy(Trace* trace) {
 
 #define TRACE_FUNCTION                                  \
   Trace _trace __attribute__((cleanup(TraceDestroy))) = \
-      TraceCreate(__FUNCTION__)
+      TraceCreate(__FUNCTION__)*/
+
+#define TRACE_FUNCTION
 
 typedef struct {
   size_t size;
