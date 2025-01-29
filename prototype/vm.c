@@ -626,7 +626,9 @@ uint64_t GetUint64tData(size_t index) {
       if (index + 7 >= memory->size)
         EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
       printf("GetUint64tData: %zu, %zu\n", index,
-             *(uint64_t*)((uintptr_t)memory->data + index));
+             is_big_endian
+                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index)));
       return is_big_endian
                  ? *(uint64_t*)((uintptr_t)memory->data + index)
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data + index));
@@ -873,7 +875,7 @@ void SetDoubleData(size_t index, double value) {
 void SetUint64tData(size_t index, uint64_t value) {
   TRACE_FUNCTION;
   printf("SetUint64tData: %zu, %zu\n", index, value);
-  printf("Type: %hhu\n", GetType(memory, index));
+  // printf("Type: %hhu\n", GetType(memory, index));
   switch (GetType(memory, index)) {
     case 0x01:
       if (index >= memory->size)
@@ -909,6 +911,9 @@ void SetUint64tData(size_t index, uint64_t value) {
         EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
       *(uint64_t*)((uintptr_t)memory->data + index) =
           is_big_endian ? value : SwapUint64t(value);
+
+      /*printf("SetUint64tData: %zu, %zu\n", index,
+             is_big_endian ? value : SwapUint64t(value));*/
       break;
     default:
       EXIT_VM("SetUint64tData(size_t, uint64_t)", "Invalid type.");
@@ -1005,20 +1010,24 @@ int LOAD(size_t ptr, size_t operand) {
       SetByteData(operand, *(int8_t*)(data));
       break;
     case 0x02:
-      SetIntData(operand, *(int*)data);
+      SetIntData(operand, is_big_endian ? *(int*)data : SwapInt(*(int*)data));
       break;
     case 0x03:
-      SetLongData(operand, *(long*)data);
+      SetLongData(operand,
+                  is_big_endian ? *(long*)data : SwapLong(*(long*)data));
       break;
     case 0x04:
-      SetFloatData(operand, *(float*)data);
+      SetFloatData(operand,
+                   is_big_endian ? *(float*)data : SwapFloat(*(float*)data));
       break;
     case 0x05:
-      SetDoubleData(operand, *(double*)data);
+      SetDoubleData(
+          operand, is_big_endian ? *(double*)data : SwapDouble(*(double*)data));
       break;
     case 0x06:
       printf("LOAD value: %zu\n", *(uint64_t*)data);
-      SetUint64tData(operand, *(uint64_t*)data);
+      SetUint64tData(operand, is_big_endian ? *(uint64_t*)data
+                                            : SwapUint64t(*(uint64_t*)data));
       break;
     default:
       EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
@@ -1033,19 +1042,24 @@ int STORE(size_t ptr, size_t operand) {
       *(int8_t*)data = GetByteData(operand);
       break;
     case 0x02:
-      *(int*)data = GetIntData(operand);
+      *(int*)data =
+          is_big_endian ? GetIntData(operand) : SwapInt(GetIntData(operand));
       break;
     case 0x03:
-      *(long*)data = GetLongData(operand);
+      *(long*)data =
+          is_big_endian ? GetLongData(operand) : SwapLong(GetLongData(operand));
       break;
     case 0x04:
-      *(float*)data = GetFloatData(operand);
+      *(float*)data = is_big_endian ? GetFloatData(operand)
+                                    : SwapFloat(GetFloatData(operand));
       break;
     case 0x05:
-      *(double*)data = GetDoubleData(operand);
+      *(double*)data = is_big_endian ? GetDoubleData(operand)
+                                     : SwapDouble(GetDoubleData(operand));
       break;
     case 0x06:
-      *(uint64_t*)data = GetUint64tData(operand);
+      *(uint64_t*)data = is_big_endian ? GetUint64tData(operand)
+                                       : SwapUint64t(GetUint64tData(operand));
       break;
     /*case 0x0F:
       *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
@@ -2990,16 +3004,20 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
 }
 int INVOKE(size_t* args) {
   TRACE_FUNCTION;
+  if (args == NULL) EXIT_VM("INVOKE(size_t*)", "Invalid args.");
+  printf("INVOKE: %zu\n", args[0]);
   size_t func = args[0];
   size_t arg_count = args[1];
   size_t return_value = args[2];
   size_t* invoke_args = NULL;
+  printf("arg_count: %zu\n", arg_count);
   if (arg_count > 0) {
     invoke_args = args + 3;
   }
-  InternalObject args_obj = {arg_count, invoke_args};
+  InternalObject args_obj = {arg_count - 1, invoke_args};
   func_ptr invoke_func = GetFunction((char*)GetPtrData(func));
   if (invoke_func != NULL) {
+    printf("invoke_func: %p\n", invoke_func);
     invoke_func(args_obj, return_value);
     return 0;
   }
@@ -3047,7 +3065,9 @@ int WIDE() {
 
 void print(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
-  SetIntData(return_value, printf("%s", (char*)GetPtrData(*args.index)));
+  if (args.size != 1) EXIT_VM("print(InternalObject, size_t)", "Invalid args.");
+  // printf("%zu", (uint64_t)GetUint64tData(*args.index));
+  SetIntData(return_value, printf("%s", (const char*)GetPtrData(*args.index)));
 }
 
 unsigned int hash(const char* str) {
