@@ -4617,6 +4617,7 @@ class BytecodeGenerator {
   void HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   void HandleArrayDecl(ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
   void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
+  void HandleReturn(ReturnNode* stmt, std::vector<Bytecode>& code);
   void HandleCompoundStmt(CompoundNode* stmt, std::vector<Bytecode>& code);
   void HandleIfStmt(IfNode* stmt, std::vector<Bytecode>& code);
   void HandleWhileStmt(WhileNode* stmt, std::vector<Bytecode>& code);
@@ -5499,13 +5500,18 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   if (func_decl->GetStmts() == nullptr) return;
 
-  std::size_t return_value_index =
-      global_memory_.Add(ConvertTypeToVmType(func_decl->GetReturnType()),
-                         func_decl->GetReturnType()->GetSize());
+  for (size_t i = 0; i < args.size(); i++) {
+    if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
+      HandleVarDecl(dynamic_cast<VarDeclNode*>(args[i]), code);
+    } else if (args[i]->GetType() == StmtNode::StmtType::kArrayDecl) {
+      HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(args[i]), code);
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
+                    "args is not VarDeclNode or ArrayDeclNode.");
+    }
+  }
 
-  var_decl_map.emplace(
-      func_name + std::string(">!return"),
-      std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
+  std::size_t return_location = global_memory_.Add(0x06, 8);
 
   HandleStmt(func_decl->GetStmts(), code);
   Function func_decl_bytecode(func_name, code);
@@ -6187,11 +6193,31 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       HandleFuncInvoke(dynamic_cast<FuncNode*>(stmt), code);
       break;
 
+    case StmtNode::StmtType::kReturn:
+      HandleReturn(dynamic_cast<ReturnNode*>(stmt), code);
+      break;
+
     default:
       EXIT_COMPILER(
           "BytecodeGenerator::HandleStmt(StmtNode*,std::vector<Bytecode>&)",
           "Unexpected code.");
       break;
+  }
+}
+
+void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
+                                     std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
+  if (stmt == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
+        "stmt is nullptr.");
+
+  if (stmt->GetValue() == nullptr) {
+    code.push_back(Bytecode(_AQVM_OPERATOR_RET, 0));
+  } else {
+    std::size_t return_index = HandleExpr(stmt->GetValue(), code);
+    code.push_back(Bytecode(_AQVM_OPERATOR_RET, 1, return_index));
   }
 }
 
