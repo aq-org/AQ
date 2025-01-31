@@ -3085,12 +3085,12 @@ unsigned int hash(const char* str) {
 
 void InitializeNameTable(struct LinkedList* list) {
   TRACE_FUNCTION;
-  const unsigned int name_hash = hash("print@const char*");
+  const unsigned int name_hash = hash("global::print@const char*");
   struct LinkedList* table = &list[name_hash];
   while (table->next != NULL) {
     table = table->next;
   }
-  table->pair.first = "print@const char*";
+  table->pair.first = "global::print@const char*";
   table->pair.second = print;
   table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
   AddFreePtr(table->next);
@@ -3483,7 +3483,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
 
-  InvokeCustomFunction("main");
+  InvokeCustomFunction("global::main");
 
   // printf("\nProgram finished\n");
   FreeAllPtr();
