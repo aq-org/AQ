@@ -2992,6 +2992,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           if (token[index].type == Token::Type::OPERATOR ||
               token[index].value._operator == Token::OperatorType::semi) {
             result->SetReturnNode(nullptr);
+            index++;
             return result;
           }
 
@@ -3000,6 +3001,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "return_expr is nullptr.");
           result->SetReturnNode(return_expr);
+          index++;
           return result;
         }
 
@@ -4583,6 +4585,15 @@ class BytecodeGenerator {
       TRACE_FUNCTION;
       arg_ = args;
     }
+    void SetArgs(std::size_t args_count, ...) {
+      TRACE_FUNCTION;
+      va_list args;
+      va_start(args, args_count);
+      for (std::size_t i = 0; i < args_count; i++) {
+        arg_.push_back(va_arg(args, std::size_t));
+      }
+      va_end(args);
+    }
 
    private:
     uint8_t oper_;
@@ -4654,6 +4665,7 @@ class BytecodeGenerator {
   std::vector<uint8_t> code_;
   std::size_t dereference_ptr_index_;
   std::vector<std::string> current_scope_;
+  std::vector<std::size_t> exit_index_;
 };
 
 BytecodeGenerator::BytecodeGenerator() {
@@ -5564,11 +5576,16 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
     }
   }
 
-  std::size_t return_location = global_memory_.Add(0x06, 8);
-
+  exit_index_.clear();
   HandleStmt(func_decl->GetStmts(), code);
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  std::size_t return_location = code.size();
+  for (std::size_t i = 0; i < exit_index_.size(); i++) {
+    code[exit_index_[i]].SetArgs(1, return_location);
+  }
   Function func_decl_bytecode(func_name, code);
   func_list_.push_back(func_decl_bytecode);
+  exit_index_.clear();
   current_scope_.pop_back();
 }
 
@@ -6266,17 +6283,22 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
                                      std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  /*if (stmt == nullptr)
+  if (stmt == nullptr)
     EXIT_COMPILER(
         "BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
         "stmt is nullptr.");
 
-  if (stmt->GetValue() == nullptr) {
-    code.push_back(Bytecode(_AQVM_OPERATOR_RET, 0));
+  if (stmt->GetExpr() == nullptr) {
+    exit_index_.push_back(code.size());
+    code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   } else {
-    std::size_t return_index = HandleExpr(stmt->GetValue(), code);
-    code.push_back(Bytecode(_AQVM_OPERATOR_RET, 1, return_index));
-  }*/
+    std::size_t return_value = HandleExpr(stmt->GetExpr(), code);
+    code.push_back(Bytecode(
+        _AQVM_OPERATOR_EQUAL, 2,
+        var_decl_map[current_scope_.back() + "#!return"].second, return_value));
+    exit_index_.push_back(code.size());
+    code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
+  }
 }
 
 void BytecodeGenerator::HandleCompoundStmt(CompoundNode* stmt,
