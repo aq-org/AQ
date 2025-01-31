@@ -1,10 +1,4 @@
 int print(const char* str);
 void main(){
   print("Hello World!\n");
-  while(1==1){
-    //print("A");
-    //print("A");
-    return;
-  }
-  print("A");
 }
