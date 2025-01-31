@@ -6478,6 +6478,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
     auto iterator = func_decl_map.find(current_scope_[i] + "::" + func_name);
     if (iterator != func_decl_map.end()) {
       func_decl = iterator->second;
+      func_name = current_scope_[i] + "::" + func_name;
       break;
     }
     if (i == 0)
