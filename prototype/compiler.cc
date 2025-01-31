@@ -6266,17 +6266,22 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
                                      std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  /*if (stmt == nullptr)
+  if (stmt == nullptr)
     EXIT_COMPILER(
         "BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
         "stmt is nullptr.");
 
-  if (stmt->GetValue() == nullptr) {
-    code.push_back(Bytecode(_AQVM_OPERATOR_RET, 0));
+  if (stmt->GetExpr() == nullptr) {
+    return_index.push_back(code.size());
+    code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   } else {
-    std::size_t return_index = HandleExpr(stmt->GetValue(), code);
-    code.push_back(Bytecode(_AQVM_OPERATOR_RET, 1, return_index));
-  }*/
+    std::size_t return_value = HandleExpr(stmt->GetExpr(), code);
+    code.push_back(Bytecode(
+        _AQVM_OPERATOR_EQUAL, 2,
+        var_decl_map[current_scope_.back() + "#!return"].second, return_value));
+    return_index.push_back(code.size());
+    code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
+  }
 }
 
 void BytecodeGenerator::HandleCompoundStmt(CompoundNode* stmt,
