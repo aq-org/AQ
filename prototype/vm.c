@@ -3483,7 +3483,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
 
-  InvokeCustomFunction("main");
+  InvokeCustomFunction("global::main");
 
   // printf("\nProgram finished\n");
   FreeAllPtr();
