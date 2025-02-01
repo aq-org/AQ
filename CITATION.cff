@@ -43,5 +43,5 @@ keywords:
   - simple
 license: AGPL-3.0
 commit: 'https://github.com/aq-org/AQ/releases/tag/Prototype'
-version: Prototype Preview
-date-released: '2024-09-28'
+version: v0.1.0-alpha
+date-released: '2025-02-01'
