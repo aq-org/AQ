@@ -40,7 +40,7 @@
 #define _AQVM_OPERATOR_INVOKE 0x14
 #define _AQVM_OPERATOR_EQUAL 0x15
 #define _AQVM_OPERATOR_GOTO 0x16
-#define _AQVM_OPERATOR_THROW 0x17
+#define _AQVM_OPERATOR_LOAD_CONST 0x17
 #define _AQVM_OPERATOR_WIDE 0xFF
 
 inline void EXIT_COMPILER(const char* func_name, const char* message) {
@@ -5174,9 +5174,9 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
           break;
 
-        case _AQVM_OPERATOR_THROW:
+        case _AQVM_OPERATOR_LOAD_CONST:
 
-          code_.push_back(_AQVM_OPERATOR_THROW);
+          code_.push_back(_AQVM_OPERATOR_LOAD_CONST);
           break;
 
         case _AQVM_OPERATOR_WIDE:
@@ -5461,9 +5461,9 @@ void BytecodeGenerator::GenerateMnemonicFile() {
                     << std::endl;
           break;
 
-        case _AQVM_OPERATOR_THROW:
+        case _AQVM_OPERATOR_LOAD_CONST:
 
-          std::cout << "THROW" << std::endl;
+          std::cout << "LOAD_CONST" << std::endl;
           break;
 
         case _AQVM_OPERATOR_WIDE:

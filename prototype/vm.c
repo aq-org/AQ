@@ -115,7 +115,7 @@ enum Operator {
   OPERATOR_INVOKE,
   OPERATOR_EQUAL,
   OPERATOR_GOTO,
-  OPERATOR_THROW,
+  OPERATOR_LOAD_CONST,
   OPERATOR_WIDE = 0xFF
 };
 
@@ -3057,7 +3057,7 @@ size_t GOTO(size_t location) {
   TRACE_FUNCTION;
   return location;
 }
-int THROW() {
+int LOAD_CONST() {
   TRACE_FUNCTION;
   return 0;
 }
@@ -3273,7 +3273,7 @@ void* AddFunction(void* location) {
             Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
-      case OPERATOR_THROW:
+      case OPERATOR_LOAD_CONST:
         bytecode[i].args = NULL;
         break;
 
@@ -3323,7 +3323,7 @@ func_ptr GetFunction(const char* name) {
 
 int EQUAL(size_t result, size_t value);
 size_t GOTO(size_t location);
-int THROW();
+int LOAD_CONST();
 int WIDE();
 int InvokeCustomFunction(const char* name) {
   TRACE_FUNCTION;
@@ -3407,7 +3407,7 @@ int InvokeCustomFunction(const char* name) {
         i--;
         break;
       case 0x17:
-        THROW();
+        LOAD_CONST();
         break;
       case 0xFF:
         WIDE();
