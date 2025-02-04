@@ -85,6 +85,8 @@ union Data {
   double double_data;
   uint64_t uint64t_data;
   const char* string_data;
+  struct Object* ptr_data;
+  struct Object* reference_data;
 };
 
 struct Object {
@@ -223,13 +225,13 @@ void IsBigEndian() {
   is_big_endian = (*(uint8_t*)&test_data == 0x00);
 }
 
-int SwapInt(int x) {
+/*int SwapInt(int x) {
   TRACE_FUNCTION;
   uint32_t ux = (uint32_t)x;
   ux = ((ux << 24) & 0xFF000000) | ((ux << 8) & 0x00FF0000) |
        ((ux >> 8) & 0x0000FF00) | ((ux >> 24) & 0x000000FF);
   return (int)ux;
-}
+}*/
 
 long SwapLong(long x) {
   TRACE_FUNCTION;
@@ -245,7 +247,7 @@ long SwapLong(long x) {
   return (long)ux;
 }
 
-float SwapFloat(float x) {
+/*float SwapFloat(float x) {
   TRACE_FUNCTION;
   uint32_t ux;
   memcpy(&ux, &x, sizeof(uint32_t));
@@ -254,7 +256,7 @@ float SwapFloat(float x) {
   float result;
   memcpy(&result, &ux, sizeof(float));
   return result;
-}
+}*/
 
 double SwapDouble(double x) {
   TRACE_FUNCTION;
@@ -283,7 +285,7 @@ uint64_t SwapUint64t(uint64_t x) {
   return x;
 }
 
-void* SwapPtr(void* ptr) {
+/*void* SwapPtr(void* ptr) {
   TRACE_FUNCTION;
   uint64_t x = (uintptr_t)ptr;
   x = ((x << 56) & 0xFF00000000000000ULL) |
@@ -311,13 +313,13 @@ void FreeMemory(struct Memory* memory_ptr) {
   free(memory_ptr);
 }
 
-/*int SetType(const struct Memory* memory, size_t index, uint8_t type) {
+int SetType(const struct Memory* memory, size_t index, uint8_t type) {
   if (index % 2 != 0) {
     return memory->type[index / 2] & 0x0F;
   } else {
     return (memory->type[index / 2] & 0xF0) >> 4;
   }
-}*/
+}
 
 int WriteData(const struct Memory* memory, const size_t index,
               const void* data_ptr, const size_t size) {
@@ -331,15 +333,15 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
-    /*printf("GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0x0F));*/
+    printf("GetType: %zu, Type: %d\n", index,
+           (*(memory->type + (index / 2)) & 0x0F));
     return (*(memory->type + (index / 2)) & 0x0F);
   } else {
     /*printf("GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0xF0) >> 4);*/
+           (*(memory->type + (index / 2)) & 0xF0) >> 4);
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
-}
+}*/
 
 void* GetPtrData(size_t index) {
   TRACE_FUNCTION;
@@ -347,10 +349,25 @@ void* GetPtrData(size_t index) {
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
 
   // printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
-  if (object_table[index].type == 0x04) {
-    return (void*)object_table[index].data.uint64t_data;
-  } else if (object_table[index].type == 0x05) {
+  if (object_table[index].type == 0x05) {
     return (void*)object_table[index].data.string_data;
+  } else if (object_table[index].type == 0x06) {
+    return (void*)object_table[index].data.ptr_data;
+  } else if (object_table[index].type == 0x07) {
+    struct Object reference_data = *object_table[index].data.reference_data;
+    while (true) {
+      switch (reference_data.type) {
+        case 0x05:
+          return (void*)object_table[index].data.string_data;
+        case 0x06:
+          return (void*)object_table[index].data.ptr_data;
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+        default:
+          EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
   } else {
     EXIT_VM("GetPtrData(size_t)", "Unsupported Type.");
   }
@@ -359,38 +376,35 @@ void* GetPtrData(size_t index) {
 
 int8_t GetByteData(size_t index) {
   TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("GetByteData(size_t)", "Out of memory.");
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= object_table_size)
-        EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      // printf("GetByteData: %d\n", *(int8_t*)((uintptr_t)memory->data +
-      // index));
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index >= object_table_size)
-        EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      /*printf("GetByteData: %ld\n",
-             is_big_endian
-                 ? object_table[index].data.long_data
-                 : SwapLong(object_table[index].data.long_data));*/
       return object_table[index].data.long_data;
     case 0x03:
-      if (index >= object_table_size)
-        EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      /*printf("GetByteData: %f\n",
-             is_big_endian
-                 ? object_table[index].data.double_data
-                 : SwapDouble(object_table[index].data.double_data));*/
       return object_table[index].data.double_data;
     case 0x04:
-      if (index >= object_table_size)
-        EXIT_VM("GetByteData(size_t)", "Out of memory.");
-      /*printf("GetByteData: %zu\n",
-             is_big_endian
-                 ? object_table[index].data.uint64t_data
-                 : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data +
-         index)));*/
       return object_table[index].data.uint64t_data;
+    case 0x06: {
+      struct Object reference_data = *object_table[index].data.reference_data;
+      switch (reference_data.type) {
+        case 0x01:
+          return reference_data.data.byte_data;
+        case 0x02:
+          return reference_data.data.long_data;
+        case 0x03:
+          return reference_data.data.double_data;
+        case 0x04:
+          return reference_data.data.uint64t_data;
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+        default:
+          EXIT_VM("GetByteData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
     default:
       EXIT_VM("GetByteData(size_t)", "Invalid type.");
       break;
@@ -426,23 +440,35 @@ int8_t GetByteData(size_t index) {
 
 long GetLongData(size_t index) {
   TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("GetLongData(size_t)", "Out of memory.");
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= object_table_size)
-        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index >= object_table_size)
-        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index >= object_table_size)
-        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index >= object_table_size)
-        EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
+    case 0x06: {
+      struct Object reference_data = *object_table[index].data.reference_data;
+      switch (reference_data.type) {
+        case 0x01:
+          return reference_data.data.byte_data;
+        case 0x02:
+          return reference_data.data.long_data;
+        case 0x03:
+          return reference_data.data.double_data;
+        case 0x04:
+          return reference_data.data.uint64t_data;
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+        default:
+          EXIT_VM("GetLongData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
     default:
       EXIT_VM("GetLongData(size_t)", "Invalid type.");
       break;
@@ -478,25 +504,38 @@ long GetLongData(size_t index) {
 
 double GetDoubleData(size_t index) {
   TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("GetLongData(size_t)", "Out of memory.");
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= object_table_size)
-        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index >= object_table_size)
-        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index >= object_table_size)
-        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index >= object_table_size)
-        EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
+    case 0x06: {
+      struct Object reference_data = *object_table[index].data.reference_data;
+      switch (reference_data.type) {
+        case 0x01:
+          return reference_data.data.byte_data;
+        case 0x02:
+          return reference_data.data.long_data;
+        case 0x03:
+          return reference_data.data.double_data;
+        case 0x04:
+          return reference_data.data.uint64t_data;
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+          break;
+        default:
+          EXIT_VM("GetLongData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
     default:
-      EXIT_VM("GetDoubleData(size_t)", "Invalid type.");
+      EXIT_VM("GetLongData(size_t)", "Invalid type.");
       break;
   }
   return -1;
@@ -504,25 +543,38 @@ double GetDoubleData(size_t index) {
 
 uint64_t GetUint64tData(size_t index) {
   TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("GetLongData(size_t)", "Out of memory.");
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= object_table_size)
-        EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index >= object_table_size)
-        EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index >= object_table_size)
-        EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index >= object_table_size)
-        EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
+    case 0x06: {
+      struct Object reference_data = *object_table[index].data.reference_data;
+      switch (reference_data.type) {
+        case 0x01:
+          return reference_data.data.byte_data;
+        case 0x02:
+          return reference_data.data.long_data;
+        case 0x03:
+          return reference_data.data.double_data;
+        case 0x04:
+          return reference_data.data.uint64t_data;
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+          break;
+        default:
+          EXIT_VM("GetLongData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
     default:
-      EXIT_VM("GetIntData(size_t)", "Invalid type.");
+      EXIT_VM("GetLongData(size_t)", "Invalid type.");
       break;
   }
   return 0;
@@ -535,6 +587,22 @@ const char* GetStringData(size_t index) {
       if (index >= object_table_size)
         EXIT_VM("GetStringData(size_t)", "Out of memory.");
       return object_table[index].data.string_data;
+
+    case 0x07: {
+      struct Object reference_data = *object_table[index].data.reference_data;
+      while (true) {
+        switch (reference_data.type) {
+          case 0x05:
+            return reference_data.data.string_data;
+          case 0x07:
+            reference_data = *reference_data.data.reference_data;
+            break;
+          default:
+            EXIT_VM("GetStringData(size_t)", "Unsupported type.");
+            break;
+        }
+      }
+    }
     default:
       EXIT_VM("GetStringData(size_t)", "Invalid type.");
       break;
@@ -547,8 +615,8 @@ void SetPtrData(size_t index, void* ptr) {
   if (index >= object_table_size)
     EXIT_VM("SetPtrData(size_t, void*)", "Out of memory.");
 
-  object_table[index].type = 0x04;
-  object_table[index].data.uint64t_data = (uint64_t)ptr;
+  object_table[index].type = 0x06;
+  object_table[index].data.ptr_data = ptr;
 }
 
 void SetByteData(size_t index, int8_t value) {
@@ -666,6 +734,12 @@ void SetStringData(size_t index, const char* string) {
   object_table[index].data.string_data = string;
 }
 
+void SetReferenceData(size_t index, struct Object* object) {
+  TRACE_FUNCTION;
+  object_table[index].type = 0x07;
+  object_table[index].data.reference_data = object;
+}
+
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
   TRACE_FUNCTION;
   *result = 0;
@@ -779,22 +853,16 @@ int STORE(size_t ptr, size_t operand) {
       *(int8_t*)data = GetByteData(operand);
       break;
     case 0x02:
-      *(int*)data = GetIntData(operand) : SwapInt(GetIntData(operand));
+      *(long*)data = GetLongData(operand);
       break;
     case 0x03:
-      *(long*)data = GetLongData(operand) : SwapLong(GetLongData(operand));
+      *(double*)data = GetDoubleData(operand);
       break;
     case 0x04:
-      *(float*)data = GetFloatData(operand) : SwapFloat(GetFloatData(operand));
+      *(uint64_t*)data = GetUint64tData(operand);
       break;
     case 0x05:
-      *(double*)data =
-          GetDoubleData(operand) : SwapDouble(GetDoubleData(operand));
-      break;
-    case 0x06:
-      *(uint64_t*)data =
-          GetUint64tData(operand) : SwapUint64t(GetUint64tData(operand));
-      break;
+      *(const char**)data = GetStringData(operand);
     /*case 0x0F:
       *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
       break;*/
@@ -806,19 +874,21 @@ int STORE(size_t ptr, size_t operand) {
 int NEW(size_t ptr, size_t size) {
   TRACE_FUNCTION;
   size_t size_value = GetUint64tData(size);
-  void* data = malloc(size_value);
-  WriteData(memory, ptr, &data, sizeof(data));
+  void* data = calloc(size_value, sizeof(struct Object));
+  object_table[ptr].type = 0x04;
+  object_table[ptr].data.uint64t_data = (uint64_t)data;
+  // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
 int FREE(size_t ptr) {
-  free(*(void**)((uintptr_t)memory->data + ptr));
+  free(GetPtrData(ptr));
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
   TRACE_FUNCTION;
   // printf("index: %zu\n", index);
   // printf("PTR: %p\n", (void*)((uintptr_t)memory->data + index));
-  SetPtrData(ptr, (void*)((uintptr_t)memory->data + index));
+  SetPtrData(ptr, object_table + index);
   return 0;
 }
 int ADD(size_t result, size_t operand1, size_t operand2) {
