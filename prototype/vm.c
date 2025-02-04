@@ -329,7 +329,7 @@ int WriteData(const struct Memory* memory, const size_t index,
 
 uint8_t GetType(const struct Memory* memory, size_t index) {
   TRACE_FUNCTION;
-  if (index >= memory->size) EXIT_VM("GetType(size_t)", "Out of memory.");
+  if (index >= object_table_size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
     /*printf("GetType: %zu, Type: %d\n", index,
            (*(memory->type + (index / 2)) & 0x0F));*/
@@ -343,7 +343,7 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
 
 void* GetPtrData(size_t index) {
   TRACE_FUNCTION;
-  if (index + 7 >= object_table_size)
+  if (index >= object_table_size)
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
 
   // printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
@@ -367,27 +367,27 @@ int8_t GetByteData(size_t index) {
       // index));
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index + 7 >= object_table_size)
+      if (index >= object_table_size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
       /*printf("GetByteData: %ld\n",
              is_big_endian
-                 ? *(long*)((uintptr_t)memory->data + index)
-                 : SwapLong(*(long*)((uintptr_t)memory->data + index)));*/
+                 ? object_table[index].data.long_data
+                 : SwapLong(object_table[index].data.long_data));*/
       return object_table[index].data.long_data;
     case 0x03:
-      if (index + 7 >= object_table_size)
+      if (index >= object_table_size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
       /*printf("GetByteData: %f\n",
              is_big_endian
-                 ? *(double*)((uintptr_t)memory->data + index)
-                 : SwapDouble(*(double*)((uintptr_t)memory->data + index)));*/
+                 ? object_table[index].data.double_data
+                 : SwapDouble(object_table[index].data.double_data));*/
       return object_table[index].data.double_data;
     case 0x04:
-      if (index + 7 >= object_table_size)
+      if (index >= object_table_size)
         EXIT_VM("GetByteData(size_t)", "Out of memory.");
       /*printf("GetByteData: %zu\n",
              is_big_endian
-                 ? *(uint64_t*)((uintptr_t)memory->data + index)
+                 ? object_table[index].data.uint64t_data
                  : SwapUint64t(*(uint64_t*)((uintptr_t)memory->data +
          index)));*/
       return object_table[index].data.uint64t_data;
@@ -402,19 +402,19 @@ int8_t GetByteData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
     default:
@@ -428,19 +428,19 @@ long GetLongData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetLongData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
     default:
@@ -454,19 +454,19 @@ long GetLongData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetFloatData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
     default:
@@ -480,19 +480,19 @@ double GetDoubleData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
     default:
@@ -506,19 +506,19 @@ uint64_t GetUint64tData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type) {
     case 0x01:
-      if (index >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.byte_data;
     case 0x02:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.long_data;
     case 0x03:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.double_data;
     case 0x04:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
       return object_table[index].data.uint64t_data;
     default:
@@ -532,7 +532,7 @@ const char* GetStringData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type) {
     case 0x05:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("GetStringData(size_t)", "Out of memory.");
       return object_table[index].data.string_data;
     default:
@@ -544,284 +544,126 @@ const char* GetStringData(size_t index) {
 
 void SetPtrData(size_t index, void* ptr) {
   TRACE_FUNCTION;
-  if (index + 7 >= memory->size)
+  if (index >= object_table_size)
     EXIT_VM("SetPtrData(size_t, void*)", "Out of memory.");
-  *(void**)((uintptr_t)memory->data + index) =
-      is_big_endian ? ptr : SwapPtr(ptr);
+
+  object_table[index].type = 0x04;
+  object_table[index].data.uint64t_data = (uint64_t)ptr;
 }
 
 void SetByteData(size_t index, int8_t value) {
   TRACE_FUNCTION;
   // printf("SetByteData: %zu, value: %d\n", index, value);
-  switch (GetType(memory, index)) {
-    case 0x01:
-      if (index >= memory->size)
-        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
-      *(int8_t*)((uintptr_t)memory->data + index) = value;
-      break;
-    case 0x02:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
-      *(int*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapInt(value);
-      break;
-    case 0x03:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
-      *(long*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapLong(value);
-      break;
-    case 0x04:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
-      *(float*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapFloat(value);
-      break;
-    case 0x05:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
-      *(double*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapDouble(value);
-      break;
-    case 0x06:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetByteData(size_t, int8_t)", "Out of memory.");
-      *(uint64_t*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapUint64t(value);
-      break;
-    default:
-      EXIT_VM("SetByteData(size_t, int8_t)", "Invalid type.");
-      break;
-  }
+  object_table[index].type = 0x01;
+  object_table[index].data.byte_data = value;
 }
 
-void SetIntData(size_t index, int value) {
+/*void SetIntData(size_t index, int value) {
   TRACE_FUNCTION;
   // printf("SetIntData: %zu, value: %d\n", index, value);
-  switch (GetType(memory, index)) {
+  switch (object_table[index].type) {
     case 0x01:
-      if (index >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
-      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      object_table[index].data.byte_data = value;
       break;
     case 0x02:
-      if (index + 3 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
-      *(int*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapInt(value);
+      *(int*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x03:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
-      *(long*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapLong(value);
+      object_table[index].data.long_data = value;
       break;
     case 0x04:
-      if (index + 3 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
-      *(float*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapFloat(value);
+      *(float*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x05:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
-      *(double*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapDouble(value);
+      object_table[index].data.double_data = value;
       break;
     case 0x06:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
-      *(uint64_t*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapUint64t(value);
+      object_table[index].data.uint64t_data = value;
       break;
     default:
       EXIT_VM("SetIntData(size_t, int)", "Invalid type.");
       break;
   }
   // printf("SetIntData: %zu, Result: %d\n", index, GetIntData(index));
-}
+}*/
 
 void SetLongData(size_t index, long value) {
   // printf("SetLongData: %ld\n", value);
-  switch (GetType(memory, index)) {
-    case 0x01:
-      if (index >= memory->size)
-        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
-      *(int8_t*)((uintptr_t)memory->data + index) = value;
-      break;
-    case 0x02:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
-      *(int*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapInt(value);
-      break;
-    case 0x03:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
-      *(long*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapLong(value);
-      break;
-    case 0x04:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
-      *(float*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapFloat(value);
-      break;
-    case 0x05:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
-      *(double*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapDouble(value);
-      break;
-    case 0x06:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetLongData(size_t, long)", "Out of memory.");
-      *(uint64_t*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapUint64t(value);
-      break;
-    default:
-      EXIT_VM("SetLongData(size_t, long)", "Invalid type.");
-      break;
-  }
+  object_table[index].type = 0x02;
+  object_table[index].data.long_data = value;
 }
 
-void SetFloatData(size_t index, float value) {
+/*void SetFloatData(size_t index, float value) {
   TRACE_FUNCTION;
   // printf("SetFloatData: %f\n", value);
-  switch (GetType(memory, index)) {
+  switch (object_table[index].type) {
     case 0x01:
-      if (index >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
-      *(int8_t*)((uintptr_t)memory->data + index) = value;
+      object_table[index].data.byte_data = value;
       break;
     case 0x02:
-      if (index + 3 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
-      *(int*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapInt(value);
+      *(int*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x03:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
-      *(long*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapLong(value);
+      object_table[index].data.long_data = value;
       break;
     case 0x04:
-      if (index + 3 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
-      *(float*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapFloat(value);
+      *(float*)((uintptr_t)memory->data + index) = value;
       break;
     case 0x05:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
-      *(double*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapDouble(value);
+      object_table[index].data.double_data = value;
       break;
     case 0x06:
-      if (index + 7 >= memory->size)
+      if (index >= object_table_size)
         EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
-      *(uint64_t*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapUint64t(value);
+      object_table[index].data.uint64t_data = value;
       break;
     default:
       EXIT_VM("SetFloatData(size_t, float)", "Invalid type.");
       break;
   }
-}
+}*/
 
 void SetDoubleData(size_t index, double value) {
   TRACE_FUNCTION;
   // printf("SetDoubleData: %f\n", value);
-  switch (GetType(memory, index)) {
-    case 0x01:
-      if (index >= memory->size)
-        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
-      *(int8_t*)((uintptr_t)memory->data + index) = value;
-      break;
-    case 0x02:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
-      *(int*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapInt(value);
-      break;
-    case 0x03:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
-      *(long*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapLong(value);
-      break;
-    case 0x04:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
-      *(float*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapFloat(value);
-      break;
-    case 0x05:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
-      *(double*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapDouble(value);
-      break;
-    case 0x06:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetDoubleData(size_t, double)", "Out of memory.");
-      *(uint64_t*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapUint64t(value);
-      break;
-    default:
-      EXIT_VM("SetDoubleData(size_t, double)", "Invalid type.");
-      break;
-  }
+  object_table[index].type = 0x03;
+  object_table[index].data.double_data = value;
 }
 
 void SetUint64tData(size_t index, uint64_t value) {
   TRACE_FUNCTION;
   // printf("SetUint64tData: %zu, %zu\n", index, value);
-  //  printf("Type: %hhu\n", GetType(memory, index));
-  switch (GetType(memory, index)) {
-    case 0x01:
-      if (index >= memory->size)
-        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
-      *(int8_t*)((uintptr_t)memory->data + index) = value;
-      break;
-    case 0x02:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
-      *(int*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapInt(value);
-      break;
-    case 0x03:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
-      *(long*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapLong(value);
-      break;
-    case 0x04:
-      if (index + 3 >= memory->size)
-        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
-      *(float*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapFloat(value);
-      break;
-    case 0x05:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
-      *(double*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapDouble(value);
-      break;
-    case 0x06:
-      if (index + 7 >= memory->size)
-        EXIT_VM("SetUint64tData(size_t, uint64_t)", "Out of memory.");
-      *(uint64_t*)((uintptr_t)memory->data + index) =
-          is_big_endian ? value : SwapUint64t(value);
+  //  printf("Type: %hhu\n", object_table[index].type);
+  object_table[index].type = 0x04;
+  object_table[index].data.uint64t_data = value;
+}
 
-      /*printf("SetUint64tData: %zu, %zu\n", index,
-             is_big_endian ? value : SwapUint64t(value));*/
-      break;
-    default:
-      EXIT_VM("SetUint64tData(size_t, uint64_t)", "Invalid type.");
-      break;
-  }
+void SetStringData(size_t index, const char* string) {
+  TRACE_FUNCTION;
+  object_table[index].type = 0x05;
+  object_table[index].data.string_data = string;
 }
 
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
@@ -937,24 +779,21 @@ int STORE(size_t ptr, size_t operand) {
       *(int8_t*)data = GetByteData(operand);
       break;
     case 0x02:
-      *(int*)data =
-          is_big_endian ? GetIntData(operand) : SwapInt(GetIntData(operand));
+      *(int*)data = GetIntData(operand) : SwapInt(GetIntData(operand));
       break;
     case 0x03:
-      *(long*)data =
-          is_big_endian ? GetLongData(operand) : SwapLong(GetLongData(operand));
+      *(long*)data = GetLongData(operand) : SwapLong(GetLongData(operand));
       break;
     case 0x04:
-      *(float*)data = is_big_endian ? GetFloatData(operand)
-                                    : SwapFloat(GetFloatData(operand));
+      *(float*)data = GetFloatData(operand) : SwapFloat(GetFloatData(operand));
       break;
     case 0x05:
-      *(double*)data = is_big_endian ? GetDoubleData(operand)
-                                     : SwapDouble(GetDoubleData(operand));
+      *(double*)data =
+          GetDoubleData(operand) : SwapDouble(GetDoubleData(operand));
       break;
     case 0x06:
-      *(uint64_t*)data = is_big_endian ? GetUint64tData(operand)
-                                       : SwapUint64t(GetUint64tData(operand));
+      *(uint64_t*)data =
+          GetUint64tData(operand) : SwapUint64t(GetUint64tData(operand));
       break;
     /*case 0x0F:
       *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
@@ -3021,7 +2860,7 @@ void* AddFunction(void* location) {
   // (uintptr_t)original_location);
 
   table->pair.second.commands_size =
-      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+      *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
   // printf("point 3\n");
@@ -3357,16 +3196,16 @@ int main(int argc, char* argv[]) {
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
   /*memory = (struct Memory*)malloc(sizeof(struct Memory));
-  memory->size = is_big_endian ? *(uint64_t*)bytecode_file
+  object_table_size =  *(uint64_t*)bytecode_file
                                : SwapUint64t(*(uint64_t*)bytecode_file);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
   memory->data = bytecode_file;
-  bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size);
+  bytecode_file = (void*)((uintptr_t)bytecode_file + object_table_size);
   memory->type = bytecode_file;
-  if (memory->size % 2 != 0) {
-    bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2 + 1);
-  } else {
-    bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2);
+  if (object_table_size % 2 != 0) {
+    bytecode_file = (void*)((uintptr_t)bytecode_file + object_table_size / 2 +
+  1); } else { bytecode_file = (void*)((uintptr_t)bytecode_file +
+  object_table_size / 2);
   }*/
 
   const_object_table_size = is_big_endian
@@ -3393,16 +3232,16 @@ int main(int argc, char* argv[]) {
       case 0x02:
         const_object_table[i].data.long_data = *(long*)bytecode_file;
         const_object_table[i].data.long_data =
-            is_big_endian ? const_object_table[i].data.long_data
-                          : SwapLong(const_object_table[i].data.long_data);
+            const_object_table[i].data.long_data
+            : SwapLong(const_object_table[i].data.long_data);
         bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
         break;
 
       case 0x03:
         const_object_table[i].data.double_data = *(double*)bytecode_file;
         const_object_table[i].data.double_data =
-            is_big_endian ? const_object_table[i].data.double_data
-                          : SwapDouble(const_object_table[i].data.double_data);
+            const_object_table[i].data.double_data
+            : SwapDouble(const_object_table[i].data.double_data);
         bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
         break;
 
@@ -3430,8 +3269,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  object_table_size = is_big_endian ? *(uint64_t*)bytecode_file
-                                    : SwapUint64t(*(uint64_t*)bytecode_file);
+  object_table_size =
+      *(uint64_t*)bytecode_file : SwapUint64t(*(uint64_t*)bytecode_file);
 
   object_table =
       (struct Object*)calloc(object_table_size, sizeof(struct Object));
