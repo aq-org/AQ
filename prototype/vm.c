@@ -822,23 +822,29 @@ int LOAD(size_t ptr, size_t operand) {
   TRACE_FUNCTION;
   if (object_table[operand].type != 0x06)
     EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
-  void* data = (void*)object_table[ptr].data.uint64t_data;
+  struct Object data = *object_table[ptr].data.ptr_data;
   // printf("LOAD: %zu\n", (uint64_t)data);
-  switch (object_table[operand].type) {
+  switch (object_table[ptr].data.ptr_data->type) {
     case 0x01:
-      object_table[operand].data.byte_data = *(int8_t*)operand;
+      object_table[operand].data.byte_data = data.data.byte_data;
       break;
     case 0x02:
-      object_table[operand].data.byte_data = *(long*)operand;
+      object_table[operand].data.byte_data = data.data.long_data;
       break;
     case 0x03:
-      object_table[operand].data.byte_data = *(double*)operand;
+      object_table[operand].data.byte_data = data.data.double_data;
       break;
     case 0x04:
-      object_table[operand].data.uint64t_data = *(uint64_t*)operand;
+      object_table[operand].data.uint64t_data = data.data.uint64t_data;
       break;
     case 0x05:
-      object_table[operand].data.string_data = *(const char**)operand;
+      object_table[operand].data.string_data = data.data.string_data;
+      break;
+    case 0x06:
+      object_table[operand].data.ptr_data = data.data.ptr_data;
+      break;
+    case 0x07:
+      object_table[operand].data.reference_data = data.data.reference_data;
       break;
     default:
       EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
@@ -847,27 +853,36 @@ int LOAD(size_t ptr, size_t operand) {
 }
 int STORE(size_t ptr, size_t operand) {
   TRACE_FUNCTION;
-  void* data = GetPtrData(ptr);
-  switch (GetType(memory, operand)) {
+  struct Object* data = GetPtrData(ptr);
+  data->type =object_table[operand].type;
+  switch (data->type) {
     case 0x01:
-      *(int8_t*)data = GetByteData(operand);
+      data->data.byte_data = GetByteData(operand);
       break;
     case 0x02:
-      *(long*)data = GetLongData(operand);
+      data->data.long_data = GetLongData(operand);
       break;
     case 0x03:
-      *(double*)data = GetDoubleData(operand);
+      data->data.double_data = GetDoubleData(operand);
       break;
     case 0x04:
-      *(uint64_t*)data = GetUint64tData(operand);
+      data->data.uint64t_data = GetUint64tData(operand);
       break;
     case 0x05:
-      *(const char**)data = GetStringData(operand);
+      data->data.string_data = GetStringData(operand);
+      break;
+    case 0x06:
+      data->data.ptr_data = GetPtrData(operand);
+      break;
+    case 0x07:
+      data->data.reference_data = object_table[operand].data.reference_data;
+      break;
     /*case 0x0F:
       *(void**)((uintptr_t)memory->data + ptr) = GetPtrData(operand);
       break;*/
     default:
       EXIT_VM("STORE(size_t, size_t)", "Invalid type.");
+      break;
   }
   return 0;
 }
@@ -875,8 +890,8 @@ int NEW(size_t ptr, size_t size) {
   TRACE_FUNCTION;
   size_t size_value = GetUint64tData(size);
   void* data = calloc(size_value, sizeof(struct Object));
-  object_table[ptr].type = 0x04;
-  object_table[ptr].data.uint64t_data = (uint64_t)data;
+  object_table[ptr].type = 0x06;
+  object_table[ptr].data.uint64t_data = data;
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
