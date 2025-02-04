@@ -87,21 +87,18 @@ union Data {
   const char* string_data;
 };
 
-struct ConstObject {
-  uint8_t type;
-  union Data data;
-};
-
 struct Object {
   uint8_t type;
   union Data data;
 };
 
-struct ConstObject* const_object_table;
+struct Object* const_object_table;
 
-uint64_t const_object_table_size;
+size_t const_object_table_size;
 
 struct Object* object_table;
+
+size_t object_table_size;
 
 typedef struct {
   size_t size;
@@ -3081,8 +3078,15 @@ size_t GOTO(size_t location) {
   TRACE_FUNCTION;
   return location;
 }
-int LOAD_CONST() {
+int LOAD_CONST(size_t object, size_t const_object) {
   TRACE_FUNCTION;
+  if (object >= object_table_size)
+    EXIT_VM("LOAD_CONST(size_t,size_t)", "Out of object_table_size.");
+  if (const_object >= const_object_table_size)
+    EXIT_VM("LOAD_CONST(size_t,size_t)", "Out of const_object_table_size.");
+
+  object_table[object] = const_object_table[const_object];
+
   return 0;
 }
 int WIDE() {
@@ -3347,7 +3351,7 @@ func_ptr GetFunction(const char* name) {
 
 int EQUAL(size_t result, size_t value);
 size_t GOTO(size_t location);
-int LOAD_CONST();
+int LOAD_CONST(size_t object, size_t const_object);
 int WIDE();
 int InvokeCustomFunction(const char* name) {
   TRACE_FUNCTION;
@@ -3431,7 +3435,7 @@ int InvokeCustomFunction(const char* name) {
         i--;
         break;
       case 0x17:
-        LOAD_CONST();
+        LOAD_CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0xFF:
         WIDE();
@@ -3498,8 +3502,11 @@ int main(int argc, char* argv[]) {
                                 ? *(uint64_t*)bytecode_file
                                 : SwapUint64t(*(uint64_t*)bytecode_file);
 
-  const_object_table = (struct ConstObject*)malloc(const_object_table_size *
-                                                   sizeof(struct ConstObject));
+  const_object_table =
+      (struct Object*)malloc(const_object_table_size * sizeof(struct Object));
+
+  if (const_object_table == NULL)
+    EXIT_VM("main(int,char**)", "const_object_table malloc failed.");
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
@@ -3552,6 +3559,17 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  object_table_size = is_big_endian ? *(uint64_t*)bytecode_file
+                                    : SwapUint64t(*(uint64_t*)bytecode_file);
+
+  object_table =
+      (struct Object*)calloc(object_table_size, sizeof(struct Object));
+
+  if (object_table == NULL)
+    EXIT_VM("main(int,char**)", "object_table calloc failed.");
+
+  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+
   while (bytecode_file < bytecode_end) {
     // printf("bytecode_file: %p\n", bytecode_file);
     // printf("bytecode_end: %p\n", bytecode_end);
@@ -3569,8 +3587,10 @@ int main(int argc, char* argv[]) {
 
   // printf("\nProgram finished\n");
   FreeAllPtr();
-  FreeMemory(memory);
+  // FreeMemory(memory);
   free(bytecode_begin);
+  free(object_table);
+  free(const_object_table);
 
   time_t end_time = clock();
 
