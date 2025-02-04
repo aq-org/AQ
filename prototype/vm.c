@@ -79,6 +79,30 @@ void TraceDestroy(Trace* trace) {
 
 #define TRACE_FUNCTION
 
+union Data {
+  int8_t byte_data;
+  long long_data;
+  double double_data;
+  uint64_t uint64t_data;
+  const char* string_data;
+};
+
+struct ConstObject {
+  uint8_t type;
+  union Data data;
+};
+
+struct Object {
+  uint8_t type;
+  union Data data;
+};
+
+struct ConstObject* const_object_table;
+
+uint64_t const_object_table_size;
+
+struct Object* object_table;
+
 typedef struct {
   size_t size;
   size_t* index;
@@ -3457,7 +3481,7 @@ int main(int argc, char* argv[]) {
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
-  memory = (struct Memory*)malloc(sizeof(struct Memory));
+  /*memory = (struct Memory*)malloc(sizeof(struct Memory));
   memory->size = is_big_endian ? *(uint64_t*)bytecode_file
                                : SwapUint64t(*(uint64_t*)bytecode_file);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
@@ -3468,6 +3492,64 @@ int main(int argc, char* argv[]) {
     bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2 + 1);
   } else {
     bytecode_file = (void*)((uintptr_t)bytecode_file + memory->size / 2);
+  }*/
+
+  const_object_table_size = is_big_endian
+                                ? *(uint64_t*)bytecode_file
+                                : SwapUint64t(*(uint64_t*)bytecode_file);
+
+  const_object_table = (struct ConstObject*)malloc(const_object_table_size *
+                                                   sizeof(struct ConstObject));
+
+  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+
+  for (size_t i = 0; i < const_object_table_size; i++) {
+    const_object_table[i].type = *(uint8_t*)bytecode_file;
+    bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    switch (const_object_table[i].type) {
+      case 0x01:
+        const_object_table[i].data.byte_data = *(int8_t*)bytecode_file;
+        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+        break;
+
+      case 0x02:
+        const_object_table[i].data.long_data = *(long*)bytecode_file;
+        const_object_table[i].data.long_data =
+            is_big_endian ? const_object_table[i].data.long_data
+                          : SwapLong(const_object_table[i].data.long_data);
+        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+        break;
+
+      case 0x03:
+        const_object_table[i].data.double_data = *(double*)bytecode_file;
+        const_object_table[i].data.double_data =
+            is_big_endian ? const_object_table[i].data.double_data
+                          : SwapDouble(const_object_table[i].data.double_data);
+        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+        break;
+
+      case 0x04:
+        const_object_table[i].data.uint64t_data = *(uint64_t*)bytecode_file;
+        const_object_table[i].data.uint64t_data =
+            is_big_endian
+                ? const_object_table[i].data.uint64t_data
+                : SwapUint64t(const_object_table[i].data.uint64t_data);
+        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+        break;
+
+      case 0x05: {
+        size_t str_size = 0;
+        bytecode_file = (void*)((uintptr_t)bytecode_file +
+                                DecodeUleb128(bytecode_file, &str_size));
+        const_object_table[i].data.string_data = bytecode_file;
+        bytecode_file = (void*)((uintptr_t)bytecode_file + str_size);
+        break;
+      }
+
+      default:
+        EXIT_VM("main(int,char**)", "Unknown type.");
+        break;
+    }
   }
 
   while (bytecode_file < bytecode_end) {
