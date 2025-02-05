@@ -11,8 +11,6 @@
 #include <string.h>
 #include <time.h>
 
-#include <cstdint>
-
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
 /*typedef struct StackNode {
@@ -978,6 +976,17 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
+    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+      EXIT_VM("ADD(size_t,size_t,size_t)", "Unsupported type.");
+    result_data->type = operand1_data->type > operand2_data->type
+                            ? operand1_data->type
+                            : operand2_data->type;
+    switch (result_data->type) {
+      // TODO
+      default:
+        EXIT_VM("ADD(size_t,size_t,size_t)", "Unexpected type.");
+        break;
+    }
   }
   return 0;
 }
