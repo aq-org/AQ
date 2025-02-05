@@ -11,6 +11,8 @@
 #include <string.h>
 #include <time.h>
 
+#include <cstdint>
+
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
 /*typedef struct StackNode {
@@ -854,7 +856,7 @@ int LOAD(size_t ptr, size_t operand) {
 int STORE(size_t ptr, size_t operand) {
   TRACE_FUNCTION;
   struct Object* data = GetPtrData(ptr);
-  data->type =object_table[operand].type;
+  data->type = object_table[operand].type;
   switch (data->type) {
     case 0x01:
       data->data.byte_data = GetByteData(operand);
@@ -891,7 +893,7 @@ int NEW(size_t ptr, size_t size) {
   size_t size_value = GetUint64tData(size);
   void* data = calloc(size_value, sizeof(struct Object));
   object_table[ptr].type = 0x06;
-  object_table[ptr].data.uint64t_data = data;
+  object_table[ptr].data.ptr_data = data;
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
@@ -908,139 +910,75 @@ int PTR(size_t index, size_t ptr) {
 }
 int ADD(size_t result, size_t operand1, size_t operand2) {
   TRACE_FUNCTION;
-  if (GetType(memory, result) == 0x0F && (GetType(memory, operand1) == 0x0F ||
-                                          GetType(memory, operand2) == 0x0F)) {
-    if (GetType(memory, operand1) == 0x0F) {
-      SetPtrData(result, (void*)((uintptr_t)GetPtrData(operand1) +
-                                 GetLongData(operand2)));
-    } else if (GetType(memory, operand2) == 0x0F) {
-      SetPtrData(result, (void*)((uintptr_t)GetPtrData(operand2) +
-                                 GetLongData(operand1)));
-    }
-  } else if (GetType(memory, result) == 0x06 ||
-             GetType(memory, operand1) == 0x06 ||
-             GetType(memory, operand2) == 0x06) {
-    switch (GetType(memory, result)) {
+  if (result >= object_table_size)
+    EXIT_VM("ADD(size_t,size_t,size_t)", "Out of object_table_size.");
+  if (operand1 >= object_table_size)
+    EXIT_VM("ADD(size_t,size_t,size_t)", "Out of object_table_size.");
+  if (operand2 >= object_table_size)
+    EXIT_VM("ADD(size_t,size_t,size_t)", "Out of object_table_size.");
+
+  struct Object* result_data = object_table + result;
+  struct Object* operand1_data = object_table + operand1;
+  struct Object* operand2_data = object_table + operand2;
+
+  while (result_data->type == 0x07)
+    result_data = result_data->data.reference_data;
+  while (operand1_data->type == 0x07)
+    operand1_data = operand1_data->data.reference_data;
+  while (operand2_data->type == 0x07)
+    operand2_data = operand2_data->data.reference_data;
+
+  if (operand1_data->type == operand2_data->type) {
+    switch (operand1_data->type) {
       case 0x01:
-        SetByteData(result,
-                    GetUint64tData(operand1) + GetUint64tData(operand2));
+        if (operand1_data->data.byte_data + operand1_data->data.byte_data >
+                INT8_MAX ||
+            operand1_data->data.byte_data + operand1_data->data.byte_data <
+                INT8_MIN) {
+          result_data->type = 0x02;
+          result_data->data.long_data =
+              operand1_data->data.byte_data + operand1_data->data.byte_data;
+        } else {
+          result_data->type = 0x01;
+          result_data->data.byte_data =
+              operand1_data->data.byte_data + operand1_data->data.byte_data;
+        }
         break;
       case 0x02:
-        SetIntData(result, GetUint64tData(operand1) + GetUint64tData(operand2));
+        result_data->type = 0x02;
+        result_data->data.long_data =
+            operand1_data->data.long_data + operand1_data->data.long_data;
         break;
       case 0x03:
-        SetLongData(result,
-                    GetUint64tData(operand1) + GetUint64tData(operand2));
+        result_data->type = 0x03;
+        result_data->data.double_data =
+            operand1_data->data.double_data + operand1_data->data.double_data;
         break;
       case 0x04:
-        SetFloatData(result,
-                     GetUint64tData(operand1) + GetUint64tData(operand2));
+        result_data->type = 0x04;
+        result_data->data.uint64t_data =
+            operand1_data->data.uint64t_data + operand1_data->data.uint64t_data;
         break;
-      case 0x05:
-        SetDoubleData(result,
-                      GetUint64tData(operand1) + GetUint64tData(operand2));
+      case 0x05: {
+        result_data->type = 0x05;
+        char* new_str =
+            (char*)calloc(strlen(operand1_data->data.string_data) +
+                              strlen(operand2_data->data.string_data) + 1,
+                          sizeof(char));
+        AddFreePtr(new_str);
+        strncpy(new_str, operand1_data->data.string_data,
+                strlen(operand1_data->data.string_data));
+        strncat(new_str, operand2_data->data.string_data,
+                strlen(operand2_data->data.string_data));
+        result_data->data.string_data = new_str;
         break;
-      case 0x06:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) + GetUint64tData(operand2));
-        break;
+      }
       default:
-        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
-        break;
-    }
-  } else if (GetType(memory, result) == 0x05 ||
-             GetType(memory, operand1) == 0x05 ||
-             GetType(memory, operand2) == 0x05) {
-    switch (GetType(memory, result)) {
-      case 0x01:
-        SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
-        break;
-      case 0x02:
-        SetIntData(result, GetIntData(operand1) + GetIntData(operand2));
-        break;
-      case 0x03:
-        SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
-        break;
-      case 0x04:
-        SetFloatData(result, GetFloatData(operand1) + GetFloatData(operand2));
-        break;
-      case 0x05:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) + GetDoubleData(operand2));
-        break;
-      default:
-        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
-        break;
-    }
-  } else if (GetType(memory, result) == 0x04 ||
-             GetType(memory, operand1) == 0x04 ||
-             GetType(memory, operand2) == 0x04) {
-    switch (GetType(memory, result)) {
-      case 0x01:
-        SetByteData(result, GetFloatData(operand1) + GetFloatData(operand2));
-        break;
-      case 0x02:
-        SetIntData(result, GetFloatData(operand1) + GetFloatData(operand2));
-        break;
-      case 0x03:
-        SetLongData(result, GetFloatData(operand1) + GetFloatData(operand2));
-        break;
-      case 0x04:
-        SetFloatData(result, GetFloatData(operand1) + GetFloatData(operand2));
-        break;
-      default:
-        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
-        break;
-    }
-  } else if (GetType(memory, result) == 0x03 ||
-             GetType(memory, operand1) == 0x03 ||
-             GetType(memory, operand2) == 0x03) {
-    switch (GetType(memory, result)) {
-      case 0x01:
-        SetByteData(result, GetLongData(operand1) + GetLongData(operand2));
-        break;
-      case 0x02:
-        SetIntData(result, GetLongData(operand1) + GetLongData(operand2));
-        break;
-      case 0x03:
-        SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
-        break;
-      default:
-        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
-        break;
-    }
-  } else if (GetType(memory, result) == 0x02 ||
-             GetType(memory, operand1) == 0x02 ||
-             GetType(memory, operand2) == 0x02) {
-    switch (GetType(memory, result)) {
-      case 0x01:
-        SetByteData(result, GetIntData(operand1) + GetIntData(operand2));
-        break;
-      case 0x02:
-        // printf("Operand1: %d\n", GetIntData(operand1));
-        // printf("Operand2: %d\n", GetIntData(operand2));
-        SetIntData(result, GetIntData(operand1) + GetIntData(operand2));
-        break;
-      default:
-        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
-        break;
-    }
-  } else if (GetType(memory, result) == 0x01 ||
-             GetType(memory, operand1) == 0x01 ||
-             GetType(memory, operand2) == 0x01) {
-    switch (GetType(memory, result)) {
-      case 0x01:
-        SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
-        break;
-      default:
-        EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
+        EXIT_VM("ADD(size_t,size_t,size_t)", "Unexpected type.");
         break;
     }
   } else {
-    EXIT_VM("ADD(size_t, size_t, size_t)", "Invalid type.");
   }
-
-  // printf("Add Result: %zu\n", GetUint64tData(result));
   return 0;
 }
 int SUB(size_t result, size_t operand1, size_t operand2) {
