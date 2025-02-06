@@ -12,6 +12,10 @@
 <a href="https://sourceforge.net/p/aq-lang/"><img alt="Download AQ" src="https://sourceforge.net/sflogo.php?type=17&amp;group_id=3836278" width=200></a>
 <a herf="https://sonarcloud.io/project/overview?id=aq-org_AQ"><img src="https://sonarcloud.io/images/project_badges/sonarcloud-light.svg" /></a>
 <a href="https://sourceforge.net/projects/aq-lang/files/latest/download"><img alt="Download AQ" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
+<a href="https://www.uneed.best/tool/aq">
+    <img src="https://www.uneed.best/EMBED3.png" alt="Uneed Embed Badge" height=48 />
+    </a>
+
 </p>
    <p align="center">
      <a href="https://github.com/aq-org/AQ/blob/main/LICENSE">
