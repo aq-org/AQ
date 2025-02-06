@@ -343,7 +343,7 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
   }
 }*/
 
-void* GetPtrData(size_t index) {
+struct Object* GetPtrData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
@@ -357,10 +357,8 @@ void* GetPtrData(size_t index) {
     struct Object reference_data = *object_table[index].data.reference_data;
     while (true) {
       switch (reference_data.type) {
-        case 0x05:
-          return (void*)object_table[index].data.string_data;
         case 0x06:
-          return (void*)object_table[index].data.ptr_data;
+          return object_table[index].data.ptr_data;
         case 0x07:
           reference_data = *reference_data.data.reference_data;
         default:
@@ -610,7 +608,7 @@ const char* GetStringData(size_t index) {
   return NULL;
 }
 
-void SetPtrData(size_t index, void* ptr) {
+void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetPtrData(size_t,void*)", "Out of memory.");
