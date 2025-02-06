@@ -613,17 +613,25 @@ const char* GetStringData(size_t index) {
 void SetPtrData(size_t index, void* ptr) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
-    EXIT_VM("SetPtrData(size_t, void*)", "Out of memory.");
+    EXIT_VM("SetPtrData(size_t,void*)", "Out of memory.");
 
-  object_table[index].type = 0x06;
-  object_table[index].data.ptr_data = ptr;
+  struct Object* data = object_table + index;
+  while (data->type == 0x07) data = data->data.reference_data;
+
+  data->type = 0x06;
+  data->data.ptr_data = ptr;
 }
 
 void SetByteData(size_t index, int8_t value) {
   TRACE_FUNCTION;
-  // printf("SetByteData: %zu, value: %d\n", index, value);
-  object_table[index].type = 0x01;
-  object_table[index].data.byte_data = value;
+  if (index >= object_table_size)
+    EXIT_VM("SetByteData(size_t,int8_t)", "Out of memory.");
+
+  struct Object* data = object_table + index;
+  while (data->type == 0x07) data = data->data.reference_data;
+
+  data->type = 0x01;
+  data->data.byte_data = value;
 }
 
 /*void SetIntData(size_t index, int value) {
@@ -668,9 +676,15 @@ void SetByteData(size_t index, int8_t value) {
 }*/
 
 void SetLongData(size_t index, long value) {
-  // printf("SetLongData: %ld\n", value);
-  object_table[index].type = 0x02;
-  object_table[index].data.long_data = value;
+  TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("SetLongData(size_t,long)", "Out of memory.");
+
+  struct Object* data = object_table + index;
+  while (data->type == 0x07) data = data->data.reference_data;
+
+  data->type = 0x02;
+  data->data.long_data = value;
 }
 
 /*void SetFloatData(size_t index, float value) {
@@ -715,29 +729,50 @@ void SetLongData(size_t index, long value) {
 
 void SetDoubleData(size_t index, double value) {
   TRACE_FUNCTION;
-  // printf("SetDoubleData: %f\n", value);
-  object_table[index].type = 0x03;
-  object_table[index].data.double_data = value;
+  if (index >= object_table_size)
+    EXIT_VM("SetDoubleData(size_t,double)", "Out of memory.");
+
+  struct Object* data = object_table + index;
+  while (data->type == 0x07) data = data->data.reference_data;
+
+  data->type = 0x03;
+  data->data.double_data = value;
 }
 
 void SetUint64tData(size_t index, uint64_t value) {
   TRACE_FUNCTION;
-  // printf("SetUint64tData: %zu, %zu\n", index, value);
-  //  printf("Type: %hhu\n", object_table[index].type);
-  object_table[index].type = 0x04;
-  object_table[index].data.uint64t_data = value;
+  if (index >= object_table_size)
+    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Out of memory.");
+
+  struct Object* data = object_table + index;
+  while (data->type == 0x07) data = data->data.reference_data;
+
+  data->type = 0x04;
+  data->data.uint64t_data = value;
 }
 
 void SetStringData(size_t index, const char* string) {
   TRACE_FUNCTION;
-  object_table[index].type = 0x05;
-  object_table[index].data.string_data = string;
+  if (index >= object_table_size)
+    EXIT_VM("SetStringData(size_t,const char*)", "Out of memory.");
+
+  struct Object* data = object_table + index;
+  while (data->type == 0x07) data = data->data.reference_data;
+
+  data->type = 0x05;
+  data->data.string_data = string;
 }
 
 void SetReferenceData(size_t index, struct Object* object) {
   TRACE_FUNCTION;
-  object_table[index].type = 0x07;
-  object_table[index].data.reference_data = object;
+  if (index >= object_table_size)
+    EXIT_VM("SetStringData(size_t,const char*)", "Out of memory.");
+
+  struct Object* data = object_table + index;
+  while (data->type == 0x07) data = data->data.reference_data;
+
+  data->type = 0x07;
+  data->data.ptr_data = object;
 }
 
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
@@ -915,12 +950,9 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
   if (operand2 >= object_table_size)
     EXIT_VM("ADD(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* result_data = object_table + result;
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
 
-  while (result_data->type == 0x07)
-    result_data = result_data->data.reference_data;
   while (operand1_data->type == 0x07)
     operand1_data = operand1_data->data.reference_data;
   while (operand2_data->type == 0x07)
@@ -929,17 +961,11 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
   if (operand1_data->type == operand2_data->type) {
     switch (operand1_data->type) {
       case 0x01:
-        if (operand1_data->data.byte_data + operand1_data->data.byte_data >
-                INT8_MAX ||
-            operand1_data->data.byte_data + operand1_data->data.byte_data <
-                INT8_MIN) {
-          result_data->type = 0x02;
-          result_data->data.long_data =
-              operand1_data->data.byte_data + operand1_data->data.byte_data;
+        if (GetByteData(operand1) + GetByteData(operand2) > INT8_MAX ||
+            GetByteData(operand1) + GetByteData(operand2) < INT8_MIN) {
+          SetLongData(result, GetByteData(operand1) + GetByteData(operand2));
         } else {
-          result_data->type = 0x01;
-          result_data->data.byte_data =
-              operand1_data->data.byte_data + operand1_data->data.byte_data;
+          SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
         }
         break;
       case 0x02:
@@ -982,7 +1008,10 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
                             ? operand1_data->type
                             : operand2_data->type;
     switch (result_data->type) {
-      // TODO
+      case 0x02:
+        result_data->data.long_data =
+            operand1_data->data.long_data + operand2_data->data.long_data;
+        break;
       default:
         EXIT_VM("ADD(size_t,size_t,size_t)", "Unexpected type.");
         break;
@@ -2731,7 +2760,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetLongData(result, GetLongData(operand1) <= GetLongData(operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+            EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
             break;
         }
       } else if (GetType(memory, result) == 0x02 ||
@@ -2745,7 +2774,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetIntData(result, GetIntData(operand1) <= GetIntData(operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+            EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
             break;
         }
       } else if (GetType(memory, result) == 0x01 ||
@@ -2756,15 +2785,15 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+            EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
             break;
         }
       } else {
-        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+        EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
       }
       break;
     default:
-      EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid opcode.");
+      EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid opcode.");
   }
   return 0;
 }
@@ -2812,7 +2841,7 @@ int EQUAL(size_t result, size_t value) {
       SetUint64tData(result, GetUint64tData(value));
       break;
     default:
-      EXIT_VM("EQUAL(size_t, size_t)", "Invalid type.");
+      EXIT_VM("EQUAL(size_t,size_t)", "Invalid type.");
   }
   return 0;
 }
@@ -2838,7 +2867,7 @@ int WIDE() {
 
 void print(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
-  if (args.size != 1) EXIT_VM("print(InternalObject, size_t)", "Invalid args.");
+  if (args.size != 1) EXIT_VM("print(InternalObject,size_t)", "Invalid args.");
   // printf("%zu", (uint64_t)GetUint64tData(*args.index));
   SetIntData(return_value, printf("%s", (const char*)GetPtrData(*args.index)));
 }
