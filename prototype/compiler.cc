@@ -4721,6 +4721,32 @@ class BytecodeGenerator {
                                memory_type_.size() - 1, const_table_size_ - 1));
     }
 
+    std::vector<Bytecode>& GetCode() {
+      TRACE_FUNCTION;
+      return code_;
+    }
+
+    uint8_t GetType(size_t index){
+      if(index>=memory_type_.size())
+        EXIT_COMPILER("BytecodeGenerator::Memory::GetType(size_t)","index is out of range.");
+    return memory_type_[index];
+    }
+
+    std::vector<uint8_t>& GetConstTable() {
+      TRACE_FUNCTION;
+      return const_table_;
+    }
+
+    std::size_t GetConstTableSize() {
+      TRACE_FUNCTION;
+      return const_table_size_;
+    }
+
+    std::size_t GetMemorySize() {
+      TRACE_FUNCTION;
+      return memory_type_.size();
+    }
+
    private:
     long SwapLong(long x) {
       TRACE_FUNCTION;
@@ -4874,12 +4900,12 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
   code_.push_back(0x00);
   code_.push_back(0x01);
 
-  InsertUint64ToCode(is_big_endian_ ? const_table_.size()
-                                    : SwapUint64t(const_table_.size()));
-  for (std::size_t i = 0; i < const_table_.size(); i++) {
-    code_.push_back(const_table_[i]);
+  InsertUint64ToCode(is_big_endian_ ? global_memory_.GetConstTableSize()
+                                    : SwapUint64t( global_memory_.GetConstTableSize()));
+  for (std::size_t i = 0; i <  global_memory_.GetConstTable().size(); i++) {
+    code_.push_back(global_memory_.GetConstTable()[i]);
   }
-  std::size_t memory_size = global_memory_.size();
+  std::size_t memory_size = global_memory_.GetMemorySize();
   InsertUint64ToCode(is_big_endian_ ? memory_size : SwapUint64t(memory_size));
 
   for (std::size_t i = 0; i < func_list_.size(); i++) {
@@ -5381,7 +5407,7 @@ void BytecodeGenerator::GenerateMnemonicFile() {
   std::streambuf* cout_buffer = std::cout.rdbuf();
   std::cout.rdbuf(output_file.rdbuf());
 
-  std::size_t memory_size = global_memory_.size();
+  std::size_t memory_size = global_memory_.GetMemorySize();
   std::cout << "Memory Size: " << memory_size << std::endl;
   std::cout << std::endl << std::endl << std::endl;
 
