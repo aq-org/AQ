@@ -31,7 +31,7 @@
 #define _AQVM_OPERATOR_NEG 0x0B
 #define _AQVM_OPERATOR_SHL 0x0C
 #define _AQVM_OPERATOR_SHR 0x0D
-#define _AQVM_OPERATOR_SAR 0x0E
+#define _AQVM_OPERATOR_REFER 0x0E
 #define _AQVM_OPERATOR_IF 0x0F
 #define _AQVM_OPERATOR_AND 0x10
 #define _AQVM_OPERATOR_OR 0x11
@@ -4999,13 +4999,13 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
           break;
 
-        case _AQVM_OPERATOR_SAR:
+        case _AQVM_OPERATOR_REFER:
 
-          code_.push_back(_AQVM_OPERATOR_SAR);
+          code_.push_back(_AQVM_OPERATOR_REFER);
 
-          if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected SAR args size.");
+                          "Unexpected REFER args size.");
 
           EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -5015,9 +5015,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
 
-          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
-          code_.insert(code_.end(), buffer.begin(), buffer.end());
-          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_IF:
@@ -5368,14 +5365,13 @@ void BytecodeGenerator::GenerateMnemonicFile() {
                     << func_list_[i].GetCode()[j].GetArgs()[2] << std::endl;
           break;
 
-        case _AQVM_OPERATOR_SAR:
+        case _AQVM_OPERATOR_REFER:
 
-          if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
-                          "Unexpected SAR args size.");
-          std::cout << "SAR: " << func_list_[i].GetCode()[j].GetArgs()[0]
-                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1] << " ,"
-                    << func_list_[i].GetCode()[j].GetArgs()[2] << std::endl;
+                          "Unexpected REFER args size.");
+          std::cout << "REFER: " << func_list_[i].GetCode()[j].GetArgs()[0]
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1]  << std::endl;
           break;
 
         case _AQVM_OPERATOR_IF:
