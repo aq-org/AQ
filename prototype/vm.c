@@ -337,7 +337,7 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
            (*(memory->type + (index / 2)) & 0x0F));
     return (*(memory->type + (index / 2)) & 0x0F);
   } else {
-    /*printf("GetType: %zu, Type: %d\n", index,
+    printf("GetType: %zu, Type: %d\n", index,
            (*(memory->type + (index / 2)) & 0xF0) >> 4);
     return (*(memory->type + (index / 2)) & 0xF0) >> 4;
   }
@@ -1278,10 +1278,6 @@ int REM(size_t result, size_t operand1, size_t operand2) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) % GetLongData(operand2));
         break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) % GetDoubleData(operand2));
-        break;
       case 0x04:
         SetUint64tData(result,
                        GetUint64tData(operand1) % GetUint64tData(operand2));
@@ -1299,10 +1295,6 @@ int REM(size_t result, size_t operand1, size_t operand2) {
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) % GetLongData(operand2));
-        break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) % GetDoubleData(operand2));
         break;
       case 0x04:
         SetUint64tData(result,
@@ -1549,8 +1541,8 @@ int AND(size_t result, size_t operand1, size_t operand2) {
   if (operand1_data->type == operand2_data->type) {
     switch (operand1_data->type) {
       case 0x01:
-        if (GetByteData(operand1) & GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) & GetByteData(operand2) < INT8_MIN) {
+        if ((GetByteData(operand1) & GetByteData(operand2)) > INT8_MAX ||
+            (GetByteData(operand1) & GetByteData(operand2)) < INT8_MIN) {
           SetLongData(result, GetByteData(operand1) & GetByteData(operand2));
         } else {
           SetByteData(result, GetByteData(operand1) & GetByteData(operand2));
@@ -1558,10 +1550,6 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         break;
       case 0x02:
         SetLongData(result, GetLongData(operand1) & GetLongData(operand2));
-        break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) & GetDoubleData(operand2));
         break;
       case 0x04:
         SetUint64tData(result,
@@ -1580,10 +1568,6 @@ int AND(size_t result, size_t operand1, size_t operand2) {
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) & GetLongData(operand2));
-        break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) & GetDoubleData(operand2));
         break;
       case 0x04:
         SetUint64tData(result,
@@ -1615,8 +1599,8 @@ int OR(size_t result, size_t operand1, size_t operand2) {
   if (operand1_data->type == operand2_data->type) {
     switch (operand1_data->type) {
       case 0x01:
-        if (GetByteData(operand1) | GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) | GetByteData(operand2) < INT8_MIN) {
+        if ((GetByteData(operand1) | GetByteData(operand2)) > INT8_MAX ||
+            (GetByteData(operand1) | GetByteData(operand2)) < INT8_MIN) {
           SetLongData(result, GetByteData(operand1) | GetByteData(operand2));
         } else {
           SetByteData(result, GetByteData(operand1) | GetByteData(operand2));
@@ -1624,10 +1608,6 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         break;
       case 0x02:
         SetLongData(result, GetLongData(operand1) | GetLongData(operand2));
-        break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) | GetDoubleData(operand2));
         break;
       case 0x04:
         SetUint64tData(result,
@@ -1646,10 +1626,6 @@ int OR(size_t result, size_t operand1, size_t operand2) {
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) | GetLongData(operand2));
-        break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) | GetDoubleData(operand2));
         break;
       case 0x04:
         SetUint64tData(result,
@@ -1681,8 +1657,8 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
   if (operand1_data->type == operand2_data->type) {
     switch (operand1_data->type) {
       case 0x01:
-        if (GetByteData(operand1) ^ GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) ^ GetByteData(operand2) < INT8_MIN) {
+        if ((GetByteData(operand1) ^ GetByteData(operand2)) > INT8_MAX ||
+            (GetByteData(operand1) ^ GetByteData(operand2)) < INT8_MIN) {
           SetLongData(result, GetByteData(operand1) ^ GetByteData(operand2));
         } else {
           SetByteData(result, GetByteData(operand1) ^ GetByteData(operand2));
@@ -1690,10 +1666,6 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         break;
       case 0x02:
         SetLongData(result, GetLongData(operand1) ^ GetLongData(operand2));
-        break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) ^ GetDoubleData(operand2));
         break;
       case 0x04:
         SetUint64tData(result,
@@ -1712,10 +1684,6 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) ^ GetLongData(operand2));
-        break;
-      case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) ^ GetDoubleData(operand2));
         break;
       case 0x04:
         SetUint64tData(result,
@@ -1764,7 +1732,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
           case 0x05:
             SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)));
+                                       GetStringData(operand2)) == 0);
             break;
           case 0x06:
             SetByteData(result, GetPtrData(operand1) == GetPtrData(operand2));
@@ -1785,11 +1753,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
           case 0x03:
             SetByteData(result,
-                          GetDoubleData(operand1) == GetDoubleData(operand2));
+                        GetDoubleData(operand1) == GetDoubleData(operand2));
             break;
           case 0x04:
-            SetByteData(
-                result, GetUint64tData(operand1) == GetUint64tData(operand2));
+            SetByteData(result,
+                        GetUint64tData(operand1) == GetUint64tData(operand2));
             break;
           default:
             EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
@@ -1798,7 +1766,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x01:
-            if (operand1_data->type == operand2_data->type) {
+      if (operand1_data->type == operand2_data->type) {
         switch (operand1_data->type) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) != GetByteData(operand2));
@@ -1816,7 +1784,7 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
           case 0x05:
             SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)));
+                                       GetStringData(operand2)) != 0);
             break;
           case 0x06:
             SetByteData(result, GetPtrData(operand1) != GetPtrData(operand2));
@@ -1837,11 +1805,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
           case 0x03:
             SetByteData(result,
-                          GetDoubleData(operand1) != GetDoubleData(operand2));
+                        GetDoubleData(operand1) != GetDoubleData(operand2));
             break;
           case 0x04:
-            SetByteData(
-                result, GetUint64tData(operand1) != GetUint64tData(operand2));
+            SetByteData(result,
+                        GetUint64tData(operand1) != GetUint64tData(operand2));
             break;
           default:
             EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
@@ -1850,525 +1818,211 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x02:
-      if (GetType(memory, result) == 0x06 ||
-          GetType(memory, operand1) == 0x06 ||
-          GetType(memory, operand2) == 0x06) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetUint64tData(operand1) > GetUint64tData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetUint64tData(operand1) > GetUint64tData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetUint64tData(operand1) > GetUint64tData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetUint64tData(operand1) > GetUint64tData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetUint64tData(operand1) > GetUint64tData(operand2));
-            break;
-          case 0x06:
-            SetUint64tData(result,
-                           GetUint64tData(operand1) > GetUint64tData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x05 ||
-                 GetType(memory, operand1) == 0x05 ||
-                 GetType(memory, operand2) == 0x05) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetDoubleData(operand1) > GetDoubleData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetDoubleData(operand1) > GetDoubleData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetDoubleData(operand1) > GetDoubleData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetDoubleData(operand1) > GetDoubleData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetDoubleData(operand1) > GetDoubleData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x04 ||
-                 GetType(memory, operand1) == 0x04 ||
-                 GetType(memory, operand2) == 0x04) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetFloatData(operand1) > GetFloatData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetFloatData(operand1) > GetFloatData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetFloatData(operand1) > GetFloatData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetFloatData(operand1) > GetFloatData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x03 ||
-                 GetType(memory, operand1) == 0x03 ||
-                 GetType(memory, operand2) == 0x03) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetLongData(operand1) > GetLongData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetLongData(operand1) > GetLongData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result, GetLongData(operand1) > GetLongData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x02 ||
-                 GetType(memory, operand1) == 0x02 ||
-                 GetType(memory, operand2) == 0x02) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetIntData(operand1) > GetIntData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetIntData(operand1) > GetIntData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x01 ||
-                 GetType(memory, operand1) == 0x01 ||
-                 GetType(memory, operand2) == 0x01) {
-        switch (GetType(memory, result)) {
+      if (operand1_data->type == operand2_data->type) {
+        switch (operand1_data->type) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) > GetByteData(operand2));
             break;
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) > GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) > GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) > GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetByteData(result, strcmp(GetStringData(operand1),
+                                       GetStringData(operand2)) > 0);
+            break;
+          case 0x06:
+            SetByteData(result, GetPtrData(operand1) > GetPtrData(operand2));
+            break;
           default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
             break;
         }
       } else {
-        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+        uint8_t result_type = operand1_data->type > operand2_data->type
+                                  ? operand1_data->type
+                                  : operand2_data->type;
+        switch (result_type) {
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) > GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) > GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) > GetUint64tData(operand2));
+            break;
+          default:
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            break;
+        }
       }
       break;
     case 0x03:
-      if (GetType(memory, result) == 0x06 ||
-          GetType(memory, operand1) == 0x06 ||
-          GetType(memory, operand2) == 0x06) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetUint64tData(operand1) >= GetUint64tData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetUint64tData(operand1) >= GetUint64tData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetUint64tData(operand1) >= GetUint64tData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetUint64tData(operand1) >= GetUint64tData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetUint64tData(operand1) >= GetUint64tData(operand2));
-            break;
-          case 0x06:
-            SetUint64tData(
-                result, GetUint64tData(operand1) >= GetUint64tData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x05 ||
-                 GetType(memory, operand1) == 0x05 ||
-                 GetType(memory, operand2) == 0x05) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetDoubleData(operand1) >= GetDoubleData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetDoubleData(operand1) >= GetDoubleData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetDoubleData(operand1) >= GetDoubleData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetDoubleData(operand1) >= GetDoubleData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetDoubleData(operand1) >= GetDoubleData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x04 ||
-                 GetType(memory, operand1) == 0x04 ||
-                 GetType(memory, operand2) == 0x04) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetFloatData(operand1) >= GetFloatData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetFloatData(operand1) >= GetFloatData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetFloatData(operand1) >= GetFloatData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetFloatData(operand1) >= GetFloatData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x03 ||
-                 GetType(memory, operand1) == 0x03 ||
-                 GetType(memory, operand2) == 0x03) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetLongData(operand1) >= GetLongData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetLongData(operand1) >= GetLongData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result, GetLongData(operand1) >= GetLongData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x02 ||
-                 GetType(memory, operand1) == 0x02 ||
-                 GetType(memory, operand2) == 0x02) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetIntData(operand1) >= GetIntData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetIntData(operand1) >= GetIntData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x01 ||
-                 GetType(memory, operand1) == 0x01 ||
-                 GetType(memory, operand2) == 0x01) {
-        switch (GetType(memory, result)) {
+      if (operand1_data->type == operand2_data->type) {
+        switch (operand1_data->type) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) >= GetByteData(operand2));
             break;
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) >= GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) >= GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) >= GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetByteData(result, strcmp(GetStringData(operand1),
+                                       GetStringData(operand2)) >= 0);
+            break;
+          case 0x06:
+            SetByteData(result, GetPtrData(operand1) >= GetPtrData(operand2));
+            break;
           default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
             break;
         }
       } else {
-        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+        uint8_t result_type = operand1_data->type > operand2_data->type
+                                  ? operand1_data->type
+                                  : operand2_data->type;
+        switch (result_type) {
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) >= GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) >= GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) >= GetUint64tData(operand2));
+            break;
+          default:
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            break;
+        }
       }
       break;
     case 0x04:
-      if (GetType(memory, result) == 0x06 ||
-          GetType(memory, operand1) == 0x06 ||
-          GetType(memory, operand2) == 0x06) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetUint64tData(operand1) < GetUint64tData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetUint64tData(operand1) < GetUint64tData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetUint64tData(operand1) < GetUint64tData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetUint64tData(operand1) < GetUint64tData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetUint64tData(operand1) < GetUint64tData(operand2));
-            break;
-          case 0x06:
-            SetUint64tData(result,
-                           GetUint64tData(operand1) < GetUint64tData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x05 ||
-                 GetType(memory, operand1) == 0x05 ||
-                 GetType(memory, operand2) == 0x05) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetDoubleData(operand1) < GetDoubleData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x04 ||
-                 GetType(memory, operand1) == 0x04 ||
-                 GetType(memory, operand2) == 0x04) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetFloatData(operand1) < GetFloatData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x03 ||
-                 GetType(memory, operand1) == 0x03 ||
-                 GetType(memory, operand2) == 0x03) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetLongData(operand1) < GetLongData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result, GetLongData(operand1) < GetLongData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x02 ||
-                 GetType(memory, operand1) == 0x02 ||
-                 GetType(memory, operand2) == 0x02) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetIntData(operand1) < GetIntData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetIntData(operand1) < GetIntData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x01 ||
-                 GetType(memory, operand1) == 0x01 ||
-                 GetType(memory, operand2) == 0x01) {
-        switch (GetType(memory, result)) {
+      if (operand1_data->type == operand2_data->type) {
+        switch (operand1_data->type) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) < GetByteData(operand2));
             break;
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) < GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetByteData(result, strcmp(GetStringData(operand1),
+                                       GetStringData(operand2)) < 0);
+            break;
+          case 0x06:
+            SetByteData(result, GetPtrData(operand1) < GetPtrData(operand2));
+            break;
           default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
             break;
         }
       } else {
-        EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
+        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+        uint8_t result_type = operand1_data->type > operand2_data->type
+                                  ? operand1_data->type
+                                  : operand2_data->type;
+        switch (result_type) {
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) < GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) < GetUint64tData(operand2));
+            break;
+          default:
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            break;
+        }
       }
       break;
     case 0x05:
-      if (GetType(memory, result) == 0x06 ||
-          GetType(memory, operand1) == 0x06 ||
-          GetType(memory, operand2) == 0x06) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetUint64tData(operand1) <= GetUint64tData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetUint64tData(operand1) <= GetUint64tData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetUint64tData(operand1) <= GetUint64tData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetUint64tData(operand1) <= GetUint64tData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetUint64tData(operand1) <= GetUint64tData(operand2));
-            break;
-          case 0x06:
-            SetUint64tData(
-                result, GetUint64tData(operand1) <= GetUint64tData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x05 ||
-                 GetType(memory, operand1) == 0x05 ||
-                 GetType(memory, operand2) == 0x05) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          case 0x05:
-            SetDoubleData(result,
-                          GetDoubleData(operand1) <= GetDoubleData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x04 ||
-                 GetType(memory, operand1) == 0x04 ||
-                 GetType(memory, operand2) == 0x04) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result,
-                        GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result,
-                       GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result,
-                        GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          case 0x04:
-            SetFloatData(result,
-                         GetFloatData(operand1) <= GetFloatData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t, size_t, size_t, size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x03 ||
-                 GetType(memory, operand1) == 0x03 ||
-                 GetType(memory, operand2) == 0x03) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetLongData(operand1) <= GetLongData(operand2));
-            break;
-          case 0x03:
-            SetLongData(result, GetLongData(operand1) <= GetLongData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x02 ||
-                 GetType(memory, operand1) == 0x02 ||
-                 GetType(memory, operand2) == 0x02) {
-        switch (GetType(memory, result)) {
-          case 0x01:
-            SetByteData(result, GetIntData(operand1) <= GetIntData(operand2));
-            break;
-          case 0x02:
-            SetIntData(result, GetIntData(operand1) <= GetIntData(operand2));
-            break;
-          default:
-            EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
-            break;
-        }
-      } else if (GetType(memory, result) == 0x01 ||
-                 GetType(memory, operand1) == 0x01 ||
-                 GetType(memory, operand2) == 0x01) {
-        switch (GetType(memory, result)) {
+      if (operand1_data->type == operand2_data->type) {
+        switch (operand1_data->type) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
             break;
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) <= GetUint64tData(operand2));
+            break;
+          case 0x05:
+            SetByteData(result, strcmp(GetStringData(operand1),
+                                       GetStringData(operand2)) <= 0);
+            break;
+          case 0x06:
+            SetByteData(result, GetPtrData(operand1) <= GetPtrData(operand2));
+            break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
             break;
         }
       } else {
-        EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid type.");
+        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+        uint8_t result_type = operand1_data->type > operand2_data->type
+                                  ? operand1_data->type
+                                  : operand2_data->type;
+        switch (result_type) {
+          case 0x02:
+            SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
+            break;
+          case 0x03:
+            SetByteData(result,
+                        GetDoubleData(operand1) <= GetDoubleData(operand2));
+            break;
+          case 0x04:
+            SetByteData(result,
+                        GetUint64tData(operand1) <= GetUint64tData(operand2));
+            break;
+          default:
+            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            break;
+        }
       }
       break;
     default:
@@ -2400,27 +2054,35 @@ int INVOKE(size_t* args) {
 }
 int EQUAL(size_t result, size_t value) {
   TRACE_FUNCTION;
-  switch (GetType(memory, result)) {
+  if (result >= object_table_size)
+    EXIT_VM("EQUAL(size_t,size_t)", "Out of object_table_size.");
+  if (value >= object_table_size)
+    EXIT_VM("EQUAL(size_t,size_t)", "Out of object_table_size.");
+
+  struct Object* value_data = object_table + value;
+  while (value_data->type == 0x07) value_data = value_data->data.reference_data;
+
+  switch (value_data->type) {
     case 0x01:
       SetByteData(result, GetByteData(value));
       break;
     case 0x02:
-      SetIntData(result, GetIntData(value));
-      break;
-    case 0x03:
       SetLongData(result, GetLongData(value));
       break;
-    case 0x04:
-      SetFloatData(result, GetFloatData(value));
-      break;
-    case 0x05:
+    case 0x03:
       SetDoubleData(result, GetDoubleData(value));
       break;
-    case 0x06:
+    case 0x04:
       SetUint64tData(result, GetUint64tData(value));
       break;
+    case 0x05:
+      SetStringData(result, GetStringData(value));
+      break;
+    case 0x06:
+      SetPtrData(result, GetPtrData(value));
+      break;
     default:
-      EXIT_VM("EQUAL(size_t,size_t)", "Invalid type.");
+      EXIT_VM("EQUAL(size_t,size_t)", "Unsupported type.");
   }
   return 0;
 }
@@ -2448,7 +2110,32 @@ void print(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
   if (args.size != 1) EXIT_VM("print(InternalObject,size_t)", "Invalid args.");
   // printf("%zu", (uint64_t)GetUint64tData(*args.index));
-  SetIntData(return_value, printf("%s", (const char*)GetPtrData(*args.index)));
+  struct Object* object = object_table + *args.index;
+  while (object->type == 0x07) object = object->data.reference_data;
+
+  switch (object->type) {
+    case 0x01:
+      SetLongData(return_value, printf("%d", GetByteData(*args.index)));
+      break;
+    case 0x02:
+      SetLongData(return_value, printf("%ld", GetLongData(*args.index)));
+      break;
+    case 0x03:
+      SetLongData(return_value, printf("%f", GetDoubleData(*args.index)));
+      break;
+    case 0x04:
+      SetLongData(return_value, printf("%zu", GetUint64tData(*args.index)));
+      break;
+    case 0x05:
+      SetLongData(return_value, printf("%s", GetStringData(*args.index)));
+      break;
+    case 0x06:
+      SetLongData(return_value, printf("%p", GetPtrData(*args.index)));
+      break;
+    default:
+      EXIT_VM("print(InternalObject,size_t)", "Unsupported type.");
+      break;
+  }
 }
 
 unsigned int hash(const char* str) {
@@ -2500,7 +2187,7 @@ void* AddFunction(void* location) {
   // (uintptr_t)original_location);
 
   table->pair.second.commands_size =
-      *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
   // printf("point 3\n");
@@ -2872,16 +2559,16 @@ int main(int argc, char* argv[]) {
       case 0x02:
         const_object_table[i].data.long_data = *(long*)bytecode_file;
         const_object_table[i].data.long_data =
-            const_object_table[i].data.long_data
-            : SwapLong(const_object_table[i].data.long_data);
+            is_big_endian ? const_object_table[i].data.long_data
+                          : SwapLong(const_object_table[i].data.long_data);
         bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
         break;
 
       case 0x03:
         const_object_table[i].data.double_data = *(double*)bytecode_file;
         const_object_table[i].data.double_data =
-            const_object_table[i].data.double_data
-            : SwapDouble(const_object_table[i].data.double_data);
+            is_big_endian ? const_object_table[i].data.double_data
+                          : SwapDouble(const_object_table[i].data.double_data);
         bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
         break;
 
@@ -2903,14 +2590,19 @@ int main(int argc, char* argv[]) {
         break;
       }
 
+      case 0x06:
+        const_object_table[i].data.ptr_data = *(void**)bytecode_file;
+        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+        break;
+
       default:
         EXIT_VM("main(int,char**)", "Unknown type.");
         break;
     }
   }
 
-  object_table_size =
-      *(uint64_t*)bytecode_file : SwapUint64t(*(uint64_t*)bytecode_file);
+  object_table_size = is_big_endian ? *(uint64_t*)bytecode_file
+                                    : SwapUint64t(*(uint64_t*)bytecode_file);
 
   object_table =
       (struct Object*)calloc(object_table_size, sizeof(struct Object));
