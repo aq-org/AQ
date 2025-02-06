@@ -129,7 +129,7 @@ enum Operator {
   OPERATOR_NEG,
   OPERATOR_SHL,
   OPERATOR_SHR,
-  OPERATOR_SAR,
+  OPERATOR_REFER,
   OPERATOR_IF,
   OPERATOR_AND,
   OPERATOR_OR,
@@ -152,10 +152,12 @@ typedef struct {
   void* location;
   size_t commands_size;
   struct Bytecode* commands;
+  size_t args_size;
+  size_t* args;
 } FuncInfo;
 
 struct FuncPair {
-  char* first;
+  const char* first;
   FuncInfo second;
 };
 
@@ -1452,62 +1454,15 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
   }
   return 0;
 }
-int SAR(size_t result, size_t operand1, size_t operand2) {
+int REFER(size_t result, size_t operand1) {
   TRACE_FUNCTION;
   if (result >= object_table_size)
-    EXIT_VM("SHR(size_t,size_t,size_t)", "Out of object_table_size.");
+    EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
   if (operand1 >= object_table_size)
-    EXIT_VM("SHR(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("SHR(size_t,size_t,size_t)", "Out of object_table_size.");
+    EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
-    operand2_data = operand2_data->data.reference_data;
+  SetReferenceData(result, object_table + operand1);
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
-      case 0x01:
-        if (GetByteData(operand1) >> GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) >> GetByteData(operand2) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) >> GetByteData(operand2));
-        } else {
-          SetByteData(result, GetByteData(operand1) >> GetByteData(operand2));
-        }
-        break;
-      case 0x02:
-        SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
-        break;
-      case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) >> GetUint64tData(operand2));
-        break;
-      default:
-        EXIT_VM("SHR(size_t,size_t,size_t)", "Unsupported type.");
-        break;
-    }
-  } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
-      EXIT_VM("SHR(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
-    switch (result_type) {
-      case 0x02:
-        SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
-        break;
-      case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) >> GetUint64tData(operand2));
-        break;
-      default:
-        EXIT_VM("SHR(size_t,size_t,size_t)", "Unsupported type.");
-        break;
-    }
-  }
   return 0;
 }
 int InvokeCustomFunction(const char* name);
@@ -2174,34 +2129,34 @@ void* AddFunction(void* location) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  // printf("Add: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
   location = (void*)((uintptr_t)location + 1);
-  // printf("point 2\n");
 
-  // printf("offset: %zu\n", (uintptr_t)location -
-  // (uintptr_t)original_location);
+  location = (void*)((uintptr_t)location +
+                     DecodeUleb128(location, &table->pair.second.args_size));
+  table->pair.second.args =
+      (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+  for (size_t i = 0; i < table->pair.second.args_size; i++) {
+    location = (void*)((uintptr_t)location +
+                       DecodeUleb128(location, &table->pair.second.args[i]));
+  }
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
-  // printf("point 3\n");
   struct Bytecode* bytecode = (struct Bytecode*)malloc(
       table->pair.second.commands_size * sizeof(struct Bytecode));
-  // printf("size: %zu", table->pair.second.commands_size);
   if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "malloc failed.");
   AddFreePtr(bytecode);
-  // printf("point 4\n");
 
   table->pair.second.commands = bytecode;
 
   for (size_t i = 0; i < table->pair.second.commands_size; i++) {
     bytecode[i].operator= *(uint8_t*) location;
     location = (void*)((uintptr_t)location + 1);
-    // printf("operator: 0x%02x\n", bytecode[i].operator);
     switch (bytecode[i].operator) {
       case OPERATOR_NOP:
         bytecode[i].args = NULL;
@@ -2284,10 +2239,10 @@ void* AddFunction(void* location) {
                                 bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
-      case OPERATOR_SAR:
-        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
-        location = Get3Parament(location, bytecode[i].args,
-                                bytecode[i].args + 1, bytecode[i].args + 2);
+      case OPERATOR_REFER:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
       case OPERATOR_AND:
@@ -2390,12 +2345,12 @@ int LOAD_CONST(size_t object, size_t const_object);
 int WIDE();
 int InvokeCustomFunction(const char* name) {
   TRACE_FUNCTION;
-  // printf("InvokeCustomFunction: %s, ", name);
   FuncInfo func_info = GetCustomFunction(name);
+  for (size_t i = 0; i < func_info.args_size; i++) {
+    object_table[i] = object_table[func_info.args[i]];
+  }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    /*printf("        run index: %zu, run operator: 0x%02x\n", i,
-           run_code[i].operator);*/
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -2440,7 +2395,7 @@ int InvokeCustomFunction(const char* name) {
         SHR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x0E:
-        SAR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        REFER(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x0F:
         i = IF(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
