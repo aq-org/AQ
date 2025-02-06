@@ -152,10 +152,12 @@ typedef struct {
   void* location;
   size_t commands_size;
   struct Bytecode* commands;
+  size_t args_size;
+  size_t* args;
 } FuncInfo;
 
 struct FuncPair {
-  char* first;
+  const char* first;
   FuncInfo second;
 };
 
@@ -1454,6 +1456,13 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
 }
 int REFER(size_t result, size_t operand1) {
   TRACE_FUNCTION;
+  if (result >= object_table_size)
+    EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
+  if (operand1 >= object_table_size)
+    EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
+
+  SetReferenceData(result, object_table + operand1);
+
   return 0;
 }
 int InvokeCustomFunction(const char* name);
@@ -2120,34 +2129,34 @@ void* AddFunction(void* location) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  // printf("Add: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
   location = (void*)((uintptr_t)location + 1);
-  // printf("point 2\n");
 
-  // printf("offset: %zu\n", (uintptr_t)location -
-  // (uintptr_t)original_location);
+  location = (void*)((uintptr_t)location +
+                     DecodeUleb128(location, &table->pair.second.args_size));
+  table->pair.second.args =
+      (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+  for (size_t i = 0; i < table->pair.second.args_size; i++) {
+    location = (void*)((uintptr_t)location +
+                       DecodeUleb128(location, &table->pair.second.args[i]));
+  }
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
-  // printf("point 3\n");
   struct Bytecode* bytecode = (struct Bytecode*)malloc(
       table->pair.second.commands_size * sizeof(struct Bytecode));
-  // printf("size: %zu", table->pair.second.commands_size);
   if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "malloc failed.");
   AddFreePtr(bytecode);
-  // printf("point 4\n");
 
   table->pair.second.commands = bytecode;
 
   for (size_t i = 0; i < table->pair.second.commands_size; i++) {
     bytecode[i].operator= *(uint8_t*) location;
     location = (void*)((uintptr_t)location + 1);
-    // printf("operator: 0x%02x\n", bytecode[i].operator);
     switch (bytecode[i].operator) {
       case OPERATOR_NOP:
         bytecode[i].args = NULL;
@@ -2336,12 +2345,12 @@ int LOAD_CONST(size_t object, size_t const_object);
 int WIDE();
 int InvokeCustomFunction(const char* name) {
   TRACE_FUNCTION;
-  // printf("InvokeCustomFunction: %s, ", name);
   FuncInfo func_info = GetCustomFunction(name);
+  for (size_t i = 0; i < func_info.args_size; i++) {
+    object_table[i] = object_table[func_info.args[i]];
+  }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    /*printf("        run index: %zu, run operator: 0x%02x\n", i,
-           run_code[i].operator);*/
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
