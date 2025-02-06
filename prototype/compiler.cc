@@ -41,6 +41,7 @@
 #define _AQVM_OPERATOR_EQUAL 0x15
 #define _AQVM_OPERATOR_GOTO 0x16
 #define _AQVM_OPERATOR_LOAD_CONST 0x17
+#define _AQVM_OPERATOR_CONVERT 0x18
 #define _AQVM_OPERATOR_WIDE 0xFF
 
 inline void EXIT_COMPILER(const char* func_name, const char* message) {

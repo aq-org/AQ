@@ -139,6 +139,7 @@ enum Operator {
   OPERATOR_EQUAL,
   OPERATOR_GOTO,
   OPERATOR_LOAD_CONST,
+  OPERATOR_CONVERT,
   OPERATOR_WIDE = 0xFF
 };
 
@@ -2054,6 +2055,48 @@ int LOAD_CONST(size_t object, size_t const_object) {
 
   return 0;
 }
+int CONVERT(size_t result, size_t operand1) {
+  TRACE_FUNCTION;
+  if (result >= object_table_size)
+    EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
+  if (operand1 >= object_table_size)
+    EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
+
+  struct Object* result_data = object_table + result;
+  while (result_data->type == 0x07)
+    result_data = result_data->data.reference_data;
+
+  switch (result_data->type) {
+    case 0x01:
+      SetByteData(result, GetByteData(operand1));
+      break;
+
+    case 0x02:
+      SetLongData(result, GetLongData(operand1));
+      break;
+
+    case 0x03:
+      SetDoubleData(result, GetDoubleData(operand1));
+      break;
+
+    case 0x04:
+      SetUint64tData(result, GetUint64tData(operand1));
+      break;
+
+    case 0x05:
+      SetStringData(result, GetStringData(operand1));
+      break;
+
+    case 0x06:
+      SetPtrData(result, GetPtrData(operand1));
+      break;
+
+    default:
+      EXIT_VM("CONVERT(size_t,size_t)", "Unsupported type.");
+      break;
+  }
+  return 0;
+}
 int WIDE() {
   TRACE_FUNCTION;
   return 0;
@@ -2292,7 +2335,15 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_LOAD_CONST:
-        bytecode[i].args = NULL;
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_CONVERT:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
       case OPERATOR_WIDE:
@@ -2426,6 +2477,9 @@ int InvokeCustomFunction(const char* name) {
         break;
       case 0x17:
         LOAD_CONST(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x18:
+        CONVERT(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0xFF:
         WIDE();
