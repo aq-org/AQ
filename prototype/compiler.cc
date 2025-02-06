@@ -263,7 +263,7 @@ class LexMap {
     struct Node {
       Pair data;
       Node* next = nullptr;
-      Node(Pair pair) : data(pair) {};
+      Node(Pair pair) : data(pair){};
     };
 
     // The head pointer of the linked list.
@@ -1049,7 +1049,7 @@ class Lexer {
  public:
   // Initialize the Lexer class and store |source_code| to |buffer_ptr_|.
   Lexer(char* source_code, std::size_t length)
-      : buffer_ptr_(source_code), buffer_end_(source_code + length - 1) {};
+      : buffer_ptr_(source_code), buffer_end_(source_code + length - 1){};
   ~Lexer() = default;
 
   Lexer(const Lexer&) = default;
@@ -4820,7 +4820,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_PTR:
-
           code_.push_back(_AQVM_OPERATOR_PTR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
@@ -4837,7 +4836,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_ADD:
-
           code_.push_back(_AQVM_OPERATOR_ADD);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -4858,7 +4856,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_SUB:
-
           code_.push_back(_AQVM_OPERATOR_SUB);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -4879,7 +4876,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_MUL:
-
           code_.push_back(_AQVM_OPERATOR_MUL);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -4900,7 +4896,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_DIV:
-
           code_.push_back(_AQVM_OPERATOR_DIV);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -4921,7 +4916,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_REM:
-
           code_.push_back(_AQVM_OPERATOR_REM);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -4942,7 +4936,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_NEG:
-
           code_.push_back(_AQVM_OPERATOR_NEG);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
@@ -4959,7 +4952,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_SHL:
-
           code_.push_back(_AQVM_OPERATOR_SHL);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -4980,7 +4972,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_SHR:
-
           code_.push_back(_AQVM_OPERATOR_SHR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -5001,7 +4992,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_REFER:
-
           code_.push_back(_AQVM_OPERATOR_REFER);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
@@ -5019,7 +5009,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_IF:
-
           code_.push_back(_AQVM_OPERATOR_IF);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -5040,7 +5029,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_AND:
-
           code_.push_back(_AQVM_OPERATOR_AND);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -5061,7 +5049,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_OR:
-
           code_.push_back(_AQVM_OPERATOR_OR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -5082,7 +5069,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_XOR:
-
           code_.push_back(_AQVM_OPERATOR_XOR);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
@@ -5103,7 +5089,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_CMP:
-
           code_.push_back(_AQVM_OPERATOR_CMP);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 4)
@@ -5128,7 +5113,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_INVOKE:
-
           code_.push_back(_AQVM_OPERATOR_INVOKE);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
@@ -5160,7 +5144,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_GOTO:
-
           code_.push_back(_AQVM_OPERATOR_GOTO);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 1)
@@ -5173,8 +5156,35 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           break;
 
         case _AQVM_OPERATOR_LOAD_CONST:
-
           code_.push_back(_AQVM_OPERATOR_LOAD_CONST);
+
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected LOAD_CONST args size.");
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+          break;
+
+        case _AQVM_OPERATOR_CONVERT:
+          code_.push_back(_AQVM_OPERATOR_CONVERT);
+
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected CONVERT args size.");
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
           break;
 
         case _AQVM_OPERATOR_WIDE:
@@ -5235,12 +5245,10 @@ void BytecodeGenerator::GenerateMnemonicFile() {
     for (std::size_t j = 0; j < func_list_[i].GetCode().size(); j++) {
       switch (func_list_[i].GetCode()[j].GetOper()) {
         case _AQVM_OPERATOR_NOP:
-
           std::cout << "NOP" << std::endl;
           break;
 
         case _AQVM_OPERATOR_LOAD:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected LOAD args size.");
@@ -5250,7 +5258,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_STORE:
-
           std::cout << "STORE: " << func_list_[i].GetCode()[j].GetArgs()[0]
                     << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
                     << std::endl;
@@ -5260,7 +5267,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_NEW:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected NEW args size.");
@@ -5270,14 +5276,12 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_FREE:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 1)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected FREE args size.");
           break;
 
         case _AQVM_OPERATOR_PTR:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected PTR args size.");
@@ -5287,7 +5291,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_ADD:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected ADD args size.");
@@ -5297,7 +5300,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_SUB:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected SUB args size.");
@@ -5307,7 +5309,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_MUL:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected MUL args size.");
@@ -5317,7 +5318,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_DIV:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected DIV args size.");
@@ -5327,7 +5327,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_REM:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected REM args size.");
@@ -5337,7 +5336,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_NEG:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected NEG args size.");
@@ -5347,7 +5345,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_SHL:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected SHL args size.");
@@ -5357,7 +5354,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_SHR:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected SHR args size.");
@@ -5367,16 +5363,15 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_REFER:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected REFER args size.");
           std::cout << "REFER: " << func_list_[i].GetCode()[j].GetArgs()[0]
-                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1]  << std::endl;
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
+                    << std::endl;
           break;
 
         case _AQVM_OPERATOR_IF:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected IF args size.");
@@ -5386,7 +5381,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_AND:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected AND args size.");
@@ -5396,7 +5390,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_OR:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected OR args size.");
@@ -5406,7 +5399,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_XOR:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected XOR args size.");
@@ -5427,7 +5419,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_INVOKE:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() < 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected INVOKE args size.");
@@ -5440,7 +5431,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_EQUAL:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected GOTO args size.");
@@ -5450,7 +5440,6 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_GOTO:
-
           if (func_list_[i].GetCode()[j].GetArgs().size() != 1)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
                           "Unexpected GOTO args size.");
@@ -5459,12 +5448,18 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           break;
 
         case _AQVM_OPERATOR_LOAD_CONST:
-
-          std::cout << "LOAD_CONST" << std::endl;
+          std::cout << "LOAD_CONST: " << func_list_[i].GetCode()[j].GetArgs()[0]
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
+                    << std::endl;
+          break;
+        
+        case _AQVM_OPERATOR_CONVERT:
+        std::cout << "CONVERT: " << func_list_[i].GetCode()[j].GetArgs()[0]
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
+                    << std::endl;
           break;
 
         case _AQVM_OPERATOR_WIDE:
-
           std::cout << "WIDE" << std::endl;
           break;
 
