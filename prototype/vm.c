@@ -1466,7 +1466,8 @@ int REFER(size_t result, size_t operand1) {
 
   return 0;
 }
-int InvokeCustomFunction(const char* name);
+int InvokeCustomFunction(const char* name, size_t args_size,
+                         size_t return_value, size_t* args);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
   TRACE_FUNCTION;
   // printf("condition: %d\n", GetByteData(condition));
@@ -2004,7 +2005,8 @@ int INVOKE(size_t* args) {
     return 0;
   }
 
-  return InvokeCustomFunction((char*)GetPtrData(func));
+  return InvokeCustomFunction(GetStringData(func), arg_count - 1, return_value,
+                              invoke_args);
 }
 int EQUAL(size_t result, size_t value) {
   TRACE_FUNCTION;
@@ -2394,10 +2396,17 @@ int EQUAL(size_t result, size_t value);
 size_t GOTO(size_t location);
 int LOAD_CONST(size_t object, size_t const_object);
 int WIDE();
-int InvokeCustomFunction(const char* name) {
+int InvokeCustomFunction(const char* name, size_t args_size,
+                         size_t return_value, size_t* args) {
   TRACE_FUNCTION;
   FuncInfo func_info = GetCustomFunction(name);
-  for (size_t i = 0; i < func_info.args_size; i++) {
+  if (args_size != func_info.args_size) {
+    EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
+            "Invalid args_size.");
+  }
+  object_table[return_value] = object_table[func_info[0]];
+  func_info.args += 1;
+  for (size_t i = 0; i < args_size; i++) {
     object_table[i] = object_table[func_info.args[i]];
   }
   struct Bytecode* run_code = func_info.commands;
@@ -2485,7 +2494,8 @@ int InvokeCustomFunction(const char* name) {
         WIDE();
         break;
       default:
-        EXIT_VM("InvokeCustomFunction(const char*)", "Invalid operator.");
+        EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
+                "Invalid operator.");
         break;
     }
   }
@@ -2632,7 +2642,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
 
-  InvokeCustomFunction("global::main");
+  InvokeCustomFunction("global::main", 0, 0, NULL);
 
   // printf("\nProgram finished\n");
   FreeAllPtr();
