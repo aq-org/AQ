@@ -139,6 +139,7 @@ enum Operator {
   OPERATOR_EQUAL,
   OPERATOR_GOTO,
   OPERATOR_LOAD_CONST,
+  OPERATOR_CONVERT,
   OPERATOR_WIDE = 0xFF
 };
 
@@ -1465,7 +1466,8 @@ int REFER(size_t result, size_t operand1) {
 
   return 0;
 }
-int InvokeCustomFunction(const char* name);
+int InvokeCustomFunction(const char* name, size_t args_size,
+                         size_t return_value, size_t* args);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
   TRACE_FUNCTION;
   // printf("condition: %d\n", GetByteData(condition));
@@ -2003,7 +2005,8 @@ int INVOKE(size_t* args) {
     return 0;
   }
 
-  return InvokeCustomFunction((char*)GetPtrData(func));
+  return InvokeCustomFunction(GetStringData(func), arg_count - 1, return_value,
+                              invoke_args);
 }
 int EQUAL(size_t result, size_t value) {
   TRACE_FUNCTION;
@@ -2052,6 +2055,48 @@ int LOAD_CONST(size_t object, size_t const_object) {
 
   object_table[object] = const_object_table[const_object];
 
+  return 0;
+}
+int CONVERT(size_t result, size_t operand1) {
+  TRACE_FUNCTION;
+  if (result >= object_table_size)
+    EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
+  if (operand1 >= object_table_size)
+    EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
+
+  struct Object* result_data = object_table + result;
+  while (result_data->type == 0x07)
+    result_data = result_data->data.reference_data;
+
+  switch (result_data->type) {
+    case 0x01:
+      SetByteData(result, GetByteData(operand1));
+      break;
+
+    case 0x02:
+      SetLongData(result, GetLongData(operand1));
+      break;
+
+    case 0x03:
+      SetDoubleData(result, GetDoubleData(operand1));
+      break;
+
+    case 0x04:
+      SetUint64tData(result, GetUint64tData(operand1));
+      break;
+
+    case 0x05:
+      SetStringData(result, GetStringData(operand1));
+      break;
+
+    case 0x06:
+      SetPtrData(result, GetPtrData(operand1));
+      break;
+
+    default:
+      EXIT_VM("CONVERT(size_t,size_t)", "Unsupported type.");
+      break;
+  }
   return 0;
 }
 int WIDE() {
@@ -2292,7 +2337,15 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_LOAD_CONST:
-        bytecode[i].args = NULL;
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_CONVERT:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
       case OPERATOR_WIDE:
@@ -2343,10 +2396,17 @@ int EQUAL(size_t result, size_t value);
 size_t GOTO(size_t location);
 int LOAD_CONST(size_t object, size_t const_object);
 int WIDE();
-int InvokeCustomFunction(const char* name) {
+int InvokeCustomFunction(const char* name, size_t args_size,
+                         size_t return_value, size_t* args) {
   TRACE_FUNCTION;
   FuncInfo func_info = GetCustomFunction(name);
-  for (size_t i = 0; i < func_info.args_size; i++) {
+  if (args_size != func_info.args_size) {
+    EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
+            "Invalid args_size.");
+  }
+  object_table[return_value] = object_table[func_info.args[0]];
+  func_info.args += 1;
+  for (size_t i = 0; i < args_size; i++) {
     object_table[i] = object_table[func_info.args[i]];
   }
   struct Bytecode* run_code = func_info.commands;
@@ -2427,11 +2487,15 @@ int InvokeCustomFunction(const char* name) {
       case 0x17:
         LOAD_CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
+      case 0x18:
+        CONVERT(run_code[i].args[0], run_code[i].args[1]);
+        break;
       case 0xFF:
         WIDE();
         break;
       default:
-        EXIT_VM("InvokeCustomFunction(const char*)", "Invalid operator.");
+        EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
+                "Invalid operator.");
         break;
     }
   }
@@ -2578,7 +2642,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
 
-  InvokeCustomFunction("global::main");
+  InvokeCustomFunction("global::main", 0, 0, NULL);
 
   // printf("\nProgram finished\n");
   FreeAllPtr();
