@@ -2404,7 +2404,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
     EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
             "Invalid args_size.");
   }
-  object_table[return_value] = object_table[func_info[0]];
+  object_table[return_value] = object_table[func_info.args[0]];
   func_info.args += 1;
   for (size_t i = 0; i < args_size; i++) {
     object_table[i] = object_table[func_info.args[i]];
