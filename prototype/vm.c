@@ -606,8 +606,8 @@ const char* GetStringData(size_t index) {
       }
     }
     default:
-      printf("Index: %zu\n", index);
-      printf("Type: %d\n", object_table[index].type);
+      // printf("Index: %zu\n", index);
+      // printf("Type: %d\n", object_table[index].type);
       EXIT_VM("GetStringData(size_t)", "Invalid type.");
       break;
   }
@@ -2213,23 +2213,13 @@ void* AddFunction(void* location) {
                        DecodeUleb128(location, &table->pair.second.args[i]));
   }
 
-  printf("0x%02x\n", *(uint8_t*)location);
-  printf("0x%02x\n", *(uint8_t*)(location + 1));
-  printf("0x%02x\n", *(uint8_t*)(location + 2));
-  printf("0x%02x\n", *(uint8_t*)(location + 3));
-  printf("0x%02x\n", *(uint8_t*)(location + 4));
-  printf("0x%02x\n", *(uint8_t*)(location + 5));
-  printf("0x%02x\n", *(uint8_t*)(location + 6));
-  printf("0x%02x\n", *(uint8_t*)(location + 7));
-  printf("0x%02x\n", *(uint8_t*)(location + 8));
-
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
   struct Bytecode* bytecode = (struct Bytecode*)malloc(
       table->pair.second.commands_size * sizeof(struct Bytecode));
-  printf("commands_size: %zu", table->pair.second.commands_size);
+  // printf("commands_size: %zu", table->pair.second.commands_size);
   if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "malloc failed.");
   AddFreePtr(bytecode);
 
@@ -2403,7 +2393,7 @@ void* AddFunction(void* location) {
 FuncInfo GetCustomFunction(const char* name) {
   TRACE_FUNCTION;
   if (name == NULL) EXIT_VM("GetCustomFunction(const char*)", "Invalid name.");
-  printf("name: %s\n", name);
+  // printf("name: %s\n", name);
   const unsigned int name_hash = hash(name);
   const struct FuncList* table = &func_table[name_hash];
   while (table != NULL && table->pair.first != NULL) {
@@ -2440,8 +2430,8 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   TRACE_FUNCTION;
   FuncInfo func_info = GetCustomFunction(name);
   if (args_size != func_info.args_size) {
-    printf("args_size: %zu\n", args_size);
-    printf("func_info.args_size: %zu\n", func_info.args_size);
+    // printf("args_size: %zu\n", args_size);
+    // printf("func_info.args_size: %zu\n", func_info.args_size);
     EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
             "Invalid args_size.");
   }
@@ -2607,7 +2597,7 @@ int main(int argc, char* argv[]) {
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
   for (size_t i = 0; i < const_object_table_size; i++) {
-    printf("const_object_table type: %i\n", *(uint8_t*)bytecode_file);
+    // printf("const_object_table type: %i\n", *(uint8_t*)bytecode_file);
     const_object_table[i].type = *(uint8_t*)bytecode_file;
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
     switch (const_object_table[i].type) {
