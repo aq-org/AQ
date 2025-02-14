@@ -4889,6 +4889,7 @@ BytecodeGenerator::BytecodeGenerator() {
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
                                          const char* output_file) {
   TRACE_FUNCTION;
+  global_memory_.Add(1);
   current_scope_.push_back("global");
   if (stmt == nullptr)
     EXIT_COMPILER(
@@ -4919,6 +4920,16 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   }
 
   current_scope_.pop_back();
+
+  std::vector<std::size_t> args;
+  args.push_back(0);
+  std::vector<Bytecode> start_code;
+  std::size_t main_func=global_memory_.AddString("global::main");
+  start_code.insert(start_code.end(),global_memory_.GetCode().begin(),global_memory_.GetCode().end());
+  start_code.insert(start_code.end(),global_code_.begin(),global_code_.end());
+  start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE,3,main_func,1,0));
+  Function start_func("__start", args, start_code);
+  func_list_.push_back(start_func);
 
   GenerateBytecodeFile(output_file);
 }
@@ -5746,6 +5757,13 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::vector<std::size_t> args_index;
 
+  std::size_t return_value_index = global_memory_.Add(1);
+  var_decl_map.emplace(
+    func_name + "#!return",
+    std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
+
+  args_index.push_back(return_value_index);
+
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
       args_index.push_back(
@@ -5758,10 +5776,6 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
   }
-
-  var_decl_map.emplace(
-      func_name + "#!return",
-      std::pair<VarDeclNode*, std::size_t>(nullptr, global_memory_.Add(1)));
 
   for (size_t i = 0; i < func_decl->GetStat()->GetArgs().size(); i++) {
     if (func_decl->GetStat()->GetArgs()[i]->GetType() ==

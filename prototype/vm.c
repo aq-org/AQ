@@ -2022,14 +2022,14 @@ int INVOKE(size_t* args) {
     invoke_args = args + 3;
   }
   InternalObject args_obj = {arg_count - 1, invoke_args};
-  func_ptr invoke_func = GetFunction((char*)GetPtrData(func));
+  func_ptr invoke_func = GetFunction(GetStringData(func));
   if (invoke_func != NULL) {
     // printf("invoke_func: %p\n", invoke_func);
     invoke_func(args_obj, return_value);
     return 0;
   }
 
-  return InvokeCustomFunction(GetStringData(func), arg_count - 1, return_value,
+  return InvokeCustomFunction(GetStringData(func), arg_count, return_value,
                               invoke_args);
 }
 int EQUAL(size_t result, size_t value) {
@@ -2402,6 +2402,8 @@ void* AddFunction(void* location) {
 
 FuncInfo GetCustomFunction(const char* name) {
   TRACE_FUNCTION;
+  if (name == NULL) EXIT_VM("GetCustomFunction(const char*)", "Invalid name.");
+  printf("name: %s\n", name);
   const unsigned int name_hash = hash(name);
   const struct FuncList* table = &func_table[name_hash];
   while (table != NULL && table->pair.first != NULL) {
@@ -2417,6 +2419,7 @@ FuncInfo GetCustomFunction(const char* name) {
 
 func_ptr GetFunction(const char* name) {
   TRACE_FUNCTION;
+  if (name == NULL) EXIT_VM("GetFunction(const char*)", "Invalid name.");
   const unsigned int name_hash = hash(name);
   const struct LinkedList* table = &name_table[name_hash];
   while (table->pair.first != NULL) {
@@ -2437,13 +2440,16 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   TRACE_FUNCTION;
   FuncInfo func_info = GetCustomFunction(name);
   if (args_size != func_info.args_size) {
+    printf("args_size: %zu\n", args_size);
+    printf("func_info.args_size: %zu\n", func_info.args_size);
     EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
             "Invalid args_size.");
   }
   object_table[return_value] = object_table[func_info.args[0]];
-  func_info.args += 1;
+  func_info.args++;
+  args_size--;
   for (size_t i = 0; i < args_size; i++) {
-    object_table[i] = object_table[func_info.args[i]];
+    object_table[func_info.args[i]] = object_table[args[i]];
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
@@ -2685,7 +2691,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
 
-  InvokeCustomFunction("global::main", 0, 0, NULL);
+  InvokeCustomFunction("__start", 1, 0, NULL);
 
   // printf("\nProgram finished\n");
   FreeAllPtr();
