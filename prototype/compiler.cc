@@ -4630,14 +4630,17 @@ class BytecodeGenerator {
     Memory() = default;
     ~Memory() = default;
 
-    void Add(std::size_t size) {
+    std::size_t Add(std::size_t size) {
       TRACE_FUNCTION;
+      std::size_t index = memory_type_.size();
       for (size_t i = 0; i < size; i++) {
         memory_type_.push_back(0x00);
       }
+
+      return index;
     }
 
-    void AddByte(int8_t value) {
+    std::size_t AddByte(int8_t value) {
       TRACE_FUNCTION;
       const_table_.push_back(0x01);
       const_table_.push_back(value);
@@ -4646,9 +4649,10 @@ class BytecodeGenerator {
       memory_type_.push_back(0x01);
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
                                memory_type_.size() - 1, const_table_size_ - 1));
+      return memory_type_.size() - 1;
     }
 
-    void AddLong(long value) {
+    std::size_t AddLong(long value) {
       TRACE_FUNCTION;
       const_table_.push_back(0x02);
       value = is_big_endian_ ? value : SwapLong(value);
@@ -4660,9 +4664,10 @@ class BytecodeGenerator {
       memory_type_.push_back(0x02);
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
                                memory_type_.size() - 1, const_table_size_ - 1));
+      return memory_type_.size() - 1;
     }
 
-    void AddDouble(double value) {
+    std::size_t AddDouble(double value) {
       TRACE_FUNCTION;
       const_table_.push_back(0x03);
       value = is_big_endian_ ? value : SwapDouble(value);
@@ -4677,9 +4682,10 @@ class BytecodeGenerator {
       memory_type_.push_back(0x03);
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
                                memory_type_.size() - 1, const_table_size_ - 1));
+      return memory_type_.size() - 1;
     }
 
-    void AddUint64t(uint64_t value) {
+    std::size_t AddUint64t(uint64_t value) {
       TRACE_FUNCTION;
       const_table_.push_back(0x04);
       value = is_big_endian_ ? value : SwapUint64t(value);
@@ -4691,9 +4697,10 @@ class BytecodeGenerator {
       memory_type_.push_back(0x04);
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
                                memory_type_.size() - 1, const_table_size_ - 1));
+      return memory_type_.size() - 1;
     }
 
-    void AddString(std::string value) {
+    std::size_t AddString(std::string value) {
       TRACE_FUNCTION;
       const_table_.push_back(0x05);
       EncodeUleb128(value.size() + 1, const_table_);
@@ -4706,9 +4713,10 @@ class BytecodeGenerator {
       memory_type_.push_back(0x05);
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
                                memory_type_.size() - 1, const_table_size_ - 1));
+      return memory_type_.size() - 1;
     }
 
-    void AddPtr(std::uintptr_t ptr) {
+    std::size_t AddPtr(std::uintptr_t ptr) {
       TRACE_FUNCTION;
       const_table_.push_back(0x06);
       for (int i = 0; i < 8; ++i) {
@@ -4719,6 +4727,7 @@ class BytecodeGenerator {
       memory_type_.push_back(0x06);
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
                                memory_type_.size() - 1, const_table_size_ - 1));
+      return memory_type_.size() - 1;
     }
 
     std::vector<Bytecode>& GetCode() {
@@ -4726,10 +4735,11 @@ class BytecodeGenerator {
       return code_;
     }
 
-    uint8_t GetType(size_t index){
-      if(index>=memory_type_.size())
-        EXIT_COMPILER("BytecodeGenerator::Memory::GetType(size_t)","index is out of range.");
-    return memory_type_[index];
+    uint8_t GetType(size_t index) {
+      if (index >= memory_type_.size())
+        EXIT_COMPILER("BytecodeGenerator::Memory::GetType(size_t)",
+                      "index is out of range.");
+      return memory_type_[index];
     }
 
     std::vector<uint8_t>& GetConstTable() {
@@ -4900,9 +4910,10 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
   code_.push_back(0x00);
   code_.push_back(0x01);
 
-  InsertUint64ToCode(is_big_endian_ ? global_memory_.GetConstTableSize()
-                                    : SwapUint64t( global_memory_.GetConstTableSize()));
-  for (std::size_t i = 0; i <  global_memory_.GetConstTable().size(); i++) {
+  InsertUint64ToCode(is_big_endian_
+                         ? global_memory_.GetConstTableSize()
+                         : SwapUint64t(global_memory_.GetConstTableSize()));
+  for (std::size_t i = 0; i < global_memory_.GetConstTable().size(); i++) {
     code_.push_back(global_memory_.GetConstTable()[i]);
   }
   std::size_t memory_size = global_memory_.GetMemorySize();
@@ -5706,35 +5717,25 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   var_decl_map.emplace(
       func_name + "#!return",
-      std::pair<VarDeclNode*, std::size_t>(
-          nullptr,
-          global_memory_.Add(
-              ConvertTypeToVmType(func_decl->GetReturnType()),
-              GetExprVmSize(ConvertTypeToVmType(func_decl->GetReturnType())))));
+      std::pair<VarDeclNode*, std::size_t>(nullptr, global_memory_.Add(1)));
 
   for (size_t i = 0; i < func_decl->GetStat()->GetArgs().size(); i++) {
     if (func_decl->GetStat()->GetArgs()[i]->GetType() ==
         StmtNode::StmtType::kVarDecl) {
       VarDeclNode* var_decl =
           dynamic_cast<VarDeclNode*>(func_decl->GetStat()->GetArgs()[i]);
-      var_decl_map.emplace(
-          current_scope_.back() + "#" +
-              static_cast<std::string>(*var_decl->GetName()),
-          std::pair<VarDeclNode*, std::size_t>(
-              var_decl,
-              global_memory_.Add(GetExprVmType(var_decl),
-                                 GetExprVmSize(GetExprVmType(var_decl)))));
+      var_decl_map.emplace(current_scope_.back() + "#" +
+                               static_cast<std::string>(*var_decl->GetName()),
+                           std::pair<VarDeclNode*, std::size_t>(
+                               var_decl, global_memory_.Add(1)));
     } else if (func_decl->GetStat()->GetArgs()[i]->GetType() ==
                StmtNode::StmtType::kArrayDecl) {
       ArrayDeclNode* array_decl =
           dynamic_cast<ArrayDeclNode*>(func_decl->GetStat()->GetArgs()[i]);
-      var_decl_map.emplace(
-          current_scope_.back() + "#" +
-              static_cast<std::string>(*array_decl->GetName()),
-          std::pair<VarDeclNode*, std::size_t>(
-              array_decl,
-              global_memory_.Add(GetExprVmType(array_decl),
-                                 GetExprVmSize(GetExprVmType(array_decl)))));
+      var_decl_map.emplace(current_scope_.back() + "#" +
+                               static_cast<std::string>(*array_decl->GetName()),
+                           std::pair<VarDeclNode*, std::size_t>(
+                               array_decl, global_memory_.Add(1)));
     } else {
       EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
@@ -5830,11 +5831,10 @@ void BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     var_decl_map.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),
-        std::pair<VarDeclNode*, std::size_t>(
-            var_decl, global_memory_.Add(vm_type, var_type->GetSize())));
+        std::pair<VarDeclNode*, std::size_t>(var_decl, global_memory_.Add(1)));
   } else {
     // std::cout << "Has Value" << std::endl;
-    std::size_t var_index = global_memory_.Add(vm_type, var_type->GetSize());
+    std::size_t var_index = global_memory_.Add(1);
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
     var_decl_map.emplace(
@@ -5948,9 +5948,8 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
             "Unexpected code.");
         break;
     }
-    std::size_t array_index =
-        global_memory_.Add(vm_type, array_type->GetSize() * array_size);
-    std::size_t array_ptr_index = global_memory_.Add(0x06, 8);
+    std::size_t array_index = global_memory_.Add(1);
+    std::size_t array_ptr_index = global_memory_.Add(1);
     code.push_back(
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));
 
@@ -6000,9 +5999,8 @@ void BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
             "Unexpected code.");
         break;
     }
-    std::size_t array_index =
-        global_memory_.Add(vm_type, array_type->GetSize() * array_size);
-    std::size_t array_ptr_index = global_memory_.Add(0x06, 8);
+    std::size_t array_index = global_memory_.Add(1);
+    std::size_t array_ptr_index = global_memory_.Add(1);
     code.push_back(
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));
 
@@ -6051,8 +6049,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc: {  // ++ (postfix)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      std::size_t new_index =
-          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expr, sub_expr,
@@ -6064,8 +6061,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     }
     case UnaryNode::Operator::kPostDec: {  // -- (postfix)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      std::size_t new_index =
-          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expr, sub_expr,
@@ -6090,15 +6086,14 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
                                 sub_expr));
       return sub_expr;
     case UnaryNode::Operator::kAddrOf: {  // & (address of)
-      std::size_t ptr_index = global_memory_.Add(0x06, 8);
+      std::size_t ptr_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2, sub_expr, ptr_index));
       return ptr_index;
     }
     case UnaryNode::Operator::kDeref: {  // * (dereference)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      std::size_t new_index =
-          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      std::size_t new_index = global_memory_.Add(1);
       dereference_ptr_index_ = sub_expr;
 
       code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
@@ -6108,24 +6103,21 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       return sub_expr;
     case UnaryNode::Operator::kMinus: {  // - (unary minus)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      std::size_t new_index =
-          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, 2, new_index, sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::kNot: {  // ! (logical NOT)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
-      std::size_t new_index =
-          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, 2, new_index, sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::CONVERT: {  // ()
       uint8_t vm_type = GetExprVmType(expr);
-      std::size_t new_index =
-          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      std::size_t new_index = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
       return new_index;
     }
@@ -6134,7 +6126,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       // std::cout << "ARRAY" << std::endl;
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
       uint8_t vm_type = 0;
-      std::size_t offset_expr = global_memory_.Add(0x06, 8);
+      std::size_t offset_expr = global_memory_.Add(1);
       std::size_t offset =
           HandleExpr(dynamic_cast<ArrayNode*>(expr)->GetIndex(), code);
 
@@ -6155,12 +6147,11 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
             "Unsupported type.");
       }
 
-      dereference_ptr_index_ = global_memory_.Add(0x06, 8);
+      dereference_ptr_index_ = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, dereference_ptr_index_,
                               sub_expr, offset_expr));
 
-      std::size_t new_index =
-          global_memory_.Add(vm_type, GetExprVmSize(vm_type));
+      std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(
           Bytecode(_AQVM_OPERATOR_LOAD, 2, dereference_ptr_index_, new_index));
@@ -6191,110 +6182,98 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
   switch (expr->GetOperator()) {
     case BinaryNode::Operator::kAdd: {  // +
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kSub: {  // -
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kMul: {  // *
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kDiv: {  // /
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_DIV, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kRem: {  // %
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_REM, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kAnd: {  // &
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_AND, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kOr: {  // |
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_OR, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kXor: {  // ^
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_XOR, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kShl: {  // <<
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_SHL, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kShr: {  // >>
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_SHR, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kLT: {  // <
-      std::size_t result = global_memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x04,
                               left, right));
       return result;
     }
     case BinaryNode::Operator::kGT: {  // >
-      std::size_t result = global_memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x02,
                               left, right));
       return result;
     }
     case BinaryNode::Operator::kLE: {  // <=
-      std::size_t result = global_memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x05,
                               left, right));
       return result;
     }
     case BinaryNode::Operator::kGE: {  // >=
-      std::size_t result = global_memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x03,
                               left, right));
       return result;
     }
     case BinaryNode::Operator::kEQ: {  // ==
-      std::size_t result = global_memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x00,
                               left, right));
       return result;
     }
     case BinaryNode::Operator::kNE: {  // !=
-      std::size_t result = global_memory_.Add(0x01, 1);
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x01,
                               left, right));
       return result;
     }
     case BinaryNode::Operator::kLAnd: {  // &&
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_AND, 3, result, left, right));
       return result;
     }
     case BinaryNode::Operator::kLOr: {  // ||
-      std::size_t result =
-          global_memory_.Add(result_type, GetExprVmSize(result_type));
+      std::size_t result = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_OR, 3, result, left, right));
       return result;
     }
@@ -6742,17 +6721,15 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
   std::vector<std::size_t> vm_args;
 
-  std::size_t func_name_index =
-      global_memory_.Add(0x01, func_name.size() + 1, func_name.c_str());
-  std::size_t func_name_ptr_index = global_memory_.Add(0x06, 8);
+  std::size_t func_name_index = global_memory_.Add(1);
+  std::size_t func_name_ptr_index = global_memory_.Add(1);
   code.push_back(
       Bytecode(_AQVM_OPERATOR_PTR, 2, func_name_index, func_name_ptr_index));
 
   vm_args.push_back(func_name_ptr_index);
   vm_args.push_back(args.size() + 1);
 
-  std::size_t return_value_index =
-      global_memory_.Add(vm_type, func_type->GetSize());
+  std::size_t return_value_index = global_memory_.Add(1);
   vm_args.push_back(return_value_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
@@ -6795,34 +6772,33 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
       switch (vm_type) {
         case 0x01: {
           int8_t value = dynamic_cast<ValueNode*>(expr)->GetCharValue();
-          return global_memory_.Add(
-              vm_type, dynamic_cast<ValueNode*>(expr)->GetSize(), &value);
+          return global_memory_.AddByte(value);
           break;
         }
 
         case 0x02: {
           int value = dynamic_cast<ValueNode*>(expr)->GetIntValue();
           // std::cout << "value: " << value << std::endl;
-          value = is_big_endian_ ? value : SwapInt(value);
-          return global_memory_.Add(vm_type, 4, &value);
+          // value = is_big_endian_ ? value : SwapInt(value);
+          return global_memory_.AddLong(value);
         }
 
         case 0x03: {
           long value = dynamic_cast<ValueNode*>(expr)->GetLongValue();
-          value = is_big_endian_ ? value : SwapLong(value);
-          return global_memory_.Add(vm_type, 8, &value);
+          // value = is_big_endian_ ? value : SwapLong(value);
+          return global_memory_.AddLong(value);
         }
 
         case 0x04: {
           float value = dynamic_cast<ValueNode*>(expr)->GetFloatValue();
-          value = is_big_endian_ ? value : SwapFloat(value);
-          return global_memory_.Add(vm_type, 4, &value);
+          // value = is_big_endian_ ? value : SwapFloat(value);
+          return global_memory_.AddDouble(value);
         }
 
         case 0x05: {
           double value = dynamic_cast<ValueNode*>(expr)->GetDoubleValue();
-          value = is_big_endian_ ? value : SwapDouble(value);
-          return global_memory_.Add(vm_type, 8, &value);
+          // value = is_big_endian_ ? value : SwapDouble(value);
+          return global_memory_.AddDouble(value);
         }
 
         case 0x06: {
@@ -6830,17 +6806,12 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
               Token::Type::STRING) {
             std::string value =
                 dynamic_cast<ValueNode*>(expr)->GetStringValue();
-            std::size_t str_index =
-                global_memory_.Add(0x01, value.size() + 1,
-                                   static_cast<const void*>(value.c_str()));
-            std::size_t ptr_index = global_memory_.Add(vm_type, 8);
-            code.push_back(
-                Bytecode(_AQVM_OPERATOR_PTR, 2, str_index, ptr_index));
-            return ptr_index;
+            std::size_t str_index = global_memory_.AddString(value);
+            return str_index;
           }
           uint64_t value = dynamic_cast<ValueNode*>(expr)->GetUInt64Value();
-          value = is_big_endian_ ? value : SwapUint64t(value);
-          return global_memory_.Add(vm_type, 8, &value);
+          // value = is_big_endian_ ? value : SwapUint64t(value);
+          return global_memory_.AddUint64t(value);
         }
 
         default:
@@ -6863,7 +6834,7 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
 
 std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
   TRACE_FUNCTION;
-  return global_memory_.Add(0x01, 1, &value);
+  return global_memory_.AddByte(value);
 }
 
 uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
