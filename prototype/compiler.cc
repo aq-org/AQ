@@ -4643,7 +4643,7 @@ class BytecodeGenerator {
     ~Memory() = default;
 
     std::size_t Add(std::size_t size) {
-      std::cout << "Add" << std::endl;
+      // std::cout << "Add" << std::endl;
       TRACE_FUNCTION;
       std::size_t index = memory_type_.size();
       for (size_t i = 0; i < size; i++) {
@@ -4654,7 +4654,7 @@ class BytecodeGenerator {
     }
 
     std::size_t AddByte(int8_t value) {
-      std::cout << "AddByte" << std::endl;
+      // std::cout << "AddByte" << std::endl;
       TRACE_FUNCTION;
       const_table_.push_back(0x01);
       const_table_.push_back(value);
@@ -4667,7 +4667,7 @@ class BytecodeGenerator {
     }
 
     std::size_t AddLong(long value) {
-      std::cout << "AddLong" << std::endl;
+      // std::cout << "AddLong" << std::endl;
       TRACE_FUNCTION;
       const_table_.push_back(0x02);
       value = is_big_endian_ ? value : SwapLong(value);
@@ -4683,7 +4683,7 @@ class BytecodeGenerator {
     }
 
     std::size_t AddDouble(double value) {
-      std::cout << "AddDouble" << std::endl;
+      // std::cout << "AddDouble" << std::endl;
       TRACE_FUNCTION;
       const_table_.push_back(0x03);
       value = is_big_endian_ ? value : SwapDouble(value);
@@ -4702,7 +4702,7 @@ class BytecodeGenerator {
     }
 
     std::size_t AddUint64t(uint64_t value) {
-      std::cout << "AddUint64t" << std::endl;
+      // std::cout << "AddUint64t" << std::endl;
       TRACE_FUNCTION;
       const_table_.push_back(0x04);
       value = is_big_endian_ ? value : SwapUint64t(value);
@@ -4718,7 +4718,7 @@ class BytecodeGenerator {
     }
 
     std::size_t AddString(std::string value) {
-      std::cout << "AddString" << std::endl;
+      // std::cout << "AddString" << std::endl;
       TRACE_FUNCTION;
       const_table_.push_back(0x05);
       EncodeUleb128(value.size() + 1, const_table_);
@@ -4736,7 +4736,7 @@ class BytecodeGenerator {
 
     std::size_t AddPtr(std::uintptr_t ptr) {
       TRACE_FUNCTION;
-      std::cout << "AddPtr" << std::endl;
+      // std::cout << "AddPtr" << std::endl;
       const_table_.push_back(0x06);
       for (int i = 0; i < 8; ++i) {
         const_table_.push_back(static_cast<uint8_t>((ptr >> (i * 8)) & 0xFF));
@@ -4773,7 +4773,7 @@ class BytecodeGenerator {
 
     std::size_t GetConstTableSize() {
       TRACE_FUNCTION;
-      std::cout << "Const Table Size: " << const_table_size_ << std::endl;
+      // std::cout << "Const Table Size: " << const_table_size_ << std::endl;
       return const_table_size_;
     }
 
@@ -4924,10 +4924,11 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   std::vector<std::size_t> args;
   args.push_back(0);
   std::vector<Bytecode> start_code;
-  std::size_t main_func=global_memory_.AddString("global::main");
-  start_code.insert(start_code.end(),global_memory_.GetCode().begin(),global_memory_.GetCode().end());
-  start_code.insert(start_code.end(),global_code_.begin(),global_code_.end());
-  start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE,3,main_func,1,0));
+  std::size_t main_func = global_memory_.AddString("global::main");
+  start_code.insert(start_code.end(), global_memory_.GetCode().begin(),
+                    global_memory_.GetCode().end());
+  start_code.insert(start_code.end(), global_code_.begin(), global_code_.end());
+  start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3, main_func, 1, 0));
   Function start_func("__start", args, start_code);
   func_list_.push_back(start_func);
 
@@ -4959,7 +4960,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
   for (std::size_t i = 0; i < global_memory_.GetMemoryType().size(); i++) {
     code_.push_back(global_memory_.GetMemoryType()[i]);
   }
-  std::cout<<"Size: "<<code_.size()<<std::endl;
+  // std::cout<<"Size: "<<code_.size()<<std::endl;
 
   for (std::size_t i = 0; i < func_list_.size(); i++) {
     // Function name (with '\0')
@@ -5759,8 +5760,8 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::size_t return_value_index = global_memory_.Add(1);
   var_decl_map.emplace(
-    func_name + "#!return",
-    std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
+      func_name + "#!return",
+      std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
   args_index.push_back(return_value_index);
 
@@ -6785,7 +6786,6 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   std::vector<std::size_t> vm_args;
 
   std::size_t func_name_index = global_memory_.AddString(func_name);
-  
 
   vm_args.push_back(func_name_index);
   vm_args.push_back(args.size() + 1);
