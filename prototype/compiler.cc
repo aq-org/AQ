@@ -4688,6 +4688,8 @@ class BytecodeGenerator {
         memory_type_.push_back(0x00);
       }
 
+
+
       
 
       return index;
