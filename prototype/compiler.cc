@@ -349,6 +349,7 @@ struct Token {
     Export,
     Extern,
     False,
+    Func,
     Float,
     For,
     Friend,
@@ -386,6 +387,7 @@ struct Token {
     Union,
     Unsigned,
     Using,
+    Var,
     Virtual,
     Void,
     Wchar_t,
@@ -653,6 +655,8 @@ struct Token {
         return "Extern";
       case Token::KeywordType::False:
         return "False";
+      case Token::KeywordType::Func:
+        return "Func";
       case Token::KeywordType::Float:
         return "Float";
       case Token::KeywordType::For:
@@ -727,6 +731,8 @@ struct Token {
         return "Unsigned";
       case Token::KeywordType::Using:
         return "Using";
+      case Token::KeywordType::Var:
+        return "Var"; 
       case Token::KeywordType::Virtual:
         return "Virtual";
       case Token::KeywordType::Void:
@@ -935,6 +941,7 @@ TokenMap::TokenMap() {
   keyword_map.Insert("export", Token::KeywordType::Export);
   keyword_map.Insert("extern", Token::KeywordType::Extern);
   keyword_map.Insert("false", Token::KeywordType::False);
+  keyword_map.Insert("func", Token::KeywordType::Func);
   keyword_map.Insert("float", Token::KeywordType::Float);
   keyword_map.Insert("for", Token::KeywordType::For);
   keyword_map.Insert("friend", Token::KeywordType::Friend);
@@ -973,6 +980,7 @@ TokenMap::TokenMap() {
   keyword_map.Insert("unsigned", Token::KeywordType::Unsigned);
   keyword_map.Insert("using", Token::KeywordType::Using);
   keyword_map.Insert("virtual", Token::KeywordType::Virtual);
+  keyword_map.Insert("var", Token::KeywordType::Var);
   keyword_map.Insert("void", Token::KeywordType::Void);
   keyword_map.Insert("wchar_t", Token::KeywordType::Wchar_t);
   keyword_map.Insert("while", Token::KeywordType::While);
@@ -1551,6 +1559,7 @@ class Type {
     kLong,
     kFloat,
     kDouble,
+    kClass,
     kStruct,
     kUnion,
     kEnum,
@@ -1590,6 +1599,7 @@ class Type {
         return 4;
       case BaseType::kLong:
       case BaseType::kDouble:
+      case BaseType::kClass:
       case BaseType::kStruct:
       case BaseType::kUnion:
       case BaseType::kEnum:
@@ -2435,6 +2445,8 @@ Type::operator std::string() {
         return "float";
       case BaseType::kDouble:
         return "double";
+      case BaseType::kClass:
+        return "class";
       case BaseType::kStruct:
         return "struct";
       case BaseType::kUnion:
@@ -2604,8 +2616,21 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
                 type->SetType(Type::BaseType::kDouble);
                 break;
 
+              case Token::KeywordType::Var:
               case Token::KeywordType::Auto:
                 type->SetType(Type::BaseType::kAuto);
+                break;
+
+              case Token::KeywordType::Struct:
+                type->SetType(Type::BaseType::kStruct);
+                break;
+
+              case Token::KeywordType::Class:
+                type->SetType(Type::BaseType::kClass);
+                break;
+              
+              case Token::KeywordType::Func:
+                type->SetType(Type::BaseType::kFunction);
                 break;
 
               default:
@@ -2661,6 +2686,11 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
           type->SetType(Type::BaseType::kDouble);
           break;
 
+        case Token::KeywordType::Class:
+          type = new Type();
+          type->SetType(Type::BaseType::kClass);
+          return type;
+
         case Token::KeywordType::Struct:
           type = new Type();
           type->SetType(Type::BaseType::kStruct);
@@ -2676,9 +2706,15 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
           type->SetType(Type::BaseType::kEnum);
           return type;
 
+        case Token::KeywordType::Var:
         case Token::KeywordType::Auto:
           type = new Type();
           type->SetType(Type::BaseType::kAuto);
+          break;
+
+        case Token::KeywordType::Func:
+          type = new Type();
+          type->SetType(Type::BaseType::kFunction);
           break;
 
         default:
@@ -2807,6 +2843,8 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
         token[index].value.keyword == Token::KeywordType::Short ||
         token[index].value.keyword == Token::KeywordType::Signed ||
         token[index].value.keyword == Token::KeywordType::Unsigned ||
+        token[index].value.keyword == Token::KeywordType::Var ||
+        token[index].value.keyword == Token::KeywordType::Func ||
         token[index].value.keyword == Token::KeywordType::Virtual ||
         token[index].value.keyword == Token::KeywordType::Wchar_t) {
       return true;
@@ -5864,6 +5902,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       case Type::BaseType::kDouble:
         vm_type = 0x05;
         break;
+      case Type::BaseType::kClass:
       case Type::BaseType::kStruct:
       case Type::BaseType::kUnion:
       case Type::BaseType::kEnum:
@@ -5947,6 +5986,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
       case Type::BaseType::kDouble:
         vm_type = 0x05;
         break;
+      case Type::BaseType::kClass:
       case Type::BaseType::kStruct:
       case Type::BaseType::kUnion:
       case Type::BaseType::kEnum:
@@ -6760,6 +6800,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
       case Type::BaseType::kDouble:
         vm_type = 0x05;
         break;
+        case Type::BaseType::kClass:
       case Type::BaseType::kStruct:
       case Type::BaseType::kUnion:
       case Type::BaseType::kEnum:
@@ -6930,6 +6971,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+              case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
             case Type::BaseType::kEnum:
@@ -7025,6 +7067,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+            case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
           case Type::BaseType::kEnum:
@@ -7053,11 +7096,20 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
   }
 
   if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
-    // std::cout << "Identifier" << std::endl;
+    bool is_find = false;
     auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
-    if (iterator == var_decl_map.end())
+    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      iterator = var_decl_map.find(
+          current_scope_[i] + "#" +
+          static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+      if (iterator != var_decl_map.end()) {
+        is_find=true;
+      }
+    }
+    if (!is_find)
       EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
                     "Not found identifier define.");
+
     switch (iterator->second.first->GetVarType()->GetType()) {
       case Type::TypeType::kBase:
       case Type::TypeType::kConst:
@@ -7076,6 +7128,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+            case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
           case Type::BaseType::kEnum:
@@ -7122,6 +7175,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+            case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
           case Type::BaseType::kEnum:
@@ -7171,6 +7225,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+            case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
           case Type::BaseType::kEnum:
@@ -7233,6 +7288,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+              case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
             case Type::BaseType::kEnum:
@@ -7308,7 +7364,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
           case Type::BaseType::kFloat:
             return 0x04;
           case Type::BaseType::kDouble:
-            return 0x05;
+            return 0x05;case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
           case Type::BaseType::kEnum:
@@ -7343,7 +7399,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               case Type::BaseType::kFloat:
                 return 0x04;
               case Type::BaseType::kDouble:
-                return 0x05;
+                return 0x05;case Type::BaseType::kClass:
               case Type::BaseType::kStruct:
               case Type::BaseType::kUnion:
               case Type::BaseType::kEnum:
@@ -7386,7 +7442,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               case Type::BaseType::kFloat:
                 return 0x04;
               case Type::BaseType::kDouble:
-                return 0x05;
+                return 0x05;case Type::BaseType::kClass:
               case Type::BaseType::kStruct:
               case Type::BaseType::kUnion:
               case Type::BaseType::kEnum:
@@ -7430,7 +7486,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               case Type::BaseType::kFloat:
                 return 0x04;
               case Type::BaseType::kDouble:
-                return 0x05;
+                return 0x05;case Type::BaseType::kClass:
               case Type::BaseType::kStruct:
               case Type::BaseType::kUnion:
               case Type::BaseType::kEnum:
@@ -7456,10 +7512,20 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
         return 0x00;
     }
     if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
-      auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
-      if (iterator == var_decl_map.end())
-        EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
-                      "Not found variable.");
+                      bool is_find = false;
+                      auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+                      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+                        iterator = var_decl_map.find(
+                            current_scope_[i] + "#" +
+                            static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+                        if (iterator != var_decl_map.end()) {
+                          is_find=true;
+                        }
+                      }
+                      if (!is_find)
+                      EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                        "Not found variable.");
+
       switch (iterator->second.first->GetVarType()->GetType()) {
         case Type::TypeType::kBase:
         case Type::TypeType::kConst:
@@ -7477,7 +7543,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
             case Type::BaseType::kFloat:
               return 0x04;
             case Type::BaseType::kDouble:
-              return 0x05;
+              return 0x05;case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
             case Type::BaseType::kEnum:
@@ -7492,11 +7558,21 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
           }
 
         case Type::TypeType::kArray: {
-          auto iterator =
-              var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
-          if (iterator == var_decl_map.end())
-            EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                          bool is_find = false;
+                          auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+                          for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+                            iterator = var_decl_map.find(
+                                current_scope_[i] + "#" +
+                                static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+                            if (iterator != var_decl_map.end()) {
+                              is_find=true;
+                            }
+                          }
+                          if (!is_find)
+                          EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
                           "Not found variable.");
+
+                          
           switch (iterator->second.first->GetVarType()->GetType()) {
             case Type::TypeType::kBase:
             case Type::TypeType::kConst:
@@ -7517,7 +7593,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 case Type::BaseType::kFloat:
                   return 0x04;
                 case Type::BaseType::kDouble:
-                  return 0x05;
+                  return 0x05;case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
                 case Type::BaseType::kEnum:
@@ -7542,11 +7618,21 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
         }
 
         case Type::TypeType::kPointer: {
-          auto iterator =
-              var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
-          if (iterator == var_decl_map.end())
-            EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                          bool is_find = false;
+                          auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+                          for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+                            iterator = var_decl_map.find(
+                                current_scope_[i] + "#" +
+                                static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+                            if (iterator != var_decl_map.end()) {
+                              is_find=true;
+                            }
+                          }
+                          if (!is_find)
+                          EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
                           "Not found variable.");
+
+
           switch (iterator->second.first->GetVarType()->GetType()) {
             case Type::TypeType::kBase:
             case Type::TypeType::kConst:
@@ -7567,7 +7653,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 case Type::BaseType::kFloat:
                   return 0x04;
                 case Type::BaseType::kDouble:
-                  return 0x05;
+                  return 0x05;case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
                 case Type::BaseType::kEnum:
@@ -7592,11 +7678,21 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
         }
 
         case Type::TypeType::kReference: {
-          auto iterator =
-              var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
-          if (iterator == var_decl_map.end())
-            EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
+                          bool is_find = false;
+                          auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+                          for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+                            iterator = var_decl_map.find(
+                                current_scope_[i] + "#" +
+                                static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+                            if (iterator != var_decl_map.end()) {
+                              is_find=true;
+                            }
+                          }
+                          if (!is_find)
+                          EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
                           "Not found variable.");
+
+
           switch (iterator->second.first->GetVarType()->GetType()) {
             case Type::TypeType::kBase:
             case Type::TypeType::kConst:
@@ -7617,7 +7713,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 case Type::BaseType::kFloat:
                   return 0x04;
                 case Type::BaseType::kDouble:
-                  return 0x05;
+                  return 0x05;case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
                 case Type::BaseType::kEnum:
@@ -7664,7 +7760,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
             case Type::BaseType::kFloat:
               return 0x04;
             case Type::BaseType::kDouble:
-              return 0x05;
+              return 0x05;case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
             case Type::BaseType::kEnum:
@@ -7702,7 +7798,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 case Type::BaseType::kFloat:
                   return 0x04;
                 case Type::BaseType::kDouble:
-                  return 0x05;
+                  return 0x05;case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
                 case Type::BaseType::kEnum:
@@ -7748,7 +7844,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 case Type::BaseType::kFloat:
                   return 0x04;
                 case Type::BaseType::kDouble:
-                  return 0x05;
+                  return 0x05;case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
                 case Type::BaseType::kEnum:
@@ -7794,7 +7890,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 case Type::BaseType::kFloat:
                   return 0x04;
                 case Type::BaseType::kDouble:
-                  return 0x05;
+                  return 0x05;case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
                 case Type::BaseType::kEnum:
@@ -7840,7 +7936,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
           case Type::BaseType::kFloat:
             return 0x04;
           case Type::BaseType::kDouble:
-            return 0x05;
+            return 0x05;case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
           case Type::BaseType::kEnum:
@@ -7885,7 +7981,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
         case Type::BaseType::kFloat:
           return 0x04;
         case Type::BaseType::kDouble:
-          return 0x05;
+          return 0x05;case Type::BaseType::kClass:
         case Type::BaseType::kStruct:
         case Type::BaseType::kUnion:
         case Type::BaseType::kEnum:
@@ -7917,7 +8013,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
             case Type::BaseType::kFloat:
               return 0x04;
             case Type::BaseType::kDouble:
-              return 0x05;
+              return 0x05;case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
             case Type::BaseType::kEnum:
@@ -7960,7 +8056,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
             case Type::BaseType::kFloat:
               return 0x04;
             case Type::BaseType::kDouble:
-              return 0x05;
+              return 0x05;case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
             case Type::BaseType::kEnum:
@@ -8003,7 +8099,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
             case Type::BaseType::kFloat:
               return 0x04;
             case Type::BaseType::kDouble:
-              return 0x05;
+              return 0x05;case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
             case Type::BaseType::kEnum:
@@ -8136,12 +8232,20 @@ std::size_t BytecodeGenerator::EncodeUleb128(std::size_t value,
 
 Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
   if (expr->GetType() == StmtNode::StmtType::kArray) {
-    auto iterator =
-        var_decl_map.find(*dynamic_cast<ArrayNode*>(expr)->GetExpr());
-    if (iterator == var_decl_map.end()) {
-      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
-                    "Not found array.");
+    bool is_find = false;
+    auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      iterator = var_decl_map.find(
+          current_scope_[i] + "#" +
+          static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+      if (iterator != var_decl_map.end()) {
+        is_find=true;
+      }
     }
+    if (!is_find)
+    EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Not found array.");
+
     ArrayDeclNode* array_decl = (ArrayDeclNode*)iterator->second.second;
     if (array_decl->GetVarType()->GetType() == Type::TypeType::kArray) {
       return dynamic_cast<ArrayType*>(array_decl->GetVarType())->GetSubType();
@@ -8155,11 +8259,20 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
   } else if (expr->GetType() == StmtNode::StmtType::kArrayDecl) {
     return dynamic_cast<ArrayDeclNode*>(expr)->GetVarType();
   } else if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
+    bool is_find = false;
     auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
-    if (iterator == var_decl_map.end()) {
-      EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
-                    "Not found variable.");
+    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      iterator = var_decl_map.find(
+          current_scope_[i] + "#" +
+          static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+      if (iterator != var_decl_map.end()) {
+        is_find=true;
+      }
     }
+    if (!is_find)
+    EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
+                    "Not found variable.");
+
     return iterator->second.first->GetVarType();
   } else if (expr->GetType() == StmtNode::StmtType::kUnary) {
     switch (dynamic_cast<UnaryNode*>(expr)->GetOperator()) {
@@ -8242,73 +8355,78 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
       switch (left->GetBaseType()) {
         case Type::BaseType::kVoid:
           left_priority = 0;
+          break;
         case Type::BaseType::kBool:
-          left_priority = 1;
+          left_priority = 1;break;
         case Type::BaseType::kChar:
-          left_priority = 2;
+          left_priority = 2;break;
         case Type::BaseType::kShort:
-          left_priority = 3;
+          left_priority = 3;break;
         case Type::BaseType::kInt:
-          left_priority = 4;
+          left_priority = 4;break;
         case Type::BaseType::kFloat:
-          left_priority = 5;
+          left_priority = 5;break;
         case Type::BaseType::kLong:
-          left_priority = 6;
+          left_priority = 6;break;
         case Type::BaseType::kDouble:
-          left_priority = 7;
-        case Type::BaseType::kAuto:
-          left_priority = 8;
+          left_priority = 7;break;
         case Type::BaseType::kTypedef:
-          left_priority = 9;
+          left_priority = 8;break;
         case Type::BaseType::kPointer:
-          left_priority = 10;
+          left_priority = 9;break;
         case Type::BaseType::kArray:
-          left_priority = 11;
+          left_priority = 10;break;
         case Type::BaseType::kEnum:
-          left_priority = 12;
+          left_priority = 11;break;
         case Type::BaseType::kUnion:
-          left_priority = 13;
+          left_priority = 12;break;
         case Type::BaseType::kStruct:
-          left_priority = 14;
+          left_priority = 13;break;
+          case Type::BaseType::kClass:
+          left_priority = 14;break;
         case Type::BaseType::kFunction:
-          left_priority = 15;
+          left_priority = 15;break;
+        case Type::BaseType::kAuto:
+        left_priority = 16;break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                         "Unknown type.");
       }
       switch (right->GetBaseType()) {
         case Type::BaseType::kVoid:
-          right_priority = 0;
+          right_priority = 0;break;
         case Type::BaseType::kBool:
-          right_priority = 1;
+          right_priority = 1;break;
         case Type::BaseType::kChar:
-          right_priority = 2;
+          right_priority = 2;break;
         case Type::BaseType::kShort:
-          right_priority = 3;
+          right_priority = 3;break;
         case Type::BaseType::kInt:
-          right_priority = 4;
+          right_priority = 4;break;
         case Type::BaseType::kFloat:
-          right_priority = 5;
+          right_priority = 5;break;
         case Type::BaseType::kLong:
-          right_priority = 6;
+          right_priority = 6;break;
         case Type::BaseType::kDouble:
-          right_priority = 7;
-        case Type::BaseType::kAuto:
-          right_priority = 8;
+          right_priority = 7;break;
         case Type::BaseType::kTypedef:
-          right_priority = 9;
+          right_priority = 8;break;
         case Type::BaseType::kPointer:
-          right_priority = 10;
+          right_priority = 9;break;
         case Type::BaseType::kArray:
-          right_priority = 11;
+          right_priority = 10;break;
         case Type::BaseType::kEnum:
-          right_priority = 12;
+          right_priority = 11;break;
         case Type::BaseType::kUnion:
-          right_priority = 13;
+          right_priority = 12;break;
         case Type::BaseType::kStruct:
-          right_priority = 14;
+          right_priority = 13;break;
+          case Type::BaseType::kClass:
+          right_priority = 14;break;
         case Type::BaseType::kFunction:
-          right_priority = 15;
+          right_priority = 15;break;
+        case Type::BaseType::kAuto:
+        right_priority = 16;break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                         "Unknown type.");
@@ -8367,74 +8485,78 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
       int false_expr_priority = 0;
       switch (true_expr->GetBaseType()) {
         case Type::BaseType::kVoid:
-          true_expr_priority = 0;
+          true_expr_priority = 0;break;
         case Type::BaseType::kBool:
-          true_expr_priority = 1;
+          true_expr_priority = 1;break;
         case Type::BaseType::kChar:
-          true_expr_priority = 2;
+          true_expr_priority = 2;break;
         case Type::BaseType::kShort:
-          true_expr_priority = 3;
+          true_expr_priority = 3;break;
         case Type::BaseType::kInt:
-          true_expr_priority = 4;
+          true_expr_priority = 4;break;
         case Type::BaseType::kFloat:
-          true_expr_priority = 5;
+          true_expr_priority = 5;break;
         case Type::BaseType::kLong:
-          true_expr_priority = 6;
+          true_expr_priority = 6;break;
         case Type::BaseType::kDouble:
-          true_expr_priority = 7;
-        case Type::BaseType::kAuto:
-          true_expr_priority = 8;
+          true_expr_priority = 7;break;
         case Type::BaseType::kTypedef:
-          true_expr_priority = 9;
+          true_expr_priority = 8;break;
         case Type::BaseType::kPointer:
-          true_expr_priority = 10;
+          true_expr_priority = 9;break;
         case Type::BaseType::kArray:
-          true_expr_priority = 11;
+          true_expr_priority = 10;break;
         case Type::BaseType::kEnum:
-          true_expr_priority = 12;
+          true_expr_priority = 11;break;
         case Type::BaseType::kUnion:
-          true_expr_priority = 13;
+          true_expr_priority = 12;break;
         case Type::BaseType::kStruct:
-          true_expr_priority = 14;
+          true_expr_priority = 13;break;
+          case Type::BaseType::kClass:
+          true_expr_priority = 14;break;
         case Type::BaseType::kFunction:
-          true_expr_priority = 15;
+        true_expr_priority = 15;break;
+        case Type::BaseType::kAuto:
+        true_expr_priority = 16;break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                         "Unknown type.");
       }
       switch (false_expr->GetBaseType()) {
         case Type::BaseType::kVoid:
-          false_expr_priority = 0;
+          false_expr_priority = 0;break;
         case Type::BaseType::kBool:
-          false_expr_priority = 1;
+          false_expr_priority = 1;break;
         case Type::BaseType::kChar:
-          false_expr_priority = 2;
+          false_expr_priority = 2;break;
         case Type::BaseType::kShort:
-          false_expr_priority = 3;
+          false_expr_priority = 3;break;
         case Type::BaseType::kInt:
-          false_expr_priority = 4;
+          false_expr_priority = 4;break;
         case Type::BaseType::kFloat:
-          false_expr_priority = 5;
+          false_expr_priority = 5;break;
         case Type::BaseType::kLong:
-          false_expr_priority = 6;
+          false_expr_priority = 6;break;
         case Type::BaseType::kDouble:
-          false_expr_priority = 7;
-        case Type::BaseType::kAuto:
-          false_expr_priority = 8;
+          false_expr_priority = 7;break;
         case Type::BaseType::kTypedef:
-          false_expr_priority = 9;
+          false_expr_priority = 8;break;
         case Type::BaseType::kPointer:
-          false_expr_priority = 10;
+          false_expr_priority = 9;break;
         case Type::BaseType::kArray:
-          false_expr_priority = 11;
+          false_expr_priority = 10;break;
         case Type::BaseType::kEnum:
-          false_expr_priority = 12;
+          false_expr_priority = 11;break;
         case Type::BaseType::kUnion:
-          false_expr_priority = 13;
+          false_expr_priority = 12;break;
         case Type::BaseType::kStruct:
-          false_expr_priority = 14;
+          false_expr_priority = 13;break;
+          case Type::BaseType::kClass:
+          false_expr_priority = 14;break;
         case Type::BaseType::kFunction:
-          false_expr_priority = 15;
+        false_expr_priority = 15;break;
+        case Type::BaseType::kAuto:
+          false_expr_priority = 16;break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                         "Unknown type.");

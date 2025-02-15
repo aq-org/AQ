@@ -1,4 +1,5 @@
 int print(const char* str);
 void main(){
-  print("Hello World!\n");
+  func abc = "Hello World!\n";
+  print(abc);
 }
