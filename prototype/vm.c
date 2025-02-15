@@ -81,7 +81,7 @@ void TraceDestroy(Trace* trace) {
 
 union Data {
   int8_t byte_data;
-  long long_data;
+  int64_t long_data;
   double double_data;
   uint64_t uint64t_data;
   const char* string_data;
@@ -237,7 +237,7 @@ void IsBigEndian() {
   return (int)ux;
 }*/
 
-long SwapLong(long x) {
+int64_t SwapLong(int64_t x) {
   TRACE_FUNCTION;
   uint64_t ux = (uint64_t)x;
   ux = ((ux << 56) & 0xFF00000000000000ULL) |
@@ -440,7 +440,7 @@ int8_t GetByteData(size_t index) {
   return -1;
 }*/
 
-long GetLongData(size_t index) {
+int64_t GetLongData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("GetLongData(size_t)", "Out of memory.");
@@ -448,6 +448,7 @@ long GetLongData(size_t index) {
     case 0x01:
       return object_table[index].data.byte_data;
     case 0x02:
+    printf("GetLongData: %lld\n", object_table[index].data.long_data);
       return object_table[index].data.long_data;
     case 0x03:
       return object_table[index].data.double_data;
@@ -685,7 +686,7 @@ void SetByteData(size_t index, int8_t value) {
   // printf("SetIntData: %zu, Result: %d\n", index, GetIntData(index));
 }*/
 
-void SetLongData(size_t index, long value) {
+void SetLongData(size_t index, int64_t value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetLongData(size_t,long)", "Out of memory.");
@@ -2140,7 +2141,7 @@ void print(InternalObject args, size_t return_value) {
       SetLongData(return_value, printf("%d", GetByteData(*args.index)));
       break;
     case 0x02:
-      SetLongData(return_value, printf("%ld", GetLongData(*args.index)));
+      SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
       break;
     case 0x03:
       SetLongData(return_value, printf("%f", GetDoubleData(*args.index)));
@@ -2172,12 +2173,25 @@ unsigned int hash(const char* str) {
 
 void InitializeNameTable(struct LinkedList* list) {
   TRACE_FUNCTION;
-  const unsigned int name_hash = hash("global::print@const char*");
+  unsigned int name_hash = hash("global::print@const char*");
   struct LinkedList* table = &list[name_hash];
   while (table->next != NULL) {
     table = table->next;
   }
   table->pair.first = "global::print@const char*";
+  table->pair.second = print;
+  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
+  AddFreePtr(table->next);
+  table->next->next = NULL;
+  table->next->pair.first = NULL;
+  table->next->pair.second = NULL;
+
+  name_hash = hash("global::print@auto");
+  table = &list[name_hash];
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.first = "global::print@auto";
   table->pair.second = print;
   table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
   AddFreePtr(table->next);
@@ -2607,7 +2621,7 @@ int main(int argc, char* argv[]) {
         break;
 
       case 0x02:
-        const_object_table[i].data.long_data = *(long*)bytecode_file;
+        const_object_table[i].data.long_data = *(int64_t*)bytecode_file;
         const_object_table[i].data.long_data =
             is_big_endian ? const_object_table[i].data.long_data
                           : SwapLong(const_object_table[i].data.long_data);

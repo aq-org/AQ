@@ -1,5 +1,6 @@
 int print(const char* str);
+int print(auto str);
 void main(){
-  func abc = "Hello World!\n";
+  var abc = 55465;
   print(abc);
 }

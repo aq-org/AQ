@@ -1699,10 +1699,18 @@ class ValueNode : public ExprNode {
   char GetCharValue() { return value_.value.character; }
   std::string GetStringValue() { return *value_.value.string; }
   int GetIntValue() {
+    std::cout << "stoi: "
+              << std::stoi(std::string(value_.value.number.location,
+                                       value_.value.number.length))
+              << std::endl;
     return std::stoi(
         std::string(value_.value.number.location, value_.value.number.length));
   }
-  long GetLongValue() {
+  int64_t GetLongValue() {
+    std::cout << "stol: "
+              << std::stol(std::string(value_.value.number.location,
+                                       value_.value.number.length))
+              << std::endl;
     return std::stol(
         std::string(value_.value.number.location, value_.value.number.length));
   }
@@ -1715,11 +1723,15 @@ class ValueNode : public ExprNode {
         std::string(value_.value.number.location, value_.value.number.length));
   }
   uint64_t GetUInt64Value() {
+    std::cout << "stoull: "
+              << std::stoull(std::string(value_.value.number.location,
+                                         value_.value.number.length))
+              << std::endl;
     return std::stoull(
         std::string(value_.value.number.location, value_.value.number.length));
   }
 
-  /*std::variant<char,const char*, int, long, float, double, uint64_t>
+  /*std::variant<char,const char*, int, int64_t, float, double, uint64_t>
   GetValue() { if (value_.type == Token::Type::CHARACTER) { return
   value_.value.character;
     }
@@ -1740,9 +1752,9 @@ class ValueNode : public ExprNode {
 
     try {
       std::size_t pos;
-      long long_value = std::stol(str, &pos);
+      int64_t int64_t_value = std::stol(str, &pos);
       if (pos == str.size()) {
-        return long_value;
+        return int64_t_value;
       }
     } catch (const std::invalid_argument&) {
     } catch (const std::out_of_range&) {
@@ -2440,7 +2452,7 @@ Type::operator std::string() {
       case BaseType::kInt:
         return "int";
       case BaseType::kLong:
-        return "long";
+        return "int64_t";
       case BaseType::kFloat:
         return "float";
       case BaseType::kDouble:
@@ -2497,7 +2509,7 @@ Type* ValueNode::GetValueType() {
   }
 
   std::string str(value_.value.number.location, value_.value.number.length);
-  try {
+  /*try {
     std::size_t pos;
     (void)std::stoi(str, &pos);
     if (pos == str.size()) {
@@ -2507,7 +2519,7 @@ Type* ValueNode::GetValueType() {
     }
   } catch (const std::invalid_argument&) {
   } catch (const std::out_of_range&) {
-  }
+  }*/
 
   try {
     std::size_t pos;
@@ -2534,7 +2546,7 @@ Type* ValueNode::GetValueType() {
   } catch (const std::out_of_range&) {
   }
 
-  try {
+  /*try {
     std::size_t pos;
     (void)std::stof(str, &pos);
     if (pos == str.size()) {
@@ -2544,7 +2556,7 @@ Type* ValueNode::GetValueType() {
     }
   } catch (const std::invalid_argument&) {
   } catch (const std::out_of_range&) {
-  }
+  }*/
 
   try {
     std::size_t pos;
@@ -4531,7 +4543,7 @@ class BytecodeGenerator {
       return (int)ux;
     }
 
-    long SwapLong(long x) {
+    int64_t SwapLong(int64_t x) {
       TRACE_FUNCTION;
       uint64_t ux = (uint64_t)x;
       ux = ((ux << 56) & 0xFF00000000000000ULL) |
@@ -4542,7 +4554,7 @@ class BytecodeGenerator {
            ((ux >> 24) & 0x0000000000FF0000ULL) |
            ((ux >> 40) & 0x000000000000FF00ULL) |
            ((ux >> 56) & 0x00000000000000FFULL);
-      return (long)ux;
+      return (int64_t)ux;
     }
 
     float SwapFloat(float x) {
@@ -4704,11 +4716,15 @@ class BytecodeGenerator {
       return memory_type_.size() - 1;
     }
 
-    std::size_t AddLong(long value) {
-      // std::cout << "AddLong" << std::endl;
+    std::size_t AddLong(int64_t value) {
+      std::cout << "AddLong: " << value << std::endl;
       TRACE_FUNCTION;
       const_table_.push_back(0x02);
-      value = is_big_endian_ ? value : SwapLong(value);
+      //uint64_t uint64t_value = *reinterpret_cast<uint64_t*>(&value);
+      //std::cout << "AddLong: " << value << std::endl;
+      //uint64t_value = is_big_endian_ ? uint64t_value : SwapUint64t(uint64t_value);
+      value=is_big_endian_?value:SwapLong(value);
+      std::cout << "AddLong: " << sizeof(int64_t) << std::endl;
       for (int i = 0; i < 8; ++i) {
         const_table_.push_back(static_cast<uint8_t>((value >> (i * 8)) & 0xFF));
       }
@@ -4821,7 +4837,8 @@ class BytecodeGenerator {
     }
 
    private:
-    long SwapLong(long x) {
+    // DEPRECATED(bugs)
+    int64_t SwapLong(int64_t x) {
       TRACE_FUNCTION;
       uint64_t ux = (uint64_t)x;
       ux = ((ux << 56) & 0xFF00000000000000ULL) |
@@ -4832,7 +4849,7 @@ class BytecodeGenerator {
            ((ux >> 24) & 0x0000000000FF0000ULL) |
            ((ux >> 40) & 0x000000000000FF00ULL) |
            ((ux >> 56) & 0x00000000000000FFULL);
-      return (long)ux;
+      return (int64_t)ux;
     }
 
     double SwapDouble(double x) {
@@ -4854,6 +4871,7 @@ class BytecodeGenerator {
 
     uint64_t SwapUint64t(uint64_t x) {
       TRACE_FUNCTION;
+      std::cout<<"SwapUint64t: "<<x<<std::endl;
       x = ((x << 56) & 0xFF00000000000000ULL) |
           ((x << 40) & 0x00FF000000000000ULL) |
           ((x << 24) & 0x0000FF0000000000ULL) |
@@ -4862,6 +4880,7 @@ class BytecodeGenerator {
           ((x >> 24) & 0x0000000000FF0000ULL) |
           ((x >> 40) & 0x000000000000FF00ULL) |
           ((x >> 56) & 0x00000000000000FFULL);
+          std::cout<<"SwapUint64t: "<<x<<std::endl;
       return x;
     }
 
@@ -4892,7 +4911,7 @@ class BytecodeGenerator {
   uint8_t ConvertTypeToVmType(Type* type);
   std::size_t GetExprVmSize(uint8_t type);
   int SwapInt(int x);
-  long SwapLong(long x);
+  int64_t SwapLong(int64_t x);
   float SwapFloat(float x);
   double SwapDouble(double x);
   uint64_t SwapUint64t(uint64_t x);
@@ -6886,7 +6905,7 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
         }
 
         case 0x03: {
-          long value = dynamic_cast<ValueNode*>(expr)->GetLongValue();
+          int64_t value = dynamic_cast<ValueNode*>(expr)->GetLongValue();
           // value = is_big_endian_ ? value : SwapLong(value);
           return global_memory_.AddLong(value);
         }
@@ -8178,7 +8197,7 @@ int BytecodeGenerator::SwapInt(int x) {
   return (int)ux;
 }
 
-long BytecodeGenerator::SwapLong(long x) {
+int64_t BytecodeGenerator::SwapLong(int64_t x) {
   TRACE_FUNCTION;
   uint64_t ux = (uint64_t)x;
   ux = ((ux << 56) & 0xFF00000000000000ULL) |
@@ -8189,7 +8208,7 @@ long BytecodeGenerator::SwapLong(long x) {
        ((ux >> 24) & 0x0000000000FF0000ULL) |
        ((ux >> 40) & 0x000000000000FF00ULL) |
        ((ux >> 56) & 0x00000000000000FFULL);
-  return (long)ux;
+  return (int64_t)ux;
 }
 
 float BytecodeGenerator::SwapFloat(float x) {
