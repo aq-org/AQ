@@ -4686,11 +4686,11 @@ class BytecodeGenerator {
       std::size_t index = memory_type_.size();
       for (size_t i = 0; i < size; i++) {
         memory_type_.push_back(0x00);
-      }
-
-
-
       
+
+
+
+  
 
       return index;
     }
