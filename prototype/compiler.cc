@@ -5907,12 +5907,13 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   current_scope_.push_back(scope_name);
   // std::cout << "func_name: " << func_name << std::endl;
-  if (func_decl_map.find(func_name) == func_decl_map.end())
-    {std::vector<FuncDeclNode> func_decl_vector;
-      func_decl_vector.push_back(*func_decl);
-    func_decl_map.emplace(func_name,func_decl_vector );}else{
-      func_decl_map[func_name].push_back(*func_decl);
-    }
+  if (func_decl_map.find(func_name) == func_decl_map.end()) {
+    std::vector<FuncDeclNode> func_decl_vector;
+    func_decl_vector.push_back(*func_decl);
+    func_decl_map.emplace(func_name, func_decl_vector);
+  } else {
+    func_decl_map[func_name].push_back(*func_decl);
+  }
 
   if (func_decl->GetStmts() == nullptr) {
     current_scope_.pop_back();
@@ -5925,7 +5926,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::size_t return_value_index = global_memory_.AddWithType(vm_type);
   var_decl_map.emplace(
-    scope_name + "#!return",
+      scope_name + "#!return",
       std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
   std::size_t return_value_reference_index = global_memory_.Add(1);
@@ -6292,7 +6293,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
   std::size_t sub_expr = HandleExpr(expr->GetExpr(), code);
   switch (expr->GetOperator()) {
     case UnaryNode::Operator::kPostInc: {  // ++ (postfix)
-      //uint8_t vm_type = GetExprVmType(expr->GetExpr());
+      // uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
@@ -6304,7 +6305,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       return new_index;
     }
     case UnaryNode::Operator::kPostDec: {  // -- (postfix)
-      //uint8_t vm_type = GetExprVmType(expr->GetExpr());
+      // uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
@@ -6336,7 +6337,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       return ptr_index;
     }
     case UnaryNode::Operator::kDeref: {  // * (dereference)
-      //uint8_t vm_type = GetExprVmType(expr->GetExpr());
+      // uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index = global_memory_.Add(1);
       // dereference_ptr_index_ = sub_expr;
 
@@ -6347,29 +6348,31 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     case UnaryNode::Operator::kPlus:  // + (unary plus)
       return sub_expr;
     case UnaryNode::Operator::kMinus: {  // - (unary minus)
-      //uint8_t vm_type = GetExprVmType(expr->GetExpr());
+      // uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, 2, new_index, sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::kNot: {  // ! (logical NOT)
-      //uint8_t vm_type = GetExprVmType(expr->GetExpr());
+      // uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index = global_memory_.Add(1);
 
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, 2, new_index, sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::CONVERT: {  // ()
-      std::size_t new_index = global_memory_.AddWithType(dynamic_cast<CastNode*>(expr)->GetCastType()->GetVmType());
+      std::size_t new_index = global_memory_.AddWithType(
+          dynamic_cast<CastNode*>(expr)->GetCastType()->GetVmType());
       code.push_back(Bytecode(_AQVM_OPERATOR_CONVERT, 2, new_index, sub_expr));
       return new_index;
     }
 
     case UnaryNode::Operator::ARRAY: {  // []
       // std::cout << "ARRAY" << std::endl;
-      // Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
-      // uint8_t vm_type = 0;
+      // Type* array_type =
+      // GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr()); uint8_t vm_type
+      // = 0;
       std::size_t offset_expr = global_memory_.Add(1);
       std::size_t offset =
           HandleExpr(dynamic_cast<ArrayNode*>(expr)->GetIndex(), code);
@@ -6421,9 +6424,9 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
   ExprNode* left_expr = expr->GetLeftExpr();
   std::size_t right = HandleExpr(right_expr, code);
   std::size_t left = HandleExpr(left_expr, code);
-  //uint8_t right_type = GetExprVmType(right_expr);
-  //uint8_t left_type = GetExprVmType(left_expr);
-  //uint8_t result_type = left_type > right_type ? left_type : right_type;
+  // uint8_t right_type = GetExprVmType(right_expr);
+  // uint8_t left_type = GetExprVmType(left_expr);
+  // uint8_t result_type = left_type > right_type ? left_type : right_type;
 
   switch (expr->GetOperator()) {
     case BinaryNode::Operator::kAdd: {  // +
@@ -6773,7 +6776,8 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
   // Need true branch and false branch
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
   std::size_t true_location = code.size();
-  current_scope_.push_back(current_scope_.back() + "@@" + std::to_string(++undefined_count_));
+  current_scope_.push_back(current_scope_.back() + "@@" +
+                           std::to_string(++undefined_count_));
   HandleStmt(stmt->GetBody(), code);
   current_scope_.pop_back();
 
@@ -6782,7 +6786,8 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   std::size_t false_location = code.size();
   if (stmt->GetElseBody() != nullptr) {
-    current_scope_.push_back(current_scope_.back() + "@@" + std::to_string(++undefined_count_));
+    current_scope_.push_back(current_scope_.back() + "@@" +
+                             std::to_string(++undefined_count_));
     HandleStmt(stmt->GetElseBody(), code);
     current_scope_.pop_back();
   }
@@ -6858,7 +6863,8 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
   std::size_t body_location = code.size();
 
-  current_scope_.push_back(current_scope_.back() + "@@" + std::to_string(++undefined_count_));
+  current_scope_.push_back(current_scope_.back() + "@@" +
+                           std::to_string(++undefined_count_));
   HandleStmt(stmt->GetBody(), code);
   current_scope_.pop_back();
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, start_location));
@@ -6942,19 +6948,20 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
     func_name += GetExprTypeString(args[i]);
   }*/
 
-  //FuncDeclNode func_decl;
+  // FuncDeclNode func_decl;
   for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
     /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
               << std::endl;*/
     auto iterator = func_decl_map.find(current_scope_[i] + "::" + func_name);
     if (iterator != func_decl_map.end()) {
-      //func_decl = iterator->second;
+      // func_decl = iterator->second;
       func_name = current_scope_[i] + "::" + func_name;
       break;
     }
     if (i == 0)
       EXIT_COMPILER(
-          "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
+          "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&"
+          ")",
           "Function not found.");
   }
 
@@ -7472,12 +7479,10 @@ std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
   return 0;
 }*/
 
-/*[[deprecated]] uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
-  TRACE_FUNCTION;
-  if (expr->GetType() == StmtNode::StmtType::kUnary) {
-    if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
-        UnaryNode::Operator::kAddrOf) {
-      return GetExprVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
+/*[[deprecated]] uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode*
+expr) { TRACE_FUNCTION; if (expr->GetType() == StmtNode::StmtType::kUnary) { if
+(dynamic_cast<UnaryNode*>(expr)->GetOperator() == UnaryNode::Operator::kAddrOf)
+{ return GetExprVmType(dynamic_cast<UnaryNode*>(expr)->GetExpr());
     }
     if (dynamic_cast<UnaryNode*>(expr)->GetOperator() ==
         UnaryNode::Operator::CONVERT) {
