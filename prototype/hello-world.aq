@@ -1,6 +1,5 @@
-int print(const char* str);
 int print(auto str);
-void main(){
-  var abc = 55465;
-  print(abc);
+auto main(){
+  // print("Hello world!\n");
+  return "abcdefg";
 }

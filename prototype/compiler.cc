@@ -1559,6 +1559,7 @@ class Type {
     kLong,
     kFloat,
     kDouble,
+    kString,
     kClass,
     kStruct,
     kUnion,
@@ -1587,6 +1588,8 @@ class Type {
 
   static Type* CreateType(Token* token, std::size_t length, std::size_t& index);
 
+  uint8_t GetVmType();
+
   virtual std::size_t GetSize() {
     switch (base_data_) {
       case BaseType::kVoid:
@@ -1599,6 +1602,7 @@ class Type {
         return 4;
       case BaseType::kLong:
       case BaseType::kDouble:
+      case BaseType::kString:
       case BaseType::kClass:
       case BaseType::kStruct:
       case BaseType::kUnion:
@@ -1699,19 +1703,19 @@ class ValueNode : public ExprNode {
   char GetCharValue() { return value_.value.character; }
   std::string GetStringValue() { return *value_.value.string; }
   int GetIntValue() {
-    std::cout << "stoi: "
+    /*std::cout << "stoi: "
               << std::stoi(std::string(value_.value.number.location,
                                        value_.value.number.length))
-              << std::endl;
+              << std::endl;*/
     return std::stoi(
         std::string(value_.value.number.location, value_.value.number.length));
   }
   int64_t GetLongValue() {
-    std::cout << "stol: "
-              << std::stol(std::string(value_.value.number.location,
+    /*std::cout << "stoll: "
+              << std::stoll(std::string(value_.value.number.location,
                                        value_.value.number.length))
-              << std::endl;
-    return std::stol(
+              << std::endl;*/
+    return std::stoll(
         std::string(value_.value.number.location, value_.value.number.length));
   }
   float GetFloatValue() {
@@ -1723,10 +1727,10 @@ class ValueNode : public ExprNode {
         std::string(value_.value.number.location, value_.value.number.length));
   }
   uint64_t GetUInt64Value() {
-    std::cout << "stoull: "
+    /*std::cout << "stoull: "
               << std::stoull(std::string(value_.value.number.location,
                                          value_.value.number.length))
-              << std::endl;
+              << std::endl;*/
     return std::stoull(
         std::string(value_.value.number.location, value_.value.number.length));
   }
@@ -1798,7 +1802,7 @@ class ValueNode : public ExprNode {
       return 0x01;
     }
     if (value_.type == Token::Type::STRING) {
-      return 0x06;
+      return 0x05;
     }
 
     std::string str(value_.value.number.location, value_.value.number.length);
@@ -1814,9 +1818,9 @@ class ValueNode : public ExprNode {
 
     try {
       std::size_t pos;
-      (void)std::stol(str, &pos);
+      (void)std::stoll(str, &pos);
       if (pos == str.size()) {
-        return 0x03;
+        return 0x02;
       }
     } catch (const std::invalid_argument&) {
     } catch (const std::out_of_range&) {
@@ -1826,7 +1830,7 @@ class ValueNode : public ExprNode {
       std::size_t pos;
       (void)std::stoull(str, &pos);
       if (pos == str.size()) {
-        return 0x06;
+        return 0x04;
       }
     } catch (const std::invalid_argument&) {
     } catch (const std::out_of_range&) {
@@ -1836,7 +1840,7 @@ class ValueNode : public ExprNode {
       std::size_t pos;
       (void)std::stof(str, &pos);
       if (pos == str.size()) {
-        return 0x04;
+        return 0x03;
       }
     } catch (const std::invalid_argument&) {
     } catch (const std::out_of_range&) {
@@ -1846,7 +1850,7 @@ class ValueNode : public ExprNode {
       std::size_t pos;
       (void)std::stod(str, &pos);
       if (pos == str.size()) {
-        return 0x05;
+        return 0x03;
       }
     } catch (const std::invalid_argument&) {
     } catch (const std::out_of_range&) {
@@ -1865,12 +1869,14 @@ class ValueNode : public ExprNode {
       return value_.value.string->size();
     }
     switch (GetVmType()) {
+      case 0x01:
+        return 1;
       case 0x02:
-        return 4;
+        return 8;
       case 0x03:
         return 8;
       case 0x04:
-        return 4;
+        return 8;
       case 0x05:
         return 8;
       case 0x06:
@@ -2457,6 +2463,8 @@ Type::operator std::string() {
         return "float";
       case BaseType::kDouble:
         return "double";
+      case BaseType::kString:
+        return "string";
       case BaseType::kClass:
         return "class";
       case BaseType::kStruct:
@@ -2523,7 +2531,7 @@ Type* ValueNode::GetValueType() {
 
   try {
     std::size_t pos;
-    (void)std::stol(str, &pos);
+    (void)std::stoll(str, &pos);
     if (pos == str.size()) {
       Type* type = new Type();
       type->SetType(Type::BaseType::kLong);
@@ -2628,6 +2636,10 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
                 type->SetType(Type::BaseType::kDouble);
                 break;
 
+              case Token::KeywordType::String:
+                type->SetType(Type::BaseType::kString);
+                break;
+
               case Token::KeywordType::Var:
               case Token::KeywordType::Auto:
                 type->SetType(Type::BaseType::kAuto);
@@ -2696,6 +2708,11 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
         case Token::KeywordType::Double:
           type = new Type();
           type->SetType(Type::BaseType::kDouble);
+          break;
+
+        case Token::KeywordType::String:
+          type = new Type();
+          type->SetType(Type::BaseType::kString);
           break;
 
         case Token::KeywordType::Class:
@@ -2779,6 +2796,68 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
   EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                 "index is out of range.");
   return nullptr;
+}
+
+uint8_t Type::GetVmType() {
+  Type* type = this;
+  while (type->GetType() != Type::TypeType::kBase &&
+         type->GetType() != Type::TypeType::kPointer &&
+         type->GetType() != Type::TypeType::kArray &&
+         type->GetType() != Type::TypeType::kReference) {
+    if (type->GetType() == Type::TypeType::NONE)
+      EXIT_COMPILER("Type::GetVmType()", "Unexpected code.");
+    if (type->GetType() == Type::TypeType::kConst)
+      type = dynamic_cast<ConstType*>(type)->GetSubType();
+  }
+
+  uint8_t vm_type = 0x00;
+  if (type->GetType() == Type::TypeType::kBase) {
+    switch (type->GetBaseType()) {
+      case Type::BaseType::kAuto:
+      case Type::BaseType::kVoid:
+        vm_type = 0x00;
+        break;
+      case Type::BaseType::kBool:
+      case Type::BaseType::kChar:
+        vm_type = 0x01;
+        break;
+      case Type::BaseType::kShort:
+      case Type::BaseType::kInt:
+      case Type::BaseType::kLong:
+        vm_type = 0x02;
+        break;
+      case Type::BaseType::kFloat:
+      case Type::BaseType::kDouble:
+        vm_type = 0x03;
+        break;
+        // TODO(uint64_t)
+        vm_type = 0x04;
+        break;
+      case Type::BaseType::kString:
+        vm_type = 0x05;
+        break;
+      case Type::BaseType::kClass:
+      case Type::BaseType::kStruct:
+      case Type::BaseType::kUnion:
+      case Type::BaseType::kEnum:
+      case Type::BaseType::kPointer:
+      case Type::BaseType::kArray:
+      case Type::BaseType::kFunction:
+      case Type::BaseType::kTypedef:
+        // TODO
+        vm_type = 0x06;
+        break;
+      default:
+        EXIT_COMPILER("Type::GetVmType()", "Unexpected code.");
+        break;
+    }
+  } else if (type->GetType() == Type::TypeType::kPointer) {
+    vm_type = 0x06;
+  } else if (type->GetType() == Type::TypeType::kReference) {
+    vm_type = 0x07;
+  }
+
+  return vm_type;
 }
 
 Parser::Parser() = default;
@@ -2890,13 +2969,16 @@ bool Parser::IsFuncDecl(Token* token, std::size_t length, std::size_t index) {
                   "index is out of range.");
 
   for (std::size_t i = index; i < length; i++) {
-    if (token[i].type == Token::Type::OPERATOR &&
-        token[i].value._operator == Token::OperatorType::semi) {
-      return false;
+    if (token[i].type == Token::Type::IDENTIFIER &&
+        token[i + 1].type == Token::Type::OPERATOR &&
+        token[i + 1].value._operator == Token::OperatorType::l_paren) {
+      return true;
     }
     if (token[i].type == Token::Type::OPERATOR &&
-        token[i].value._operator == Token::OperatorType::l_paren) {
-      return true;
+        token[i].value._operator != Token::OperatorType::coloncolon &&
+        token[i].value._operator != Token::OperatorType::period &&
+        token[i].value._operator != Token::OperatorType::arrow) {
+      return false;
     }
   }
   return false;
@@ -4703,6 +4785,15 @@ class BytecodeGenerator {
       return index;
     }
 
+    std::size_t AddWithType(uint8_t type) {
+      // std::cout << "Add" << std::endl;
+      TRACE_FUNCTION;
+      std::size_t index = memory_type_.size();
+      memory_type_.push_back(type);
+
+      return index;
+    }
+
     std::size_t AddByte(int8_t value) {
       // std::cout << "AddByte" << std::endl;
       TRACE_FUNCTION;
@@ -4717,14 +4808,16 @@ class BytecodeGenerator {
     }
 
     std::size_t AddLong(int64_t value) {
-      std::cout << "AddLong: " << value << std::endl;
+      // std::cout << "AddLong: " << value << std::endl;
       TRACE_FUNCTION;
       const_table_.push_back(0x02);
-      //uint64_t uint64t_value = *reinterpret_cast<uint64_t*>(&value);
-      //std::cout << "AddLong: " << value << std::endl;
-      //uint64t_value = is_big_endian_ ? uint64t_value : SwapUint64t(uint64t_value);
-      value=is_big_endian_?value:SwapLong(value);
-      std::cout << "AddLong: " << sizeof(int64_t) << std::endl;
+      // uint64_t uint64t_value = *reinterpret_cast<uint64_t*>(&value);
+      // std::cout << "AddLong: " << value << std::endl;
+      // uint64t_value = is_big_endian_ ? uint64t_value :
+      // SwapUint64t(uint64t_value);
+      value = is_big_endian_ ? value : SwapLong(value);
+      // std::cout << "int and long sizeof: " << sizeof(long) <<" "<<
+      // sizeof(int) << std::endl;
       for (int i = 0; i < 8; ++i) {
         const_table_.push_back(static_cast<uint8_t>((value >> (i * 8)) & 0xFF));
       }
@@ -4871,7 +4964,7 @@ class BytecodeGenerator {
 
     uint64_t SwapUint64t(uint64_t x) {
       TRACE_FUNCTION;
-      std::cout<<"SwapUint64t: "<<x<<std::endl;
+      // std::cout << "SwapUint64t: " << x << std::endl;
       x = ((x << 56) & 0xFF00000000000000ULL) |
           ((x << 40) & 0x00FF000000000000ULL) |
           ((x << 24) & 0x0000FF0000000000ULL) |
@@ -4880,7 +4973,7 @@ class BytecodeGenerator {
           ((x >> 24) & 0x0000000000FF0000ULL) |
           ((x >> 40) & 0x000000000000FF00ULL) |
           ((x >> 56) & 0x00000000000000FFULL);
-          std::cout<<"SwapUint64t: "<<x<<std::endl;
+      // std::cout << "SwapUint64t: " << x << std::endl;
       return x;
     }
 
@@ -4932,9 +5025,10 @@ class BytecodeGenerator {
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
   std::vector<uint8_t> code_;
-  std::size_t dereference_ptr_index_;
+  // std::size_t dereference_ptr_index_;
   std::vector<std::string> current_scope_;
   std::vector<std::size_t> exit_index_;
+  std::size_t undefined_count_ = 0;
 };
 
 BytecodeGenerator::BytecodeGenerator() {
@@ -4947,6 +5041,12 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
                                          const char* output_file) {
   TRACE_FUNCTION;
   global_memory_.Add(1);
+  global_memory_.Add(1);
+  global_code_.push_back(
+      Bytecode(_AQVM_OPERATOR_EQUAL, 2, 0, global_memory_.AddString("(void)")));
+  std::size_t return_value_ptr = global_memory_.Add(1);
+  global_code_.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2,0 , return_value_ptr));
+  global_code_.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, 1, return_value_ptr));
   current_scope_.push_back("global");
   if (stmt == nullptr)
     EXIT_COMPILER(
@@ -4979,13 +5079,13 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   current_scope_.pop_back();
 
   std::vector<std::size_t> args;
-  args.push_back(0);
+  args.push_back(1);
   std::vector<Bytecode> start_code;
   std::size_t main_func = global_memory_.AddString("global::main");
   start_code.insert(start_code.end(), global_memory_.GetCode().begin(),
                     global_memory_.GetCode().end());
   start_code.insert(start_code.end(), global_code_.begin(), global_code_.end());
-  start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3, main_func, 1, 0));
+  start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3, main_func, 1, 1));
   Function start_func("__start", args, start_code);
   func_list_.push_back(start_func);
 
@@ -5784,7 +5884,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   func_name += *func_decl->GetStat()->GetName();
   // std::cout << "func_name: " << func_name << std::endl;
   std::vector<ExprNode*> args = func_decl->GetStat()->GetArgs();
-  for (std::size_t i = 0; i < args.size(); i++) {
+  /*for (std::size_t i = 0; i < args.size(); i++) {
     if (i == 0) {
       func_name += "@";
     } else {
@@ -5801,7 +5901,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
     } else {
       func_name += *dynamic_cast<ArrayDeclNode*>(args[i])->GetVarType();
     }
-  }
+  }*/
 
   current_scope_.push_back(func_name);
   // std::cout << "func_name: " << func_name << std::endl;
@@ -5815,12 +5915,18 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::vector<std::size_t> args_index;
 
-  std::size_t return_value_index = global_memory_.Add(1);
+  uint8_t vm_type = func_decl->GetReturnType()->GetVmType();
+
+  std::size_t return_value_index = global_memory_.AddWithType(vm_type);
   var_decl_map.emplace(
       func_name + "#!return",
       std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
-  args_index.push_back(return_value_index);
+  std::size_t return_value_reference_index = global_memory_.Add(1);
+  var_decl_map.emplace(
+      func_name + "#!return_reference",
+      std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
+  args_index.push_back(return_value_reference_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
@@ -5843,15 +5949,16 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
       var_decl_map.emplace(current_scope_.back() + "#" +
                                static_cast<std::string>(*var_decl->GetName()),
                            std::pair<VarDeclNode*, std::size_t>(
-                               var_decl, global_memory_.Add(1)));
+                               var_decl, global_memory_.AddWithType(vm_type)));
     } else if (func_decl->GetStat()->GetArgs()[i]->GetType() ==
                StmtNode::StmtType::kArrayDecl) {
       ArrayDeclNode* array_decl =
           dynamic_cast<ArrayDeclNode*>(func_decl->GetStat()->GetArgs()[i]);
-      var_decl_map.emplace(current_scope_.back() + "#" +
-                               static_cast<std::string>(*array_decl->GetName()),
-                           std::pair<VarDeclNode*, std::size_t>(
-                               array_decl, global_memory_.Add(1)));
+      var_decl_map.emplace(
+          current_scope_.back() + "#" +
+              static_cast<std::string>(*array_decl->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(
+              array_decl, global_memory_.AddWithType(vm_type)));
     } else {
       EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
@@ -5879,7 +5986,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
         "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
         "var_decl is nullptr.");
 
-  Type* var_type = var_decl->GetVarType();
+  /*Type* var_type = var_decl->GetVarType();
   if (var_type == nullptr)
     EXIT_COMPILER(
         "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
@@ -5901,6 +6008,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
   uint8_t vm_type = 0x00;
   if (var_type->GetType() == Type::TypeType::kBase) {
     switch (var_type->GetBaseType()) {
+      case Type::BaseType::kAuto:
       case Type::BaseType::kVoid:
         vm_type = 0x00;
         break;
@@ -5910,15 +6018,17 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
         break;
       case Type::BaseType::kShort:
       case Type::BaseType::kInt:
+      case Type::BaseType::kLong:
         vm_type = 0x02;
         break;
-      case Type::BaseType::kLong:
+      case Type::BaseType::kFloat:
+      case Type::BaseType::kDouble:
         vm_type = 0x03;
         break;
-      case Type::BaseType::kFloat:
+        // TODO(uint64_t)
         vm_type = 0x04;
         break;
-      case Type::BaseType::kDouble:
+      case Type::BaseType::kString:
         vm_type = 0x05;
         break;
       case Type::BaseType::kClass:
@@ -5929,7 +6039,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       case Type::BaseType::kArray:
       case Type::BaseType::kFunction:
       case Type::BaseType::kTypedef:
-      case Type::BaseType::kAuto:
+        // TODO
         vm_type = 0x06;
         break;
       default:
@@ -5939,13 +6049,17 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
             "Unexpected code.");
         break;
     }
-  } else if (var_type->GetType() == Type::TypeType::kPointer ||
-             var_type->GetType() == Type::TypeType::kReference) {
+  } else if (var_type->GetType() == Type::TypeType::kPointer) {
     vm_type = 0x06;
-  }
+  } else if (var_type->GetType() == Type::TypeType::kReference) {
+    vm_type = 0x07;
+  }*/
+
+  uint8_t vm_type = var_decl->GetVarType()->GetVmType();
+
   if (var_decl->GetValue()[0] == nullptr) {
     // std::cout << "None Value" << std::endl;
-    std::size_t var_index = global_memory_.Add(1);
+    std::size_t var_index = global_memory_.AddWithType(vm_type);
     var_decl_map.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),
@@ -5953,7 +6067,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     return var_index;
   } else {
     // std::cout << "Has Value" << std::endl;
-    std::size_t var_index = global_memory_.Add(1);
+    std::size_t var_index = global_memory_.AddWithType(vm_type);
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
     var_decl_map.emplace(
@@ -6005,6 +6119,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
       case Type::BaseType::kDouble:
         vm_type = 0x05;
         break;
+      case Type::BaseType::kString:
       case Type::BaseType::kClass:
       case Type::BaseType::kStruct:
       case Type::BaseType::kUnion:
@@ -6177,9 +6292,9 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
-      if (IsDereferenced(expr->GetExpr()))
+      /*if (IsDereferenced(expr->GetExpr()))
         code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
-                                sub_expr));
+                                sub_expr));*/
       return new_index;
     }
     case UnaryNode::Operator::kPostDec: {  // -- (postfix)
@@ -6189,24 +6304,24 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
-      if (IsDereferenced(expr->GetExpr()))
+      /*if (IsDereferenced(expr->GetExpr()))
         code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
-                                sub_expr));
+                                sub_expr));*/
       return new_index;
     }
     case UnaryNode::Operator::kPreInc:  // ++ (prefix)
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
-      if (IsDereferenced(expr->GetExpr()))
+      /*if (IsDereferenced(expr->GetExpr()))
         code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
-                                sub_expr));
+                                sub_expr));*/
       return sub_expr;
     case UnaryNode::Operator::kPreDec:  // -- (prefix)
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expr, sub_expr,
                               AddConstInt8t(1)));
-      if (IsDereferenced(expr->GetExpr()))
+      /*if (IsDereferenced(expr->GetExpr()))
         code.push_back(Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_,
-                                sub_expr));
+                                sub_expr));*/
       return sub_expr;
     case UnaryNode::Operator::kAddrOf: {  // & (address of)
       std::size_t ptr_index = global_memory_.Add(1);
@@ -6217,9 +6332,10 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     case UnaryNode::Operator::kDeref: {  // * (dereference)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index = global_memory_.Add(1);
-      dereference_ptr_index_ = sub_expr;
+      //dereference_ptr_index_ = sub_expr;
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
+      //code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
+      code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, new_index, sub_expr));
       return new_index;
     }
     case UnaryNode::Operator::kPlus:  // + (unary plus)
@@ -6248,12 +6364,12 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     case UnaryNode::Operator::ARRAY: {  // []
       // std::cout << "ARRAY" << std::endl;
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
-      uint8_t vm_type = 0;
+      //uint8_t vm_type = 0;
       std::size_t offset_expr = global_memory_.Add(1);
       std::size_t offset =
           HandleExpr(dynamic_cast<ArrayNode*>(expr)->GetIndex(), code);
 
-      if (array_type->GetType() == Type::TypeType::kArray) {
+      /*if (array_type->GetType() == Type::TypeType::kArray) {
         vm_type = ConvertTypeToVmType(
             dynamic_cast<ArrayType*>(array_type)->GetSubType());
         code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, offset_expr, offset,
@@ -6268,16 +6384,18 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
             "BytecodeGenerator::HandleUnaryExpr(UnaryNode*,std::vector<"
             "Bytecode>&)",
             "Unsupported type.");
-      }
+      }*/
 
-      dereference_ptr_index_ = global_memory_.Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, dereference_ptr_index_,
-                              sub_expr, offset_expr));
+      
+
+      //dereference_ptr_index_ = global_memory_.Add(1);
+      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, offset_expr,
+                              sub_expr, offset));
 
       std::size_t new_index = global_memory_.Add(1);
 
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_LOAD, 2, dereference_ptr_index_, new_index));
+      //code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, dereference_ptr_index_, new_index));
+      code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, new_index, offset_expr));
       return new_index;
     }
     case UnaryNode::Operator::kBitwiseNot:  // ~ (bitwise NOT)
@@ -6402,71 +6520,91 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
     }
     case BinaryNode::Operator::kAssign:  // =
       code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, left, right));
-      if (IsDereferenced(left_expr)) {
+      /*if (IsDereferenced(left_expr)) {
         // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
-      }
+      }*/
       return left;
     case BinaryNode::Operator::kAddAssign:  // +=
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kSubAssign:  // -=
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kMulAssign:  // *=
       code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kDivAssign:  // /=
       code.push_back(Bytecode(_AQVM_OPERATOR_DIV, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kRemAssign:  // %=
       code.push_back(Bytecode(_AQVM_OPERATOR_REM, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kAndAssign:  // &=
       code.push_back(Bytecode(_AQVM_OPERATOR_AND, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kOrAssign:  // |=
       code.push_back(Bytecode(_AQVM_OPERATOR_OR, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kXorAssign:  // ^=
       code.push_back(Bytecode(_AQVM_OPERATOR_XOR, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kShlAssign:  // <<=
       code.push_back(Bytecode(_AQVM_OPERATOR_SHL, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kShrAssign:  // >>=
       code.push_back(Bytecode(_AQVM_OPERATOR_SHR, 3, left, left, right));
-      if (IsDereferenced(left_expr))
+      /*if (IsDereferenced(left_expr)) {
+        // std::cout << "dereferenced" << std::endl;
         code.push_back(
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
+      }*/
       return left;
     case BinaryNode::Operator::kComma:    // ,
                                           // std::cout << "Comma" << std::endl;
@@ -6560,9 +6698,45 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
     code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   } else {
     std::size_t return_value = HandleExpr(stmt->GetExpr(), code);
+
+    bool is_find = false;
+    auto return_iterator = var_decl_map.find("#!return");
+    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      return_iterator = var_decl_map.find(
+          current_scope_[i] + "#" +
+          static_cast<std::string>("!return"));
+      if (return_iterator != var_decl_map.end()) {
+        is_find = true;
+        break;
+      }
+    }
+    if (!is_find)
+      EXIT_COMPILER("BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
+                    "Not found identifier define.");
+
+                is_find = false;
+                    auto return_reference_iterator = var_decl_map.find("#!return_reference");
+                    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+                      return_reference_iterator = var_decl_map.find(
+                          current_scope_[i] + "#" +
+                          static_cast<std::string>("!return_reference"));
+                      if (return_reference_iterator != var_decl_map.end()) {
+                        is_find = true;
+                        break;
+                      }
+                    }
+                    if (!is_find)
+                      EXIT_COMPILER("BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
+                                    "Not found identifier define.");
+
+
     code.push_back(Bytecode(
         _AQVM_OPERATOR_EQUAL, 2,
-        var_decl_map[current_scope_.back() + "#!return"].second, return_value));
+        return_iterator->second.second, return_value));
+    code.push_back(Bytecode(
+        _AQVM_OPERATOR_EQUAL, 2,
+        return_reference_iterator->second.second,
+        return_iterator->second.second));
     exit_index_.push_back(code.size());
     code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   }
@@ -6750,7 +6924,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
         "func_name_node is nullptr.");
   std::string func_name = static_cast<std::string>(*func_name_node);
   std::vector<ExprNode*> args = func->GetArgs();
-  for (std::size_t i = 0; i < args.size(); i++) {
+  /*for (std::size_t i = 0; i < args.size(); i++) {
     if (i == 0) {
       func_name += "@";
     } else {
@@ -6758,7 +6932,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
     }
 
     func_name += GetExprTypeString(args[i]);
-  }
+  }*/
 
   FuncDeclNode func_decl;
   for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
@@ -6777,7 +6951,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
           "Function not found.");
   }
 
-  Type* func_type = func_decl.GetReturnType();
+  /*Type* func_type = func_decl.GetReturnType();
   if (func_type == nullptr)
     EXIT_COMPILER(
         "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
@@ -6841,7 +7015,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
              func_type->GetType() == Type::TypeType::kArray ||
              func_type->GetType() == Type::TypeType::kReference) {
     vm_type = 0x06;
-  }
+  }*/
 
   std::vector<std::size_t> vm_args;
 
@@ -6851,7 +7025,13 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   vm_args.push_back(args.size() + 1);
 
   std::size_t return_value_index = global_memory_.Add(1);
-  vm_args.push_back(return_value_index);
+  std::size_t return_value_ptr_index = global_memory_.Add(1);
+  std::size_t return_value_reference_index = global_memory_.Add(1);
+  code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2,return_value_index ,
+    return_value_ptr_index));
+  code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, return_value_reference_index,
+    return_value_ptr_index));
+  vm_args.push_back(return_value_reference_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
     vm_args.push_back(HandleExpr(args[i], code));
@@ -6859,7 +7039,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, vm_args));
 
-  return vm_args[2];
+  return return_value_index;
 }
 
 std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
@@ -6897,42 +7077,41 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
           break;
         }
 
-        case 0x02: {
-          int value = dynamic_cast<ValueNode*>(expr)->GetIntValue();
-          // std::cout << "value: " << value << std::endl;
-          // value = is_big_endian_ ? value : SwapInt(value);
-          return global_memory_.AddLong(value);
-        }
+          /*case 0x02: {
+            int value = dynamic_cast<ValueNode*>(expr)->GetIntValue();
+            // std::cout << "value: " << value << std::endl;
+            // value = is_big_endian_ ? value : SwapInt(value);
+            return global_memory_.AddLong(value);
+          }*/
 
-        case 0x03: {
+        case 0x02: {
           int64_t value = dynamic_cast<ValueNode*>(expr)->GetLongValue();
           // value = is_big_endian_ ? value : SwapLong(value);
           return global_memory_.AddLong(value);
         }
 
-        case 0x04: {
-          float value = dynamic_cast<ValueNode*>(expr)->GetFloatValue();
-          // value = is_big_endian_ ? value : SwapFloat(value);
-          return global_memory_.AddDouble(value);
-        }
+          /*case 0x04: {
+            float value = dynamic_cast<ValueNode*>(expr)->GetFloatValue();
+            // value = is_big_endian_ ? value : SwapFloat(value);
+            return global_memory_.AddDouble(value);
+          }*/
 
-        case 0x05: {
+        case 0x03: {
           double value = dynamic_cast<ValueNode*>(expr)->GetDoubleValue();
           // value = is_big_endian_ ? value : SwapDouble(value);
           return global_memory_.AddDouble(value);
         }
 
-        case 0x06: {
-          if (dynamic_cast<ValueNode*>(expr)->GetToken().type ==
-              Token::Type::STRING) {
-            std::string value =
-                dynamic_cast<ValueNode*>(expr)->GetStringValue();
-            std::size_t str_index = global_memory_.AddString(value);
-            return str_index;
-          }
+        case 0x04: {
           uint64_t value = dynamic_cast<ValueNode*>(expr)->GetUInt64Value();
           // value = is_big_endian_ ? value : SwapUint64t(value);
           return global_memory_.AddUint64t(value);
+        }
+
+        case 0x05: {
+          std::string value = dynamic_cast<ValueNode*>(expr)->GetStringValue();
+          std::size_t str_index = global_memory_.AddString(value);
+          return str_index;
         }
 
         default:
@@ -6990,6 +7169,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+            case Type::BaseType::kString:
             case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
@@ -7086,6 +7266,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+          case Type::BaseType::kString:
           case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
@@ -7148,6 +7329,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+          case Type::BaseType::kString:
           case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
@@ -7195,6 +7377,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+          case Type::BaseType::kString:
           case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
@@ -7245,6 +7428,7 @@ uint8_t BytecodeGenerator::GetExprVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+          case Type::BaseType::kString:
           case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
@@ -7308,6 +7492,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+            case Type::BaseType::kString:
             case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
@@ -7385,6 +7570,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+          case Type::BaseType::kString:
           case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
@@ -7421,6 +7607,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 return 0x04;
               case Type::BaseType::kDouble:
                 return 0x05;
+              case Type::BaseType::kString:
               case Type::BaseType::kClass:
               case Type::BaseType::kStruct:
               case Type::BaseType::kUnion:
@@ -7465,6 +7652,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 return 0x04;
               case Type::BaseType::kDouble:
                 return 0x05;
+              case Type::BaseType::kString:
               case Type::BaseType::kClass:
               case Type::BaseType::kStruct:
               case Type::BaseType::kUnion:
@@ -7510,6 +7698,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                 return 0x04;
               case Type::BaseType::kDouble:
                 return 0x05;
+              case Type::BaseType::kString:
               case Type::BaseType::kClass:
               case Type::BaseType::kStruct:
               case Type::BaseType::kUnion:
@@ -7569,6 +7758,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+            case Type::BaseType::kString:
             case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
@@ -7621,6 +7811,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                   return 0x04;
                 case Type::BaseType::kDouble:
                   return 0x05;
+                case Type::BaseType::kString:
                 case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
@@ -7683,6 +7874,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                   return 0x04;
                 case Type::BaseType::kDouble:
                   return 0x05;
+                case Type::BaseType::kString:
                 case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
@@ -7745,6 +7937,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                   return 0x04;
                 case Type::BaseType::kDouble:
                   return 0x05;
+                case Type::BaseType::kString:
                 case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
@@ -7793,6 +7986,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+            case Type::BaseType::kString:
             case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
@@ -7832,6 +8026,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                   return 0x04;
                 case Type::BaseType::kDouble:
                   return 0x05;
+                case Type::BaseType::kString:
                 case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
@@ -7879,6 +8074,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                   return 0x04;
                 case Type::BaseType::kDouble:
                   return 0x05;
+                case Type::BaseType::kString:
                 case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
@@ -7926,6 +8122,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
                   return 0x04;
                 case Type::BaseType::kDouble:
                   return 0x05;
+                case Type::BaseType::kString:
                 case Type::BaseType::kClass:
                 case Type::BaseType::kStruct:
                 case Type::BaseType::kUnion:
@@ -7973,6 +8170,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
             return 0x04;
           case Type::BaseType::kDouble:
             return 0x05;
+          case Type::BaseType::kString:
           case Type::BaseType::kClass:
           case Type::BaseType::kStruct:
           case Type::BaseType::kUnion:
@@ -8019,6 +8217,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
           return 0x04;
         case Type::BaseType::kDouble:
           return 0x05;
+        case Type::BaseType::kString:
         case Type::BaseType::kClass:
         case Type::BaseType::kStruct:
         case Type::BaseType::kUnion:
@@ -8052,6 +8251,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+            case Type::BaseType::kString:
             case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
@@ -8096,6 +8296,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+            case Type::BaseType::kString:
             case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
@@ -8140,6 +8341,7 @@ uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
               return 0x04;
             case Type::BaseType::kDouble:
               return 0x05;
+            case Type::BaseType::kString:
             case Type::BaseType::kClass:
             case Type::BaseType::kStruct:
             case Type::BaseType::kUnion:
@@ -8420,32 +8622,35 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
         case Type::BaseType::kDouble:
           left_priority = 7;
           break;
-        case Type::BaseType::kTypedef:
+        case Type::BaseType::kString:
           left_priority = 8;
           break;
-        case Type::BaseType::kPointer:
+        case Type::BaseType::kTypedef:
           left_priority = 9;
           break;
-        case Type::BaseType::kArray:
+        case Type::BaseType::kPointer:
           left_priority = 10;
           break;
-        case Type::BaseType::kEnum:
+        case Type::BaseType::kArray:
           left_priority = 11;
           break;
-        case Type::BaseType::kUnion:
+        case Type::BaseType::kEnum:
           left_priority = 12;
           break;
-        case Type::BaseType::kStruct:
+        case Type::BaseType::kUnion:
           left_priority = 13;
           break;
-        case Type::BaseType::kClass:
+        case Type::BaseType::kStruct:
           left_priority = 14;
           break;
-        case Type::BaseType::kFunction:
+        case Type::BaseType::kClass:
           left_priority = 15;
           break;
-        case Type::BaseType::kAuto:
+        case Type::BaseType::kFunction:
           left_priority = 16;
+          break;
+        case Type::BaseType::kAuto:
+          left_priority = 17;
           break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
@@ -8476,32 +8681,35 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
         case Type::BaseType::kDouble:
           right_priority = 7;
           break;
-        case Type::BaseType::kTypedef:
+        case Type::BaseType::kString:
           right_priority = 8;
           break;
-        case Type::BaseType::kPointer:
+        case Type::BaseType::kTypedef:
           right_priority = 9;
           break;
-        case Type::BaseType::kArray:
+        case Type::BaseType::kPointer:
           right_priority = 10;
           break;
-        case Type::BaseType::kEnum:
+        case Type::BaseType::kArray:
           right_priority = 11;
           break;
-        case Type::BaseType::kUnion:
+        case Type::BaseType::kEnum:
           right_priority = 12;
           break;
-        case Type::BaseType::kStruct:
+        case Type::BaseType::kUnion:
           right_priority = 13;
           break;
-        case Type::BaseType::kClass:
+        case Type::BaseType::kStruct:
           right_priority = 14;
           break;
-        case Type::BaseType::kFunction:
+        case Type::BaseType::kClass:
           right_priority = 15;
           break;
-        case Type::BaseType::kAuto:
+        case Type::BaseType::kFunction:
           right_priority = 16;
+          break;
+        case Type::BaseType::kAuto:
+          right_priority = 17;
           break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
@@ -8584,32 +8792,35 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
         case Type::BaseType::kDouble:
           true_expr_priority = 7;
           break;
-        case Type::BaseType::kTypedef:
+        case Type::BaseType::kString:
           true_expr_priority = 8;
           break;
-        case Type::BaseType::kPointer:
+        case Type::BaseType::kTypedef:
           true_expr_priority = 9;
           break;
-        case Type::BaseType::kArray:
+        case Type::BaseType::kPointer:
           true_expr_priority = 10;
           break;
-        case Type::BaseType::kEnum:
+        case Type::BaseType::kArray:
           true_expr_priority = 11;
           break;
-        case Type::BaseType::kUnion:
+        case Type::BaseType::kEnum:
           true_expr_priority = 12;
           break;
-        case Type::BaseType::kStruct:
+        case Type::BaseType::kUnion:
           true_expr_priority = 13;
           break;
-        case Type::BaseType::kClass:
+        case Type::BaseType::kStruct:
           true_expr_priority = 14;
           break;
-        case Type::BaseType::kFunction:
+        case Type::BaseType::kClass:
           true_expr_priority = 15;
           break;
-        case Type::BaseType::kAuto:
+        case Type::BaseType::kFunction:
           true_expr_priority = 16;
+          break;
+        case Type::BaseType::kAuto:
+          true_expr_priority = 17;
           break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
@@ -8640,32 +8851,35 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
         case Type::BaseType::kDouble:
           false_expr_priority = 7;
           break;
-        case Type::BaseType::kTypedef:
+        case Type::BaseType::kString:
           false_expr_priority = 8;
           break;
-        case Type::BaseType::kPointer:
-          false_expr_priority = 9;
+        case Type::BaseType::kTypedef:
+          false_expr_priority = 7;
           break;
-        case Type::BaseType::kArray:
+        case Type::BaseType::kPointer:
           false_expr_priority = 10;
           break;
-        case Type::BaseType::kEnum:
+        case Type::BaseType::kArray:
           false_expr_priority = 11;
           break;
-        case Type::BaseType::kUnion:
+        case Type::BaseType::kEnum:
           false_expr_priority = 12;
           break;
-        case Type::BaseType::kStruct:
+        case Type::BaseType::kUnion:
           false_expr_priority = 13;
           break;
-        case Type::BaseType::kClass:
+        case Type::BaseType::kStruct:
           false_expr_priority = 14;
           break;
-        case Type::BaseType::kFunction:
+        case Type::BaseType::kClass:
           false_expr_priority = 15;
           break;
-        case Type::BaseType::kAuto:
+        case Type::BaseType::kFunction:
           false_expr_priority = 16;
+          break;
+        case Type::BaseType::kAuto:
+          false_expr_priority = 17;
           break;
         default:
           EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",

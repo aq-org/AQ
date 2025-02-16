@@ -448,7 +448,7 @@ int64_t GetLongData(size_t index) {
     case 0x01:
       return object_table[index].data.byte_data;
     case 0x02:
-    printf("GetLongData: %lld\n", object_table[index].data.long_data);
+      // printf("GetLongData: %lld\n", object_table[index].data.long_data);
       return object_table[index].data.long_data;
     case 0x03:
       return object_table[index].data.double_data;
@@ -619,12 +619,12 @@ void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetPtrData(size_t,void*)", "Out of memory.");
-  if (object_table[index].const_type && object_table[index].type != 0x07 &&
-      object_table[index].type != 0x06)
-    EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const type.");
 
   struct Object* data = object_table + index;
   while (data->type == 0x07) data = data->data.reference_data;
+
+  if (data->const_type && data->type != 0x06)
+    EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const type.");
 
   data->type = 0x06;
   data->data.ptr_data = ptr;
@@ -634,12 +634,12 @@ void SetByteData(size_t index, int8_t value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetByteData(size_t,int8_t)", "Out of memory.");
-  if (object_table[index].const_type && object_table[index].type != 0x07 &&
-      object_table[index].type != 0x01)
-    EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const type.");
 
   struct Object* data = object_table + index;
   while (data->type == 0x07) data = data->data.reference_data;
+
+  if (data->const_type && data->type != 0x01)
+    EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const type.");
 
   data->type = 0x01;
   data->data.byte_data = value;
@@ -690,12 +690,12 @@ void SetLongData(size_t index, int64_t value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetLongData(size_t,long)", "Out of memory.");
-  if (object_table[index].const_type && object_table[index].type != 0x07 &&
-      object_table[index].type != 0x02)
-    EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
 
   struct Object* data = object_table + index;
   while (data->type == 0x07) data = data->data.reference_data;
+
+  if (data->const_type && data->type != 0x02)
+    EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
 
   data->type = 0x02;
   data->data.long_data = value;
@@ -745,12 +745,12 @@ void SetDoubleData(size_t index, double value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetDoubleData(size_t,double)", "Out of memory.");
-  if (object_table[index].const_type && object_table[index].type != 0x07 &&
-      object_table[index].type != 0x03)
-    EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
 
   struct Object* data = object_table + index;
   while (data->type == 0x07) data = data->data.reference_data;
+
+  if (data->const_type && data->type != 0x03)
+    EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
 
   data->type = 0x03;
   data->data.double_data = value;
@@ -760,12 +760,12 @@ void SetUint64tData(size_t index, uint64_t value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetUint64tData(size_t,uint64_t)", "Out of memory.");
-  if (object_table[index].const_type && object_table[index].type != 0x07 &&
-      object_table[index].type != 0x04)
-    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
 
   struct Object* data = object_table + index;
   while (data->type == 0x07) data = data->data.reference_data;
+
+  if (data->const_type && data->type != 0x04)
+    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
 
   data->type = 0x04;
   data->data.uint64t_data = value;
@@ -775,12 +775,12 @@ void SetStringData(size_t index, const char* string) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetStringData(size_t,const char*)", "Out of memory.");
-  if (object_table[index].const_type && object_table[index].type != 0x07 &&
-      object_table[index].type != 0x05)
-    EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type == 0x07) {data = data->data.reference_data;printf("REF\n");}
+
+  if (data->const_type && data->type != 0x05)
+    EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
 
   data->type = 0x05;
   data->data.string_data = string;
@@ -795,7 +795,7 @@ void SetReferenceData(size_t index, struct Object* object) {
             "Cannot change const type.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  // while (data->type == 0x07) data = data->data.reference_data;
 
   data->type = 0x07;
   data->data.ptr_data = object;
@@ -1487,7 +1487,8 @@ int REFER(size_t result, size_t operand1) {
   if (operand1 >= object_table_size)
     EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
 
-  SetReferenceData(result, object_table + operand1);
+  printf("REFER: %zu , %zu\n", result,operand1);
+  SetReferenceData(result, GetPtrData(operand1));
 
   return 0;
 }
@@ -2057,12 +2058,14 @@ int EQUAL(size_t result, size_t value) {
       SetUint64tData(result, GetUint64tData(value));
       break;
     case 0x05:
+      printf("result: %zu, value: %s\n", result,GetStringData(value));
       SetStringData(result, GetStringData(value));
       break;
     case 0x06:
       SetPtrData(result, GetPtrData(value));
       break;
     default:
+      // printf("value type: %d\n", value_data->type);
       EXIT_VM("EQUAL(size_t,size_t)", "Unsupported type.");
   }
   return 0;
@@ -2156,6 +2159,7 @@ void print(InternalObject args, size_t return_value) {
       SetLongData(return_value, printf("%p", GetPtrData(*args.index)));
       break;
     default:
+      // printf("object type: %d\n", object->type);
       EXIT_VM("print(InternalObject,size_t)", "Unsupported type.");
       break;
   }
@@ -2173,25 +2177,12 @@ unsigned int hash(const char* str) {
 
 void InitializeNameTable(struct LinkedList* list) {
   TRACE_FUNCTION;
-  unsigned int name_hash = hash("global::print@const char*");
+  unsigned int name_hash = hash("global::print");
   struct LinkedList* table = &list[name_hash];
   while (table->next != NULL) {
     table = table->next;
   }
-  table->pair.first = "global::print@const char*";
-  table->pair.second = print;
-  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
-  AddFreePtr(table->next);
-  table->next->next = NULL;
-  table->next->pair.first = NULL;
-  table->next->pair.second = NULL;
-
-  name_hash = hash("global::print@auto");
-  table = &list[name_hash];
-  while (table->next != NULL) {
-    table = table->next;
-  }
-  table->pair.first = "global::print@auto";
+  table->pair.first = "global::print";
   table->pair.second = print;
   table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
   AddFreePtr(table->next);
@@ -2449,7 +2440,8 @@ int InvokeCustomFunction(const char* name, size_t args_size,
     EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
             "Invalid args_size.");
   }
-  object_table[return_value] = object_table[func_info.args[0]];
+  printf("object: %zu , %zu", func_info.args[0], return_value);
+  object_table[func_info.args[0]] = object_table[return_value];
   func_info.args++;
   args_size--;
   for (size_t i = 0; i < args_size; i++) {
@@ -2457,6 +2449,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
+    // printf("operator: %d\n", run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -2678,6 +2671,7 @@ int main(int argc, char* argv[]) {
 
   for (size_t i = 0; i < object_table_size; i++) {
     object_table[i].type = *(uint8_t*)bytecode_file;
+    printf("object_table type: %zu\n", i);
     if (object_table[i].type != 0x00) object_table[i].const_type = true;
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
   }
@@ -2695,7 +2689,14 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
 
-  InvokeCustomFunction("__start", 1, 0, NULL);
+  InvokeCustomFunction("__start", 1, 1, NULL);
+
+  size_t* args = (size_t*)malloc(1 * sizeof(size_t));
+  args[0] = 0;
+  InternalObject args_obj = {1, args};
+  printf("EXIT: ");
+  print(args_obj, 0);
+  free(args);
 
   // printf("\nProgram finished\n");
   FreeAllPtr();
