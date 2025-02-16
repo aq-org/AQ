@@ -4930,7 +4930,6 @@ class BytecodeGenerator {
     }
 
    private:
-    // DEPRECATED(bugs)
     int64_t SwapLong(int64_t x) {
       TRACE_FUNCTION;
       uint64_t ux = (uint64_t)x;
@@ -5045,8 +5044,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   global_code_.push_back(
       Bytecode(_AQVM_OPERATOR_EQUAL, 2, 0, global_memory_.AddString("(void)")));
   std::size_t return_value_ptr = global_memory_.Add(1);
-  global_code_.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2,0 , return_value_ptr));
-  global_code_.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, 1, return_value_ptr));
+  global_code_.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2, 0, return_value_ptr));
+  global_code_.push_back(
+      Bytecode(_AQVM_OPERATOR_REFER, 2, 1, return_value_ptr));
   current_scope_.push_back("global");
   if (stmt == nullptr)
     EXIT_COMPILER(
@@ -5923,9 +5923,9 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
       std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
   std::size_t return_value_reference_index = global_memory_.Add(1);
-  var_decl_map.emplace(
-      func_name + "#!return_reference",
-      std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
+  var_decl_map.emplace(func_name + "#!return_reference",
+                       std::pair<VarDeclNode*, std::size_t>(
+                           nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
@@ -6332,9 +6332,9 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     case UnaryNode::Operator::kDeref: {  // * (dereference)
       uint8_t vm_type = GetExprVmType(expr->GetExpr());
       std::size_t new_index = global_memory_.Add(1);
-      //dereference_ptr_index_ = sub_expr;
+      // dereference_ptr_index_ = sub_expr;
 
-      //code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
+      // code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, sub_expr, new_index));
       code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, new_index, sub_expr));
       return new_index;
     }
@@ -6364,7 +6364,7 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
     case UnaryNode::Operator::ARRAY: {  // []
       // std::cout << "ARRAY" << std::endl;
       Type* array_type = GetExprType(dynamic_cast<ArrayNode*>(expr)->GetExpr());
-      //uint8_t vm_type = 0;
+      // uint8_t vm_type = 0;
       std::size_t offset_expr = global_memory_.Add(1);
       std::size_t offset =
           HandleExpr(dynamic_cast<ArrayNode*>(expr)->GetIndex(), code);
@@ -6386,15 +6386,14 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
             "Unsupported type.");
       }*/
 
-      
-
-      //dereference_ptr_index_ = global_memory_.Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, offset_expr,
-                              sub_expr, offset));
+      // dereference_ptr_index_ = global_memory_.Add(1);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_ADD, 3, offset_expr, sub_expr, offset));
 
       std::size_t new_index = global_memory_.Add(1);
 
-      //code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, dereference_ptr_index_, new_index));
+      // code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, dereference_ptr_index_,
+      // new_index));
       code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, new_index, offset_expr));
       return new_index;
     }
@@ -6702,41 +6701,39 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
     bool is_find = false;
     auto return_iterator = var_decl_map.find("#!return");
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-      return_iterator = var_decl_map.find(
-          current_scope_[i] + "#" +
-          static_cast<std::string>("!return"));
+      return_iterator = var_decl_map.find(current_scope_[i] + "#" +
+                                          static_cast<std::string>("!return"));
       if (return_iterator != var_decl_map.end()) {
         is_find = true;
         break;
       }
     }
     if (!is_find)
-      EXIT_COMPILER("BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
-                    "Not found identifier define.");
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
+          "Not found identifier define.");
 
-                is_find = false;
-                    auto return_reference_iterator = var_decl_map.find("#!return_reference");
-                    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-                      return_reference_iterator = var_decl_map.find(
-                          current_scope_[i] + "#" +
-                          static_cast<std::string>("!return_reference"));
-                      if (return_reference_iterator != var_decl_map.end()) {
-                        is_find = true;
-                        break;
-                      }
-                    }
-                    if (!is_find)
-                      EXIT_COMPILER("BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
-                                    "Not found identifier define.");
+    is_find = false;
+    auto return_reference_iterator = var_decl_map.find("#!return_reference");
+    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      return_reference_iterator =
+          var_decl_map.find(current_scope_[i] + "#" +
+                            static_cast<std::string>("!return_reference"));
+      if (return_reference_iterator != var_decl_map.end()) {
+        is_find = true;
+        break;
+      }
+    }
+    if (!is_find)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleReturn(ReturnNode*,std::vector<Bytecode>&)",
+          "Not found identifier define.");
 
-
-    code.push_back(Bytecode(
-        _AQVM_OPERATOR_EQUAL, 2,
-        return_iterator->second.second, return_value));
-    code.push_back(Bytecode(
-        _AQVM_OPERATOR_EQUAL, 2,
-        return_reference_iterator->second.second,
-        return_iterator->second.second));
+    code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2,
+                            return_iterator->second.second, return_value));
+    code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2,
+                            return_reference_iterator->second.second,
+                            return_iterator->second.second));
     exit_index_.push_back(code.size());
     code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   }
@@ -7027,10 +7024,10 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   std::size_t return_value_index = global_memory_.Add(1);
   std::size_t return_value_ptr_index = global_memory_.Add(1);
   std::size_t return_value_reference_index = global_memory_.Add(1);
-  code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2,return_value_index ,
-    return_value_ptr_index));
+  code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2, return_value_index,
+                          return_value_ptr_index));
   code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, return_value_reference_index,
-    return_value_ptr_index));
+                          return_value_ptr_index));
   vm_args.push_back(return_value_reference_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
@@ -8197,6 +8194,7 @@ uint8_t BytecodeGenerator::GetExprPtrValueVmType(ExprNode* expr) {
   return 0x00;
 }
 
+// DEPRECATED
 uint8_t BytecodeGenerator::ConvertTypeToVmType(Type* type) {
   TRACE_FUNCTION;
   switch (type->GetType()) {

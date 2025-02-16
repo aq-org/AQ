@@ -1,5 +1,5 @@
 int print(auto str);
 auto main(){
-  // print("Hello world!\n");
-  return "abcdefg";
+  print("Hello world!\n");
+  return 0;
 }

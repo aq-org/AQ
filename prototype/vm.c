@@ -777,7 +777,10 @@ void SetStringData(size_t index, const char* string) {
     EXIT_VM("SetStringData(size_t,const char*)", "Out of memory.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) {data = data->data.reference_data;printf("REF\n");}
+  while (data->type == 0x07) {
+    data = data->data.reference_data;
+    // printf("REF\n");
+  }
 
   if (data->const_type && data->type != 0x05)
     EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
@@ -795,7 +798,7 @@ void SetReferenceData(size_t index, struct Object* object) {
             "Cannot change const type.");
 
   struct Object* data = object_table + index;
-  // while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type == 0x07) data = data->data.reference_data;
 
   data->type = 0x07;
   data->data.ptr_data = object;
@@ -1487,7 +1490,7 @@ int REFER(size_t result, size_t operand1) {
   if (operand1 >= object_table_size)
     EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
 
-  printf("REFER: %zu , %zu\n", result,operand1);
+  // printf("REFER: %zu , %zu\n", result,operand1);
   SetReferenceData(result, GetPtrData(operand1));
 
   return 0;
@@ -2058,7 +2061,7 @@ int EQUAL(size_t result, size_t value) {
       SetUint64tData(result, GetUint64tData(value));
       break;
     case 0x05:
-      printf("result: %zu, value: %s\n", result,GetStringData(value));
+      // printf("result: %zu, value: %s\n", result,GetStringData(value));
       SetStringData(result, GetStringData(value));
       break;
     case 0x06:
@@ -2440,7 +2443,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
     EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
             "Invalid args_size.");
   }
-  printf("object: %zu , %zu", func_info.args[0], return_value);
+  // printf("object: %zu , %zu", func_info.args[0], return_value);
   object_table[func_info.args[0]] = object_table[return_value];
   func_info.args++;
   args_size--;
@@ -2671,7 +2674,7 @@ int main(int argc, char* argv[]) {
 
   for (size_t i = 0; i < object_table_size; i++) {
     object_table[i].type = *(uint8_t*)bytecode_file;
-    printf("object_table type: %zu\n", i);
+    // printf("object_table type: %zu\n", i);
     if (object_table[i].type != 0x00) object_table[i].const_type = true;
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
   }
@@ -2694,7 +2697,7 @@ int main(int argc, char* argv[]) {
   size_t* args = (size_t*)malloc(1 * sizeof(size_t));
   args[0] = 0;
   InternalObject args_obj = {1, args};
-  printf("EXIT: ");
+  printf("\n[INFO] EXIT value: ");
   print(args_obj, 0);
   free(args);
 
