@@ -1,4 +1,5 @@
-int print(const char* str);
-void main(){
-  print("Hello World!\n");
+int print(auto str);
+auto main(){
+  // print("Hello world!\n");
+  return "abcdefg";
 }
