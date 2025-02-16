@@ -6355,9 +6355,8 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       return new_index;
     }
     case UnaryNode::Operator::CONVERT: {  // ()
-      //uint8_t vm_type = GetExprVmType(expr);
-      std::size_t new_index = global_memory_.Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expr));
+      std::size_t new_index = global_memory_.AddWithType(dynamic_cast<CastNode*>(expr)->GetCastType()->GetVmType());
+      code.push_back(Bytecode(_AQVM_OPERATOR_CONVERT, 2, new_index, sub_expr));
       return new_index;
     }
 
@@ -6768,14 +6767,18 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
   // Need true branch and false branch
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
   std::size_t true_location = code.size();
+  current_scope_.push_back(current_scope_.back() + "@" + std::to_string(++undefined_count_));
   HandleStmt(stmt->GetBody(), code);
+  current_scope_.pop_back();
 
   std::size_t goto_location = code.size();
   // Need exit branch
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   std::size_t false_location = code.size();
   if (stmt->GetElseBody() != nullptr) {
+    current_scope_.push_back(current_scope_.back() + "@" + std::to_string(++undefined_count_));
     HandleStmt(stmt->GetElseBody(), code);
+    current_scope_.pop_back();
   }
   std::size_t exit_branch = code.size();
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
@@ -6849,7 +6852,9 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
   std::size_t body_location = code.size();
 
+  current_scope_.push_back(current_scope_.back() + "@" + std::to_string(++undefined_count_));
   HandleStmt(stmt->GetBody(), code);
+  current_scope_.pop_back();
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, start_location));
 
   std::size_t exit_location = code.size();
