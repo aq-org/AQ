@@ -5017,7 +5017,7 @@ class BytecodeGenerator {
   bool IsDereferenced(ExprNode* expr);
 
   bool is_big_endian_ = false;
-  std::unordered_map<std::string, FuncDeclNode> func_decl_map;
+  std::unordered_map<std::string, std::vector<FuncDeclNode>> func_decl_map;
   std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
       var_decl_map;
   std::vector<Function> func_list_;
@@ -5882,13 +5882,15 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
     func_name += "::";
   }
   func_name += *func_decl->GetStat()->GetName();
+
+  std::string scope_name = func_name;
   // std::cout << "func_name: " << func_name << std::endl;
   std::vector<ExprNode*> args = func_decl->GetStat()->GetArgs();
-  /*for (std::size_t i = 0; i < args.size(); i++) {
+  for (std::size_t i = 0; i < args.size(); i++) {
     if (i == 0) {
-      func_name += "@";
+      scope_name += "@";
     } else {
-      func_name += ",";
+      scope_name += ",";
     }
 
     if (args[i]->GetType() != StmtNode::StmtType::kVarDecl &&
@@ -5897,16 +5899,20 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
-      func_name += *dynamic_cast<VarDeclNode*>(args[i])->GetVarType();
+      scope_name += *dynamic_cast<VarDeclNode*>(args[i])->GetVarType();
     } else {
-      func_name += *dynamic_cast<ArrayDeclNode*>(args[i])->GetVarType();
+      scope_name += *dynamic_cast<ArrayDeclNode*>(args[i])->GetVarType();
     }
-  }*/
+  }
 
-  current_scope_.push_back(func_name);
+  current_scope_.push_back(scope_name);
   // std::cout << "func_name: " << func_name << std::endl;
   if (func_decl_map.find(func_name) == func_decl_map.end())
-    func_decl_map.emplace(func_name, *func_decl);
+    {std::vector<FuncDeclNode> func_decl_vector;
+      func_decl_vector.push_back(*func_decl);
+    func_decl_map.emplace(func_name,func_decl_vector );}else{
+      func_decl_map[func_name].push_back(*func_decl);
+    }
 
   if (func_decl->GetStmts() == nullptr) {
     current_scope_.pop_back();
@@ -5919,11 +5925,11 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::size_t return_value_index = global_memory_.AddWithType(vm_type);
   var_decl_map.emplace(
-      func_name + "#!return",
+    scope_name + "#!return",
       std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
   std::size_t return_value_reference_index = global_memory_.Add(1);
-  var_decl_map.emplace(func_name + "#!return_reference",
+  var_decl_map.emplace(scope_name + "#!return_reference",
                        std::pair<VarDeclNode*, std::size_t>(
                            nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
@@ -6767,7 +6773,7 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
   // Need true branch and false branch
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
   std::size_t true_location = code.size();
-  current_scope_.push_back(current_scope_.back() + "@" + std::to_string(++undefined_count_));
+  current_scope_.push_back(current_scope_.back() + "@@" + std::to_string(++undefined_count_));
   HandleStmt(stmt->GetBody(), code);
   current_scope_.pop_back();
 
@@ -6776,7 +6782,7 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
   std::size_t false_location = code.size();
   if (stmt->GetElseBody() != nullptr) {
-    current_scope_.push_back(current_scope_.back() + "@" + std::to_string(++undefined_count_));
+    current_scope_.push_back(current_scope_.back() + "@@" + std::to_string(++undefined_count_));
     HandleStmt(stmt->GetElseBody(), code);
     current_scope_.pop_back();
   }
@@ -6852,7 +6858,7 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
   std::size_t body_location = code.size();
 
-  current_scope_.push_back(current_scope_.back() + "@" + std::to_string(++undefined_count_));
+  current_scope_.push_back(current_scope_.back() + "@@" + std::to_string(++undefined_count_));
   HandleStmt(stmt->GetBody(), code);
   current_scope_.pop_back();
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, start_location));
@@ -6936,20 +6942,19 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
     func_name += GetExprTypeString(args[i]);
   }*/
 
-  FuncDeclNode func_decl;
+  //FuncDeclNode func_decl;
   for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
     /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
               << std::endl;*/
     auto iterator = func_decl_map.find(current_scope_[i] + "::" + func_name);
     if (iterator != func_decl_map.end()) {
-      func_decl = iterator->second;
+      //func_decl = iterator->second;
       func_name = current_scope_[i] + "::" + func_name;
       break;
     }
     if (i == 0)
       EXIT_COMPILER(
-          "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&"
-          ")",
+          "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&)",
           "Function not found.");
   }
 

@@ -185,7 +185,7 @@ struct Memory {
 };
 
 func_ptr GetFunction(const char* name);
-FuncInfo GetCustomFunction(const char* name);
+FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size);
 
 struct Memory* memory;
 
@@ -2200,6 +2200,7 @@ void* AddFunction(void* location) {
   // printf("point 1\n");
 
   struct FuncList* table = &func_table[hash(location)];
+  if (table == NULL) EXIT_VM("AddFunction(void*)", "table is NULL.");
   while (table->next != NULL) {
     table = table->next;
   }
@@ -2225,10 +2226,10 @@ void* AddFunction(void* location) {
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
-  struct Bytecode* bytecode = (struct Bytecode*)malloc(
-      table->pair.second.commands_size * sizeof(struct Bytecode));
+  struct Bytecode* bytecode = (struct Bytecode*)calloc(
+      table->pair.second.commands_size, sizeof(struct Bytecode));
   // printf("commands_size: %zu", table->pair.second.commands_size);
-  if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "malloc failed.");
+  if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "calloc failed.");
   AddFreePtr(bytecode);
 
   table->pair.second.commands = bytecode;
@@ -2392,26 +2393,45 @@ void* AddFunction(void* location) {
     AddFreePtr(bytecode[i].args);
   }
 
-  table->next = (struct FuncList*)malloc(sizeof(struct FuncList));
+  table->next = (struct FuncList*)calloc(1, sizeof(struct FuncList));
   AddFreePtr(table->next);
 
   return location;
 }
 
-FuncInfo GetCustomFunction(const char* name) {
+FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
   TRACE_FUNCTION;
-  if (name == NULL) EXIT_VM("GetCustomFunction(const char*)", "Invalid name.");
+  if (name == NULL)
+    EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)", "Invalid name.");
   // printf("name: %s\n", name);
   const unsigned int name_hash = hash(name);
   const struct FuncList* table = &func_table[name_hash];
   while (table != NULL && table->pair.first != NULL) {
+    if (table->pair.first == NULL)
+      EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)", "Invalid name.");
     if (strcmp(table->pair.first, name) == 0) {
-      return table->pair.second;
+      if (table->pair.second.args_size == args_size) {
+        bool is_same = true;
+        for (size_t i = 0; i < args_size - 1; i++) {
+          if (args == NULL)
+            EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)",
+                    "Invalid args.");
+          if (object_table[table->pair.second.args[i]].const_type &&
+              object_table[table->pair.second.args[i]].type !=
+                  object_table[args[i]].type) {
+            is_same = false;
+            break;
+          }
+        }
+        if (is_same) return table->pair.second;
+      }
+      // return table->pair.second;
     }
     table = table->next;
   }
 
-  EXIT_VM("GetCustomFunction(const char*)", "Function not found.");
+  EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)",
+          "Function not found.");
   return (FuncInfo){NULL, NULL, 0, NULL};
 }
 
@@ -2436,7 +2456,7 @@ int WIDE();
 int InvokeCustomFunction(const char* name, size_t args_size,
                          size_t return_value, size_t* args) {
   TRACE_FUNCTION;
-  FuncInfo func_info = GetCustomFunction(name);
+  FuncInfo func_info = GetCustomFunction(name, args, args_size);
   if (args_size != func_info.args_size) {
     // printf("args_size: %zu\n", args_size);
     // printf("func_info.args_size: %zu\n", func_info.args_size);

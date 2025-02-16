@@ -1,5 +1,21 @@
 int print(auto str);
+auto test_func(auto a){
+  print("\n");
+  return a;
+}
+auto test_func(auto a,auto b){
+  print("\n");
+  return b;
+}
+auto test_func(auto a,auto b,auto c){
+  print("\n");
+  return c;
+}
 auto main(){
   print("Hello world!\n");
+  var a = test_func(-64);
+  print(a);
+  print(test_func(1,10));
+  print(test_func(1,10,"test"));
   return 0;
 }
