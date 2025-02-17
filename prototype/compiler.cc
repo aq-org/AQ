@@ -42,6 +42,7 @@
 #define _AQVM_OPERATOR_GOTO 0x16
 #define _AQVM_OPERATOR_LOAD_CONST 0x17
 #define _AQVM_OPERATOR_CONVERT 0x18
+#define _AQVM_OPERATOR_CONST 0x19
 #define _AQVM_OPERATOR_WIDE 0xFF
 
 inline void EXIT_COMPILER(const char* func_name, const char* message) {
@@ -5580,6 +5581,22 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
           break;
 
+        case _AQVM_OPERATOR_CONST:
+          code_.push_back(_AQVM_OPERATOR_CONST);
+
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected CONST args size.");
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+          break;
+
         case _AQVM_OPERATOR_WIDE:
 
           code_.push_back(_AQVM_OPERATOR_WIDE);
@@ -5852,6 +5869,12 @@ void BytecodeGenerator::GenerateMnemonicFile() {
                     << std::endl;
           break;
 
+        case _AQVM_OPERATOR_CONST:
+          std::cout << "CONST: " << func_list_[i].GetCode()[j].GetArgs()[0]
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
+                    << std::endl;
+          break;
+
         case _AQVM_OPERATOR_WIDE:
           std::cout << "WIDE" << std::endl;
           break;
@@ -6067,6 +6090,16 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
   if (var_decl->GetValue()[0] == nullptr) {
     // std::cout << "None Value" << std::endl;
     std::size_t var_index = global_memory_.AddWithType(vm_type);
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
+      std::size_t const_var_index = global_memory_.AddWithType(0x08);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
+      var_decl_map.emplace(
+          current_scope_.back() + "#" +
+              static_cast<std::string>(*var_decl->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
+      return const_var_index;
+    }
     var_decl_map.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),
@@ -6077,6 +6110,16 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
+      std::size_t const_var_index = global_memory_.AddWithType(0x08);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
+      var_decl_map.emplace(
+          current_scope_.back() + "#" +
+              static_cast<std::string>(*var_decl->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
+      return const_var_index;
+    }
     var_decl_map.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),
