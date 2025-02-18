@@ -349,176 +349,50 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
   }
 }*/
 
-struct Object* GetConst(struct Object* object);
-
-struct Object* GetReference(struct Object* object) {
-  TRACE_FUNCTION;
-  object++;
-  bool has_reach_location = false;
-  while (true) {
-    switch (object->type) {
-      case 0x00:
-      case 0x01:
-      case 0x02:
-      case 0x03:
-      case 0x04:
-      case 0x05:
-        if (has_reach_location)
-          EXIT_VM("GetReference(struct Object*)", "Unexpected type.");
-        object = object->data.ptr_data;
-        has_reach_location = true;
-        break;
-
-      case 0x06:
-        if (has_reach_location)
-          EXIT_VM("GetReference(struct Object*)", "Unexpected type.");
-        object++;
-
-        break;
-
-      case 0x07:
-        if (has_reach_location) {
-          object = object->data.reference_data;
-        } else {
-          object++;
-        }
-        break;
-
-      case 0x08:
-        if (has_reach_location) {
-          object = GetConst(object);
-        } else {
-          object++;
-        }
-        break;
-
-      default:
-        EXIT_VM("GetReference(struct Object*)", "Unsupported type.");
-        return NULL;
-    }
-  }
-
-  return NULL;
-}
-
-struct Object* GetConst(struct Object* object) {
-  TRACE_FUNCTION;
-  object++;
-  bool has_reach_location = false;
-  while (true) {
-    switch (object->type) {
-      case 0x00:
-      case 0x01:
-      case 0x02:
-      case 0x03:
-      case 0x04:
-      case 0x05:
-        if (has_reach_location)
-          EXIT_VM("GetConst(struct Object*)", "Unexpected type.");
-        object = object->data.ptr_data;
-        has_reach_location = true;
-        break;
-
-      case 0x06:
-        if (has_reach_location)
-          EXIT_VM("GetConst(struct Object*)", "Unexpected type.");
-        object++;
-
-        break;
-
-      case 0x07:
-        if (has_reach_location) {
-          object = GetReference(object);
-        } else {
-          object++;
-        }
-        break;
-
-      case 0x08:
-        if (has_reach_location) {
-          object = object->data.const_data;
-        } else {
-          object++;
-        }
-        break;
-
-      default:
-        EXIT_VM("GetConst(struct Object*)", "Unsupported type.");
-        return NULL;
-    }
-  }
-
-  return NULL;
-}
-
 struct Object* GetPtrData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
 
-  struct Object* object = object_table + index + 1;
-  bool has_reach_location = false;
-  while (true) {
-    switch (object->type) {
-      case 0x00:
-      case 0x01:
-      case 0x02:
-      case 0x03:
-      case 0x04:
-      case 0x05:
-        if (has_reach_location)
-          EXIT_VM("GetPtrData(size_t)", "Unexpected type.");
-        object = object->data.ptr_data;
-        has_reach_location = true;
-        break;
-
-      case 0x06:
-        if (has_reach_location) {
-          return object->data.ptr_data;
-        } else {
-          object++;
-        }
-        break;
-
-      case 0x07:
-        if (has_reach_location) {
-          object = GetReference(object);
-        } else {
-          object++;
-        }
-        break;
-
-      case 0x08:
-        if (has_reach_location) {
-          object = GetConst(object);
-        } else {
-          object++;
-        }
-        break;
-
-      default:
-        EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
-        return NULL;
+  // printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
+  if (object_table[index].type == 0x05) {
+    return (void*)object_table[index].data.string_data;
+  } else if (object_table[index].type == 0x06) {
+    return (void*)object_table[index].data.ptr_data;
+  } else if (object_table[index].type == 0x07) {
+    struct Object reference_data = *object_table[index].data.reference_data;
+    while (true) {
+      switch (reference_data.type) {
+        case 0x06:
+          return object_table[index].data.ptr_data;
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+        case 0x08:
+          reference_data = *reference_data.data.const_data;
+        default:
+          EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
+          break;
+      }
     }
+  } else if (object_table[index].type == 0x08) {
+    struct Object const_data = *object_table[index].data.const_data;
+    while (true) {
+      switch (const_data.type) {
+        case 0x06:
+          return object_table[index].data.ptr_data;
+        case 0x07:
+          const_data = *const_data.data.reference_data;
+        case 0x08:
+          const_data = *const_data.data.const_data;
+        default:
+          EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
+  } else {
+    EXIT_VM("GetPtrData(size_t)", "Unsupported Type.");
   }
-
   return NULL;
-}
-
-struct Object* GetReferenceData(size_t index) {
-  TRACE_FUNCTION;
-  if (index >= object_table_size)
-    EXIT_VM("GetReferenceData(size_t)", "Out of memory.");
-
-  return GetReference(object_table + index);
-}
-
-struct Object* GetConstData(size_t index) {
-  TRACE_FUNCTION;
-  if (index >= object_table_size)
-    EXIT_VM("GetConstData(size_t)", "Out of memory.");
-
-  return GetConst(object_table + index);
 }
 
 int8_t GetByteData(size_t index) {
@@ -900,29 +774,10 @@ void SetPtrData(size_t index, struct Object* ptr) {
     EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = GetReference(data);
+  while (data->type == 0x07) data = data->data.reference_data;
 
   if (data->const_type && data->type != 0x06)
     EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const type.");
-
-  data++;
-
-  bool has_type_right = false;
-  while(!has_type_right){
-    switch(data->type){
-      case 0x00:
-      case 0x01:
-      case 0x02:
-      case 0x03:
-      case 0x04:
-      case 0x05:
-        
-        break;
-
-      default:
-        break;
-    }
-  }
 
   data->type = 0x06;
   data->data.ptr_data = ptr;
