@@ -4778,19 +4778,21 @@ class BytecodeGenerator {
     std::size_t Add(std::size_t size) {
       // std::cout << "Add" << std::endl;
       TRACE_FUNCTION;
-      std::size_t index = memory_type_.size();
+      std::size_t index = memory_size_;
       for (size_t i = 0; i < size; i++) {
         memory_type_.push_back(0x00);
+        memory_size_++;
       }
 
       return index;
     }
 
-    std::size_t AddWithType(uint8_t type) {
+    std::size_t AddWithType(std::vector<uint8_t> type) {
       // std::cout << "Add" << std::endl;
       TRACE_FUNCTION;
-      std::size_t index = memory_type_.size();
-      memory_type_.push_back(type);
+      std::size_t index = memory_size_;
+      memory_type_.insert(memory_type_.end(),);
+      memory_size_++;
 
       return index;
     }
@@ -4798,19 +4800,21 @@ class BytecodeGenerator {
     std::size_t AddByte(int8_t value) {
       // std::cout << "AddByte" << std::endl;
       TRACE_FUNCTION;
+      memory_size_++;
       const_table_.push_back(0x01);
       const_table_.push_back(value);
       const_table_size_++;
 
       memory_type_.push_back(0x01);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddLong(int64_t value) {
       // std::cout << "AddLong: " << value << std::endl;
       TRACE_FUNCTION;
+      memory_size_++;
       const_table_.push_back(0x02);
       // uint64_t uint64t_value = *reinterpret_cast<uint64_t*>(&value);
       // std::cout << "AddLong: " << value << std::endl;
@@ -4825,14 +4829,15 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x02);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddDouble(double value) {
       // std::cout << "AddDouble" << std::endl;
       TRACE_FUNCTION;
+      memory_size_++;
       const_table_.push_back(0x03);
       value = is_big_endian_ ? value : SwapDouble(value);
       uint64_t int_value;
@@ -4844,14 +4849,15 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x03);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddUint64t(uint64_t value) {
       // std::cout << "AddUint64t" << std::endl;
       TRACE_FUNCTION;
+      memory_size_++;
       const_table_.push_back(0x04);
       value = is_big_endian_ ? value : SwapUint64t(value);
       for (int i = 0; i < 8; ++i) {
@@ -4860,14 +4866,15 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x04);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddString(std::string value) {
       // std::cout << "AddString" << std::endl;
       TRACE_FUNCTION;
+      memory_size_++;
       const_table_.push_back(0x05);
       EncodeUleb128(value.size() + 1, const_table_);
       for (std::size_t i = 0; i < value.size(); i++) {
@@ -4877,13 +4884,14 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x05);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddPtr(std::uintptr_t ptr) {
       TRACE_FUNCTION;
+      memory_size_++;
       // std::cout << "AddPtr" << std::endl;
       const_table_.push_back(0x06);
       for (int i = 0; i < 8; ++i) {
@@ -4892,9 +4900,11 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x06);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      // TODO
+      memory_type_.push_back(0x00);
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::vector<Bytecode>& GetCode() {
@@ -4903,7 +4913,7 @@ class BytecodeGenerator {
     }
 
     uint8_t GetType(size_t index) {
-      if (index >= memory_type_.size())
+      if (index >= memory_size_)
         EXIT_COMPILER("BytecodeGenerator::Memory::GetType(size_t)",
                       "index is out of range.");
       return memory_type_[index];
@@ -4927,7 +4937,7 @@ class BytecodeGenerator {
 
     std::size_t GetMemorySize() {
       TRACE_FUNCTION;
-      return memory_type_.size();
+      return memory_size_;
     }
 
    private:
@@ -4982,6 +4992,7 @@ class BytecodeGenerator {
     std::vector<uint8_t> const_table_;
     std::size_t const_table_size_ = 0;
     std::vector<uint8_t> memory_type_;
+    std::size_t memory_size_ = 0;
   };
 
   void HandleFuncDecl(FuncDeclNode* func_decl);
@@ -5647,6 +5658,10 @@ void BytecodeGenerator::GenerateMnemonicFile() {
   std::size_t memory_size = global_memory_.GetMemorySize();
   std::cout << "Memory Size: " << memory_size << std::endl;
   std::cout << std::endl << std::endl << std::endl;
+
+  for(size_t i = 0;i<global_memory_.GetMemoryType().size();i++){
+    printf("%i ",global_memory_.GetMemoryType()[i]);
+  }
 
   for (std::size_t i = 0; i < func_list_.size(); i++) {
     std::cout << "Function Name: " << func_list_[i].GetName()

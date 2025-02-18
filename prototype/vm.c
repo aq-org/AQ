@@ -91,7 +91,7 @@ union Data {
 };
 
 struct Object {
-  uint8_t type;
+  uint8_t* type;
   bool const_type;
   union Data data;
 };
@@ -308,7 +308,7 @@ struct Memory* InitializeMemory(void* data, void* type, size_t size) {
   if (memory_ptr == NULL)
     EXIT_VM("InitializeMemory(void*, void*, size_t)", "Out of memory.");
   memory_ptr->data = data;
-  memory_ptr->type = type;
+  memory_ptr->type[0] = type;
   memory_ptr->size = size;
 
   return memory_ptr;
@@ -321,9 +321,9 @@ void FreeMemory(struct Memory* memory_ptr) {
 
 int SetType(const struct Memory* memory, size_t index, uint8_t type) {
   if (index % 2 != 0) {
-    return memory->type[index / 2] & 0x0F;
+    return memory->type[0][index / 2] & 0x0F;
   } else {
-    return (memory->type[index / 2] & 0xF0) >> 4;
+    return (memory->type[0][index / 2] & 0xF0) >> 4;
   }
 }
 
@@ -340,12 +340,12 @@ uint8_t GetType(const struct Memory* memory, size_t index) {
   if (index >= object_table_size) EXIT_VM("GetType(size_t)", "Out of memory.");
   if (index % 2 != 0) {
     printf("GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0x0F));
-    return (*(memory->type + (index / 2)) & 0x0F);
+           (*(memory->type[0] + (index / 2)) & 0x0F));
+    return (*(memory->type[0] + (index / 2)) & 0x0F);
   } else {
     printf("GetType: %zu, Type: %d\n", index,
-           (*(memory->type + (index / 2)) & 0xF0) >> 4);
-    return (*(memory->type + (index / 2)) & 0xF0) >> 4;
+           (*(memory->type[0] + (index / 2)) & 0xF0) >> 4);
+    return (*(memory->type[0] + (index / 2)) & 0xF0) >> 4;
   }
 }*/
 
@@ -355,14 +355,14 @@ struct Object* GetPtrData(size_t index) {
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
 
   // printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
-  if (object_table[index].type == 0x05) {
+  if (object_table[index].type[0] == 0x05) {
     return (void*)object_table[index].data.string_data;
-  } else if (object_table[index].type == 0x06) {
+  } else if (object_table[index].type[0] == 0x06) {
     return (void*)object_table[index].data.ptr_data;
-  } else if (object_table[index].type == 0x07) {
+  } else if (object_table[index].type[0] == 0x07) {
     struct Object reference_data = *object_table[index].data.reference_data;
     while (true) {
-      switch (reference_data.type) {
+      switch (reference_data.type[0]) {
         case 0x06:
           return object_table[index].data.ptr_data;
         case 0x07:
@@ -374,10 +374,10 @@ struct Object* GetPtrData(size_t index) {
           break;
       }
     }
-  } else if (object_table[index].type == 0x08) {
+  } else if (object_table[index].type[0] == 0x08) {
     struct Object const_data = *object_table[index].data.const_data;
     while (true) {
-      switch (const_data.type) {
+      switch (const_data.type[0]) {
         case 0x06:
           return object_table[index].data.ptr_data;
         case 0x07:
@@ -399,7 +399,7 @@ int8_t GetByteData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("GetByteData(size_t)", "Out of memory.");
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       return object_table[index].data.byte_data;
     case 0x02:
@@ -411,7 +411,7 @@ int8_t GetByteData(size_t index) {
     case 0x07: {
       struct Object reference_data = *object_table[index].data.reference_data;
       while (true) {
-        switch (reference_data.type) {
+        switch (reference_data.type[0]) {
           case 0x01:
             return reference_data.data.byte_data;
           case 0x02:
@@ -433,7 +433,7 @@ int8_t GetByteData(size_t index) {
     case 0x08: {
       struct Object const_data = *object_table[index].data.const_data;
       while (true) {
-        switch (const_data.type) {
+        switch (const_data.type[0]) {
           case 0x01:
             return const_data.data.byte_data;
           case 0x02:
@@ -461,7 +461,7 @@ int8_t GetByteData(size_t index) {
 
 /*int GetIntData(size_t index) {
   TRACE_FUNCTION;
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       if (index >= object_table_size)
         EXIT_VM("GetIntData(size_t)", "Out of memory.");
@@ -489,7 +489,7 @@ int64_t GetLongData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("GetLongData(size_t)", "Out of memory.");
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       return object_table[index].data.byte_data;
     case 0x02:
@@ -502,7 +502,7 @@ int64_t GetLongData(size_t index) {
     case 0x07: {
       struct Object reference_data = *object_table[index].data.reference_data;
       while (true) {
-        switch (reference_data.type) {
+        switch (reference_data.type[0]) {
           case 0x01:
             return reference_data.data.byte_data;
           case 0x02:
@@ -524,7 +524,7 @@ int64_t GetLongData(size_t index) {
     case 0x08: {
       struct Object const_data = *object_table[index].data.const_data;
       while (true) {
-        switch (const_data.type) {
+        switch (const_data.type[0]) {
           case 0x01:
             return const_data.data.byte_data;
           case 0x02:
@@ -552,7 +552,7 @@ int64_t GetLongData(size_t index) {
 
 /*float GetFloatData(size_t index) {
   TRACE_FUNCTION;
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       if (index >= object_table_size)
         EXIT_VM("GetFloatData(size_t)", "Out of memory.");
@@ -580,7 +580,7 @@ double GetDoubleData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("GetLongData(size_t)", "Out of memory.");
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       return object_table[index].data.byte_data;
     case 0x02:
@@ -592,7 +592,7 @@ double GetDoubleData(size_t index) {
     case 0x07: {
       struct Object reference_data = *object_table[index].data.reference_data;
       while (true) {
-        switch (reference_data.type) {
+        switch (reference_data.type[0]) {
           case 0x01:
             return reference_data.data.byte_data;
           case 0x02:
@@ -616,7 +616,7 @@ double GetDoubleData(size_t index) {
     case 0x08: {
       struct Object const_data = *object_table[index].data.const_data;
       while (true) {
-        switch (const_data.type) {
+        switch (const_data.type[0]) {
           case 0x01:
             return const_data.data.byte_data;
           case 0x02:
@@ -648,7 +648,7 @@ uint64_t GetUint64tData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("GetLongData(size_t)", "Out of memory.");
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       return object_table[index].data.byte_data;
     case 0x02:
@@ -660,7 +660,7 @@ uint64_t GetUint64tData(size_t index) {
     case 0x07: {
       struct Object reference_data = *object_table[index].data.reference_data;
       while (true) {
-        switch (reference_data.type) {
+        switch (reference_data.type[0]) {
           case 0x01:
             return reference_data.data.byte_data;
           case 0x02:
@@ -684,7 +684,7 @@ uint64_t GetUint64tData(size_t index) {
     case 0x08: {
       struct Object const_data = *object_table[index].data.const_data;
       while (true) {
-        switch (const_data.type) {
+        switch (const_data.type[0]) {
           case 0x01:
             return const_data.data.byte_data;
           case 0x02:
@@ -714,7 +714,7 @@ uint64_t GetUint64tData(size_t index) {
 
 const char* GetStringData(size_t index) {
   TRACE_FUNCTION;
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x05:
       if (index >= object_table_size)
         EXIT_VM("GetStringData(size_t)", "Out of memory.");
@@ -723,7 +723,7 @@ const char* GetStringData(size_t index) {
     case 0x07: {
       struct Object reference_data = *object_table[index].data.reference_data;
       while (true) {
-        switch (reference_data.type) {
+        switch (reference_data.type[0]) {
           case 0x05:
             return reference_data.data.string_data;
           case 0x07:
@@ -742,7 +742,7 @@ const char* GetStringData(size_t index) {
     case 0x08: {
       struct Object const_data = *object_table[index].data.const_data;
       while (true) {
-        switch (const_data.type) {
+        switch (const_data.type[0]) {
           case 0x05:
             return const_data.data.string_data;
           case 0x07:
@@ -759,7 +759,7 @@ const char* GetStringData(size_t index) {
     }
     default:
       // printf("Index: %zu\n", index);
-      // printf("Type: %d\n", object_table[index].type);
+      // printf("Type: %d\n", object_table[index].type[0]);
       EXIT_VM("GetStringData(size_t)", "Invalid type.");
       break;
   }
@@ -770,16 +770,16 @@ void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetPtrData(size_t,void*)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type != 0x06)
+  if (data->const_type && data->type[0] != 0x06)
     EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const type.");
 
-  data->type = 0x06;
+  data->type[0] = 0x06;
   data->data.ptr_data = ptr;
 }
 
@@ -787,23 +787,23 @@ void SetByteData(size_t index, int8_t value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetByteData(size_t,int8_t)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type != 0x01)
+  if (data->const_type && data->type[0] != 0x01)
     EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const type.");
 
-  data->type = 0x01;
+  data->type[0] = 0x01;
   data->data.byte_data = value;
 }
 
 /*void SetIntData(size_t index, int value) {
   TRACE_FUNCTION;
   // printf("SetIntData: %zu, value: %d\n", index, value);
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       if (index >= object_table_size)
         EXIT_VM("SetIntData(size_t, int)", "Out of memory.");
@@ -845,23 +845,24 @@ void SetLongData(size_t index, int64_t value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetLongData(size_t,long)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetLongData(size_t,long)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type != 0x02)
+  if (data->const_type && data->type[0] != 0x02) {
+    printf("%zu,%i,%zu", index, data->type[0], value);
     EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
-
-  data->type = 0x02;
+  }
+  data->type[0] = 0x02;
   data->data.long_data = value;
 }
 
 /*void SetFloatData(size_t index, float value) {
   TRACE_FUNCTION;
   // printf("SetFloatData: %f\n", value);
-  switch (object_table[index].type) {
+  switch (object_table[index].type[0]) {
     case 0x01:
       if (index >= object_table_size)
         EXIT_VM("SetFloatData(size_t, float)", "Out of memory.");
@@ -902,16 +903,16 @@ void SetDoubleData(size_t index, double value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetDoubleData(size_t,double)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type != 0x03)
+  if (data->const_type && data->type[0] != 0x03)
     EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
 
-  data->type = 0x03;
+  data->type[0] = 0x03;
   data->data.double_data = value;
 }
 
@@ -919,16 +920,16 @@ void SetUint64tData(size_t index, uint64_t value) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetUint64tData(size_t,uint64_t)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type != 0x04)
+  if (data->const_type && data->type[0] != 0x04)
     EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
 
-  data->type = 0x04;
+  data->type[0] = 0x04;
   data->data.uint64t_data = value;
 }
 
@@ -936,19 +937,21 @@ void SetStringData(size_t index, const char* string) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetStringData(size_t,const char*)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) {
+  while (data->type[0] == 0x07) {
     data = data->data.reference_data;
     // printf("REF\n");
   }
 
-  if (data->const_type && data->type != 0x05)
+  if (data->const_type && data->type[0] != 0x05) {
+    printf("%zu,%i,%s", index, data->type[0], string);
     EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
+  }
 
-  data->type = 0x05;
+  data->type[0] = 0x05;
   data->data.string_data = string;
 }
 
@@ -956,18 +959,18 @@ void SetReferenceData(size_t index, struct Object* object) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetReferenceData(size_t,struct Object*)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
             "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (object_table[index].const_type && object_table[index].type != 0x07)
+  if (object_table[index].const_type && object_table[index].type[0] != 0x07)
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
             "Cannot change const type.");
 
-  data->type = 0x07;
+  data->type[0] = 0x07;
   data->data.ptr_data = object;
 }
 
@@ -975,16 +978,16 @@ void SetConstData(size_t index, struct Object* object) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetConstData(size_t,struct Object*)", "Out of memory.");
-  if (object_table[index].type == 0x08)
+  if (object_table[index].type[0] == 0x08)
     EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (object_table[index].const_type && object_table[index].type != 0x08)
+  if (object_table[index].const_type && object_table[index].type[0] != 0x08)
     EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const type.");
 
-  data->type = 0x08;
+  data->type[0] = 0x08;
   data->data.const_data = object;
 }
 
@@ -1068,11 +1071,11 @@ int NOP() {
 }
 int LOAD(size_t ptr, size_t operand) {
   TRACE_FUNCTION;
-  if (object_table[operand].type != 0x06)
+  if (object_table[operand].type[0] != 0x06)
     EXIT_VM("LOAD(size_t, size_t)", "Invalid type.");
   struct Object data = *object_table[ptr].data.ptr_data;
   // printf("LOAD: %zu\n", (uint64_t)data);
-  switch (object_table[ptr].data.ptr_data->type) {
+  switch (object_table[ptr].data.ptr_data->type[0]) {
     case 0x01:
       SetByteData(operand, data.data.byte_data);
       break;
@@ -1106,8 +1109,8 @@ int LOAD(size_t ptr, size_t operand) {
 int STORE(size_t ptr, size_t operand) {
   TRACE_FUNCTION;
   struct Object* data = GetPtrData(ptr);
-  data->type = object_table[operand].type;
-  switch (data->type) {
+  data->type[0] = object_table[operand].type[0];
+  switch (data->type[0]) {
     case 0x01:
       data->data.byte_data = GetByteData(operand);
       break;
@@ -1142,7 +1145,7 @@ int NEW(size_t ptr, size_t size) {
   TRACE_FUNCTION;
   size_t size_value = GetUint64tData(size);
   void* data = calloc(size_value, sizeof(struct Object));
-  object_table[ptr].type = 0x06;
+  object_table[ptr].type[0] = 0x06;
   object_table[ptr].data.ptr_data = data;
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
@@ -1169,17 +1172,17 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) + GetByteData(operand2) > INT8_MAX ||
             GetByteData(operand1) + GetByteData(operand2) < INT8_MIN) {
@@ -1216,11 +1219,11 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("ADD(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
@@ -1234,7 +1237,7 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
                        GetUint64tData(operand1) + GetUint64tData(operand2));
         break;
       case 0x06:
-        if (operand1_data->type == 0x06) {
+        if (operand1_data->type[0] == 0x06) {
           SetPtrData(result, GetPtrData(operand1) + GetLongData(operand2));
         } else {
           SetPtrData(result, GetLongData(operand1) + GetPtrData(operand2));
@@ -1258,17 +1261,17 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) - GetByteData(operand2) > INT8_MAX ||
             GetByteData(operand1) - GetByteData(operand2) < INT8_MIN) {
@@ -1293,11 +1296,11 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("SUB(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) - GetLongData(operand2));
@@ -1311,7 +1314,7 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
                        GetUint64tData(operand1) - GetUint64tData(operand2));
         break;
       case 0x06:
-        if (operand1_data->type == 0x06) {
+        if (operand1_data->type[0] == 0x06) {
           SetPtrData(result, GetPtrData(operand1) - GetLongData(operand2));
         } else {
           EXIT_VM("SUB(size_t,size_t,size_t)", "Unsupported operator.");
@@ -1335,17 +1338,17 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) * GetByteData(operand2) > INT8_MAX ||
             GetByteData(operand1) * GetByteData(operand2) < INT8_MIN) {
@@ -1370,9 +1373,9 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) * GetLongData(operand2));
@@ -1386,7 +1389,7 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
                        GetUint64tData(operand1) * GetUint64tData(operand2));
         break;
       case 0x05:
-        if (operand1_data->type == 0x05) {
+        if (operand1_data->type[0] == 0x05) {
           char* new_str = (char*)calloc(
               GetUint64tData(operand2) * strlen(GetStringData(operand1)) + 1,
               sizeof(char));
@@ -1426,17 +1429,17 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) / GetByteData(operand2) > INT8_MAX ||
             GetByteData(operand1) / GetByteData(operand2) < INT8_MIN) {
@@ -1461,11 +1464,11 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("DIV(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) / GetLongData(operand2));
@@ -1496,17 +1499,17 @@ int REM(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) % GetByteData(operand2) > INT8_MAX ||
             GetByteData(operand1) % GetByteData(operand2) < INT8_MIN) {
@@ -1527,11 +1530,11 @@ int REM(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("REM(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) % GetLongData(operand2));
@@ -1555,12 +1558,12 @@ int NEG(size_t result, size_t operand1) {
     EXIT_VM("SUB(size_t,size_t,size_t)", "Out of object_table_size.");
 
   struct Object* operand1_data = object_table + operand1;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
 
-  switch (operand1_data->type) {
+  switch (operand1_data->type[0]) {
     case 0x01:
       SetByteData(result, -GetByteData(operand1));
       break;
@@ -1591,17 +1594,17 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) << GetByteData(operand2) > INT8_MAX ||
             GetByteData(operand1) << GetByteData(operand2) < INT8_MIN) {
@@ -1622,11 +1625,11 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("SHL(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) << GetLongData(operand2));
@@ -1653,17 +1656,17 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) >> GetByteData(operand2) > INT8_MAX ||
             GetByteData(operand1) >> GetByteData(operand2) < INT8_MIN) {
@@ -1684,11 +1687,11 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("SHR(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
@@ -1738,17 +1741,17 @@ int AND(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if ((GetByteData(operand1) & GetByteData(operand2)) > INT8_MAX ||
             (GetByteData(operand1) & GetByteData(operand2)) < INT8_MIN) {
@@ -1769,11 +1772,11 @@ int AND(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("AND(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) & GetLongData(operand2));
@@ -1800,17 +1803,17 @@ int OR(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if ((GetByteData(operand1) | GetByteData(operand2)) > INT8_MAX ||
             (GetByteData(operand1) | GetByteData(operand2)) < INT8_MIN) {
@@ -1831,11 +1834,11 @@ int OR(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("OR(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) | GetLongData(operand2));
@@ -1862,17 +1865,17 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
-  if (operand1_data->type == operand2_data->type) {
-    switch (operand1_data->type) {
+  if (operand1_data->type[0] == operand2_data->type[0]) {
+    switch (operand1_data->type[0]) {
       case 0x01:
         if ((GetByteData(operand1) ^ GetByteData(operand2)) > INT8_MAX ||
             (GetByteData(operand1) ^ GetByteData(operand2)) < INT8_MIN) {
@@ -1893,11 +1896,11 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
         break;
     }
   } else {
-    if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
       EXIT_VM("XOR(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type > operand2_data->type
-                              ? operand1_data->type
-                              : operand2_data->type;
+    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                              ? operand1_data->type[0]
+                              : operand2_data->type[0];
     switch (result_type) {
       case 0x02:
         SetLongData(result, GetLongData(operand1) ^ GetLongData(operand2));
@@ -1924,19 +1927,19 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type == 0x07)
+  while (operand1_data->type[0] == 0x07)
     operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type == 0x07)
+  while (operand2_data->type[0] == 0x07)
     operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type == 0x08)
+  while (operand1_data->type[0] == 0x08)
     operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type == 0x08)
+  while (operand2_data->type[0] == 0x08)
     operand2_data = operand2_data->data.const_data;
 
   switch (opcode) {
     case 0x00:
-      if (operand1_data->type == operand2_data->type) {
-        switch (operand1_data->type) {
+      if (operand1_data->type[0] == operand2_data->type[0]) {
+        switch (operand1_data->type[0]) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) == GetByteData(operand2));
             break;
@@ -1963,11 +1966,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
         }
       } else {
-        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
           EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type > operand2_data->type
-                                  ? operand1_data->type
-                                  : operand2_data->type;
+        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                                  ? operand1_data->type[0]
+                                  : operand2_data->type[0];
         switch (result_type) {
           case 0x02:
             SetByteData(result, GetLongData(operand1) == GetLongData(operand2));
@@ -1987,8 +1990,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x01:
-      if (operand1_data->type == operand2_data->type) {
-        switch (operand1_data->type) {
+      if (operand1_data->type[0] == operand2_data->type[0]) {
+        switch (operand1_data->type[0]) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) != GetByteData(operand2));
             break;
@@ -2015,11 +2018,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
         }
       } else {
-        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
           EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type > operand2_data->type
-                                  ? operand1_data->type
-                                  : operand2_data->type;
+        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                                  ? operand1_data->type[0]
+                                  : operand2_data->type[0];
         switch (result_type) {
           case 0x02:
             SetByteData(result, GetLongData(operand1) != GetLongData(operand2));
@@ -2039,8 +2042,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x02:
-      if (operand1_data->type == operand2_data->type) {
-        switch (operand1_data->type) {
+      if (operand1_data->type[0] == operand2_data->type[0]) {
+        switch (operand1_data->type[0]) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) > GetByteData(operand2));
             break;
@@ -2067,11 +2070,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
         }
       } else {
-        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
           EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type > operand2_data->type
-                                  ? operand1_data->type
-                                  : operand2_data->type;
+        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                                  ? operand1_data->type[0]
+                                  : operand2_data->type[0];
         switch (result_type) {
           case 0x02:
             SetByteData(result, GetLongData(operand1) > GetLongData(operand2));
@@ -2091,8 +2094,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x03:
-      if (operand1_data->type == operand2_data->type) {
-        switch (operand1_data->type) {
+      if (operand1_data->type[0] == operand2_data->type[0]) {
+        switch (operand1_data->type[0]) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) >= GetByteData(operand2));
             break;
@@ -2119,11 +2122,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
         }
       } else {
-        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
           EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type > operand2_data->type
-                                  ? operand1_data->type
-                                  : operand2_data->type;
+        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                                  ? operand1_data->type[0]
+                                  : operand2_data->type[0];
         switch (result_type) {
           case 0x02:
             SetByteData(result, GetLongData(operand1) >= GetLongData(operand2));
@@ -2143,8 +2146,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x04:
-      if (operand1_data->type == operand2_data->type) {
-        switch (operand1_data->type) {
+      if (operand1_data->type[0] == operand2_data->type[0]) {
+        switch (operand1_data->type[0]) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) < GetByteData(operand2));
             break;
@@ -2171,11 +2174,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
         }
       } else {
-        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
           EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type > operand2_data->type
-                                  ? operand1_data->type
-                                  : operand2_data->type;
+        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                                  ? operand1_data->type[0]
+                                  : operand2_data->type[0];
         switch (result_type) {
           case 0x02:
             SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
@@ -2195,8 +2198,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
       }
       break;
     case 0x05:
-      if (operand1_data->type == operand2_data->type) {
-        switch (operand1_data->type) {
+      if (operand1_data->type[0] == operand2_data->type[0]) {
+        switch (operand1_data->type[0]) {
           case 0x01:
             SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
             break;
@@ -2223,11 +2226,11 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
             break;
         }
       } else {
-        if (operand1_data->type == 0x05 || operand2_data->type == 0x05)
+        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
           EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type > operand2_data->type
-                                  ? operand1_data->type
-                                  : operand2_data->type;
+        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                                  ? operand1_data->type[0]
+                                  : operand2_data->type[0];
         switch (result_type) {
           case 0x02:
             SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
@@ -2282,10 +2285,11 @@ int EQUAL(size_t result, size_t value) {
     EXIT_VM("EQUAL(size_t,size_t)", "Out of object_table_size.");
 
   struct Object* value_data = object_table + value;
-  while (value_data->type == 0x07) value_data = value_data->data.reference_data;
-  while (value_data->type == 0x08) value_data = value_data->data.const_data;
+  while (value_data->type[0] == 0x07)
+    value_data = value_data->data.reference_data;
+  while (value_data->type[0] == 0x08) value_data = value_data->data.const_data;
 
-  switch (value_data->type) {
+  switch (value_data->type[0]) {
     case 0x01:
       SetByteData(result, GetByteData(value));
       break;
@@ -2306,7 +2310,7 @@ int EQUAL(size_t result, size_t value) {
       SetPtrData(result, GetPtrData(value));
       break;
     default:
-      // printf("value type: %d\n", value_data->type);
+      // printf("value type: %d\n", value_data->type[0]);
       EXIT_VM("EQUAL(size_t,size_t)", "Unsupported type.");
   }
   return 0;
@@ -2322,7 +2326,7 @@ int LOAD_CONST(size_t object, size_t const_object) {
   if (const_object >= const_object_table_size)
     EXIT_VM("LOAD_CONST(size_t,size_t)", "Out of const_object_table_size.");
 
-  switch (const_object_table[const_object].type) {
+  switch (const_object_table[const_object].type[0]) {
     case 0x01:
       SetByteData(object, const_object_table[const_object].data.byte_data);
       break;
@@ -2356,11 +2360,12 @@ int CONVERT(size_t result, size_t operand1) {
     EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
 
   struct Object* result_data = object_table + result;
-  while (result_data->type == 0x07)
+  while (result_data->type[0] == 0x07)
     result_data = result_data->data.reference_data;
-  while (result_data->type == 0x08) result_data = result_data->data.const_data;
+  while (result_data->type[0] == 0x08)
+    result_data = result_data->data.const_data;
 
-  switch (result_data->type) {
+  switch (result_data->type[0]) {
     case 0x01:
       SetByteData(result, GetByteData(operand1));
       break;
@@ -2411,10 +2416,10 @@ void print(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("print(InternalObject,size_t)", "Invalid args.");
   // printf("%zu", (uint64_t)GetUint64tData(*args.index));
   struct Object* object = object_table + *args.index;
-  while (object->type == 0x07) object = object->data.reference_data;
-  while (object->type == 0x08) object = object->data.const_data;
+  while (object->type[0] == 0x07) object = object->data.reference_data;
+  while (object->type[0] == 0x08) object = object->data.const_data;
 
-  switch (object->type) {
+  switch (object->type[0]) {
     case 0x01:
       SetLongData(return_value, printf("%d", GetByteData(*args.index)));
       break;
@@ -2434,7 +2439,7 @@ void print(InternalObject args, size_t return_value) {
       SetLongData(return_value, printf("%p", GetPtrData(*args.index)));
       break;
     default:
-      // printf("object type: %d\n", object->type);
+      // printf("object type: %d\n", object->type[0]);
       EXIT_VM("print(InternalObject,size_t)", "Unsupported type.");
       break;
   }
@@ -2695,8 +2700,8 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
             EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)",
                     "Invalid args.");
           if (object_table[table->pair.second.args[i]].const_type &&
-              object_table[table->pair.second.args[i]].type !=
-                  object_table[args[i]].type) {
+              object_table[table->pair.second.args[i]].type[0] !=
+                  object_table[args[i]].type[0]) {
             is_same = false;
             break;
           }
@@ -2750,7 +2755,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    // printf("operator: %d\n", run_code[i].operator);
+    printf("operator: %d\n", run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -2888,7 +2893,7 @@ int main(int argc, char* argv[]) {
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
   memory->data = bytecode_file;
   bytecode_file = (void*)((uintptr_t)bytecode_file + object_table_size);
-  memory->type = bytecode_file;
+  memory->type[0] = bytecode_file;
   if (object_table_size % 2 != 0) {
     bytecode_file = (void*)((uintptr_t)bytecode_file + object_table_size / 2 +
   1); } else { bytecode_file = (void*)((uintptr_t)bytecode_file +
@@ -2909,9 +2914,9 @@ int main(int argc, char* argv[]) {
 
   for (size_t i = 0; i < const_object_table_size; i++) {
     // printf("const_object_table type: %i\n", *(uint8_t*)bytecode_file);
-    const_object_table[i].type = *(uint8_t*)bytecode_file;
+    const_object_table[i].type = bytecode_file;
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-    switch (const_object_table[i].type) {
+    switch (const_object_table[i].type[0]) {
       case 0x01:
         const_object_table[i].data.byte_data = *(int8_t*)bytecode_file;
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
@@ -2974,9 +2979,32 @@ int main(int argc, char* argv[]) {
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
   for (size_t i = 0; i < object_table_size; i++) {
-    object_table[i].type = *(uint8_t*)bytecode_file;
+    object_table[i].type = bytecode_file;
     // printf("object_table type: %zu\n", i);
-    if (object_table[i].type != 0x00) object_table[i].const_type = true;
+    bool is_type_end = false;
+    while (!is_type_end) {
+      switch (*(uint8_t*)bytecode_file) {
+        case 0x00:
+        case 0x01:
+        case 0x02:
+        case 0x03:
+        case 0x04:
+        case 0x05:
+          is_type_end = true;
+          break;
+
+        case 0x06:
+        case 0x07:
+        case 0x08:
+          bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+          break;
+
+        default:
+          EXIT_VM("main(int,char**)", "Unsupported type.");
+          break;
+      }
+    }
+    if (object_table[i].type[0] != 0x00) object_table[i].const_type = true;
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
   }
 
