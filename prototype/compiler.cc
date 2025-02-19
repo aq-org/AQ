@@ -1589,7 +1589,7 @@ class Type {
 
   static Type* CreateType(Token* token, std::size_t length, std::size_t& index);
 
-  uint8_t GetVmType();
+  std::vector<uint8_t> GetVmType();
 
   virtual std::size_t GetSize() {
     switch (base_data_) {
@@ -2799,65 +2799,77 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
   return nullptr;
 }
 
-uint8_t Type::GetVmType() {
+std::vector<uint8_t> Type::GetVmType() {
   Type* type = this;
-  while (type->GetType() != Type::TypeType::kBase &&
-         type->GetType() != Type::TypeType::kPointer &&
-         type->GetType() != Type::TypeType::kArray &&
-         type->GetType() != Type::TypeType::kReference) {
-    if (type->GetType() == Type::TypeType::NONE)
-      EXIT_COMPILER("Type::GetVmType()", "Unexpected code.");
-    if (type->GetType() == Type::TypeType::kConst)
+  std::vector<uint8_t> vm_type;
+  if (type->GetType() == Type::TypeType::NONE)
+    EXIT_COMPILER("Type::GetVmType()", "Unexpected code.");
+
+  bool is_end = false;
+  while (!is_end) {
+    if (type->GetType() == Type::TypeType::kBase) {
+      switch (type->GetBaseType()) {
+        case Type::BaseType::kAuto:
+        case Type::BaseType::kVoid:
+          vm_type.push_back(0x00);
+          is_end = true;
+          break;
+        case Type::BaseType::kBool:
+        case Type::BaseType::kChar:
+          vm_type.push_back(0x01);
+          is_end = true;
+          break;
+        case Type::BaseType::kShort:
+        case Type::BaseType::kInt:
+        case Type::BaseType::kLong:
+          vm_type.push_back(0x02);
+          is_end = true;
+          break;
+        case Type::BaseType::kFloat:
+        case Type::BaseType::kDouble:
+          vm_type.push_back(0x03);
+          is_end = true;
+          break;
+
+          // TODO(uint64_t)
+
+        case Type::BaseType::kString:
+          vm_type.push_back(0x05);
+          is_end = true;
+          break;
+        case Type::BaseType::kClass:
+        case Type::BaseType::kStruct:
+        case Type::BaseType::kUnion:
+        case Type::BaseType::kEnum:
+        case Type::BaseType::kPointer:
+        case Type::BaseType::kArray:
+        case Type::BaseType::kFunction:
+        case Type::BaseType::kTypedef:
+          // TODO
+          EXIT_COMPILER("Type::GetVmType()", "Unsupported type.");
+          break;
+        default:
+          EXIT_COMPILER("Type::GetVmType()", "Unexpected code.");
+          break;
+      }
+    } else if (type->GetType() == Type::TypeType::kPointer) {
+      vm_type.push_back(0x06);
+      type = dynamic_cast<PointerType*>(type)->GetSubType();
+    } else if (type->GetType() == Type::TypeType::kReference) {
+      vm_type.push_back(0x07);
+      type = dynamic_cast<ReferenceType*>(type)->GetSubType();
+    } else if (type->GetType() == Type::TypeType::kConst) {
+      vm_type.push_back(0x08);
       type = dynamic_cast<ConstType*>(type)->GetSubType();
-  }
-
-  uint8_t vm_type = 0x00;
-  if (type->GetType() == Type::TypeType::kBase) {
-    switch (type->GetBaseType()) {
-      case Type::BaseType::kAuto:
-      case Type::BaseType::kVoid:
-        vm_type = 0x00;
-        break;
-      case Type::BaseType::kBool:
-      case Type::BaseType::kChar:
-        vm_type = 0x01;
-        break;
-      case Type::BaseType::kShort:
-      case Type::BaseType::kInt:
-      case Type::BaseType::kLong:
-        vm_type = 0x02;
-        break;
-      case Type::BaseType::kFloat:
-      case Type::BaseType::kDouble:
-        vm_type = 0x03;
-        break;
-        // TODO(uint64_t)
-        vm_type = 0x04;
-        break;
-      case Type::BaseType::kString:
-        vm_type = 0x05;
-        break;
-      case Type::BaseType::kClass:
-      case Type::BaseType::kStruct:
-      case Type::BaseType::kUnion:
-      case Type::BaseType::kEnum:
-      case Type::BaseType::kPointer:
-      case Type::BaseType::kArray:
-      case Type::BaseType::kFunction:
-      case Type::BaseType::kTypedef:
-        // TODO
-        vm_type = 0x06;
-        break;
-      default:
-        EXIT_COMPILER("Type::GetVmType()", "Unexpected code.");
-        break;
     }
-  } else if (type->GetType() == Type::TypeType::kPointer) {
-    vm_type = 0x06;
-  } else if (type->GetType() == Type::TypeType::kReference) {
-    vm_type = 0x07;
   }
 
+  /*std::vector<uint8_t> return_type;
+  for (int64_t i = vm_type.size() - 1; i >= 0; i--) {
+    return_type.push_back(vm_type[i]);
+  }
+
+  return return_type;*/
   return vm_type;
 }
 
@@ -4778,19 +4790,26 @@ class BytecodeGenerator {
     std::size_t Add(std::size_t size) {
       // std::cout << "Add" << std::endl;
       TRACE_FUNCTION;
-      std::size_t index = memory_type_.size();
+      std::size_t index = memory_size_;
       for (size_t i = 0; i < size; i++) {
         memory_type_.push_back(0x00);
+        memory_size_++;
       }
 
       return index;
     }
 
-    std::size_t AddWithType(uint8_t type) {
+    std::size_t AddWithType(std::vector<uint8_t> type) {
       // std::cout << "Add" << std::endl;
       TRACE_FUNCTION;
-      std::size_t index = memory_type_.size();
-      memory_type_.push_back(type);
+      std::size_t index = memory_size_;
+      /*std::cout<<"AddWithType: ";
+      for(size_t i = 0;i<type.size();i++){
+        printf("%02x ",type[i]);
+      }
+      std::cout<<std::endl;*/
+      memory_type_.insert(memory_type_.end(), type.begin(), type.end());
+      memory_size_++;
 
       return index;
     }
@@ -4803,9 +4822,10 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x01);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      memory_size_++;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddLong(int64_t value) {
@@ -4825,9 +4845,10 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x02);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      memory_size_++;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddDouble(double value) {
@@ -4844,9 +4865,10 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x03);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      memory_size_++;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddUint64t(uint64_t value) {
@@ -4860,9 +4882,10 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x04);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      memory_size_++;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::size_t AddString(std::string value) {
@@ -4877,12 +4900,13 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x05);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      memory_size_++;
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
-    std::size_t AddPtr(std::uintptr_t ptr) {
+    std::size_t AddPtr(std::uintptr_t ptr, std::vector<uint8_t> type) {
       TRACE_FUNCTION;
       // std::cout << "AddPtr" << std::endl;
       const_table_.push_back(0x06);
@@ -4892,9 +4916,11 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x06);
-      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2,
-                               memory_type_.size() - 1, const_table_size_ - 1));
-      return memory_type_.size() - 1;
+      memory_size_++;
+      memory_type_.insert(memory_type_.end(), type.begin(), type.end());
+      code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                               const_table_size_ - 1));
+      return memory_size_ - 1;
     }
 
     std::vector<Bytecode>& GetCode() {
@@ -4902,12 +4928,12 @@ class BytecodeGenerator {
       return code_;
     }
 
-    uint8_t GetType(size_t index) {
-      if (index >= memory_type_.size())
+    /*uint8_t GetType(size_t index) {
+      if (index >= memory_size_)
         EXIT_COMPILER("BytecodeGenerator::Memory::GetType(size_t)",
                       "index is out of range.");
       return memory_type_[index];
-    }
+    }*/
 
     std::vector<uint8_t>& GetMemoryType() {
       TRACE_FUNCTION;
@@ -4927,7 +4953,7 @@ class BytecodeGenerator {
 
     std::size_t GetMemorySize() {
       TRACE_FUNCTION;
-      return memory_type_.size();
+      return memory_size_;
     }
 
    private:
@@ -4982,6 +5008,7 @@ class BytecodeGenerator {
     std::vector<uint8_t> const_table_;
     std::size_t const_table_size_ = 0;
     std::vector<uint8_t> memory_type_;
+    std::size_t memory_size_ = 0;
   };
 
   void HandleFuncDecl(FuncDeclNode* func_decl);
@@ -5648,6 +5675,10 @@ void BytecodeGenerator::GenerateMnemonicFile() {
   std::cout << "Memory Size: " << memory_size << std::endl;
   std::cout << std::endl << std::endl << std::endl;
 
+  /*for (size_t i = 0; i < global_memory_.GetMemoryType().size(); i++) {
+    printf("%i ", global_memory_.GetMemoryType()[i]);
+  }*/
+
   for (std::size_t i = 0; i < func_list_.size(); i++) {
     std::cout << "Function Name: " << func_list_[i].GetName()
               << ", Size: " << func_list_[i].GetCode().size() << std::endl;
@@ -5945,7 +5976,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::vector<std::size_t> args_index;
 
-  uint8_t vm_type = func_decl->GetReturnType()->GetVmType();
+  std::vector<uint8_t> vm_type = func_decl->GetReturnType()->GetVmType();
 
   std::size_t return_value_index = global_memory_.AddWithType(vm_type);
   var_decl_map.emplace(
@@ -6085,13 +6116,18 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     vm_type = 0x07;
   }*/
 
-  uint8_t vm_type = var_decl->GetVarType()->GetVmType();
+  std::vector<uint8_t> vm_type = var_decl->GetVarType()->GetVmType();
+  std::vector<uint8_t> const_type = vm_type;
+  if(var_decl->GetVarType()->GetType() == Type::TypeType::kConst){
+  //const_type.insert(const_type.begin(), 0x08);
+    vm_type.erase(vm_type.begin());
+}
 
   if (var_decl->GetValue()[0] == nullptr) {
     // std::cout << "None Value" << std::endl;
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
-      std::size_t const_var_index = global_memory_.AddWithType(0x08);
+      std::size_t const_var_index = global_memory_.AddWithType(const_type);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
       var_decl_map.emplace(
@@ -6111,7 +6147,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
-      std::size_t const_var_index = global_memory_.AddWithType(0x08);
+      std::size_t const_var_index = global_memory_.AddWithType(const_type);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
       var_decl_map.emplace(
