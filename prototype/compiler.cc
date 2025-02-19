@@ -2812,25 +2812,30 @@ std::vector<uint8_t> Type::GetVmType() {
         case Type::BaseType::kAuto:
         case Type::BaseType::kVoid:
           vm_type.push_back(0x00);
+          is_end = true;
           break;
         case Type::BaseType::kBool:
         case Type::BaseType::kChar:
           vm_type.push_back(0x01);
+          is_end = true;
           break;
         case Type::BaseType::kShort:
         case Type::BaseType::kInt:
         case Type::BaseType::kLong:
           vm_type.push_back(0x02);
+          is_end = true;
           break;
         case Type::BaseType::kFloat:
         case Type::BaseType::kDouble:
           vm_type.push_back(0x03);
+          is_end = true;
           break;
 
           // TODO(uint64_t)
 
         case Type::BaseType::kString:
           vm_type.push_back(0x05);
+          is_end = true;
           break;
         case Type::BaseType::kClass:
         case Type::BaseType::kStruct:
@@ -2849,20 +2854,23 @@ std::vector<uint8_t> Type::GetVmType() {
       }
     } else if (type->GetType() == Type::TypeType::kPointer) {
       vm_type.push_back(0x06);
+      type = dynamic_cast<PointerType*>(type)->GetSubType();
     } else if (type->GetType() == Type::TypeType::kReference) {
       vm_type.push_back(0x07);
+      type = dynamic_cast<ReferenceType*>(type)->GetSubType();
     } else if (type->GetType() == Type::TypeType::kConst) {
       vm_type.push_back(0x08);
       type = dynamic_cast<ConstType*>(type)->GetSubType();
     }
   }
 
-  std::vector<uint8_t> return_type;
-  for (std::size_t i = vm_type.size() - 1; i >= 0; i--) {
+  /*std::vector<uint8_t> return_type;
+  for (int64_t i = vm_type.size() - 1; i >= 0; i--) {
     return_type.push_back(vm_type[i]);
   }
 
-  return return_type;
+  return return_type;*/
+  return vm_type;
 }
 
 Parser::Parser() = default;
@@ -4795,6 +4803,11 @@ class BytecodeGenerator {
       // std::cout << "Add" << std::endl;
       TRACE_FUNCTION;
       std::size_t index = memory_size_;
+      std::cout<<"AddWithType: ";
+      for(size_t i = 0;i<type.size();i++){
+        printf("%02x ",type[i]);
+      }
+      std::cout<<std::endl;
       memory_type_.insert(memory_type_.end(), type.begin(), type.end());
       memory_size_++;
 
@@ -4804,12 +4817,12 @@ class BytecodeGenerator {
     std::size_t AddByte(int8_t value) {
       // std::cout << "AddByte" << std::endl;
       TRACE_FUNCTION;
-      memory_size_++;
       const_table_.push_back(0x01);
       const_table_.push_back(value);
       const_table_size_++;
 
       memory_type_.push_back(0x01);
+      memory_size_++;
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
                                const_table_size_ - 1));
       return memory_size_ - 1;
@@ -4818,7 +4831,6 @@ class BytecodeGenerator {
     std::size_t AddLong(int64_t value) {
       // std::cout << "AddLong: " << value << std::endl;
       TRACE_FUNCTION;
-      memory_size_++;
       const_table_.push_back(0x02);
       // uint64_t uint64t_value = *reinterpret_cast<uint64_t*>(&value);
       // std::cout << "AddLong: " << value << std::endl;
@@ -4833,6 +4845,7 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x02);
+      memory_size_++;
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
                                const_table_size_ - 1));
       return memory_size_ - 1;
@@ -4841,7 +4854,6 @@ class BytecodeGenerator {
     std::size_t AddDouble(double value) {
       // std::cout << "AddDouble" << std::endl;
       TRACE_FUNCTION;
-      memory_size_++;
       const_table_.push_back(0x03);
       value = is_big_endian_ ? value : SwapDouble(value);
       uint64_t int_value;
@@ -4853,6 +4865,7 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x03);
+      memory_size_++;
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
                                const_table_size_ - 1));
       return memory_size_ - 1;
@@ -4861,7 +4874,6 @@ class BytecodeGenerator {
     std::size_t AddUint64t(uint64_t value) {
       // std::cout << "AddUint64t" << std::endl;
       TRACE_FUNCTION;
-      memory_size_++;
       const_table_.push_back(0x04);
       value = is_big_endian_ ? value : SwapUint64t(value);
       for (int i = 0; i < 8; ++i) {
@@ -4870,6 +4882,7 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x04);
+      memory_size_++;
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
                                const_table_size_ - 1));
       return memory_size_ - 1;
@@ -4878,7 +4891,6 @@ class BytecodeGenerator {
     std::size_t AddString(std::string value) {
       // std::cout << "AddString" << std::endl;
       TRACE_FUNCTION;
-      memory_size_++;
       const_table_.push_back(0x05);
       EncodeUleb128(value.size() + 1, const_table_);
       for (std::size_t i = 0; i < value.size(); i++) {
@@ -4888,6 +4900,7 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x05);
+      memory_size_++;
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
                                const_table_size_ - 1));
       return memory_size_ - 1;
@@ -4895,7 +4908,6 @@ class BytecodeGenerator {
 
     std::size_t AddPtr(std::uintptr_t ptr, std::vector<uint8_t> type) {
       TRACE_FUNCTION;
-      memory_size_++;
       // std::cout << "AddPtr" << std::endl;
       const_table_.push_back(0x06);
       for (int i = 0; i < 8; ++i) {
@@ -4904,6 +4916,7 @@ class BytecodeGenerator {
       const_table_size_++;
 
       memory_type_.push_back(0x06);
+      memory_size_++;
       memory_type_.insert(memory_type_.end(), type.begin(), type.end());
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
                                const_table_size_ - 1));
@@ -4915,12 +4928,12 @@ class BytecodeGenerator {
       return code_;
     }
 
-    uint8_t GetType(size_t index) {
+    /*uint8_t GetType(size_t index) {
       if (index >= memory_size_)
         EXIT_COMPILER("BytecodeGenerator::Memory::GetType(size_t)",
                       "index is out of range.");
       return memory_type_[index];
-    }
+    }*/
 
     std::vector<uint8_t>& GetMemoryType() {
       TRACE_FUNCTION;
@@ -6105,7 +6118,10 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 
   std::vector<uint8_t> vm_type = var_decl->GetVarType()->GetVmType();
   std::vector<uint8_t> const_type = vm_type;
-  const_type.insert(const_type.begin(), 0x08);
+  if(var_decl->GetVarType()->GetType() == Type::TypeType::kConst){
+  //const_type.insert(const_type.begin(), 0x08);
+    vm_type.erase(vm_type.begin());
+}
 
   if (var_decl->GetValue()[0] == nullptr) {
     // std::cout << "None Value" << std::endl;

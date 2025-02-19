@@ -355,10 +355,8 @@ struct Object* GetPtrData(size_t index) {
     EXIT_VM("GetPtrData(size_t)", "Out of memory.");
 
   // printf("GetPtrData: %p\n", *(void**)((uintptr_t)memory->data + index));
-  if (object_table[index].type[0] == 0x05) {
-    return (void*)object_table[index].data.string_data;
-  } else if (object_table[index].type[0] == 0x06) {
-    return (void*)object_table[index].data.ptr_data;
+  if (object_table[index].type[0] == 0x06) {
+    return object_table[index].data.ptr_data;
   } else if (object_table[index].type[0] == 0x07) {
     struct Object reference_data = *object_table[index].data.reference_data;
     while (true) {
@@ -370,6 +368,7 @@ struct Object* GetPtrData(size_t index) {
         case 0x08:
           reference_data = *reference_data.data.const_data;
         default:
+          printf("Type: %d\n", reference_data.type[0]);
           EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
           break;
       }
@@ -385,11 +384,13 @@ struct Object* GetPtrData(size_t index) {
         case 0x08:
           const_data = *const_data.data.const_data;
         default:
+          printf("Type: %d\n", const_data.type[0]);
           EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
           break;
       }
     }
   } else {
+    printf("Type: %d\n", object_table[index].type[0]);
     EXIT_VM("GetPtrData(size_t)", "Unsupported Type.");
   }
   return NULL;
@@ -769,17 +770,86 @@ const char* GetStringData(size_t index) {
 void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
-    EXIT_VM("SetPtrData(size_t,void*)", "Out of memory.");
+    EXIT_VM("SetPtrData(size_t,struct Object*)", "Out of memory.");
   if (object_table[index].type[0] == 0x08)
-    EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const data.");
+    EXIT_VM("SetPtrData(size_t,struct Object*)", "Cannot change const data.");
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
   if (data->const_type && data->type[0] != 0x06)
-    EXIT_VM("SetPtrData(size_t,void*)", "Cannot change const type.");
+    EXIT_VM("SetPtrData(size_t,struct Object*)", "Cannot change const type.");
 
-  data->type[0] = 0x06;
+  if (ptr == NULL) {
+    data->type[0] = 0x06;
+    data->data.ptr_data = ptr;
+    return;
+  }
+
+  while (ptr->type[0] == 0x07) ptr = ptr->data.reference_data;
+
+  if (!data->const_type) {
+    data->type[0] = 0x06;
+    data->data.ptr_data = ptr;
+    return;
+  }
+
+  size_t size = 0;
+  bool is_end = false;
+  while (!is_end) {
+    switch (data->type[size]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+        size++;
+        is_end = true;
+        break;
+
+      case 0x06:
+      case 0x07:
+      case 0x08:
+        size++;
+        break;
+
+      default:
+        EXIT_VM("SetPtrData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
+  struct Object* temp = ptr;
+  for (size_t i = 1; i < size; i++) {
+    if (temp == NULL)
+      EXIT_VM("SetPtrData(size_t,struct Object*)", "Invalid ptr.");
+    if (data->type[i] == 0x00) break;
+    if (temp->type[0] != data->type[i])
+      EXIT_VM("SetPtrData(size_t,struct Object*)", "Invalid type.");
+    switch (temp->type[0]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+        break;
+      case 0x06:
+        temp = temp->data.ptr_data;
+        break;
+      case 0x07:
+        temp = temp->data.reference_data;
+        break;
+      case 0x08:
+        temp = temp->data.const_data;
+        break;
+      default:
+        EXIT_VM("SetPtrData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
   data->data.ptr_data = ptr;
 }
 
@@ -970,16 +1040,86 @@ void SetReferenceData(size_t index, struct Object* object) {
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
             "Cannot change const type.");
 
-  data->type[0] = 0x07;
-  data->data.ptr_data = object;
+  if (object == NULL) {
+    data->type[0] = 0x07;
+    data->data.reference_data = object;
+    return;
+  }
+
+  while (object->type[0] == 0x07) object = object->data.reference_data;
+
+  if (!data->const_type) {
+    data->type[0] = 0x07;
+    data->data.reference_data = object;
+    return;
+  }
+
+  size_t size = 0;
+  bool is_end = false;
+  while (!is_end) {
+    switch (data->type[size]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+        size++;
+        is_end = true;
+        break;
+
+      case 0x06:
+      case 0x07:
+      case 0x08:
+        size++;
+        break;
+
+      default:
+        EXIT_VM("SetReferenceData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
+  struct Object* temp = object;
+  for (size_t i = 1; i < size; i++) {
+    if (temp == NULL)
+      EXIT_VM("SetReferenceData(size_t,struct Object*)", "Invalid ptr.");
+    if (data->type[i] == 0x00) break;
+    if (temp->type[0] != data->type[i])
+      EXIT_VM("SetReferenceData(size_t,struct Object*)", "Invalid type.");
+    switch (temp->type[0]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+        break;
+      case 0x06:
+        temp = temp->data.ptr_data;
+        break;
+      case 0x07:
+        temp = temp->data.reference_data;
+        break;
+      case 0x08:
+        temp = temp->data.const_data;
+        break;
+      default:
+        EXIT_VM("SetReferenceData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
+  data->data.reference_data = object;
 }
 
 void SetConstData(size_t index, struct Object* object) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("SetConstData(size_t,struct Object*)", "Out of memory.");
-  if (object_table[index].type[0] == 0x08)
-    EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const data.");
+  /*if (object_table[index].type[0] == 0x08)
+    EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const
+    data.");*/
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
@@ -987,7 +1127,76 @@ void SetConstData(size_t index, struct Object* object) {
   if (object_table[index].const_type && object_table[index].type[0] != 0x08)
     EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const type.");
 
-  data->type[0] = 0x08;
+  if (object == NULL) {
+    data->type[0] = 0x08;
+    data->data.const_data = object;
+    return;
+  }
+
+  while (object->type[0] == 0x07) object = object->data.reference_data;
+
+  if (!data->const_type) {
+    data->type[0] = 0x08;
+    data->data.const_data = object;
+    return;
+  }
+
+  size_t size = 0;
+  bool is_end = false;
+  while (!is_end) {
+    switch (data->type[size]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+        size++;
+        is_end = true;
+        break;
+
+      case 0x06:
+      case 0x07:
+      case 0x08:
+        size++;
+        break;
+
+      default:
+        EXIT_VM("SetConstData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
+  struct Object* temp = object;
+  for (size_t i = 1; i < size; i++) {
+    if (temp == NULL)
+      EXIT_VM("SetConstData(size_t,struct Object*)", "Invalid ptr.");
+    if (data->type[i] == 0x00) break;
+    if (temp->type[0] != data->type[i])
+      EXIT_VM("SetConstData(size_t,struct Object*)", "Invalid type.");
+    switch (temp->type[0]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+        break;
+      case 0x06:
+        temp = temp->data.ptr_data;
+        break;
+      case 0x07:
+        temp = temp->data.reference_data;
+        break;
+      case 0x08:
+        temp = temp->data.const_data;
+        break;
+      default:
+        EXIT_VM("SetConstData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
   data->data.const_data = object;
 }
 
@@ -2403,7 +2612,7 @@ int CONST(size_t result, size_t operand1) {
   if (operand1 >= object_table_size)
     EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
 
-  SetConstData(result, GetPtrData(operand1));
+  SetConstData(result, object_table + operand1);
   return 0;
 }
 int WIDE() {
@@ -3000,6 +3209,7 @@ int main(int argc, char* argv[]) {
           break;
 
         default:
+          printf("object_table type: %i\n", *(uint8_t*)bytecode_file);
           EXIT_VM("main(int,char**)", "Unsupported type.");
           break;
       }

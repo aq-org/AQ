@@ -13,7 +13,8 @@ auto test_func(auto a,auto b,auto c){
 }
 auto main(){
   print("Hello world!\n");
-  var a = test_func(-64);
+  const int a = 232323/10;
+   //a = "a";
   print(a);
   print(test_func(1,10));
   print(test_func(1,10,"test"));
