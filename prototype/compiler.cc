@@ -4803,11 +4803,11 @@ class BytecodeGenerator {
       // std::cout << "Add" << std::endl;
       TRACE_FUNCTION;
       std::size_t index = memory_size_;
-      std::cout<<"AddWithType: ";
+      /*std::cout<<"AddWithType: ";
       for(size_t i = 0;i<type.size();i++){
         printf("%02x ",type[i]);
       }
-      std::cout<<std::endl;
+      std::cout<<std::endl;*/
       memory_type_.insert(memory_type_.end(), type.begin(), type.end());
       memory_size_++;
 
@@ -5675,9 +5675,9 @@ void BytecodeGenerator::GenerateMnemonicFile() {
   std::cout << "Memory Size: " << memory_size << std::endl;
   std::cout << std::endl << std::endl << std::endl;
 
-  for (size_t i = 0; i < global_memory_.GetMemoryType().size(); i++) {
+  /*for (size_t i = 0; i < global_memory_.GetMemoryType().size(); i++) {
     printf("%i ", global_memory_.GetMemoryType()[i]);
-  }
+  }*/
 
   for (std::size_t i = 0; i < func_list_.size(); i++) {
     std::cout << "Function Name: " << func_list_[i].GetName()

@@ -368,7 +368,7 @@ struct Object* GetPtrData(size_t index) {
         case 0x08:
           reference_data = *reference_data.data.const_data;
         default:
-          printf("Type: %d\n", reference_data.type[0]);
+          // printf("Type: %d\n", reference_data.type[0]);
           EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
           break;
       }
@@ -384,13 +384,13 @@ struct Object* GetPtrData(size_t index) {
         case 0x08:
           const_data = *const_data.data.const_data;
         default:
-          printf("Type: %d\n", const_data.type[0]);
+          // printf("Type: %d\n", const_data.type[0]);
           EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
           break;
       }
     }
   } else {
-    printf("Type: %d\n", object_table[index].type[0]);
+    // printf("Type: %d\n", object_table[index].type[0]);
     EXIT_VM("GetPtrData(size_t)", "Unsupported Type.");
   }
   return NULL;
@@ -922,7 +922,7 @@ void SetLongData(size_t index, int64_t value) {
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
   if (data->const_type && data->type[0] != 0x02) {
-    printf("%zu,%i,%zu", index, data->type[0], value);
+    // printf("%zu,%i,%zu", index, data->type[0], value);
     EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
   }
   data->type[0] = 0x02;
@@ -1017,7 +1017,7 @@ void SetStringData(size_t index, const char* string) {
   }
 
   if (data->const_type && data->type[0] != 0x05) {
-    printf("%zu,%i,%s", index, data->type[0], string);
+    // printf("%zu,%i,%s", index, data->type[0], string);
     EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
   }
 
@@ -2964,7 +2964,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
-    printf("operator: %d\n", run_code[i].operator);
+    // printf("operator: %d\n", run_code[i].operator);
     switch (run_code[i].operator) {
       case 0x00:
         NOP();
@@ -3209,7 +3209,7 @@ int main(int argc, char* argv[]) {
           break;
 
         default:
-          printf("object_table type: %i\n", *(uint8_t*)bytecode_file);
+          // printf("object_table type: %i\n", *(uint8_t*)bytecode_file);
           EXIT_VM("main(int,char**)", "Unsupported type.");
           break;
       }
