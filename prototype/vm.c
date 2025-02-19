@@ -1034,7 +1034,7 @@ void SetReferenceData(size_t index, struct Object* object) {
             "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type[0] == 0x07) data = data->data.reference_data;
+  // while (data->type[0] == 0x07) data = data->data.reference_data;
 
   if (object_table[index].const_type && object_table[index].type[0] != 0x07)
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
@@ -2612,7 +2612,7 @@ int CONST(size_t result, size_t operand1) {
   if (operand1 >= object_table_size)
     EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
 
-  SetConstData(result, object_table + operand1);
+  SetConstData(result, GetPtrData(operand1));
   return 0;
 }
 int WIDE() {

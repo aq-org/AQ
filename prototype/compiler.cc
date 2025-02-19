@@ -6117,25 +6117,37 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
   }*/
 
   std::vector<uint8_t> vm_type = var_decl->GetVarType()->GetVmType();
-  std::vector<uint8_t> const_type = vm_type;
-  if(var_decl->GetVarType()->GetType() == Type::TypeType::kConst){
-  //const_type.insert(const_type.begin(), 0x08);
+  std::vector<uint8_t> return_type = vm_type;
+  if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
+    // return_type.insert(return_type.begin(), 0x08);
     vm_type.erase(vm_type.begin());
-}
+  }
 
   if (var_decl->GetValue()[0] == nullptr) {
     // std::cout << "None Value" << std::endl;
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
-      std::size_t const_var_index = global_memory_.AddWithType(const_type);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
-      var_decl_map.emplace(
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
+          ")",
+          "Const doesn't have value.");
+      /*std::size_t const_var_index = global_memory_.AddWithType(return_type);
+      std::vector<uint8_t> value_ptr = vm_type;
+      value_ptr.insert(value_ptr.begin(), 0x06);
+      std::size_t value_ptr_index = global_memory_.AddWithType(value_ptr);
+      code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2, var_index,
+      value_ptr_index)); code.push_back( Bytecode(_AQVM_OPERATOR_CONST, 2,
+      const_var_index, value_ptr_index)); var_decl_map.emplace(
           current_scope_.back() + "#" +
               static_cast<std::string>(*var_decl->GetName()),
           std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
-      return const_var_index;
+      return const_var_index;*/
     }
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
+          ")",
+          "Reference doesn't have value.");
     var_decl_map.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),
@@ -6145,11 +6157,31 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     // std::cout << "Has Value" << std::endl;
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference) {
+      std::vector<uint8_t> value_ptr = vm_type;
+      value_ptr.erase(value_ptr.begin());
+      value_ptr.insert(value_ptr.begin(), 0x06);
+      std::size_t value_ptr_index = global_memory_.AddWithType(value_ptr);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_PTR, 2, value_index, value_ptr_index));
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index, value_ptr_index));
+      var_decl_map.emplace(
+          current_scope_.back() + "#" +
+              static_cast<std::string>(*var_decl->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
+      return var_index;
+    }
     code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
-      std::size_t const_var_index = global_memory_.AddWithType(const_type);
+      std::size_t const_var_index = global_memory_.AddWithType(return_type);
+      std::vector<uint8_t> value_ptr = vm_type;
+      value_ptr.insert(value_ptr.begin(), 0x06);
+      std::size_t value_ptr_index = global_memory_.AddWithType(value_ptr);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
+          Bytecode(_AQVM_OPERATOR_PTR, 2, var_index, value_ptr_index));
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, value_ptr_index));
       var_decl_map.emplace(
           current_scope_.back() + "#" +
               static_cast<std::string>(*var_decl->GetName()),
