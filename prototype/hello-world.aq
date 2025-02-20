@@ -16,7 +16,7 @@ auto main(){
   const int a = 0;
   const int& ref = a; 
   //a = "a";
-  print(a);
+  print(ref);
   print(test_func(1,10));
   print(test_func(1,10,"test"));
   return 0;

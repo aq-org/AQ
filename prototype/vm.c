@@ -365,8 +365,10 @@ struct Object* GetPtrData(size_t index) {
           return object_table[index].data.ptr_data;
         case 0x07:
           reference_data = *reference_data.data.reference_data;
+          break;
         case 0x08:
           reference_data = *reference_data.data.const_data;
+          break;
         default:
           // printf("Type: %d\n", reference_data.type[0]);
           EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
@@ -381,8 +383,10 @@ struct Object* GetPtrData(size_t index) {
           return object_table[index].data.ptr_data;
         case 0x07:
           const_data = *const_data.data.reference_data;
+          break;
         case 0x08:
           const_data = *const_data.data.const_data;
+          break;
         default:
           // printf("Type: %d\n", const_data.type[0]);
           EXIT_VM("GetPtrData(size_t)", "Unsupported type.");
@@ -423,8 +427,10 @@ int8_t GetByteData(size_t index) {
             return reference_data.data.uint64t_data;
           case 0x07:
             reference_data = *reference_data.data.reference_data;
+            break;
           case 0x08:
             reference_data = *reference_data.data.const_data;
+            break;
           default:
             EXIT_VM("GetByteData(size_t)", "Unsupported type.");
             break;
@@ -445,8 +451,10 @@ int8_t GetByteData(size_t index) {
             return const_data.data.uint64t_data;
           case 0x07:
             const_data = *const_data.data.reference_data;
+            break;
           case 0x08:
             const_data = *const_data.data.const_data;
+            break;
           default:
             EXIT_VM("GetByteData(size_t)", "Unsupported type.");
             break;
@@ -514,9 +522,12 @@ int64_t GetLongData(size_t index) {
             return reference_data.data.uint64t_data;
           case 0x07:
             reference_data = *reference_data.data.reference_data;
+            break;
           case 0x08:
             reference_data = *reference_data.data.const_data;
+            break;
           default:
+            printf("type: %i", reference_data.type[0]);
             EXIT_VM("GetLongData(size_t)", "Unsupported type.");
             break;
         }
@@ -536,8 +547,10 @@ int64_t GetLongData(size_t index) {
             return const_data.data.uint64t_data;
           case 0x07:
             const_data = *const_data.data.reference_data;
+            break;
           case 0x08:
             const_data = *const_data.data.const_data;
+            break;
           default:
             EXIT_VM("GetLongData(size_t)", "Unsupported type.");
             break;
@@ -580,7 +593,7 @@ int64_t GetLongData(size_t index) {
 double GetDoubleData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
-    EXIT_VM("GetLongData(size_t)", "Out of memory.");
+    EXIT_VM("GetDoubleData(size_t)", "Out of memory.");
   switch (object_table[index].type[0]) {
     case 0x01:
       return object_table[index].data.byte_data;
@@ -609,7 +622,7 @@ double GetDoubleData(size_t index) {
             reference_data = *reference_data.data.const_data;
             break;
           default:
-            EXIT_VM("GetLongData(size_t)", "Unsupported type.");
+            EXIT_VM("GetDoubleData(size_t)", "Unsupported type.");
             break;
         }
       }
@@ -633,13 +646,13 @@ double GetDoubleData(size_t index) {
             const_data = *const_data.data.const_data;
             break;
           default:
-            EXIT_VM("GetLongData(size_t)", "Unsupported type.");
+            EXIT_VM("GetDoubleData(size_t)", "Unsupported type.");
             break;
         }
       }
     }
     default:
-      EXIT_VM("GetLongData(size_t)", "Invalid type.");
+      EXIT_VM("GetDoubleData(size_t)", "Invalid type.");
       break;
   }
   return -1;
@@ -648,7 +661,7 @@ double GetDoubleData(size_t index) {
 uint64_t GetUint64tData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
-    EXIT_VM("GetLongData(size_t)", "Out of memory.");
+    EXIT_VM("GetUint64tData(size_t)", "Out of memory.");
   switch (object_table[index].type[0]) {
     case 0x01:
       return object_table[index].data.byte_data;
@@ -677,7 +690,7 @@ uint64_t GetUint64tData(size_t index) {
             reference_data = *reference_data.data.const_data;
             break;
           default:
-            EXIT_VM("GetLongData(size_t)", "Unsupported type.");
+            EXIT_VM("GetUint64tData(size_t)", "Unsupported type.");
             break;
         }
       }
@@ -701,13 +714,13 @@ uint64_t GetUint64tData(size_t index) {
             const_data = *const_data.data.const_data;
             break;
           default:
-            EXIT_VM("GetLongData(size_t)", "Unsupported type.");
+            EXIT_VM("GetUint64tData(size_t)", "Unsupported type.");
             break;
         }
       }
     }
     default:
-      EXIT_VM("GetLongData(size_t)", "Invalid type.");
+      EXIT_VM("GetUint64tData(size_t)", "Invalid type.");
       break;
   }
   return 0;
@@ -765,6 +778,36 @@ const char* GetStringData(size_t index) {
       break;
   }
   return NULL;
+}
+
+struct Object* GetOriginData(struct Object* object) {
+  TRACE_FUNCTION;
+  while (true) {
+    if (object == NULL)
+      EXIT_VM("GetOriginData(struct Object*)", "object is NULL.");
+    switch (object->type[0]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+      case 0x06:
+        return object;
+
+      case 0x07:
+        object = object->data.reference_data;
+        break;
+
+      case 0x08:
+        object = object->data.const_data;
+        break;
+
+      default:
+        EXIT_VM("GetOriginData(struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
 }
 
 void SetPtrData(size_t index, struct Object* ptr) {
@@ -1381,14 +1424,8 @@ int ADD(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -1470,14 +1507,8 @@ int SUB(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -1547,14 +1578,8 @@ int MUL(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -1638,14 +1663,8 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -1708,14 +1727,8 @@ int REM(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -1767,10 +1780,7 @@ int NEG(size_t result, size_t operand1) {
     EXIT_VM("SUB(size_t,size_t,size_t)", "Out of object_table_size.");
 
   struct Object* operand1_data = object_table + operand1;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
 
   switch (operand1_data->type[0]) {
     case 0x01:
@@ -1803,14 +1813,8 @@ int SHL(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -1865,14 +1869,8 @@ int SHR(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -1950,14 +1948,8 @@ int AND(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -2012,14 +2004,8 @@ int OR(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -2074,14 +2060,8 @@ int XOR(size_t result, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
@@ -2136,14 +2116,8 @@ int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
 
   struct Object* operand1_data = object_table + operand1;
   struct Object* operand2_data = object_table + operand2;
-  while (operand1_data->type[0] == 0x07)
-    operand1_data = operand1_data->data.reference_data;
-  while (operand2_data->type[0] == 0x07)
-    operand2_data = operand2_data->data.reference_data;
-  while (operand1_data->type[0] == 0x08)
-    operand1_data = operand1_data->data.const_data;
-  while (operand2_data->type[0] == 0x08)
-    operand2_data = operand2_data->data.const_data;
+  operand1_data = GetOriginData(operand1_data);
+  operand2_data = GetOriginData(operand2_data);
 
   switch (opcode) {
     case 0x00:
@@ -2494,9 +2468,7 @@ int EQUAL(size_t result, size_t value) {
     EXIT_VM("EQUAL(size_t,size_t)", "Out of object_table_size.");
 
   struct Object* value_data = object_table + value;
-  while (value_data->type[0] == 0x07)
-    value_data = value_data->data.reference_data;
-  while (value_data->type[0] == 0x08) value_data = value_data->data.const_data;
+  value_data = GetOriginData(value_data);
 
   switch (value_data->type[0]) {
     case 0x01:
@@ -2569,10 +2541,7 @@ int CONVERT(size_t result, size_t operand1) {
     EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
 
   struct Object* result_data = object_table + result;
-  while (result_data->type[0] == 0x07)
-    result_data = result_data->data.reference_data;
-  while (result_data->type[0] == 0x08)
-    result_data = result_data->data.const_data;
+  result_data = GetOriginData(result_data);
 
   switch (result_data->type[0]) {
     case 0x01:
@@ -2625,14 +2594,14 @@ void print(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("print(InternalObject,size_t)", "Invalid args.");
   // printf("%zu", (uint64_t)GetUint64tData(*args.index));
   struct Object* object = object_table + *args.index;
-  while (object->type[0] == 0x07) object = object->data.reference_data;
-  while (object->type[0] == 0x08) object = object->data.const_data;
+  object = GetOriginData(object);
 
   switch (object->type[0]) {
     case 0x01:
       SetLongData(return_value, printf("%d", GetByteData(*args.index)));
       break;
     case 0x02:
+      // printf("print long");
       SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
       break;
     case 0x03:
