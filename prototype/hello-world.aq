@@ -13,9 +13,10 @@ auto test_func(auto a,auto b,auto c){
 }
 auto main(){
   print("Hello world!\n");
-  const int a = 232323/10;
-   //a = "a";
-  print(a);
+  const int a = 0;
+  const int& ref = a; 
+  //a = "a";
+  print(ref);
   print(test_func(1,10));
   print(test_func(1,10,"test"));
   return 0;
