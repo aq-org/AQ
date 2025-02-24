@@ -304,7 +304,7 @@ class LexMap {
     }
 
     // Copy data.
-    for (int i = 0; i < capacity_; i++) {
+    for (std::size_t i = 0; i < capacity_; i++) {
       temp[i].CopyDataToNewList(pair_list_, new_capacity);
     }
 
@@ -1646,6 +1646,7 @@ class StmtNode {
     kVarDecl,
     kIf,
     kWhile,
+    kLabel,
     kGoto,
     kValue,
     kIdentifier,
@@ -2252,6 +2253,21 @@ class WhileNode : public StmtNode {
  private:
   ExprNode* condition_;
   StmtNode* body_;
+};
+
+class LabelNode : public StmtNode {
+ public:
+  LabelNode() { type_ = StmtType::kLabel; }
+  void SetLabelNode(IdentifierNode label) { label_ = label; }
+  virtual ~LabelNode() = default;
+
+  IdentifierNode GetLabel() { return label_; }
+
+  LabelNode(const LabelNode&) = default;
+  LabelNode& operator=(const LabelNode&) = default;
+
+ private:
+  IdentifierNode label_;
 };
 
 class GotoNode : public StmtNode {
@@ -2904,8 +2920,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
         index++;
       }
     } else {
-      stmts.push_back(
-        ParseStmt(token_ptr, length, index));
+      stmts.push_back(ParseStmt(token_ptr, length, index));
       // EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "Unexpected code.");
     }
   }
@@ -3158,6 +3173,16 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
       }
 
     default:
+      /*if (token[index].type == Token::Type::IDENTIFIER &&
+          token[index + 1].type == Token::Type::OPERATOR &&
+          token[index + 1].value._operator == Token::OperatorType::colon) {
+        LabelNode* result = new LabelNode();
+        IdentifierNode identifier_node;
+        identifier_node.SetIdentifierNode(token[index]);
+        result->SetLabelNode(identifier_node);
+        index += 2;
+        return result;
+      }*/
       StmtNode* stmt_node = ParseExpr(token, length, index);
       if (token[index].type == Token::Type::OPERATOR ||
           token[index].value._operator == Token::OperatorType::semi)
@@ -5026,6 +5051,8 @@ class BytecodeGenerator {
   std::size_t HandleUnaryExpr(UnaryNode* expr, std::vector<Bytecode>& code);
   std::size_t HandleBinaryExpr(BinaryNode* expr, std::vector<Bytecode>& code);
   std::size_t HandleFuncInvoke(FuncNode* func, std::vector<Bytecode>& code);
+  void HandleLabel(LabelNode* label, std::vector<Bytecode>& code);
+  void HandleGoto(GotoNode* label, std::vector<Bytecode>& code);
   std::size_t GetIndex(ExprNode* expr, std::vector<Bytecode>& code);
   std::size_t AddConstInt8t(int8_t value);
   // [[deprecated]] uint8_t GetExprVmType(ExprNode* expr);
@@ -5056,6 +5083,7 @@ class BytecodeGenerator {
   std::vector<uint8_t> code_;
   // std::size_t dereference_ptr_index_;
   std::vector<std::string> current_scope_;
+  std::unordered_map<std::string, std::size_t> label_map_;
   std::vector<std::size_t> exit_index_;
   std::size_t undefined_count_ = 0;
 };
@@ -5100,7 +5128,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
         break;
 
       default:
-        HandleStmt(stmt->GetStmts()[i],global_code_);
+        HandleStmt(stmt->GetStmts()[i], global_code_);
         /*EXIT_COMPILER(
             "BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)",
             "Unexpected code.");*/
@@ -5988,8 +6016,8 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::size_t return_value_reference_index = global_memory_.Add(1);
   var_decl_map_.emplace(scope_name + "#!return_reference",
-                       std::pair<VarDeclNode*, std::size_t>(
-                           nullptr, return_value_reference_index));
+                        std::pair<VarDeclNode*, std::size_t>(
+                            nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
@@ -6011,9 +6039,9 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
       VarDeclNode* var_decl =
           dynamic_cast<VarDeclNode*>(func_decl->GetStat()->GetArgs()[i]);
       var_decl_map_.emplace(current_scope_.back() + "#" +
-                               static_cast<std::string>(*var_decl->GetName()),
-                           std::pair<VarDeclNode*, std::size_t>(
-                               var_decl, global_memory_.AddWithType(vm_type)));
+                                static_cast<std::string>(*var_decl->GetName()),
+                            std::pair<VarDeclNode*, std::size_t>(
+                                var_decl, global_memory_.AddWithType(vm_type)));
     } else if (func_decl->GetStat()->GetArgs()[i]->GetType() ==
                StmtNode::StmtType::kArrayDecl) {
       ArrayDeclNode* array_decl =
@@ -6798,6 +6826,12 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       HandleReturn(dynamic_cast<ReturnNode*>(stmt), code);
       break;
 
+    case StmtNode::StmtType::kLabel:
+      HandleLabel(dynamic_cast<LabelNode*>(stmt), global_code_);
+
+    case StmtNode::StmtType::kGoto:
+      HandleGoto(dynamic_cast<GotoNode*>(stmt), global_code_);
+
     default:
       EXIT_COMPILER(
           "BytecodeGenerator::HandleStmt(StmtNode*,std::vector<Bytecode>&)",
@@ -6824,7 +6858,7 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
     auto return_iterator = var_decl_map_.find("#!return");
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
       return_iterator = var_decl_map_.find(current_scope_[i] + "#" +
-                                          static_cast<std::string>("!return"));
+                                           static_cast<std::string>("!return"));
       if (return_iterator != var_decl_map_.end()) {
         is_find = true;
         break;
@@ -6840,7 +6874,7 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
       return_reference_iterator =
           var_decl_map_.find(current_scope_[i] + "#" +
-                            static_cast<std::string>("!return_reference"));
+                             static_cast<std::string>("!return_reference"));
       if (return_reference_iterator != var_decl_map_.end()) {
         is_find = true;
         break;
@@ -7168,6 +7202,48 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, vm_args));
 
   return return_value_index;
+}
+
+void BytecodeGenerator::HandleLabel(LabelNode* label,
+                                    std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
+  if (label == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleLabel(LabelNode*,std::vector<Bytecode>&)",
+        "label is nullptr.");
+
+  std::string label_name =
+      current_scope_.back() + "$" + std::string(label->GetLabel());
+
+  if (label_map_.find(label_name) != label_map_.end())
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleLabel(LabelNode*,std::vector<Bytecode>&)",
+        "Has found same name label.");
+  label_map_.emplace(label_name, code.size());
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+}
+
+void BytecodeGenerator::HandleGoto(GotoNode* label,
+                                   std::vector<Bytecode>& code) {
+  TRACE_FUNCTION;
+  if (label == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleGoto(GotoNode*,std::vector<Bytecode>&)",
+        "label is nullptr.");
+
+  std::string label_name = std::string(label->GetLabel());
+
+  for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+    auto iterator = label_map_.find(current_scope_[i] + "$" + label_name);
+    if (iterator != label_map_.end()) {
+      code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, iterator->second));
+      return;
+    }
+    if (i == 0)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleGoto(GotoNode*,std::vector<Bytecode>&)",
+          "Function not found.");
+  }
 }
 
 std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
