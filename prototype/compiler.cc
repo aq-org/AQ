@@ -5045,9 +5045,10 @@ class BytecodeGenerator {
   bool IsDereferenced(ExprNode* expr);
 
   bool is_big_endian_ = false;
-  std::unordered_map<std::string, std::vector<FuncDeclNode>> func_decl_map;
+  std::unordered_map<std::string, std::vector<FuncDeclNode>> func_decl_map_;
   std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
-      var_decl_map;
+      var_decl_map_;
+  std::unordered_map<std::string, std::size_t> label_map_;
   std::vector<Function> func_list_;
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
@@ -5961,12 +5962,12 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   current_scope_.push_back(scope_name);
   // std::cout << "func_name: " << func_name << std::endl;
-  if (func_decl_map.find(func_name) == func_decl_map.end()) {
+  if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
     std::vector<FuncDeclNode> func_decl_vector;
     func_decl_vector.push_back(*func_decl);
-    func_decl_map.emplace(func_name, func_decl_vector);
+    func_decl_map_.emplace(func_name, func_decl_vector);
   } else {
-    func_decl_map[func_name].push_back(*func_decl);
+    func_decl_map_[func_name].push_back(*func_decl);
   }
 
   if (func_decl->GetStmts() == nullptr) {
@@ -5979,14 +5980,14 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   std::vector<uint8_t> vm_type = func_decl->GetReturnType()->GetVmType();
 
   std::size_t return_value_index = global_memory_.AddWithType(vm_type);
-  var_decl_map.emplace(
+  var_decl_map_.emplace(
       scope_name + "#!return",
       std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
   std::size_t return_value_reference_index = global_memory_.Add(1);
-  var_decl_map.emplace(scope_name + "#!return_reference",
-                       std::pair<VarDeclNode*, std::size_t>(
-                           nullptr, return_value_reference_index));
+  var_decl_map_.emplace(scope_name + "#!return_reference",
+                        std::pair<VarDeclNode*, std::size_t>(
+                            nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
@@ -6007,15 +6008,15 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
         StmtNode::StmtType::kVarDecl) {
       VarDeclNode* var_decl =
           dynamic_cast<VarDeclNode*>(func_decl->GetStat()->GetArgs()[i]);
-      var_decl_map.emplace(current_scope_.back() + "#" +
-                               static_cast<std::string>(*var_decl->GetName()),
-                           std::pair<VarDeclNode*, std::size_t>(
-                               var_decl, global_memory_.AddWithType(vm_type)));
+      var_decl_map_.emplace(current_scope_.back() + "#" +
+                                static_cast<std::string>(*var_decl->GetName()),
+                            std::pair<VarDeclNode*, std::size_t>(
+                                var_decl, global_memory_.AddWithType(vm_type)));
     } else if (func_decl->GetStat()->GetArgs()[i]->GetType() ==
                StmtNode::StmtType::kArrayDecl) {
       ArrayDeclNode* array_decl =
           dynamic_cast<ArrayDeclNode*>(func_decl->GetStat()->GetArgs()[i]);
-      var_decl_map.emplace(
+      var_decl_map_.emplace(
           current_scope_.back() + "#" +
               static_cast<std::string>(*array_decl->GetName()),
           std::pair<VarDeclNode*, std::size_t>(
@@ -6137,7 +6138,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       std::size_t value_ptr_index = global_memory_.AddWithType(value_ptr);
       code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2, var_index,
       value_ptr_index)); code.push_back( Bytecode(_AQVM_OPERATOR_CONST, 2,
-      const_var_index, value_ptr_index)); var_decl_map.emplace(
+      const_var_index, value_ptr_index)); var_decl_map_.emplace(
           current_scope_.back() + "#" +
               static_cast<std::string>(*var_decl->GetName()),
           std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
@@ -6148,7 +6149,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
           "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
           ")",
           "Reference doesn't have value.");
-    var_decl_map.emplace(
+    var_decl_map_.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),
         std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
@@ -6166,7 +6167,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
           Bytecode(_AQVM_OPERATOR_PTR, 2, value_index, value_ptr_index));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_REFER, 2, var_index, value_ptr_index));
-      var_decl_map.emplace(
+      var_decl_map_.emplace(
           current_scope_.back() + "#" +
               static_cast<std::string>(*var_decl->GetName()),
           std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
@@ -6182,13 +6183,13 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
           Bytecode(_AQVM_OPERATOR_PTR, 2, var_index, value_ptr_index));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, value_ptr_index));
-      var_decl_map.emplace(
+      var_decl_map_.emplace(
           current_scope_.back() + "#" +
               static_cast<std::string>(*var_decl->GetName()),
           std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
       return const_var_index;
     }
-    var_decl_map.emplace(
+    var_decl_map_.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),
         std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
@@ -6307,7 +6308,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     code.push_back(
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));
 
-    var_decl_map.emplace(
+    var_decl_map_.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*array_decl->GetName()),
         std::pair<VarDeclNode*, std::size_t>(
@@ -6366,7 +6367,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
                               value_index));
     }
 
-    var_decl_map.emplace(
+    var_decl_map_.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*array_decl->GetName()),
         std::pair<VarDeclNode*, std::size_t>(
@@ -6818,11 +6819,11 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
     std::size_t return_value = HandleExpr(stmt->GetExpr(), code);
 
     bool is_find = false;
-    auto return_iterator = var_decl_map.find("#!return");
+    auto return_iterator = var_decl_map_.find("#!return");
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-      return_iterator = var_decl_map.find(current_scope_[i] + "#" +
-                                          static_cast<std::string>("!return"));
-      if (return_iterator != var_decl_map.end()) {
+      return_iterator = var_decl_map_.find(current_scope_[i] + "#" +
+                                           static_cast<std::string>("!return"));
+      if (return_iterator != var_decl_map_.end()) {
         is_find = true;
         break;
       }
@@ -6833,12 +6834,12 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
           "Not found identifier define.");
 
     is_find = false;
-    auto return_reference_iterator = var_decl_map.find("#!return_reference");
+    auto return_reference_iterator = var_decl_map_.find("#!return_reference");
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
       return_reference_iterator =
-          var_decl_map.find(current_scope_[i] + "#" +
-                            static_cast<std::string>("!return_reference"));
-      if (return_reference_iterator != var_decl_map.end()) {
+          var_decl_map_.find(current_scope_[i] + "#" +
+                             static_cast<std::string>("!return_reference"));
+      if (return_reference_iterator != var_decl_map_.end()) {
         is_find = true;
         break;
       }
@@ -7063,8 +7064,8 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
     /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
               << std::endl;*/
-    auto iterator = func_decl_map.find(current_scope_[i] + "::" + func_name);
-    if (iterator != func_decl_map.end()) {
+    auto iterator = func_decl_map_.find(current_scope_[i] + "::" + func_name);
+    if (iterator != func_decl_map_.end()) {
       // func_decl = iterator->second;
       func_name = current_scope_[i] + "::" + func_name;
       break;
@@ -7178,10 +7179,10 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
   switch (expr->GetType()) {
     case StmtNode::StmtType::kIdentifier: {
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-        auto iterator = var_decl_map.find(
+        auto iterator = var_decl_map_.find(
             current_scope_[i] + "#" +
             static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-        if (iterator != var_decl_map.end()) {
+        if (iterator != var_decl_map_.end()) {
           /*std::cout << "Identifier: "
                     << (std::string) * dynamic_cast<IdentifierNode*>(expr)
                     << std::endl;*/
@@ -7363,8 +7364,8 @@ std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
   if (expr->GetType() == StmtNode::StmtType::kFunc) {
     // std::cout << "Func" << std::endl;
     auto iterator =
-        func_decl_map.find(*dynamic_cast<FuncNode*>(expr)->GetName());
-    if (iterator == func_decl_map.end())
+        func_decl_map_.find(*dynamic_cast<FuncNode*>(expr)->GetName());
+    if (iterator == func_decl_map_.end())
       EXIT_COMPILER("BytecodeGenerator::GetExprVmType(ExprNode*)",
                     "Not found function define.");
     Type* return_type = iterator->second.GetReturnType();
@@ -7422,12 +7423,12 @@ std::size_t BytecodeGenerator::AddConstInt8t(int8_t value) {
 
   if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
     bool is_find = false;
-    auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+    auto iterator = var_decl_map_.find(*dynamic_cast<IdentifierNode*>(expr));
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-      iterator = var_decl_map.find(
+      iterator = var_decl_map_.find(
           current_scope_[i] + "#" +
           static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-      if (iterator != var_decl_map.end()) {
+      if (iterator != var_decl_map_.end()) {
         is_find = true;
         break;
       }
@@ -7667,8 +7668,8 @@ expr) { TRACE_FUNCTION; if (expr->GetType() == StmtNode::StmtType::kUnary) { if
   }
   if (expr->GetType() == StmtNode::StmtType::kFunc) {
     auto iterator =
-        func_decl_map.find(*dynamic_cast<FuncNode*>(expr)->GetName());
-    if (iterator == func_decl_map.end())
+        func_decl_map_.find(*dynamic_cast<FuncNode*>(expr)->GetName());
+    if (iterator == func_decl_map_.end())
       EXIT_COMPILER("BytecodeGenerator::GetExprPtrValueVmType(ExprNode*)",
                     "Not found func.");
     Type* return_type = iterator->second.GetReturnType();
@@ -7849,12 +7850,12 @@ expr) { TRACE_FUNCTION; if (expr->GetType() == StmtNode::StmtType::kUnary) { if
     }
     if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
       bool is_find = false;
-      auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+      auto iterator = var_decl_map_.find(*dynamic_cast<IdentifierNode*>(expr));
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-        iterator = var_decl_map.find(
+        iterator = var_decl_map_.find(
             current_scope_[i] + "#" +
             static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-        if (iterator != var_decl_map.end()) {
+        if (iterator != var_decl_map_.end()) {
           is_find = true;
           break;
         }
@@ -7899,12 +7900,12 @@ expr) { TRACE_FUNCTION; if (expr->GetType() == StmtNode::StmtType::kUnary) { if
         case Type::TypeType::kArray: {
           bool is_find = false;
           auto iterator =
-              var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+              var_decl_map_.find(*dynamic_cast<IdentifierNode*>(expr));
           for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-            iterator = var_decl_map.find(
+            iterator = var_decl_map_.find(
                 current_scope_[i] + "#" +
                 static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-            if (iterator != var_decl_map.end()) {
+            if (iterator != var_decl_map_.end()) {
               is_find = true;
               break;
             }
@@ -7962,12 +7963,12 @@ expr) { TRACE_FUNCTION; if (expr->GetType() == StmtNode::StmtType::kUnary) { if
         case Type::TypeType::kPointer: {
           bool is_find = false;
           auto iterator =
-              var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+              var_decl_map_.find(*dynamic_cast<IdentifierNode*>(expr));
           for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-            iterator = var_decl_map.find(
+            iterator = var_decl_map_.find(
                 current_scope_[i] + "#" +
                 static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-            if (iterator != var_decl_map.end()) {
+            if (iterator != var_decl_map_.end()) {
               is_find = true;
               break;
             }
@@ -8025,12 +8026,12 @@ expr) { TRACE_FUNCTION; if (expr->GetType() == StmtNode::StmtType::kUnary) { if
         case Type::TypeType::kReference: {
           bool is_find = false;
           auto iterator =
-              var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+              var_decl_map_.find(*dynamic_cast<IdentifierNode*>(expr));
           for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-            iterator = var_decl_map.find(
+            iterator = var_decl_map_.find(
                 current_scope_[i] + "#" +
                 static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-            if (iterator != var_decl_map.end()) {
+            if (iterator != var_decl_map_.end()) {
               is_find = true;
               break;
             }
@@ -8600,12 +8601,12 @@ std::size_t BytecodeGenerator::EncodeUleb128(std::size_t value,
 Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
   if (expr->GetType() == StmtNode::StmtType::kArray) {
     bool is_find = false;
-    auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+    auto iterator = var_decl_map_.find(*dynamic_cast<IdentifierNode*>(expr));
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-      iterator = var_decl_map.find(
+      iterator = var_decl_map_.find(
           current_scope_[i] + "#" +
           static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-      if (iterator != var_decl_map.end()) {
+      if (iterator != var_decl_map_.end()) {
         is_find = true;
         break;
       }
@@ -8628,12 +8629,12 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
     return dynamic_cast<ArrayDeclNode*>(expr)->GetVarType();
   } else if (expr->GetType() == StmtNode::StmtType::kIdentifier) {
     bool is_find = false;
-    auto iterator = var_decl_map.find(*dynamic_cast<IdentifierNode*>(expr));
+    auto iterator = var_decl_map_.find(*dynamic_cast<IdentifierNode*>(expr));
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-      iterator = var_decl_map.find(
+      iterator = var_decl_map_.find(
           current_scope_[i] + "#" +
           static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-      if (iterator != var_decl_map.end()) {
+      if (iterator != var_decl_map_.end()) {
         is_find = true;
         break;
       }
