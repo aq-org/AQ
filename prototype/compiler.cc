@@ -6828,9 +6828,11 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 
     case StmtNode::StmtType::kLabel:
       HandleLabel(dynamic_cast<LabelNode*>(stmt), global_code_);
+      break;
 
     case StmtNode::StmtType::kGoto:
       HandleGoto(dynamic_cast<GotoNode*>(stmt), global_code_);
+      break;
 
     default:
       EXIT_COMPILER(
