@@ -3173,7 +3173,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
       }
 
     default:
-      /*if (token[index].type == Token::Type::IDENTIFIER &&
+      if (token[index].type == Token::Type::IDENTIFIER &&
           token[index + 1].type == Token::Type::OPERATOR &&
           token[index + 1].value._operator == Token::OperatorType::colon) {
         LabelNode* result = new LabelNode();
@@ -3182,7 +3182,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
         result->SetLabelNode(identifier_node);
         index += 2;
         return result;
-      }*/
+      }
       StmtNode* stmt_node = ParseExpr(token, length, index);
       if (token[index].type == Token::Type::OPERATOR ||
           token[index].value._operator == Token::OperatorType::semi)
