@@ -3,6 +3,7 @@ auto test_func(auto a){
   print("\n");
   return a;
 }
+print("a");
 auto test_func(auto a,auto b){
   print("\n");
   return b;

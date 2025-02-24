@@ -2904,7 +2904,9 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
         index++;
       }
     } else {
-      EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "Unexpected code.");
+      stmts.push_back(
+        ParseStmt(token_ptr, length, index));
+      // EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "Unexpected code.");
     }
   }
 
@@ -5048,7 +5050,6 @@ class BytecodeGenerator {
   std::unordered_map<std::string, std::vector<FuncDeclNode>> func_decl_map_;
   std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
       var_decl_map_;
-  std::unordered_map<std::string, std::size_t> label_map_;
   std::vector<Function> func_list_;
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
@@ -5099,9 +5100,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
         break;
 
       default:
-        EXIT_COMPILER(
+        HandleStmt(stmt->GetStmts()[i],global_code_);
+        /*EXIT_COMPILER(
             "BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)",
-            "Unexpected code.");
+            "Unexpected code.");*/
     }
   }
 
@@ -5986,8 +5988,8 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
 
   std::size_t return_value_reference_index = global_memory_.Add(1);
   var_decl_map_.emplace(scope_name + "#!return_reference",
-                        std::pair<VarDeclNode*, std::size_t>(
-                            nullptr, return_value_reference_index));
+                       std::pair<VarDeclNode*, std::size_t>(
+                           nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
@@ -6009,9 +6011,9 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
       VarDeclNode* var_decl =
           dynamic_cast<VarDeclNode*>(func_decl->GetStat()->GetArgs()[i]);
       var_decl_map_.emplace(current_scope_.back() + "#" +
-                                static_cast<std::string>(*var_decl->GetName()),
-                            std::pair<VarDeclNode*, std::size_t>(
-                                var_decl, global_memory_.AddWithType(vm_type)));
+                               static_cast<std::string>(*var_decl->GetName()),
+                           std::pair<VarDeclNode*, std::size_t>(
+                               var_decl, global_memory_.AddWithType(vm_type)));
     } else if (func_decl->GetStat()->GetArgs()[i]->GetType() ==
                StmtNode::StmtType::kArrayDecl) {
       ArrayDeclNode* array_decl =
@@ -6822,7 +6824,7 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
     auto return_iterator = var_decl_map_.find("#!return");
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
       return_iterator = var_decl_map_.find(current_scope_[i] + "#" +
-                                           static_cast<std::string>("!return"));
+                                          static_cast<std::string>("!return"));
       if (return_iterator != var_decl_map_.end()) {
         is_find = true;
         break;
@@ -6838,7 +6840,7 @@ void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
     for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
       return_reference_iterator =
           var_decl_map_.find(current_scope_[i] + "#" +
-                             static_cast<std::string>("!return_reference"));
+                            static_cast<std::string>("!return_reference"));
       if (return_reference_iterator != var_decl_map_.end()) {
         is_find = true;
         break;
