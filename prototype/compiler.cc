@@ -4769,7 +4769,7 @@ class BytecodeGenerator {
     }
 
    private:
-    uint8_t oper_;
+    uint8_t oper_ = 0x00;
     std::vector<std::size_t> arg_;
   };
 
