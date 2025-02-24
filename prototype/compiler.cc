@@ -9103,7 +9103,7 @@ int main(int argc, char* argv[]) {
 
   Aq::Compiler::CompoundNode* ast = Aq::Compiler::Parser::Parse(token);
 
-  if (ast == nullptr) printf("ast is nullptr\n");
+  if (ast == nullptr) EXIT_COMPILER("main(int,char**)", "ast is nullptr\n");
 
   // std::cout << "Parse End." << std::endl;
 
