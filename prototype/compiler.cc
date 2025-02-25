@@ -4835,7 +4835,10 @@ class BytecodeGenerator {
         printf("%02x ",type[i]);
       }
       std::cout<<std::endl;*/
-      memory_type_.insert(memory_type_.end(), type.begin(), type.end());
+      // memory_type_.insert(memory_type_.end(), type.begin(), type.end());
+      for (std::size_t i = 0; i < type.size(); i++) {
+        memory_type_.push_back(type[i]);
+      }
       memory_size_++;
 
       return index;
@@ -4944,7 +4947,10 @@ class BytecodeGenerator {
 
       memory_type_.push_back(0x06);
       memory_size_++;
-      memory_type_.insert(memory_type_.end(), type.begin(), type.end());
+      // memory_type_.insert(memory_type_.end(), type.begin(), type.end());
+      for (std::size_t i = 0; i < type.size(); i++) {
+        memory_type_.push_back(type[i]);
+      }
       code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
                                const_table_size_ - 1));
       return memory_size_ - 1;
@@ -5151,7 +5157,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
                     global_memory_.GetCode().end());*/
   // start_code.insert(start_code.end(), global_code_.begin(),
   // global_code_.end());
-  start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3, main_func, 1, 1));
+  std::vector<std::size_t> invoke_main_args = {main_func, 1, 1};
+  start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_main_args));
   Function start_func("__start", args, start_code);
   func_list_.push_back(start_func);
 
