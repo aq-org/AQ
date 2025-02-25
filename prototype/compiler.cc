@@ -5141,9 +5141,16 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   args.push_back(1);
   std::vector<Bytecode> start_code;
   std::size_t main_func = global_memory_.AddString("global::main");
-  start_code.insert(start_code.end(), global_memory_.GetCode().begin(),
-                    global_memory_.GetCode().end());
-  start_code.insert(start_code.end(), global_code_.begin(), global_code_.end());
+  for (size_t i = 0; i < global_memory_.GetCode().size(); i++) {
+    start_code.push_back(global_memory_.GetCode()[i]);
+  }
+  for (size_t i = 0; i < global_code_.size(); i++) {
+    start_code.push_back(global_code_[i]);
+  }
+  /*start_code.insert(start_code.end(), global_memory_.GetCode().begin(),
+                    global_memory_.GetCode().end());*/
+  // start_code.insert(start_code.end(), global_code_.begin(),
+  // global_code_.end());
   start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3, main_func, 1, 1));
   Function start_func("__start", args, start_code);
   func_list_.push_back(start_func);
@@ -5179,12 +5186,14 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
   // std::cout<<"Size: "<<code_.size()<<std::endl;
 
   for (std::size_t i = 0; i < func_list_.size(); i++) {
+    std::cout << func_list_.size() << std::endl;
     // Function name (with '\0')
     /*std::cout << "function name size: " << func_list_[i].GetName().size()
               << std::endl;
     std::cout << "code size: " << func_list_[i].GetCode().size() << std::endl;*/
     std::string func_name_str = func_list_[i].GetName();
     const char* func_name = func_name_str.c_str();
+    std::cout << func_name_str << std::endl;
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(func_name),
                  reinterpret_cast<const uint8_t*>(
                      func_name + func_list_[i].GetName().size() + 1));
