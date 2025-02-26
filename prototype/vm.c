@@ -88,6 +88,7 @@ union Data {
   struct Object* ptr_data;
   struct Object* reference_data;
   struct Object* const_data;
+  struct Object* object_data;
 };
 
 struct Object {
@@ -143,6 +144,7 @@ enum Operator {
   OPERATOR_LOAD_CONST,
   OPERATOR_CONVERT,
   OPERATOR_CONST,
+  OPERATOR_OBJECT,
   OPERATOR_WIDE = 0xFF
 };
 
@@ -779,6 +781,52 @@ const char* GetStringData(size_t index) {
   }
   return NULL;
 }
+struct Object* GetObjectData(size_t index) {
+  TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("GetObjectData(size_t)", "Out of memory.");
+
+  if (object_table[index].type[0] == 0x09) {
+    return object_table[index].data.object_data;
+  } else if (object_table[index].type[0] == 0x07) {
+    struct Object reference_data = *object_table[index].data.reference_data;
+    while (true) {
+      switch (reference_data.type[0]) {
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+          break;
+        case 0x08:
+          reference_data = *reference_data.data.const_data;
+          break;
+        case 0x09:
+          return reference_data.data.object_data;
+        default:
+          EXIT_VM("GetObjectData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
+  } else if (object_table[index].type[0] == 0x08) {
+    struct Object const_data = *object_table[index].data.const_data;
+    while (true) {
+      switch (const_data.type[0]) {
+        case 0x07:
+          const_data = *const_data.data.reference_data;
+          break;
+        case 0x08:
+          const_data = *const_data.data.const_data;
+          break;
+        case 0x09:
+          return const_data.data.object_data;
+        default:
+          EXIT_VM("GetObjectData(size_t)", "Unsupported type.");
+          break;
+      }
+    }
+  } else {
+    EXIT_VM("GetObjectData(size_t)", "Unsupported Type.");
+  }
+  return NULL;
+}
 
 struct Object* GetOriginData(struct Object* object) {
   TRACE_FUNCTION;
@@ -793,6 +841,7 @@ struct Object* GetOriginData(struct Object* object) {
       case 0x04:
       case 0x05:
       case 0x06:
+      case 0x09:
         return object;
 
       case 0x07:
@@ -847,6 +896,7 @@ void SetPtrData(size_t index, struct Object* ptr) {
       case 0x03:
       case 0x04:
       case 0x05:
+      case 0x09:
         size++;
         is_end = true;
         break;
@@ -877,6 +927,7 @@ void SetPtrData(size_t index, struct Object* ptr) {
       case 0x03:
       case 0x04:
       case 0x05:
+      case 0x09:
         break;
       case 0x06:
         temp = temp->data.ptr_data;
@@ -1107,6 +1158,7 @@ void SetReferenceData(size_t index, struct Object* object) {
       case 0x03:
       case 0x04:
       case 0x05:
+      case 0x09:
         size++;
         is_end = true;
         break;
@@ -1137,6 +1189,7 @@ void SetReferenceData(size_t index, struct Object* object) {
       case 0x03:
       case 0x04:
       case 0x05:
+      case 0x09:
         break;
       case 0x06:
         temp = temp->data.ptr_data;
@@ -1242,7 +1295,92 @@ void SetConstData(size_t index, struct Object* object) {
 
   data->data.const_data = object;
 }
+void SetObjectData(size_t index, struct Object* object) {
+  TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("SetObjectData(size_t,struct Object*)", "Out of memory.");
 
+  struct Object* data = object_table + index;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
+
+  if (object_table[index].const_type && object_table[index].type[0] != 0x09)
+    EXIT_VM("SetObjectData(size_t,struct Object*)",
+            "Cannot change const type.");
+
+  if (object == NULL) {
+    data->type[0] = 0x09;
+    data->data.object_data = object;
+    return;
+  }
+
+  while (object->type[0] == 0x07) object = object->data.reference_data;
+
+  if (!data->const_type) {
+    data->type[0] = 0x09;
+    data->data.object_data = object;
+    return;
+  }
+
+  size_t size = 0;
+  bool is_end = false;
+  while (!is_end) {
+    switch (data->type[size]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+      case 0x09:
+        size++;
+        is_end = true;
+        break;
+
+      case 0x06:
+      case 0x07:
+      case 0x08:
+        size++;
+        break;
+
+      default:
+        EXIT_VM("SetObjectData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
+  struct Object* temp = object;
+  for (size_t i = 1; i < size; i++) {
+    if (temp == NULL)
+      EXIT_VM("SetObjectData(size_t,struct Object*)", "Invalid ptr.");
+    if (data->type[i] == 0x00) break;
+    if (temp->type[0] != data->type[i])
+      EXIT_VM("SetObjectData(size_t,struct Object*)", "Invalid type.");
+    switch (temp->type[0]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+      case 0x09:
+        break;
+      case 0x06:
+        temp = temp->data.ptr_data;
+        break;
+      case 0x07:
+        temp = temp->data.reference_data;
+        break;
+      case 0x08:
+        temp = temp->data.const_data;
+        break;
+      default:
+        EXIT_VM("SetObjectData(size_t,struct Object*)", "Unsupported type.");
+        break;
+    }
+  }
+
+  data->data.object_data = object;
+}
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
   TRACE_FUNCTION;
   *result = 0;
@@ -1349,6 +1487,9 @@ int LOAD(size_t ptr, size_t operand) {
     case 0x07:
       SetReferenceData(operand, data.data.reference_data);
       break;
+    case 0x09:
+      SetPtrData(operand, data.data.object_data);
+      break;
     case 0x08:
       EXIT_VM("LOAD(size_t, size_t)", "Cannot load const data.");
       break;
@@ -1387,6 +1528,9 @@ int STORE(size_t ptr, size_t operand) {
     case 0x08:
       data->data.const_data = object_table[operand].data.const_data;
       break;
+    case 0x09:
+      data->data.object_data = object_table[operand].data.object_data;
+      break;
     default:
       EXIT_VM("STORE(size_t, size_t)", "Invalid type.");
       break;
@@ -1397,8 +1541,7 @@ int NEW(size_t ptr, size_t size) {
   TRACE_FUNCTION;
   size_t size_value = GetUint64tData(size);
   void* data = calloc(size_value, sizeof(struct Object));
-  object_table[ptr].type[0] = 0x06;
-  object_table[ptr].data.ptr_data = data;
+  SetPtrData(ptr, data);
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
@@ -2584,6 +2727,16 @@ int CONST(size_t result, size_t operand1) {
   SetConstData(result, GetPtrData(operand1));
   return 0;
 }
+int OBJECT(size_t result, size_t operand1) {
+  TRACE_FUNCTION;
+  if (result >= object_table_size)
+    EXIT_VM("OBJECT(size_t,size_t)", "Out of object_table_size.");
+  if (operand1 >= object_table_size)
+    EXIT_VM("OBJECT(size_t,size_t)", "Out of object_table_size.");
+
+  SetObjectData(result, GetPtrData(operand1));
+  return 0;
+}
 int WIDE() {
   TRACE_FUNCTION;
   return 0;
@@ -2844,6 +2997,12 @@ void* AddFunction(void* location) {
             Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
+      case OPERATOR_OBJECT:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
       case OPERATOR_WIDE:
         bytecode[i].args = NULL;
         break;
@@ -3015,6 +3174,9 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         break;
       case 0x19:
         CONST(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x1A:
+        OBJECT(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0xFF:
         WIDE();
