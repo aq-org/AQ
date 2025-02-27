@@ -10,6 +10,8 @@ class ABC{
 void ABCS(){}
 };
 
+ABC::ABCS();
+
 //
 auto test_func(auto a,auto b){
   print("\n");

@@ -2086,6 +2086,8 @@ class IdentifierNode : public ExprNode {
   void SetIdentifierNode(Token name) { name_ = name; }
   virtual ~IdentifierNode() = default;
 
+  Token& GetNameToken() { return name_; }
+
   operator std::string() override {
     return std::string(name_.value.identifier.location,
                        name_.value.identifier.length);
@@ -3751,6 +3753,45 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           index++;
           break;
         }
+
+        case Token::OperatorType::coloncolon:  // ::
+          if (state == State::kPreOper) {
+            if (main_expr->GetType() == StmtNode::StmtType::kIdentifier) {
+              index++;
+              if (token[index].type != Token::Type::IDENTIFIER)
+                EXIT_COMPILER(
+                    "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                    "Token isn't IDENTIFIER type.");
+              Token& name_token =
+                  dynamic_cast<IdentifierNode*>(main_expr)->GetNameToken();
+              if (name_token.type != Token::Type::IDENTIFIER)
+                EXIT_COMPILER(
+                    "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                    "Name token isn't IDENTIFIER type.");
+
+              name_token.value.identifier.length += token[index].value.identifier.length+2;
+              if (token[index + 1].type != Token::Type::OPERATOR ||
+                  (token[index + 1].value._operator !=
+                       Token::OperatorType::coloncolon &&
+                   token[index + 1].value._operator !=
+                       Token::OperatorType::arrow &&
+                   token[index + 1].value._operator !=
+                       Token::OperatorType::periodstar &&
+                   token[index + 1].value._operator !=
+                       Token::OperatorType::arrowstar))
+                state = State::kPostOper;
+              index++;
+            } else {
+              EXIT_COMPILER(
+                  "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                  "Before coloncolon isn't identifier node.");
+            }
+          } else {
+            EXIT_COMPILER(
+                "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                "Before coloncolon isn't identifier node.");
+          }
+          break;
         // TODO(Parser): Advanced syntax awaits subsequent development.
         /*case Token::OperatorType::l_brace:  // {
           break;
@@ -3768,8 +3809,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           break;
         case Token::OperatorType::arrowstar:  // ->*
           break;
-        case Token::OperatorType::coloncolon:  // ::
-          break;*/
+        */
         default:
           state = State::kEnd;
           break;
@@ -3788,10 +3828,12 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
         main_expr = identifier_node;
       }
       if (token[index + 1].type != Token::Type::OPERATOR ||
-          (token[index].value._operator != Token::OperatorType::coloncolon &&
-           token[index].value._operator != Token::OperatorType::arrow &&
-           token[index].value._operator != Token::OperatorType::periodstar &&
-           token[index].value._operator != Token::OperatorType::arrowstar))
+          (token[index + 1].value._operator !=
+               Token::OperatorType::coloncolon &&
+           token[index + 1].value._operator != Token::OperatorType::arrow &&
+           token[index + 1].value._operator !=
+               Token::OperatorType::periodstar &&
+           token[index + 1].value._operator != Token::OperatorType::arrowstar))
         state = State::kPostOper;
       index++;
     } else if (token[index].type == Token::Type::NUMBER ||
