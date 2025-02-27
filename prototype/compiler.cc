@@ -2939,6 +2939,8 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
     if (IsDecl(token_ptr, length, index)) {
       if (IsFuncDecl(token_ptr, length, index)) {
         stmts.push_back(ParseFuncDecl(token_ptr, length, index));
+      } else if (IsClassDecl(token_ptr, length, index)) {
+        stmts.push_back(ParseClassDecl(token_ptr, length, index));
       } else {
         stmts.push_back(
             dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
@@ -3326,6 +3328,7 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
                     "Unexpected code.");
     }
   }
+  index++;
 
   class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name), var_decls,
                                func_decls);
