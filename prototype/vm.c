@@ -1321,62 +1321,18 @@ void SetObjectData(size_t index, struct Object* object) {
     return;
   }
 
-  size_t size = 0;
-  bool is_end = false;
-  while (!is_end) {
-    switch (data->type[size]) {
-      case 0x00:
-      case 0x01:
-      case 0x02:
-      case 0x03:
-      case 0x04:
-      case 0x05:
-      case 0x09:
-        size++;
-        is_end = true;
-        break;
-
-      case 0x06:
-      case 0x07:
-      case 0x08:
-        size++;
-        break;
-
-      default:
-        EXIT_VM("SetObjectData(size_t,struct Object*)", "Unsupported type.");
-        break;
-    }
+  if(data->data.object_data == NULL) {
+    data->type[0] = 0x09;
+    data->data.object_data = object;
+    return;
   }
 
-  struct Object* temp = object;
-  for (size_t i = 1; i < size; i++) {
-    if (temp == NULL)
-      EXIT_VM("SetObjectData(size_t,struct Object*)", "Invalid ptr.");
-    if (data->type[i] == 0x00) break;
-    if (temp->type[0] != data->type[i])
-      EXIT_VM("SetObjectData(size_t,struct Object*)", "Invalid type.");
-    switch (temp->type[0]) {
-      case 0x00:
-      case 0x01:
-      case 0x02:
-      case 0x03:
-      case 0x04:
-      case 0x05:
-      case 0x09:
-        break;
-      case 0x06:
-        temp = temp->data.ptr_data;
-        break;
-      case 0x07:
-        temp = temp->data.reference_data;
-        break;
-      case 0x08:
-        temp = temp->data.const_data;
-        break;
-      default:
-        EXIT_VM("SetObjectData(size_t,struct Object*)", "Unsupported type.");
-        break;
-    }
+  if(GetOriginData(data->data.object_data)->type[0] != 0x05||GetOriginData(object)->type[0] != 0x05) {
+    EXIT_VM("SetObjectData(size_t,struct Object*)", "Invalid name type.");
+  }
+
+  if(strcmp(GetOriginData(data->data.object_data)->data.string_data,GetOriginData(object)->data.string_data)!=0) { 
+    EXIT_VM("SetObjectData(size_t,struct Object*)", "Different name type.");
   }
 
   data->data.object_data = object;
@@ -2632,6 +2588,9 @@ int EQUAL(size_t result, size_t value) {
       break;
     case 0x06:
       SetPtrData(result, GetPtrData(value));
+      break;
+    case 0x09:
+      SetObjectData(result, GetObjectData(value));
       break;
     default:
       // printf("value type: %d\n", value_data->type[0]);

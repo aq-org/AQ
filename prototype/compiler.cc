@@ -1645,6 +1645,7 @@ class StmtNode {
     kExpr,
     kFuncDecl,
     kVarDecl,
+    kClassDecl,
     kIf,
     kWhile,
     kLabel,
@@ -2199,6 +2200,31 @@ class FuncDeclNode : public DeclNode {
   CompoundNode* stmts_;
 };
 
+class ClassDeclNode : public DeclNode {
+ public:
+  ClassDeclNode() { type_ = StmtType::kClassDecl; }
+  ~ClassDeclNode() = default;
+
+  void SetClassDeclNode(IdentifierNode name, std::vector<VarDeclNode*> members,
+                        std::vector<FuncDeclNode*> methods) {
+    name_ = name;
+    members_ = members;
+    methods_ = methods;
+  }
+
+  IdentifierNode GetName() { return name_; }
+  std::vector<VarDeclNode*> GetMembers() { return members_; }
+  std::vector<FuncDeclNode*> GetMethods() { return methods_; }
+
+  ClassDeclNode(const ClassDeclNode&) = default;
+  ClassDeclNode& operator=(const ClassDeclNode&) = default;
+
+ private:
+  IdentifierNode name_;
+  std::vector<VarDeclNode*> members_;
+  std::vector<FuncDeclNode*> methods_;
+};
+
 class IfNode : public StmtNode {
  public:
   IfNode() {
@@ -2349,12 +2375,15 @@ class Parser {
  private:
   static bool IsDecl(Token* token, std::size_t length, std::size_t index);
   static bool IsFuncDecl(Token* token, std::size_t length, std::size_t index);
+  static bool IsClassDecl(Token* token, std::size_t length, std::size_t index);
   static StmtNode* ParseStmt(Token* token, std::size_t length,
                              std::size_t& index);
   static VarDeclNode* ParseVarDecl(Token* token, std::size_t length,
                                    std::size_t& index);
   static FuncDeclNode* ParseFuncDecl(Token* token, std::size_t length,
                                      std::size_t& index);
+  static ClassDeclNode* ParseClassDecl(Token* token, std::size_t length,
+                                       std::size_t& index);
   static ExprNode* ParseBinaryExpr(Token* token, std::size_t length,
                                    std::size_t& index, ExprNode* left,
                                    unsigned int priority);
@@ -3015,6 +3044,23 @@ bool Parser::IsFuncDecl(Token* token, std::size_t length, std::size_t index) {
   return false;
 }
 
+bool Parser::IsClassDecl(Token* token, std::size_t length, std::size_t index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::IsClassDecl(Token*,std::size_t,std::size_t)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::IsClassDecl(Token*,std::size_t,std::size_t)",
+                  "index is out of range.");
+
+  if (token[index].type == Token::Type::KEYWORD &&
+      (token[index].value.keyword == Token::KeywordType::Class ||
+       token[index].value.keyword == Token::KeywordType::Struct)) {
+    return true;
+  }
+  return false;
+}
+
 StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
                             std::size_t& index) {
   TRACE_FUNCTION;
@@ -3231,6 +3277,59 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, std::size_t length,
   func_decl->SetFuncDeclNode(type, dynamic_cast<FuncNode*>(stat), stmts);
 
   return func_decl;
+}
+
+ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
+                                      std::size_t& index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                  "index is out of range.");
+
+  ClassDeclNode* class_decl = new ClassDeclNode();
+  if (class_decl == nullptr)
+    EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                  "class_decl is nullptr.");
+  ExprNode* name = Parser::ParsePrimaryExpr(token, length, index);
+  if (name->GetType() != StmtNode::StmtType::kIdentifier)
+    EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                  "name is not an identifier.");
+
+  if (token[index].type != Token::Type::OPERATOR ||
+      token[index].value._operator != Token::OperatorType::l_brace)
+    EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                  "l_brace not found.");
+
+  std::vector<VarDeclNode*> var_decls;
+  std::vector<FuncDeclNode*> func_decls;
+
+  while (index < length &&
+         (token[index].type != Token::Type::OPERATOR ||
+          token[index].value._operator != Token::OperatorType::r_brace)) {
+    if (IsDecl(token, length, index)) {
+      if (IsFuncDecl(token, length, index)) {
+        func_decls.push_back(ParseFuncDecl(token, length, index));
+      } else {
+        var_decls.push_back(
+            dynamic_cast<VarDeclNode*>(ParseVarDecl(token, length, index)));
+        if (token[index].value._operator != Token::OperatorType::semi)
+          EXIT_COMPILER(
+              "Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+              "semi not found.");
+        index++;
+      }
+    } else {
+      EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                    "Unexpected code.");
+    }
+  }
+
+  class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name), var_decls,
+                               func_decls);
+  return class_decl;
 }
 
 VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
@@ -6010,7 +6109,7 @@ void BytecodeGenerator::GenerateMnemonicFile() {
           std::cout << "OBJECT: " << func_list_[i].GetCode()[j].GetArgs()[0]
                     << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
                     << std::endl;
-          break;  
+          break;
 
         case _AQVM_OPERATOR_WIDE:
           std::cout << "WIDE" << std::endl;
