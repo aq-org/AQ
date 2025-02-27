@@ -1662,7 +1662,7 @@ class StmtNode {
     kReturn
   };
 
-  StmtType GetType() { return type_; }
+  virtual StmtType GetType() { return type_; }
 
   StmtNode(const StmtNode&) = default;
   StmtNode& operator=(const StmtNode&) = default;
@@ -1687,7 +1687,7 @@ class CompoundNode : public StmtNode {
   std::vector<StmtNode*> stmts_;
 };
 
-class ExprNode : public StmtNode {
+class ExprNode : virtual public StmtNode {
  public:
   ExprNode() { type_ = StmtType::kExpr; }
   virtual ~ExprNode() = default;
@@ -2098,7 +2098,7 @@ class IdentifierNode : public ExprNode {
   Token name_;
 };
 
-class DeclNode : public StmtNode {
+class DeclNode : virtual public StmtNode {
  public:
   DeclNode() { type_ = StmtType::kDecl; }
   virtual ~DeclNode() = default;
@@ -2206,15 +2206,18 @@ class ClassDeclNode : public DeclNode {
   ~ClassDeclNode() = default;
 
   void SetClassDeclNode(IdentifierNode name, std::vector<VarDeclNode*> members,
-                        std::vector<FuncDeclNode*> methods) {
+                        std::vector<FuncDeclNode*> methods,
+                        std::vector<ClassDeclNode*> class_decl) {
     name_ = name;
     members_ = members;
     methods_ = methods;
+    class_ = class_decl;
   }
 
   IdentifierNode GetName() { return name_; }
   std::vector<VarDeclNode*> GetMembers() { return members_; }
   std::vector<FuncDeclNode*> GetMethods() { return methods_; }
+  std::vector<ClassDeclNode*> GetClasses() { return class_; }
 
   ClassDeclNode(const ClassDeclNode&) = default;
   ClassDeclNode& operator=(const ClassDeclNode&) = default;
@@ -2223,6 +2226,7 @@ class ClassDeclNode : public DeclNode {
   IdentifierNode name_;
   std::vector<VarDeclNode*> members_;
   std::vector<FuncDeclNode*> methods_;
+  std::vector<ClassDeclNode*> class_;
 };
 
 class IfNode : public StmtNode {
@@ -3290,13 +3294,20 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
   if (index >= length)
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "index is out of range.");
+  if (token[index].type != Token::Type::KEYWORD ||
+      (token[index].value.keyword != Token::KeywordType::Class &&
+       token[index].value.keyword != Token::KeywordType::Struct))
+    EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                  "Class or Struct not found.");
+
+  index++;
 
   ClassDeclNode* class_decl = new ClassDeclNode();
   if (class_decl == nullptr)
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "class_decl is nullptr.");
   ExprNode* name = Parser::ParsePrimaryExpr(token, length, index);
-  if (name->GetType() != StmtNode::StmtType::kIdentifier)
+  if (name == nullptr || name->GetType() != StmtNode::StmtType::kIdentifier)
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "name is not an identifier.");
 
@@ -3305,8 +3316,11 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "l_brace not found.");
 
+  index++;
+
   std::vector<VarDeclNode*> var_decls;
   std::vector<FuncDeclNode*> func_decls;
+  std::vector<ClassDeclNode*> class_decls;
 
   while (index < length &&
          (token[index].type != Token::Type::OPERATOR ||
@@ -3314,6 +3328,8 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
     if (IsDecl(token, length, index)) {
       if (IsFuncDecl(token, length, index)) {
         func_decls.push_back(ParseFuncDecl(token, length, index));
+      } else if (IsClassDecl(token, length, index)) {
+        class_decls.push_back(ParseClassDecl(token, length, index));
       } else {
         var_decls.push_back(
             dynamic_cast<VarDeclNode*>(ParseVarDecl(token, length, index)));
@@ -3328,10 +3344,10 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
                     "Unexpected code.");
     }
   }
-  index++;
+  index += 2;
 
   class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name), var_decls,
-                               func_decls);
+                               func_decls, class_decls);
   return class_decl;
 }
 
@@ -5151,6 +5167,7 @@ class BytecodeGenerator {
   };
 
   void HandleFuncDecl(FuncDeclNode* func_decl);
+  void HandleClassDecl(ClassDeclNode* class_decl);
   std::size_t HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   std::size_t HandleArrayDecl(ArrayDeclNode* array_decl,
                               std::vector<Bytecode>& code);
@@ -6269,6 +6286,50 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   goto_map_.clear();
 }
 
+void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
+  TRACE_FUNCTION;
+  if (class_decl == nullptr)
+    EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                  "class_decl is nullptr.");
+
+  current_scope_.push_back(current_scope_.back() +
+                           "::" + std::string(class_decl->GetName()));
+  for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
+    if (class_decl->GetMembers()[i]->GetType() ==
+        StmtNode::StmtType::kVarDecl) {
+      HandleVarDecl(dynamic_cast<VarDeclNode*>(class_decl->GetMembers()[i]),
+                    global_code_);
+    } else if (class_decl->GetMembers()[i]->GetType() ==
+               StmtNode::StmtType::kArrayDecl) {
+      HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(class_decl->GetMembers()[i]),
+                      global_code_);
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }
+  for (std::size_t i = 0; i < class_decl->GetMethods().size(); i++) {
+    if (class_decl->GetMethods()[i]->GetType() ==
+        StmtNode::StmtType::kFuncDecl) {
+      HandleFuncDecl(dynamic_cast<FuncDeclNode*>(class_decl->GetMethods()[i]));
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }
+  for (std::size_t i = 0; i < class_decl->GetClasses().size(); i++) {
+    if (class_decl->GetClasses()[i]->GetType() ==
+        StmtNode::StmtType::kClassDecl) {
+      HandleClassDecl(
+          dynamic_cast<ClassDeclNode*>(class_decl->GetClasses()[i]));
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }
+  current_scope_.pop_back();
+}
+
 std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
                                              std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
@@ -7015,6 +7076,10 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
 
     case StmtNode::StmtType::kArrayDecl:
       HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(stmt), code);
+      break;
+
+    case StmtNode::StmtType::kClassDecl:
+      HandleClassDecl(dynamic_cast<ClassDeclNode*>(stmt));
       break;
 
     case StmtNode::StmtType::kFunc:

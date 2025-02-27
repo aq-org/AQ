@@ -6,7 +6,9 @@ auto test_func(auto a){
 goto a;
 a:
 print("a");
-
+class ABC{
+void ABCS(){}
+};
 
 //
 auto test_func(auto a,auto b){
