@@ -3769,7 +3769,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
                     "Name token isn't IDENTIFIER type.");
 
-              name_token.value.identifier.length += token[index].value.identifier.length+2;
+              name_token.value.identifier.length +=
+                  token[index].value.identifier.length + 2;
               if (token[index + 1].type != Token::Type::OPERATOR ||
                   (token[index + 1].value._operator !=
                        Token::OperatorType::coloncolon &&
@@ -5208,6 +5209,42 @@ class BytecodeGenerator {
     std::size_t memory_size_ = 0;
   };
 
+  class Class {
+   public:
+    Class() = default;
+    ~Class() = default;
+
+    void SetClass(ClassDeclNode* class_decl) {
+      TRACE_FUNCTION;
+      if (class_decl == nullptr)
+        EXIT_COMPILER("Class::SetClass(ClassDeclNode*)",
+                      "class_decl is nullptr.");
+      class_decl_ = class_decl;
+      // TODO(Class)
+      /*for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
+        if (var_decl_map_.find(class_decl->GetMembers()[i].GetName()) !=
+            var_decl_map_.end())
+          EXIT_COMPILER("Class::SetClass(ClassDeclNode*)",
+                        "Has same name var decl.");
+        var_decl_map_.emplace(class_name,
+                              std::pair<VarDeclNode*, std::size_t>(
+                                  class_decl->GetMembers()[i], i + 1));
+      }*/
+    }
+
+    std::size_t GetVar(std::string var_name) {
+      if (var_decl_map_.find(var_name) == var_decl_map_.end())
+        EXIT_COMPILER("Class::GetVar(ClassDeclNode*)", "Not found var decl.");
+
+      return var_decl_map_[var_name].second;
+    }
+
+   private:
+    ClassDeclNode* class_decl_;
+    std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
+        var_decl_map_;
+  };
+
   void HandleFuncDecl(FuncDeclNode* func_decl);
   void HandleClassDecl(ClassDeclNode* class_decl);
   std::size_t HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
@@ -5249,6 +5286,7 @@ class BytecodeGenerator {
   std::unordered_map<std::string, std::vector<FuncDeclNode>> func_decl_map_;
   std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
       var_decl_map_;
+  std::unordered_map<std::string, Class*> class_decl_map_;
   std::vector<Function> func_list_;
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
@@ -5256,6 +5294,7 @@ class BytecodeGenerator {
   // std::size_t dereference_ptr_index_;
   std::vector<std::string> current_scope_;
   std::size_t current_func_index_ = 0;
+  Class* current_class_ = nullptr;
   std::vector<std::pair<std::string, std::size_t>> goto_map_;
   std::vector<std::pair<std::string, std::size_t>> start_goto_map_;
   std::unordered_map<std::string, std::size_t> label_map_;
@@ -6334,9 +6373,11 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
     EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
                   "class_decl is nullptr.");
 
-  current_scope_.push_back(current_scope_.back() +
-                           "::" + std::string(class_decl->GetName()));
-  for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
+  std::string class_name =
+      current_scope_.back() + "::" + std::string(class_decl->GetName());
+
+  current_scope_.push_back(class_name);
+  /*for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
     if (class_decl->GetMembers()[i]->GetType() ==
         StmtNode::StmtType::kVarDecl) {
       HandleVarDecl(dynamic_cast<VarDeclNode*>(class_decl->GetMembers()[i]),
@@ -6349,7 +6390,17 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
       EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
                     "Unexpected code.");
     }
-  }
+  }*/
+
+  Class* current_class = new Class();
+  current_class->SetClass(class_decl);
+  current_class_ = current_class;
+
+  if (class_decl_map_.find(class_name) != class_decl_map_.end())
+    EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                  "Has same name class.");
+  class_decl_map_.emplace(class_name, current_class);
+
   for (std::size_t i = 0; i < class_decl->GetMethods().size(); i++) {
     if (class_decl->GetMethods()[i]->GetType() ==
         StmtNode::StmtType::kFuncDecl) {
@@ -6370,6 +6421,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
     }
   }
   current_scope_.pop_back();
+  current_class_ = nullptr;
 }
 
 std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
@@ -7595,6 +7647,10 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
 
   switch (expr->GetType()) {
     case StmtNode::StmtType::kIdentifier: {
+      if (current_class_ != nullptr) {
+        return current_class_->GetVar(
+            static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+      }
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         auto iterator = var_decl_map_.find(
             current_scope_[i] + "#" +
