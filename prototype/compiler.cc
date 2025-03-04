@@ -1662,7 +1662,7 @@ class StmtNode {
     kReturn
   };
 
-  StmtType GetType() { return type_; }
+  virtual StmtType GetType() { return type_; }
 
   StmtNode(const StmtNode&) = default;
   StmtNode& operator=(const StmtNode&) = default;
@@ -1687,7 +1687,7 @@ class CompoundNode : public StmtNode {
   std::vector<StmtNode*> stmts_;
 };
 
-class ExprNode : public StmtNode {
+class ExprNode : virtual public StmtNode {
  public:
   ExprNode() { type_ = StmtType::kExpr; }
   virtual ~ExprNode() = default;
@@ -2086,6 +2086,8 @@ class IdentifierNode : public ExprNode {
   void SetIdentifierNode(Token name) { name_ = name; }
   virtual ~IdentifierNode() = default;
 
+  Token& GetNameToken() { return name_; }
+
   operator std::string() override {
     return std::string(name_.value.identifier.location,
                        name_.value.identifier.length);
@@ -2098,7 +2100,7 @@ class IdentifierNode : public ExprNode {
   Token name_;
 };
 
-class DeclNode : public StmtNode {
+class DeclNode : virtual public StmtNode {
  public:
   DeclNode() { type_ = StmtType::kDecl; }
   virtual ~DeclNode() = default;
@@ -2206,15 +2208,18 @@ class ClassDeclNode : public DeclNode {
   ~ClassDeclNode() = default;
 
   void SetClassDeclNode(IdentifierNode name, std::vector<VarDeclNode*> members,
-                        std::vector<FuncDeclNode*> methods) {
+                        std::vector<FuncDeclNode*> methods,
+                        std::vector<ClassDeclNode*> class_decl) {
     name_ = name;
     members_ = members;
     methods_ = methods;
+    class_ = class_decl;
   }
 
   IdentifierNode GetName() { return name_; }
   std::vector<VarDeclNode*> GetMembers() { return members_; }
   std::vector<FuncDeclNode*> GetMethods() { return methods_; }
+  std::vector<ClassDeclNode*> GetClasses() { return class_; }
 
   ClassDeclNode(const ClassDeclNode&) = default;
   ClassDeclNode& operator=(const ClassDeclNode&) = default;
@@ -2223,6 +2228,7 @@ class ClassDeclNode : public DeclNode {
   IdentifierNode name_;
   std::vector<VarDeclNode*> members_;
   std::vector<FuncDeclNode*> methods_;
+  std::vector<ClassDeclNode*> class_;
 };
 
 class IfNode : public StmtNode {
@@ -2939,6 +2945,8 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
     if (IsDecl(token_ptr, length, index)) {
       if (IsFuncDecl(token_ptr, length, index)) {
         stmts.push_back(ParseFuncDecl(token_ptr, length, index));
+      } else if (IsClassDecl(token_ptr, length, index)) {
+        stmts.push_back(ParseClassDecl(token_ptr, length, index));
       } else {
         stmts.push_back(
             dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
@@ -3288,13 +3296,20 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
   if (index >= length)
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "index is out of range.");
+  if (token[index].type != Token::Type::KEYWORD ||
+      (token[index].value.keyword != Token::KeywordType::Class &&
+       token[index].value.keyword != Token::KeywordType::Struct))
+    EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
+                  "Class or Struct not found.");
+
+  index++;
 
   ClassDeclNode* class_decl = new ClassDeclNode();
   if (class_decl == nullptr)
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "class_decl is nullptr.");
   ExprNode* name = Parser::ParsePrimaryExpr(token, length, index);
-  if (name->GetType() != StmtNode::StmtType::kIdentifier)
+  if (name == nullptr || name->GetType() != StmtNode::StmtType::kIdentifier)
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "name is not an identifier.");
 
@@ -3303,8 +3318,11 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "l_brace not found.");
 
+  index++;
+
   std::vector<VarDeclNode*> var_decls;
   std::vector<FuncDeclNode*> func_decls;
+  std::vector<ClassDeclNode*> class_decls;
 
   while (index < length &&
          (token[index].type != Token::Type::OPERATOR ||
@@ -3312,6 +3330,8 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
     if (IsDecl(token, length, index)) {
       if (IsFuncDecl(token, length, index)) {
         func_decls.push_back(ParseFuncDecl(token, length, index));
+      } else if (IsClassDecl(token, length, index)) {
+        class_decls.push_back(ParseClassDecl(token, length, index));
       } else {
         var_decls.push_back(
             dynamic_cast<VarDeclNode*>(ParseVarDecl(token, length, index)));
@@ -3326,9 +3346,10 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
                     "Unexpected code.");
     }
   }
+  index += 2;
 
   class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name), var_decls,
-                               func_decls);
+                               func_decls, class_decls);
   return class_decl;
 }
 
@@ -3732,6 +3753,46 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           index++;
           break;
         }
+
+        case Token::OperatorType::coloncolon:  // ::
+          if (state == State::kPreOper) {
+            if (main_expr->GetType() == StmtNode::StmtType::kIdentifier) {
+              index++;
+              if (token[index].type != Token::Type::IDENTIFIER)
+                EXIT_COMPILER(
+                    "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                    "Token isn't IDENTIFIER type.");
+              Token& name_token =
+                  dynamic_cast<IdentifierNode*>(main_expr)->GetNameToken();
+              if (name_token.type != Token::Type::IDENTIFIER)
+                EXIT_COMPILER(
+                    "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                    "Name token isn't IDENTIFIER type.");
+
+              name_token.value.identifier.length +=
+                  token[index].value.identifier.length + 2;
+              if (token[index + 1].type != Token::Type::OPERATOR ||
+                  (token[index + 1].value._operator !=
+                       Token::OperatorType::coloncolon &&
+                   token[index + 1].value._operator !=
+                       Token::OperatorType::arrow &&
+                   token[index + 1].value._operator !=
+                       Token::OperatorType::periodstar &&
+                   token[index + 1].value._operator !=
+                       Token::OperatorType::arrowstar))
+                state = State::kPostOper;
+              index++;
+            } else {
+              EXIT_COMPILER(
+                  "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                  "Before coloncolon isn't identifier node.");
+            }
+          } else {
+            EXIT_COMPILER(
+                "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                "Before coloncolon isn't identifier node.");
+          }
+          break;
         // TODO(Parser): Advanced syntax awaits subsequent development.
         /*case Token::OperatorType::l_brace:  // {
           break;
@@ -3749,8 +3810,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           break;
         case Token::OperatorType::arrowstar:  // ->*
           break;
-        case Token::OperatorType::coloncolon:  // ::
-          break;*/
+        */
         default:
           state = State::kEnd;
           break;
@@ -3769,10 +3829,12 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
         main_expr = identifier_node;
       }
       if (token[index + 1].type != Token::Type::OPERATOR ||
-          (token[index].value._operator != Token::OperatorType::coloncolon &&
-           token[index].value._operator != Token::OperatorType::arrow &&
-           token[index].value._operator != Token::OperatorType::periodstar &&
-           token[index].value._operator != Token::OperatorType::arrowstar))
+          (token[index + 1].value._operator !=
+               Token::OperatorType::coloncolon &&
+           token[index + 1].value._operator != Token::OperatorType::arrow &&
+           token[index + 1].value._operator !=
+               Token::OperatorType::periodstar &&
+           token[index + 1].value._operator != Token::OperatorType::arrowstar))
         state = State::kPostOper;
       index++;
     } else if (token[index].type == Token::Type::NUMBER ||
@@ -5147,7 +5209,44 @@ class BytecodeGenerator {
     std::size_t memory_size_ = 0;
   };
 
+  class Class {
+   public:
+    Class() = default;
+    ~Class() = default;
+
+    void SetClass(ClassDeclNode* class_decl) {
+      TRACE_FUNCTION;
+      if (class_decl == nullptr)
+        EXIT_COMPILER("Class::SetClass(ClassDeclNode*)",
+                      "class_decl is nullptr.");
+      class_decl_ = class_decl;
+      // TODO(Class)
+      /*for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
+        if (var_decl_map_.find(class_decl->GetMembers()[i].GetName()) !=
+            var_decl_map_.end())
+          EXIT_COMPILER("Class::SetClass(ClassDeclNode*)",
+                        "Has same name var decl.");
+        var_decl_map_.emplace(class_name,
+                              std::pair<VarDeclNode*, std::size_t>(
+                                  class_decl->GetMembers()[i], i + 1));
+      }*/
+    }
+
+    std::size_t GetVar(std::string var_name) {
+      if (var_decl_map_.find(var_name) == var_decl_map_.end())
+        EXIT_COMPILER("Class::GetVar(ClassDeclNode*)", "Not found var decl.");
+
+      return var_decl_map_[var_name].second;
+    }
+
+   private:
+    ClassDeclNode* class_decl_;
+    std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
+        var_decl_map_;
+  };
+
   void HandleFuncDecl(FuncDeclNode* func_decl);
+  void HandleClassDecl(ClassDeclNode* class_decl);
   std::size_t HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   std::size_t HandleArrayDecl(ArrayDeclNode* array_decl,
                               std::vector<Bytecode>& code);
@@ -5187,6 +5286,7 @@ class BytecodeGenerator {
   std::unordered_map<std::string, std::vector<FuncDeclNode>> func_decl_map_;
   std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
       var_decl_map_;
+  std::unordered_map<std::string, Class*> class_decl_map_;
   std::vector<Function> func_list_;
   Memory global_memory_;
   std::vector<Bytecode> global_code_;
@@ -5194,6 +5294,7 @@ class BytecodeGenerator {
   // std::size_t dereference_ptr_index_;
   std::vector<std::string> current_scope_;
   std::size_t current_func_index_ = 0;
+  Class* current_class_ = nullptr;
   std::vector<std::pair<std::string, std::size_t>> goto_map_;
   std::vector<std::pair<std::string, std::size_t>> start_goto_map_;
   std::unordered_map<std::string, std::size_t> label_map_;
@@ -6266,6 +6367,63 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   goto_map_.clear();
 }
 
+void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
+  TRACE_FUNCTION;
+  if (class_decl == nullptr)
+    EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                  "class_decl is nullptr.");
+
+  std::string class_name =
+      current_scope_.back() + "::" + std::string(class_decl->GetName());
+
+  current_scope_.push_back(class_name);
+  /*for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
+    if (class_decl->GetMembers()[i]->GetType() ==
+        StmtNode::StmtType::kVarDecl) {
+      HandleVarDecl(dynamic_cast<VarDeclNode*>(class_decl->GetMembers()[i]),
+                    global_code_);
+    } else if (class_decl->GetMembers()[i]->GetType() ==
+               StmtNode::StmtType::kArrayDecl) {
+      HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(class_decl->GetMembers()[i]),
+                      global_code_);
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }*/
+
+  Class* current_class = new Class();
+  current_class->SetClass(class_decl);
+  current_class_ = current_class;
+
+  if (class_decl_map_.find(class_name) != class_decl_map_.end())
+    EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                  "Has same name class.");
+  class_decl_map_.emplace(class_name, current_class);
+
+  for (std::size_t i = 0; i < class_decl->GetMethods().size(); i++) {
+    if (class_decl->GetMethods()[i]->GetType() ==
+        StmtNode::StmtType::kFuncDecl) {
+      HandleFuncDecl(dynamic_cast<FuncDeclNode*>(class_decl->GetMethods()[i]));
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }
+  for (std::size_t i = 0; i < class_decl->GetClasses().size(); i++) {
+    if (class_decl->GetClasses()[i]->GetType() ==
+        StmtNode::StmtType::kClassDecl) {
+      HandleClassDecl(
+          dynamic_cast<ClassDeclNode*>(class_decl->GetClasses()[i]));
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }
+  current_scope_.pop_back();
+  current_class_ = nullptr;
+}
+
 std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
                                              std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
@@ -7014,6 +7172,10 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(stmt), code);
       break;
 
+    case StmtNode::StmtType::kClassDecl:
+      HandleClassDecl(dynamic_cast<ClassDeclNode*>(stmt));
+      break;
+
     case StmtNode::StmtType::kFunc:
       HandleFuncInvoke(dynamic_cast<FuncNode*>(stmt), code);
       break;
@@ -7485,6 +7647,10 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
 
   switch (expr->GetType()) {
     case StmtNode::StmtType::kIdentifier: {
+      if (current_class_ != nullptr) {
+        return current_class_->GetVar(
+            static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+      }
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         auto iterator = var_decl_map_.find(
             current_scope_[i] + "#" +
