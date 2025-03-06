@@ -144,7 +144,7 @@ enum Operator {
   OPERATOR_LOAD_CONST,
   OPERATOR_CONVERT,
   OPERATOR_CONST,
-  OPERATOR_OBJECT,
+  OPERATOR_INVOKE_CLASS,
   OPERATOR_WIDE = 0xFF
 };
 
@@ -188,6 +188,17 @@ struct Memory {
   size_t size;
 };
 
+struct Class {
+  const char* name;
+  struct Object* objects;
+  struct FuncList methods[1024];
+};
+
+struct ClassList {
+  struct Class class;
+  struct ClassList* next;
+};
+
 func_ptr GetFunction(const char* name);
 FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size);
 
@@ -196,6 +207,8 @@ struct Memory* memory;
 struct LinkedList name_table[1024];
 
 struct FuncList func_table[1024];
+
+struct ClassList class_table[1024];
 
 struct FreeList* free_list;
 
@@ -1321,17 +1334,19 @@ void SetObjectData(size_t index, struct Object* object) {
     return;
   }
 
-  if(data->data.object_data == NULL) {
+  if (data->data.object_data == NULL) {
     data->type[0] = 0x09;
     data->data.object_data = object;
     return;
   }
 
-  if(GetOriginData(data->data.object_data)->type[0] != 0x05||GetOriginData(object)->type[0] != 0x05) {
+  if (GetOriginData(data->data.object_data)->type[0] != 0x05 ||
+      GetOriginData(object)->type[0] != 0x05) {
     EXIT_VM("SetObjectData(size_t,struct Object*)", "Invalid name type.");
   }
 
-  if(strcmp(GetOriginData(data->data.object_data)->data.string_data,GetOriginData(object)->data.string_data)!=0) { 
+  if (strcmp(GetOriginData(data->data.object_data)->data.string_data,
+             GetOriginData(object)->data.string_data) != 0) {
     EXIT_VM("SetObjectData(size_t,struct Object*)", "Different name type.");
   }
 
@@ -2686,15 +2701,25 @@ int CONST(size_t result, size_t operand1) {
   SetConstData(result, GetPtrData(operand1));
   return 0;
 }
-int OBJECT(size_t result, size_t operand1) {
-  TRACE_FUNCTION;
-  if (result >= object_table_size)
-    EXIT_VM("OBJECT(size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("OBJECT(size_t,size_t)", "Out of object_table_size.");
 
-  SetObjectData(result, GetPtrData(operand1));
-  return 0;
+int InvokeClassFunction(const char* class_name, const char* name,
+                        size_t args_size, size_t return_value, size_t* args);
+
+int INVOKE_CLASS(size_t* args) {
+  TRACE_FUNCTION;
+  if (args == NULL) EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid args.");
+  size_t class = args[0];
+  size_t func = args[1];
+  size_t arg_count = args[2];
+  size_t return_value = args[3];
+  size_t* invoke_args = NULL;
+  if (arg_count > 0) {
+    invoke_args = args + 4;
+  }
+  InternalObject args_obj = {arg_count - 1, invoke_args};
+
+  return InvokeClassFunction(GetStringData(class), GetStringData(func),
+                             arg_count, return_value, invoke_args);
 }
 int WIDE() {
   TRACE_FUNCTION;
@@ -2759,6 +2784,299 @@ void InitializeNameTable(struct LinkedList* list) {
   table->next->next = NULL;
   table->next->pair.first = NULL;
   table->next->pair.second = NULL;
+}
+
+void* AddClassMethod(void* location, struct FuncList* methods) {
+  TRACE_FUNCTION;
+  // void* original_location = location;
+  // printf("point 1\n");
+
+  struct FuncList* table = &methods[hash(location)];
+  if (table == NULL)
+    EXIT_VM("AddClassMethod(void*,struct FuncList*)", "table is NULL.");
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.second.location = location;
+  table->pair.first = location;
+  table->pair.second.name = location;
+  while (*(char*)location != '\0') {
+    location = (void*)((uintptr_t)location + 1);
+  }
+  location = (void*)((uintptr_t)location + 1);
+
+  location = (void*)((uintptr_t)location +
+                     DecodeUleb128(location, &table->pair.second.args_size));
+  table->pair.second.args =
+      (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+  // printf("args_size: %zu", table->pair.second.args_size);
+  for (size_t i = 0; i < table->pair.second.args_size; i++) {
+    location = (void*)((uintptr_t)location +
+                       DecodeUleb128(location, &table->pair.second.args[i]));
+  }
+
+  table->pair.second.commands_size =
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+  location = (void*)((uintptr_t)location + 8);
+
+  struct Bytecode* bytecode = (struct Bytecode*)calloc(
+      table->pair.second.commands_size, sizeof(struct Bytecode));
+  // printf("commands_size: %zu", table->pair.second.commands_size);
+  if (bytecode == NULL)
+    EXIT_VM("AddClassMethod(void*,struct FuncList*)", "calloc failed.");
+  AddFreePtr(bytecode);
+
+  table->pair.second.commands = bytecode;
+
+  for (size_t i = 0; i < table->pair.second.commands_size; i++) {
+    bytecode[i].operator= *(uint8_t*) location;
+    location = (void*)((uintptr_t)location + 1);
+    switch (bytecode[i].operator) {
+      case OPERATOR_NOP:
+        bytecode[i].args = NULL;
+        break;
+
+      case OPERATOR_LOAD:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_STORE:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_NEW:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_FREE:
+        bytecode[i].args = (size_t*)malloc(sizeof(size_t));
+        location = Get1Parament(location, bytecode[i].args);
+        break;
+
+      case OPERATOR_PTR:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_ADD:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_SUB:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_MUL:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_DIV:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_REM:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_NEG:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_SHL:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_SHR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_REFER:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_AND:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_OR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_XOR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_IF:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_CMP:
+        bytecode[i].args = (size_t*)malloc(4 * sizeof(size_t));
+        location =
+            Get4Parament(location, bytecode[i].args, bytecode[i].args + 1,
+                         bytecode[i].args + 2, bytecode[i].args + 3);
+        break;
+
+      case OPERATOR_GOTO:
+        bytecode[i].args = (size_t*)malloc(sizeof(size_t));
+        location = Get1Parament(location, bytecode[i].args);
+        break;
+
+      case OPERATOR_INVOKE:
+        bytecode[i].args = GetUnknownCountParament(&location);
+        break;
+
+      case OPERATOR_EQUAL:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_LOAD_CONST:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_CONVERT:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_CONST:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_INVOKE_CLASS:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_WIDE:
+        bytecode[i].args = NULL;
+        break;
+
+      default:
+        EXIT_VM("AddClassMethod(void*,struct FuncList*)", "Invalid operator.");
+    }
+    AddFreePtr(bytecode[i].args);
+  }
+
+  table->next = (struct FuncList*)calloc(1, sizeof(struct FuncList));
+  AddFreePtr(table->next);
+
+  return location;
+}
+
+void* AddFunction(void* location);
+void* AddClass(void* location) {
+  TRACE_FUNCTION;
+
+  struct ClassList* table = &class_table[hash(location)];
+  if (table == NULL) EXIT_VM("AddClass(void*)", "table is NULL.");
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->class.name = location;
+  while (*(char*)location != '\0') {
+    location = (void*)((uintptr_t)location + 1);
+  }
+  location = (void*)((uintptr_t)location + 1);
+
+  size_t object_size =
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+  location = (void*)((uintptr_t)location + 8);
+  table->class.objects =
+      (struct Object*)calloc(object_size, sizeof(struct Object));
+  if (table->class.objects == NULL)
+    EXIT_VM("AddClass(void*)", "calloc failed.");
+  AddFreePtr(table->class.objects);
+
+  for (size_t i = 0; i < object_size; i++) {
+    table->class.objects[i].type = location;
+    bool is_type_end = false;
+    while (!is_type_end) {
+      switch (*(uint8_t*)location) {
+        case 0x00:
+        case 0x01:
+        case 0x02:
+        case 0x03:
+        case 0x04:
+        case 0x05:
+          is_type_end = true;
+          break;
+
+        case 0x06:
+        case 0x07:
+        case 0x08:
+          location = (void*)((uintptr_t)location + 1);
+          break;
+
+        default:
+          EXIT_VM("AddClass(void*)", "Unsupported type.");
+          break;
+      }
+    }
+    if (table->class.objects[i].type[0] != 0x00)
+      table->class.objects[i].const_type = true;
+    location = (void*)((uintptr_t)location + 1);
+  }
+
+  size_t method_size =
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+  location = (void*)((uintptr_t)location + 8);
+
+  if (strcmp(table->class.name, "__start") == 0) {
+    for (size_t i = 0; i < method_size; i++) {
+      location = AddFunction(location);
+    }
+  } else {
+    for (size_t i = 0; i < method_size; i++) {
+      location = AddClassMethod(location, table->class.methods);
+    }
+  }
+
+  table->next = (struct ClassList*)calloc(1, sizeof(struct ClassList));
+  AddFreePtr(table->next);
+
+  return location;
 }
 
 void* AddFunction(void* location) {
@@ -2956,10 +3274,8 @@ void* AddFunction(void* location) {
             Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
-      case OPERATOR_OBJECT:
-        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
-        location =
-            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+      case OPERATOR_INVOKE_CLASS:
+        bytecode[i].args = GetUnknownCountParament(&location);
         break;
 
       case OPERATOR_WIDE:
@@ -2976,6 +3292,82 @@ void* AddFunction(void* location) {
   AddFreePtr(table->next);
 
   return location;
+}
+
+FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
+                          size_t args_size) {
+  TRACE_FUNCTION;
+  if (class == NULL)
+    EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
+            "Invalid class name.");
+  if (name == NULL)
+    EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
+            "Invalid func name.");
+  // printf("name: %s\n", name);
+  const unsigned int class_hash = hash(class);
+  const struct ClassList* class_table = &class_table[class_hash];
+  while (class_table != NULL && class_table->class.name != NULL) {
+    if (strcmp(class_table->class.name, class) == 0) {
+      const unsigned int name_hash = hash(name);
+      const struct FuncList* table = &class_table->class.methods[name_hash];
+      while (table != NULL && table->pair.first != NULL) {
+        if (table->pair.first == NULL)
+          EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
+                  "Invalid name.");
+        if (strcmp(table->pair.first, name) == 0) {
+          if (table->pair.second.args_size == args_size) {
+            bool is_same = true;
+            for (size_t i = 0; i < args_size - 1; i++) {
+              if (args == NULL)
+                EXIT_VM(
+                    "GetClassFunction(const char*,const char*,size_t*,size_t)",
+                    "Invalid args.");
+              if (object_table[table->pair.second.args[i]].const_type &&
+                  object_table[table->pair.second.args[i]].type[0] !=
+                      object_table[args[i]].type[0]) {
+                is_same = false;
+                break;
+              }
+            }
+            if (is_same) return table->pair.second;
+          }
+          // return table->pair.second;
+        }
+        table = table->next;
+      }
+    }
+    class_table = class_table->next;
+  }
+
+  /*const struct FuncList* table = &func_table[name_hash];
+  while (table != NULL && table->pair.first != NULL) {
+    if (table->pair.first == NULL)
+      EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
+              "Invalid name.");
+    if (strcmp(table->pair.first, name) == 0) {
+      if (table->pair.second.args_size == args_size) {
+        bool is_same = true;
+        for (size_t i = 0; i < args_size - 1; i++) {
+          if (args == NULL)
+            EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
+                    "Invalid args.");
+          if (object_table[table->pair.second.args[i]].const_type &&
+              object_table[table->pair.second.args[i]].type[0] !=
+                  object_table[args[i]].type[0]) {
+            is_same = false;
+            break;
+          }
+        }
+        if (is_same) return table->pair.second;
+      }
+      // return table->pair.second;
+    }
+    table = table->next;
+  }*/
+
+  EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
+          "Function not found.");
+  return (FuncInfo){NULL, NULL, 0, NULL};
 }
 
 FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
@@ -3032,6 +3424,129 @@ int EQUAL(size_t result, size_t value);
 size_t GOTO(size_t location);
 int LOAD_CONST(size_t object, size_t const_object);
 int WIDE();
+
+int InvokeClassFunction(const char* class_name, const char* name,
+                        size_t args_size, size_t return_value, size_t* args) {
+  TRACE_FUNCTION;
+  FuncInfo func_info = GetClassFunction(class_name, name, args, args_size);
+  if (args_size != func_info.args_size) {
+    // printf("args_size: %zu\n", args_size);
+    // printf("func_info.args_size: %zu\n", func_info.args_size);
+    EXIT_VM(
+        "InvokeClassFunction(const char* class_name,const "
+        "char*,size_t,size_t,size_t*)",
+        "Invalid args_size.");
+  }
+  // printf("object: %zu , %zu", func_info.args[0], return_value);
+  object_table[func_info.args[0]] = object_table[return_value];
+  func_info.args++;
+  args_size--;
+  for (size_t i = 0; i < args_size; i++) {
+    object_table[func_info.args[i]] = object_table[args[i]];
+  }
+  struct Bytecode* run_code = func_info.commands;
+  for (size_t i = 0; i < func_info.commands_size; i++) {
+    // printf("operator: %d\n", run_code[i].operator);
+    switch (run_code[i].operator) {
+      case 0x00:
+        NOP();
+        break;
+      case 0x01:
+        LOAD(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x02:
+        STORE(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x03:
+        NEW(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x04:
+        FREE(run_code[i].args[0]);
+        break;
+      case 0x05:
+        PTR(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x06:
+        ADD(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x07:
+        SUB(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x08:
+        MUL(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x09:
+        DIV(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x0A:
+        REM(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x0B:
+        NEG(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x0C:
+        SHL(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x0D:
+        SHR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x0E:
+        REFER(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x0F:
+        i = IF(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        i--;
+        break;
+      case 0x10:
+        AND(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x11:
+        OR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x12:
+        XOR(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
+        break;
+      case 0x13:
+        CMP(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2],
+            run_code[i].args[3]);
+        break;
+      case 0x14:
+        INVOKE(run_code[i].args);
+        break;
+      case 0x15:
+        EQUAL(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x16:
+        i = GOTO(run_code[i].args[0]);
+        i--;
+        break;
+      case 0x17:
+        LOAD_CONST(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x18:
+        CONVERT(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x19:
+        CONST(run_code[i].args[0], run_code[i].args[1]);
+        break;
+      case 0x1A:
+        INVOKE_CLASS(run_code[i].args);
+        break;
+      case 0xFF:
+        WIDE();
+        break;
+      default:
+        EXIT_VM(
+            "InvokeClassFunction(const char* class_name,const "
+            "char*,size_t,size_t,size_t*)",
+            "Invalid operator.");
+        break;
+    }
+  }
+
+  return 0;
+}
+
 int InvokeCustomFunction(const char* name, size_t args_size,
                          size_t return_value, size_t* args) {
   TRACE_FUNCTION;
@@ -3135,7 +3650,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x1A:
-        OBJECT(run_code[i].args[0], run_code[i].args[1]);
+        INVOKE_CLASS(run_code[i].args);
         break;
       case 0xFF:
         WIDE();
@@ -3313,7 +3828,7 @@ int main(int argc, char* argv[]) {
     // printf("bytecode_end: %p\n", bytecode_end);
     // printf("offset: %zu\n", (uintptr_t)bytecode_end -
     // (uintptr_t)bytecode_file);
-    bytecode_file = AddFunction(bytecode_file);
+    bytecode_file = AddClass(bytecode_file);
   }
 
   free_list = NULL;
