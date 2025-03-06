@@ -44,6 +44,7 @@
 #define _AQVM_OPERATOR_CONVERT 0x18
 #define _AQVM_OPERATOR_CONST 0x19
 #define _AQVM_OPERATOR_INVOKE_CLASS 0x1A
+#define _AQVM_OPERATOR_LOAD_MEMBER 0x1B
 #define _AQVM_OPERATOR_WIDE 0xFF
 
 inline void EXIT_COMPILER(const char* func_name, const char* message) {
@@ -5924,8 +5925,27 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
           break;
 
-        case _AQVM_OPERATOR_WIDE:
+          case _AQVM_OPERATOR_LOAD_MEMBER:
+          code_.push_back(_AQVM_OPERATOR_LOAD_MEMBER);
 
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
+            EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
+                          "Unexpected LOAD_MEMBER args size.");
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+          break;
+
+        case _AQVM_OPERATOR_WIDE:
           code_.push_back(_AQVM_OPERATOR_WIDE);
           break;
 
@@ -6211,6 +6231,13 @@ void BytecodeGenerator::GenerateMnemonicFile() {
                     << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
                     << std::endl;
           break;
+
+        case _AQVM_OPERATOR_LOAD_MEMBER:
+        std::cout << "LOAD_MEMBER: " << func_list_[i].GetCode()[j].GetArgs()[0]
+        << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
+        << func_list_[i].GetCode()[j].GetArgs()[2]
+        <<std::endl;
+break;
 
         case _AQVM_OPERATOR_WIDE:
           std::cout << "WIDE" << std::endl;

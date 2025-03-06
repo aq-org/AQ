@@ -145,6 +145,7 @@ enum Operator {
   OPERATOR_CONVERT,
   OPERATOR_CONST,
   OPERATOR_INVOKE_CLASS,
+  OPERATOR_LOAD_MEMBER,
   OPERATOR_WIDE = 0xFF
 };
 
@@ -190,7 +191,8 @@ struct Memory {
 
 struct Class {
   const char* name;
-  struct Object* objects;
+  struct Object* members;
+  size_t members_size;
   struct FuncList methods[1024];
 };
 
@@ -2721,6 +2723,62 @@ int INVOKE_CLASS(size_t* args) {
   return InvokeClassFunction(GetStringData(class), GetStringData(func),
                              arg_count, return_value, invoke_args);
 }
+unsigned int hash(const char* str);
+int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
+  TRACE_FUNCTION;
+  if (result >= object_table_size)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+  if (class >= object_table_size)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+
+  const unsigned int class_hash = hash(GetStringData(class));
+  struct ClassList* class_table = &class_table[class_hash];
+  struct Class* class_decl = NULL;
+  bool is_end = false;
+  while (class_table != NULL && class_table->class.name != NULL && !is_end) {
+    if (strcmp(class_table->class.name, GetStringData(class)) == 0) {
+      class_decl = &class_table->class;
+      is_end = true;
+    }
+    class_table = class_table->next;
+  }
+  if (!is_end) EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class not found.");
+
+  if (operand >= class_decl->members_size)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of class members.");
+
+  struct Object* object_data = class_decl->members + operand;
+  object_data = GetOriginData(object_data);
+
+  switch (object_data->type[0]) {
+    case 0x01:
+      SetByteData(result, object_data->data.byte_data);
+      break;
+    case 0x02:
+      SetLongData(result, object_data->data.long_data);
+      break;
+    case 0x03:
+      SetDoubleData(result, object_data->data.double_data);
+      break;
+    case 0x04:
+      SetUint64tData(result, object_data->data.uint64t_data);
+      break;
+    case 0x05:
+      SetStringData(result, object_data->data.string_data);
+      break;
+    case 0x06:
+      SetPtrData(result, object_data->data.ptr_data);
+      break;
+    case 0x09:
+      SetObjectData(result, object_data->data.object_data);
+      break;
+    default:
+      EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Unsupported type.");
+  }
+
+  return 0;
+}
+
 int WIDE() {
   TRACE_FUNCTION;
   return 0;
@@ -2984,9 +3042,13 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
         break;
 
       case OPERATOR_INVOKE_CLASS:
-        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
-        location =
-            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        bytecode[i].args = GetUnknownCountParament(&location);
+        break;
+
+      case OPERATOR_LOAD_MEMBER:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
       case OPERATOR_WIDE:
@@ -3023,14 +3085,15 @@ void* AddClass(void* location) {
   size_t object_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
-  table->class.objects =
+  table->class.members_size = object_size;
+  table->class.members =
       (struct Object*)calloc(object_size, sizeof(struct Object));
-  if (table->class.objects == NULL)
+  if (table->class.members == NULL)
     EXIT_VM("AddClass(void*)", "calloc failed.");
-  AddFreePtr(table->class.objects);
+  AddFreePtr(table->class.members);
 
   for (size_t i = 0; i < object_size; i++) {
-    table->class.objects[i].type = location;
+    table->class.members[i].type = location;
     bool is_type_end = false;
     while (!is_type_end) {
       switch (*(uint8_t*)location) {
@@ -3054,8 +3117,8 @@ void* AddClass(void* location) {
           break;
       }
     }
-    if (table->class.objects[i].type[0] != 0x00)
-      table->class.objects[i].const_type = true;
+    if (table->class.members[i].type[0] != 0x00)
+      table->class.members[i].const_type = true;
     location = (void*)((uintptr_t)location + 1);
   }
 
@@ -3276,6 +3339,12 @@ void* AddFunction(void* location) {
 
       case OPERATOR_INVOKE_CLASS:
         bytecode[i].args = GetUnknownCountParament(&location);
+        break;
+
+      case OPERATOR_LOAD_MEMBER:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
       case OPERATOR_WIDE:
@@ -3532,6 +3601,10 @@ int InvokeClassFunction(const char* class_name, const char* name,
       case 0x1A:
         INVOKE_CLASS(run_code[i].args);
         break;
+      case 0x1B:
+        LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
+                    run_code[i].args[2]);
+        break;
       case 0xFF:
         WIDE();
         break;
@@ -3651,6 +3724,10 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         break;
       case 0x1A:
         INVOKE_CLASS(run_code[i].args);
+        break;
+      case 0x1B:
+        LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
+                    run_code[i].args[2]);
         break;
       case 0xFF:
         WIDE();
