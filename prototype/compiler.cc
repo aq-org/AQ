@@ -43,7 +43,7 @@
 #define _AQVM_OPERATOR_LOAD_CONST 0x17
 #define _AQVM_OPERATOR_CONVERT 0x18
 #define _AQVM_OPERATOR_CONST 0x19
-#define _AQVM_OPERATOR_OBJECT 0x1A
+#define _AQVM_OPERATOR_INVOKE_CLASS 0x1A
 #define _AQVM_OPERATOR_WIDE 0xFF
 
 inline void EXIT_COMPILER(const char* func_name, const char* message) {
@@ -5908,12 +5908,12 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
           break;
 
-        case _AQVM_OPERATOR_OBJECT:
-          code_.push_back(_AQVM_OPERATOR_OBJECT);
+        case _AQVM_OPERATOR_INVOKE_CLASS:
+          code_.push_back(_AQVM_OPERATOR_INVOKE_CLASS);
 
           if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected OBJECT args size.");
+                          "Unexpected INVOKE_CLASS args size.");
 
           EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
@@ -6206,8 +6206,8 @@ void BytecodeGenerator::GenerateMnemonicFile() {
                     << std::endl;
           break;
 
-        case _AQVM_OPERATOR_OBJECT:
-          std::cout << "OBJECT: " << func_list_[i].GetCode()[j].GetArgs()[0]
+        case _AQVM_OPERATOR_INVOKE_CLASS:
+          std::cout << "INVOKE_CLASS: " << func_list_[i].GetCode()[j].GetArgs()[0]
                     << " ," << func_list_[i].GetCode()[j].GetArgs()[1]
                     << std::endl;
           break;
