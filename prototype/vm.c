@@ -2710,7 +2710,9 @@ int InvokeClassFunction(const char* class_name, const char* name,
 int INVOKE_CLASS(size_t* args) {
   TRACE_FUNCTION;
   if (args == NULL) EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid args.");
-  size_t class = args[0];
+  struct Object* class_name = GetOriginData(object_table + args[0]);
+  if (class_name != NULL && class_name->type[0] != 0x05)
+    EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid class name.");
   size_t func = args[1];
   size_t arg_count = args[2];
   size_t return_value = args[3];
@@ -2720,7 +2722,7 @@ int INVOKE_CLASS(size_t* args) {
   }
   InternalObject args_obj = {arg_count - 1, invoke_args};
 
-  return InvokeClassFunction(GetStringData(class), GetStringData(func),
+  return InvokeClassFunction(class_name->data.string_data, GetStringData(func),
                              arg_count, return_value, invoke_args);
 }
 unsigned int hash(const char* str);
@@ -2731,12 +2733,15 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   if (class >= object_table_size)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  const unsigned int class_hash = hash(GetStringData(class));
+  struct Object* class_name = GetOriginData(object_table+class);
+  if (class_name != NULL && class_name->type[0] != 0x05)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Invalid class name.");
+  const unsigned int class_hash = hash(class_name->data.string_data);
   struct ClassList* class_table = &class_table[class_hash];
   struct Class* class_decl = NULL;
   bool is_end = false;
   while (class_table != NULL && class_table->class.name != NULL && !is_end) {
-    if (strcmp(class_table->class.name, GetStringData(class)) == 0) {
+    if (strcmp(class_table->class.name, class_name->data.string_data) == 0) {
       class_decl = &class_table->class;
       is_end = true;
     }
