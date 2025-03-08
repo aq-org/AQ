@@ -3198,6 +3198,7 @@ void* AddClass(void* location) {
         case 0x03:
         case 0x04:
         case 0x05:
+        case 0x09:
           is_type_end = true;
           break;
 
@@ -3208,6 +3209,8 @@ void* AddClass(void* location) {
           break;
 
         default:
+          printf("%d\n", *(uint8_t*)location);
+          printf("%d\n", *(uint8_t*)(location+1));
           EXIT_VM("AddClass(void*)", "Unsupported type.");
           break;
       }
@@ -3977,6 +3980,7 @@ int main(int argc, char* argv[]) {
         case 0x03:
         case 0x04:
         case 0x05:
+        case 0x09:
           is_type_end = true;
           break;
 

@@ -10,7 +10,7 @@ class ABC{
 void ABCS(){}
 };
 
-ABC::ABCS();
+//ABC::ABCS();
 
 //
 auto test_func(auto a,auto b){
