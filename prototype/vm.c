@@ -743,6 +743,76 @@ uint64_t GetUint64tData(size_t index) {
   return 0;
 }
 
+uint64_t GetUint64tObjectData(struct Object* object) {
+  TRACE_FUNCTION;
+  if (object == NULL)
+    EXIT_VM("GetUint64tObjectData(struct Object*)", "object is NULL.");
+  switch (object->type[0]) {
+    case 0x01:
+      return object->data.byte_data;
+    case 0x02:
+      return object->data.long_data;
+    case 0x03:
+      return object->data.double_data;
+    case 0x04:
+      return object->data.uint64t_data;
+    case 0x07: {
+      struct Object reference_data = *object->data.reference_data;
+      while (true) {
+        switch (reference_data.type[0]) {
+          case 0x01:
+            return reference_data.data.byte_data;
+          case 0x02:
+            return reference_data.data.long_data;
+          case 0x03:
+            return reference_data.data.double_data;
+          case 0x04:
+            return reference_data.data.uint64t_data;
+          case 0x07:
+            reference_data = *reference_data.data.reference_data;
+            break;
+          case 0x08:
+            reference_data = *reference_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetUint64tObjectData(struct Object*)",
+                    "Unsupported type.");
+            break;
+        }
+      }
+    }
+    case 0x08: {
+      struct Object const_data = *object->data.const_data;
+      while (true) {
+        switch (const_data.type[0]) {
+          case 0x01:
+            return const_data.data.byte_data;
+          case 0x02:
+            return const_data.data.long_data;
+          case 0x03:
+            return const_data.data.double_data;
+          case 0x04:
+            return const_data.data.uint64t_data;
+          case 0x07:
+            const_data = *const_data.data.reference_data;
+            break;
+          case 0x08:
+            const_data = *const_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetUint64tObjectData(struct Object*)",
+                    "Unsupported type.");
+            break;
+        }
+      }
+    }
+    default:
+      EXIT_VM("GetUint64tObjectData(struct Object*)", "Invalid type.");
+      break;
+  }
+  return 0;
+}
+
 const char* GetStringData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type[0]) {
@@ -2704,15 +2774,12 @@ int CONST(size_t result, size_t operand1) {
   return 0;
 }
 
-int InvokeClassFunction(const char* class_name, const char* name,
-                        size_t args_size, size_t return_value, size_t* args);
+int InvokeClassFunction(size_t class, const char* name, size_t args_size,
+                        size_t return_value, size_t* args);
 
 int INVOKE_CLASS(size_t* args) {
   TRACE_FUNCTION;
   if (args == NULL) EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid args.");
-  struct Object* class_name = GetOriginData(object_table + args[0]);
-  if (class_name != NULL && class_name->type[0] != 0x05)
-    EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid class name.");
   size_t func = args[1];
   size_t arg_count = args[2];
   size_t return_value = args[3];
@@ -2722,8 +2789,8 @@ int INVOKE_CLASS(size_t* args) {
   }
   InternalObject args_obj = {arg_count - 1, invoke_args};
 
-  return InvokeClassFunction(class_name->data.string_data, GetStringData(func),
-                             arg_count, return_value, invoke_args);
+  return InvokeClassFunction(args[0], GetStringData(func), arg_count,
+                             return_value, invoke_args);
 }
 unsigned int hash(const char* str);
 int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
@@ -2733,7 +2800,22 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   if (class >= object_table_size)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* class_name = GetOriginData(object_table+class);
+  struct Object* class_data = object_table + class;
+  class_data = GetOriginData(class_data);
+  if (class_data == NULL || class_data->type[0] != 0x09)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+
+  struct Object* object_member_count = class_data->data.object_data + 1;
+  object_member_count = GetOriginData(object_member_count);
+  if (operand >= GetUint64tObjectData(object_member_count))
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+
+  struct Object* object_data = class_data->data.object_data + operand;
+
+  SetReferenceData(result, object_data);
+  return 0;
+
+  /*struct Object* class_name = GetOriginData(object_table + class);
   if (class_name != NULL && class_name->type[0] != 0x05)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Invalid class name.");
   const unsigned int class_hash = hash(class_name->data.string_data);
@@ -2781,7 +2863,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
       EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Unsupported type.");
   }
 
-  return 0;
+  return 0;*/
 }
 
 int WIDE() {
@@ -3051,9 +3133,9 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
         break;
 
       case OPERATOR_LOAD_MEMBER:
-        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
-        location = Get3Parament(location, bytecode[i].args,
-                                bytecode[i].args + 1, bytecode[i].args + 2);
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location = Get2Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1);
         break;
 
       case OPERATOR_WIDE:
@@ -3347,9 +3429,9 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_LOAD_MEMBER:
-        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
-        location = Get3Parament(location, bytecode[i].args,
-                                bytecode[i].args + 1, bytecode[i].args + 2);
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location = Get2Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1);
         break;
 
       case OPERATOR_WIDE:
@@ -3499,17 +3581,19 @@ size_t GOTO(size_t location);
 int LOAD_CONST(size_t object, size_t const_object);
 int WIDE();
 
-int InvokeClassFunction(const char* class_name, const char* name,
-                        size_t args_size, size_t return_value, size_t* args) {
+int InvokeClassFunction(size_t class, const char* name, size_t args_size,
+                        size_t return_value, size_t* args) {
   TRACE_FUNCTION;
+  struct Object* class_name_object = GetOriginData(object_table + class);
+  if (class_name_object != NULL && class_name_object->type[0] != 0x05)
+    EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid class name object.");
+  const char* class_name = GetStringData(class);
   FuncInfo func_info = GetClassFunction(class_name, name, args, args_size);
   if (args_size != func_info.args_size) {
     // printf("args_size: %zu\n", args_size);
     // printf("func_info.args_size: %zu\n", func_info.args_size);
-    EXIT_VM(
-        "InvokeClassFunction(const char* class_name,const "
-        "char*,size_t,size_t,size_t*)",
-        "Invalid args_size.");
+    EXIT_VM("InvokeClassFunction(size_t,const char*,size_t,size_t,size_t*)",
+            "Invalid args_size.");
   }
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   object_table[func_info.args[0]] = object_table[return_value];
@@ -3607,17 +3691,15 @@ int InvokeClassFunction(const char* class_name, const char* name,
         INVOKE_CLASS(run_code[i].args);
         break;
       case 0x1B:
-        LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
-                    run_code[i].args[2]);
+        LOAD_MEMBER(run_code[i].args[0], class,
+                    run_code[i].args[1]);
         break;
       case 0xFF:
         WIDE();
         break;
       default:
-        EXIT_VM(
-            "InvokeClassFunction(const char* class_name,const "
-            "char*,size_t,size_t,size_t*)",
-            "Invalid operator.");
+        EXIT_VM("InvokeClassFunction(size_t,const char*,size_t,size_t,size_t*)",
+                "Invalid operator.");
         break;
     }
   }
@@ -3731,8 +3813,10 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         INVOKE_CLASS(run_code[i].args);
         break;
       case 0x1B:
-        LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
-                    run_code[i].args[2]);
+        /*LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
+                    run_code[i].args[2]);*/
+        EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
+                "LOAD_MEMBER cannot be called by non-class functions.");
         break;
       case 0xFF:
         WIDE();

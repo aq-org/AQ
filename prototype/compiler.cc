@@ -5941,7 +5941,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
         case _AQVM_OPERATOR_LOAD_MEMBER:
           code_.push_back(_AQVM_OPERATOR_LOAD_MEMBER);
 
-          if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 2)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected LOAD_MEMBER args size.");
 
@@ -5950,10 +5950,6 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
 
           EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
-          code_.insert(code_.end(), buffer.begin(), buffer.end());
-          buffer.clear();
-
-          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
@@ -6254,8 +6250,7 @@ void BytecodeGenerator::GenerateMnemonicFile() {
         case _AQVM_OPERATOR_LOAD_MEMBER:
           std::cout << "LOAD_MEMBER: "
                     << func_list_[i].GetCode()[j].GetArgs()[0] << " ,"
-                    << func_list_[i].GetCode()[j].GetArgs()[1]
-                    << func_list_[i].GetCode()[j].GetArgs()[2] << std::endl;
+                    << func_list_[i].GetCode()[j].GetArgs()[1] << std::endl;
           break;
 
         case _AQVM_OPERATOR_WIDE:
