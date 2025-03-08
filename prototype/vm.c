@@ -1582,9 +1582,17 @@ int STORE(size_t ptr, size_t operand) {
 }
 int NEW(size_t ptr, size_t size) {
   TRACE_FUNCTION;
+  if (ptr >= object_table_size)
+    EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
+  if (size >= object_table_size)
+    EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
   size_t size_value = GetUint64tData(size);
   void* data = calloc(size_value, sizeof(struct Object));
-  SetPtrData(ptr, data);
+  if (object_table[ptr].type[0] == 0x09) {
+    SetObjectData(ptr, data);
+  } else {
+    SetPtrData(ptr, data);
+  }
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
@@ -3134,8 +3142,8 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
 
       case OPERATOR_LOAD_MEMBER:
         bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
-        location = Get2Parament(location, bytecode[i].args,
-                                bytecode[i].args + 1);
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
       case OPERATOR_WIDE:
@@ -3430,8 +3438,8 @@ void* AddFunction(void* location) {
 
       case OPERATOR_LOAD_MEMBER:
         bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
-        location = Get2Parament(location, bytecode[i].args,
-                                bytecode[i].args + 1);
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
       case OPERATOR_WIDE:
@@ -3691,8 +3699,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
         INVOKE_CLASS(run_code[i].args);
         break;
       case 0x1B:
-        LOAD_MEMBER(run_code[i].args[0], class,
-                    run_code[i].args[1]);
+        LOAD_MEMBER(run_code[i].args[0], class, run_code[i].args[1]);
         break;
       case 0xFF:
         WIDE();
