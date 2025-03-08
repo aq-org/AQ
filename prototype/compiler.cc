@@ -5233,11 +5233,18 @@ class BytecodeGenerator {
       }*/
     }
 
-    std::size_t GetVar(std::string var_name) {
+    /*std::size_t GetVar(std::string var_name) {
       if (var_decl_map_.find(var_name) == var_decl_map_.end())
         EXIT_COMPILER("Class::GetVar(ClassDeclNode*)", "Not found var decl.");
 
       return var_decl_map_[var_name].second;
+    }*/
+
+    bool GetVar(std::string var_name, std::size_t& index) {
+      if (var_decl_map_.find(var_name) == var_decl_map_.end()) return false;
+
+      index = var_decl_map_[var_name].second;
+      return true;
     }
 
     std::unordered_map<std::string, std::vector<FuncDeclNode>>&
@@ -8042,10 +8049,16 @@ std::size_t BytecodeGenerator::GetClassIndex(ExprNode* expr,
 
   switch (expr->GetType()) {
     case StmtNode::StmtType::kIdentifier: {
-      if (current_class_ != nullptr) {
-        return current_class_->GetVar(
-            static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+      std::size_t index = 0;
+      if (current_class_ != nullptr &&
+          current_class_->GetVar(
+              (std::string)(*dynamic_cast<IdentifierNode*>(expr)), index)) {
+        std::size_t return_index = global_memory_.Add(1);
+        code.push_back(
+            Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 2, return_index, index));
+        return return_index;
       }
+
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         auto iterator = var_decl_map_.find(
             current_scope_[i] + "#" +
