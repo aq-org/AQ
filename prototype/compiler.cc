@@ -1550,7 +1550,15 @@ LexEnd:
 
 class Type {
  public:
-  enum class TypeType { NONE, kBase, kConst, kPointer, kArray, kReference };
+  enum class TypeType {
+    NONE,
+    kBase,
+    kConst,
+    kPointer,
+    kArray,
+    kReference,
+    kClass
+  };
 
   enum class BaseType {
     NONE,
@@ -2498,6 +2506,26 @@ class ReferenceType : public Type {
   ReferenceType& operator=(const ReferenceType&) = default;
 };
 
+class ClassType : public Type {
+ public:
+  ClassType() { type_ = TypeType::kClass; }
+  void SetSubType(std::string class_name) {
+    type_ = TypeType::kClass;
+    class_name_ = class_name;
+  }
+  virtual ~ClassType() = default;
+
+  std::string GetClassName() { return class_name_; }
+
+  operator std::string() override { return class_name_; }
+
+  ClassType(const ClassType&) = default;
+  ClassType& operator=(const ClassType&) = default;
+
+ private:
+  std::string class_name_;
+};
+
 Type::operator std::string() {
   if (this->GetType() == TypeType::kBase) {
     switch (this->GetBaseType()) {
@@ -2645,8 +2673,12 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
                   "index is out of range.");
 
   Type* type = nullptr;
+
+  bool is_read_base_type = false;
+
   while (index < length) {
     if (token[index].type == Token::Type::KEYWORD) {
+      is_read_base_type = true;
       switch (token[index].value.keyword) {
         case Token::KeywordType::Const: {
           ConstType* const_type = new ConstType();
@@ -2714,6 +2746,13 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
               default:
                 break;
             }
+          } else if (index + 1 < length &&
+                     token[index + 1].type == Token::Type::IDENTIFIER) {
+            index++;
+            type = new ClassType();
+            dynamic_cast<ClassType*>(type)->SetSubType(
+                std::string(token[index].value.identifier.location,
+                            token[index].value.identifier.length));
           }
           if (type == nullptr)
             EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
@@ -2827,22 +2866,30 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
           return type;
       }
     } else if (token[index].type == Token::Type::IDENTIFIER) {
-      std::size_t index_temp = index;
-      ExprNode* temp_expr = Parser::ParsePrimaryExpr(token, length, index_temp);
-      if (temp_expr == nullptr)
-        EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
-                      "ParsePrimaryExpr return nullptr.");
+      if (!is_read_base_type) {
+        type = new ClassType();
+        dynamic_cast<ClassType*>(type)->SetSubType(
+            std::string(token[index].value.identifier.location,
+                        token[index].value.identifier.length));
+      } else {
+        std::size_t index_temp = index;
+        ExprNode* temp_expr =
+            Parser::ParsePrimaryExpr(token, length, index_temp);
+        if (temp_expr == nullptr)
+          EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
+                        "ParsePrimaryExpr return nullptr.");
 
-      if (temp_expr->GetType() == StmtNode::StmtType::kArray) {
-        ArrayType* array_type = new ArrayType();
-        array_type->SetSubType(type,
-                               dynamic_cast<ArrayNode*>(temp_expr)->GetIndex());
-        type = array_type;
+        if (temp_expr->GetType() == StmtNode::StmtType::kArray) {
+          ArrayType* array_type = new ArrayType();
+          array_type->SetSubType(
+              type, dynamic_cast<ArrayNode*>(temp_expr)->GetIndex());
+          type = array_type;
+        }
+
+        // TODO: Add support of custom types.
+
+        return type;
       }
-
-      // TODO: Add support of custom types.
-
-      return type;
     }
     index++;
   }
@@ -5605,21 +5652,21 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
 
     const char* class_name = class_name_str.c_str();
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(class_name),
-                 reinterpret_cast<const uint8_t*>(
-                     class_name + class_name_str.size() + 1));
+                 reinterpret_cast<const uint8_t*>(class_name +
+                                                  class_name_str.size() + 1));
 
     std::cout << "Point A" << std::endl;
 
     std::size_t memory_size = class_list_[i].GetMemory().GetMemorySize();
-    std::cout<<"Size: "<<memory_size<<std::endl;
+    std::cout << "Size: " << memory_size << std::endl;
     memory_size = is_big_endian_ ? memory_size : SwapUint64t(memory_size);
 
     std::cout << "Point E" << std::endl;
 
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(&memory_size),
                  reinterpret_cast<const uint8_t*>(&memory_size + 1));
-    
-                 std::cout<<"Size: "<<memory_size<<std::endl;
+
+    std::cout << "Size: " << memory_size << std::endl;
 
     std::cout << "Point D" << std::endl;
 
