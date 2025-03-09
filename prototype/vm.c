@@ -3172,6 +3172,7 @@ void* AddClass(void* location) {
     table = table->next;
   }
   table->class.name = location;
+  printf("Class Name: %s\n", table->class.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -3210,7 +3211,9 @@ void* AddClass(void* location) {
 
         default:
           printf("%d\n", *(uint8_t*)location);
-          printf("%d\n", *(uint8_t*)(location+1));
+          printf("%d\n", *(uint8_t*)((uintptr_t)location + 1));
+          printf("%d\n", *(uint8_t*)((uintptr_t)location + 2));
+          printf("%d\n", *(uint8_t*)((uintptr_t)location + 3));
           EXIT_VM("AddClass(void*)", "Unsupported type.");
           break;
       }

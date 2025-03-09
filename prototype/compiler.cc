@@ -5606,27 +5606,29 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
     const char* class_name = class_name_str.c_str();
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(class_name),
                  reinterpret_cast<const uint8_t*>(
-                     class_name + func_list_[i].GetName().size() + 1));
+                     class_name + class_name_str.size() + 1));
 
-
-                     std::cout<<"Point A"<<std::endl;
+    std::cout << "Point A" << std::endl;
 
     std::size_t memory_size = class_list_[i].GetMemory().GetMemorySize();
+    std::cout<<"Size: "<<memory_size<<std::endl;
     memory_size = is_big_endian_ ? memory_size : SwapUint64t(memory_size);
-    
-    std::cout<<"Point E"<<std::endl;
-    
+
+    std::cout << "Point E" << std::endl;
+
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(&memory_size),
                  reinterpret_cast<const uint8_t*>(&memory_size + 1));
+    
+                 std::cout<<"Size: "<<memory_size<<std::endl;
 
-                 std::cout<<"Point D"<<std::endl;
+    std::cout << "Point D" << std::endl;
 
-                 for (std::size_t i = 0;
-         i < class_list_[i].GetMemory().GetMemoryType().size(); i++) {
-      code_.push_back(class_list_[i].GetMemory().GetMemoryType()[i]);
+    for (std::size_t j = 0;
+         j < class_list_[i].GetMemory().GetMemoryType().size(); j++) {
+      code_.push_back(class_list_[i].GetMemory().GetMemoryType()[j]);
     }
 
-    std::cout<<"Point B"<<std::endl;
+    std::cout << "Point B" << std::endl;
 
     std::size_t methods_size = class_list_[i].GetFuncList().size();
     methods_size = is_big_endian_ ? methods_size : SwapUint64t(methods_size);
@@ -5635,7 +5637,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
 
     std::vector<Function> func_list = class_list_[i].GetFuncList();
 
-    std::cout<<"Point C"<<std::endl;
+    std::cout << "Point C" << std::endl;
 
     for (std::size_t z = 0; z < func_list.size(); z++) {
       std::cout << func_list.size() << std::endl;
@@ -7805,7 +7807,7 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
     code[exit_index_[i]].SetArgs(1, return_location);
   }
   Function func_decl_bytecode(func_name, args_index, code);
-  func_list_.push_back(func_decl_bytecode);
+  current_class_->GetFuncList().push_back(func_decl_bytecode);
   exit_index_.clear();
 
   while (goto_map_.size() > 0) {
