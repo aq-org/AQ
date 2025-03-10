@@ -7,10 +7,17 @@ goto a;
 a:
 print("a");
 class ABC{
-void ABCS(){}
+  void ABC(){
+    print("ABC Class Create.");
+  }
+void ABCS(){
+  print("ABC Class Create.");
+}
 };
 
 //ABC::ABCS();
+
+//ABC abc_t;
 
 //
 auto test_func(auto a,auto b){

@@ -1398,7 +1398,7 @@ void SetObjectData(size_t index, struct Object* object) {
     return;
   }
 
-  while (object->type[0] == 0x07) object = object->data.reference_data;
+  // while (object->type[0] == 0x07) object = object->data.reference_data;
 
   if (!data->const_type) {
     data->type[0] = 0x09;
@@ -1412,7 +1412,7 @@ void SetObjectData(size_t index, struct Object* object) {
     return;
   }
 
-  if (GetOriginData(data->data.object_data)->type[0] != 0x05 ||
+  /*if (GetOriginData(data->data.object_data)->type[0] != 0x05 ||
       GetOriginData(object)->type[0] != 0x05) {
     EXIT_VM("SetObjectData(size_t,struct Object*)", "Invalid name type.");
   }
@@ -1420,7 +1420,7 @@ void SetObjectData(size_t index, struct Object* object) {
   if (strcmp(GetOriginData(data->data.object_data)->data.string_data,
              GetOriginData(object)->data.string_data) != 0) {
     EXIT_VM("SetObjectData(size_t,struct Object*)", "Different name type.");
-  }
+  }*/
 
   data->data.object_data = object;
 }
@@ -1586,6 +1586,7 @@ int NEW(size_t ptr, size_t size) {
     EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
   if (size >= object_table_size)
     EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
+
   size_t size_value = GetUint64tData(size);
   void* data = calloc(size_value, sizeof(struct Object));
   if (object_table[ptr].type[0] == 0x09) {
@@ -2813,10 +2814,10 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   if (class_data == NULL || class_data->type[0] != 0x09)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* object_member_count = class_data->data.object_data + 1;
+  /*struct Object* object_member_count = class_data->data.object_data + 1;
   object_member_count = GetOriginData(object_member_count);
   if (operand >= GetUint64tObjectData(object_member_count))
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");*/
 
   struct Object* object_data = class_data->data.object_data + operand;
 
@@ -3141,9 +3142,9 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
         break;
 
       case OPERATOR_LOAD_MEMBER:
-        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
-        location =
-            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
       case OPERATOR_WIDE:
@@ -3256,6 +3257,9 @@ void* AddFunction(void* location) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
+
+  printf("%s\n", table->pair.second.name);
+
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -3278,6 +3282,7 @@ void* AddFunction(void* location) {
   struct Bytecode* bytecode = (struct Bytecode*)calloc(
       table->pair.second.commands_size, sizeof(struct Bytecode));
   // printf("commands_size: %zu", table->pair.second.commands_size);
+  printf("%zu\n",table->pair.second.commands_size);
   if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "calloc failed.");
   AddFreePtr(bytecode);
 
@@ -3443,9 +3448,9 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_LOAD_MEMBER:
-        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
-        location =
-            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
       case OPERATOR_WIDE:
@@ -3705,7 +3710,12 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
         INVOKE_CLASS(run_code[i].args);
         break;
       case 0x1B:
-        LOAD_MEMBER(run_code[i].args[0], class, run_code[i].args[1]);
+        if (run_code[i].args[1] == 0) {
+          LOAD_MEMBER(run_code[i].args[0], class, run_code[i].args[2]);
+        } else {
+          LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
+                      run_code[i].args[2]);
+        }
         break;
       case 0xFF:
         WIDE();
@@ -3826,10 +3836,8 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         INVOKE_CLASS(run_code[i].args);
         break;
       case 0x1B:
-        /*LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
-                    run_code[i].args[2]);*/
-        EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
-                "LOAD_MEMBER cannot be called by non-class functions.");
+        LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
+                    run_code[i].args[2]);
         break;
       case 0xFF:
         WIDE();
