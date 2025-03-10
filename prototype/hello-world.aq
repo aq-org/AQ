@@ -6,8 +6,8 @@ auto test_func(auto a){
 goto a;
 a:
 print("a");
-class ABC{
-  void ABC(){
+class ABCCLASSCLASS{
+  void ABCCLASSCLASS(){
     print("ABC Class Create.");
   }
 void ABCS(){
@@ -17,7 +17,7 @@ void ABCS(){
 
 //ABC::ABCS();
 
-//ABC abc_t;
+//ABCCLASSCLASS abc_t;
 
 //
 auto test_func(auto a,auto b){

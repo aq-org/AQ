@@ -6203,7 +6203,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                   "Unexpected INVOKE_CLASS args size.");
 
             for (std::size_t k = 0;
-                 k != func_list[z].GetCode()[j].GetArgs()[1] + 3; k++) {
+                 k <= func_list[z].GetCode()[j].GetArgs()[2] + 3; k++) {
               EncodeUleb128(func_list[z].GetCode()[j].GetArgs()[k], buffer);
               code_.insert(code_.end(), buffer.begin(), buffer.end());
               buffer.clear();
@@ -6751,7 +6751,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                           "Unexpected INVOKE_CLASS args size.");
 
           for (std::size_t k = 0;
-               k != func_list[i].GetCode()[j].GetArgs()[1] + 3; k++) {
+               k <= func_list[i].GetCode()[j].GetArgs()[2] + 3; k++) {
             EncodeUleb128(func_list[i].GetCode()[j].GetArgs()[k], buffer);
             code_.insert(code_.end(), buffer.begin(), buffer.end());
             buffer.clear();
@@ -7768,6 +7768,7 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
 
   if (std::string(current_class_->GetClassDecl()->GetName()) == func_name) {
     HandleClassConstructor(func_decl);
+    return;
   }
 
   // std::cout << "func_name: " << func_name << std::endl;
@@ -7902,6 +7903,8 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
     EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                   "current_class_ is nullptr.");
 
+std::cout<<"HandleClassConstructor"<<std::endl;
+
   std::vector<Bytecode> code;
   std::string scope_name;
   scope_name += current_scope_.back();
@@ -7909,6 +7912,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
   scope_name += *func_decl->GetStat()->GetName();
 
   std::string original_func_name = *func_decl->GetStat()->GetName();
+  std::cout<<"Class Name: "<<original_func_name<<std::endl;
   std::string func_name = scope_name;
 
   // std::cout << "func_name: " << func_name << std::endl;
@@ -7967,34 +7971,6 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
                             nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW,2,return_value_reference_index,global_memory_.AddUint64t(current_class_->GetMemory().GetMemorySize())));
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS,4,return_value_reference_index,global_memory_.AddString(original_func_name),1,global_memory_.Add(1)));
-
-  //code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
-  Function func_decl_bytecode(func_name, args_index, code);
-  func_list_.push_back(func_decl_bytecode);
-
-  current_scope_.pop_back();
-  current_func_index_ = 0;
-  goto_map_.clear();
-
-
-  code.clear();
-  current_scope_.push_back(scope_name);
-  current_func_index_ = current_scope_.size() - 1;
-  if (current_class_->GetFuncDeclMap().find(original_func_name) ==
-      current_class_->GetFuncDeclMap().end()) {
-    std::vector<FuncDeclNode> func_decl_vector;
-    func_decl_vector.push_back(*func_decl);
-    current_class_->GetFuncDeclMap().emplace(original_func_name, func_decl_vector);
-  } else {
-    current_class_->GetFuncDeclMap()[original_func_name].push_back(*func_decl);
-  }
-
-  for (std::size_t i = 0; i < current_class_->GetCode().size(); i++) {
-    code.push_back(current_class_->GetCode()[i]);
-  }
-
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
       args_index.push_back(
@@ -8031,6 +8007,43 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
   }
+
+
+  code.push_back(Bytecode(_AQVM_OPERATOR_NEW,2,return_value_reference_index,global_memory_.AddUint64t(current_class_->GetMemory().GetMemorySize())));
+  std::size_t vm_func_str_index = global_memory_.Add(1);
+  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER,3,vm_func_str_index,return_value_reference_index,0));
+  code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL,2,vm_func_str_index,global_memory_.AddString(current_class_->GetName())));
+  
+  if (current_class_->GetFuncDeclMap().find(original_func_name) ==
+  current_class_->GetFuncDeclMap().end()) {
+std::vector<FuncDeclNode> func_decl_vector;
+func_decl_vector.push_back(*func_decl);
+current_class_->GetFuncDeclMap().emplace(original_func_name, func_decl_vector);
+} else {
+current_class_->GetFuncDeclMap()[original_func_name].push_back(*func_decl);
+}
+
+for (std::size_t i = 0; i < current_class_->GetCode().size(); i++) {
+code.push_back(current_class_->GetCode()[i]);
+}
+  
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS,4,return_value_reference_index,global_memory_.AddString(original_func_name),1,global_memory_.Add(1)));
+
+  //code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  Function func_decl_bytecode(func_name, args_index, code);
+  func_list_.push_back(func_decl_bytecode);
+
+  current_scope_.pop_back();
+  current_func_index_ = 0;
+  goto_map_.clear();
+
+
+  code.clear();
+  current_scope_.push_back(scope_name);
+  current_func_index_ = current_scope_.size() - 1;
+
+
+
 
   exit_index_.clear();
   HandleClassStmt(func_decl->GetStmts(), code);
@@ -8145,7 +8158,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
                     "Unexpected code.");
     }
   }
-  current_class_ = current_class;
+  // current_class_ = current_class;
 
   current_scope_.pop_back();
   current_class_ = nullptr;

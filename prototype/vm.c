@@ -3576,6 +3576,7 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
     table = table->next;
   }
 
+  printf("%s\n", name);
   EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)",
           "Function not found.");
   return (FuncInfo){NULL, NULL, 0, NULL};
