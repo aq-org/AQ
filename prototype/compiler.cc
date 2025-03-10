@@ -6202,8 +6202,10 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                   "Unexpected INVOKE_CLASS args size.");
 
+                std::cout<<"INVOKE_CLASS SIZE: "<<func_list[z].GetCode()[j].GetArgs().size()<<std::endl;
+
             for (std::size_t k = 0;
-                 k <= func_list[z].GetCode()[j].GetArgs()[2] + 3; k++) {
+                 k < func_list[z].GetCode()[j].GetArgs().size(); k++) {
               EncodeUleb128(func_list[z].GetCode()[j].GetArgs()[k], buffer);
               code_.insert(code_.end(), buffer.begin(), buffer.end());
               buffer.clear();
@@ -6750,8 +6752,10 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
                           "Unexpected INVOKE_CLASS args size.");
 
+                          std::cout<<"INVOKE_CLASS SIZE: "<<func_list[i].GetCode()[j].GetArgs().size()<<std::endl;
+
           for (std::size_t k = 0;
-               k <= func_list[i].GetCode()[j].GetArgs()[2] + 3; k++) {
+               k < func_list[i].GetCode()[j].GetArgs().size(); k++) {
             EncodeUleb128(func_list[i].GetCode()[j].GetArgs()[k], buffer);
             code_.insert(code_.end(), buffer.begin(), buffer.end());
             buffer.clear();
@@ -7582,7 +7586,7 @@ void BytecodeGenerator::GenerateMnemonicFile() {
                           "Unexpected INVOKE_CLASS args size.");
           std::cout << "INVOKE_CLASS: ";
           for (std::size_t k = 0;
-               k != func_list_[i].GetCode()[j].GetArgs()[1] + 3; k++) {
+               k < func_list_[i].GetCode()[j].GetArgs().size(); k++) {
             std::cout << func_list_[i].GetCode()[j].GetArgs()[k] << " ,";
           }
           std::cout << std::endl;
@@ -8027,7 +8031,12 @@ for (std::size_t i = 0; i < current_class_->GetCode().size(); i++) {
 code.push_back(current_class_->GetCode()[i]);
 }
   
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS,4,return_value_reference_index,global_memory_.AddString(original_func_name),1,global_memory_.Add(1)));
+  std::vector<std::size_t> invoke_class_args;
+  invoke_class_args.push_back(return_value_reference_index);
+  invoke_class_args.push_back(global_memory_.AddString(original_func_name));
+  invoke_class_args.push_back(1);
+  invoke_class_args.push_back(global_memory_.Add(1));
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS,invoke_class_args));
 
   //code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   Function func_decl_bytecode(func_name, args_index, code);
@@ -8047,13 +8056,13 @@ code.push_back(current_class_->GetCode()[i]);
 
   exit_index_.clear();
   HandleClassStmt(func_decl->GetStmts(), code);
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  //code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t return_location = code.size();
   for (std::size_t i = 0; i < exit_index_.size(); i++) {
     code[exit_index_[i]].SetArgs(1, return_location);
   }
   Function new_func_decl_bytecode(original_func_name, args_index, code);
-  func_list_.push_back(new_func_decl_bytecode);
+  current_class_->GetFuncList().push_back(new_func_decl_bytecode);
   exit_index_.clear();
 
   while (goto_map_.size() > 0) {
