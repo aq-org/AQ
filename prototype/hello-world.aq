@@ -6,11 +6,18 @@ auto test_func(auto a){
 goto a;
 a:
 print("a");
-class ABC{
-void ABCS(){}
+class ABCCLASSCLASS{
+  void ABCCLASSCLASS(){
+    print("ABC Class Create.");
+  }
+void ABCS(){
+  print("ABC Class Create.");
+}
 };
 
-ABC::ABCS();
+//ABC::ABCS();
+
+//ABCCLASSCLASS abc_t;
 
 //
 auto test_func(auto a,auto b){
