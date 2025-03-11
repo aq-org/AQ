@@ -1498,6 +1498,29 @@ size_t* GetUnknownCountParament(void** ptr) {
   return args;
 }
 
+size_t* GetUnknownCountParamentForClass(void** ptr) {
+  TRACE_FUNCTION;
+  size_t class = 0;
+  size_t func = 0;
+  size_t arg_count = 0;
+  size_t return_value = 0;
+  *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &class));
+  *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &func));
+  *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &arg_count));
+  *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &return_value));
+
+  size_t* args = malloc((arg_count + 4) * sizeof(size_t));
+  args[0] = func;
+  args[1] = arg_count;
+  args[2] = return_value;
+
+  for (size_t i = 4; i < arg_count + 3; i++) {
+    *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, args + i));
+  }
+
+  return args;
+}
+
 int NOP() {
   TRACE_FUNCTION;
   return 0;
@@ -3138,7 +3161,7 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
         break;
 
       case OPERATOR_INVOKE_CLASS:
-        bytecode[i].args = GetUnknownCountParament(&location);
+        bytecode[i].args = GetUnknownCountParamentForClass(&location);
         break;
 
       case OPERATOR_LOAD_MEMBER:
@@ -3258,7 +3281,7 @@ void* AddFunction(void* location) {
   table->pair.first = location;
   table->pair.second.name = location;
 
-  printf("%s\n", table->pair.second.name);
+  printf("Name: %s\n", table->pair.second.name);
 
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
@@ -3444,7 +3467,7 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_INVOKE_CLASS:
-        bytecode[i].args = GetUnknownCountParament(&location);
+        bytecode[i].args = GetUnknownCountParamentForClass(&location);
         break;
 
       case OPERATOR_LOAD_MEMBER:

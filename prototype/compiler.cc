@@ -7595,7 +7595,7 @@ void BytecodeGenerator::GenerateMnemonicFile() {
         case _AQVM_OPERATOR_LOAD_MEMBER:
           std::cout << "LOAD_MEMBER: "
                     << func_list_[i].GetCode()[j].GetArgs()[0] << " ,"
-                    << func_list_[i].GetCode()[j].GetArgs()[1] << func_list_[i].GetCode()[j].GetArgs()[2] << std::endl;
+                    << func_list_[i].GetCode()[j].GetArgs()[1] << " ," << func_list_[i].GetCode()[j].GetArgs()[2] << std::endl;
           break;
 
         case _AQVM_OPERATOR_WIDE:
@@ -8027,9 +8027,6 @@ current_class_->GetFuncDeclMap().emplace(original_func_name, func_decl_vector);
 current_class_->GetFuncDeclMap()[original_func_name].push_back(*func_decl);
 }
 
-for (std::size_t i = 0; i < current_class_->GetCode().size(); i++) {
-code.push_back(current_class_->GetCode()[i]);
-}
   
   std::vector<std::size_t> invoke_class_args;
   invoke_class_args.push_back(return_value_reference_index);
@@ -8055,6 +8052,13 @@ code.push_back(current_class_->GetCode()[i]);
 
 
   exit_index_.clear();
+
+  
+for (std::size_t i = 0; i < current_class_->GetCode().size(); i++) {
+  code.push_back(current_class_->GetCode()[i]);
+  }
+
+
   HandleClassStmt(func_decl->GetStmts(), code);
   //code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t return_location = code.size();
