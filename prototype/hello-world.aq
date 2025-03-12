@@ -1,40 +1,37 @@
 int print(auto str);
-auto test_func(auto a){
+/*auto test_func(auto a){
   print("\n");
   return a;
 }
 goto a;
 a:
-print("a");
+print("a");*/
 class ABCCLASSCLASS{
   void ABCCLASSCLASS(){
-    print("ABC Class Create.");
+    //print("ABC Class Create.");
   }
-void ABCS(){
-  print("ABC Class Create.");
-}
 };
 
 //ABC::ABCS();
 
-//ABCCLASSCLASS abc_t;
+ABCCLASSCLASS abc_t;
 
 //
-auto test_func(auto a,auto b){
+/*auto test_func(auto a,auto b){
   print("\n");
   return b;
 }
 auto test_func(auto a,auto b,auto c){
   print("\n");
   return c;
-}
+}*/
 auto main(){
-  print("Hello world!\n");
+  /*print("Hello world!\n");
   const int a = 0;
   const int& ref = a; 
   //a = "a";
   print(ref);
   print(test_func(1,10));
-  print(test_func(1,10,"test"));
-  return 0;
+  print(test_func(1,10,"test"));*/
+  //return 0;
 }
