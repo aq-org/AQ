@@ -3911,7 +3911,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           }
           break;
         case Token::OperatorType::period:  // .
-n c          if (state == State::kPreOper) {
+          if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
             binary_node->SetBinaryNode(
                 BinaryNode::Operator::kMember, main_expr,
