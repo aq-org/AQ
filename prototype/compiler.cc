@@ -3608,12 +3608,12 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               full_expr = amp_node;
               preoper_expr = amp_node;
             } else {
-              if (preoper_expr != nullptr) 
-                  dynamic_cast<UnaryNode*>(preoper_expr)
-                      ->SetUnaryNode(
-                          dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                          amp_node);
-              preoper_expr=amp_node;
+              if (preoper_expr != nullptr)
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        amp_node);
+              preoper_expr = amp_node;
             }
             index++;
             break;
@@ -3633,7 +3633,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     ->SetUnaryNode(
                         dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                         star_node);
-              preoper_expr=star_node;
+              preoper_expr = star_node;
             }
             index++;
             break;
@@ -3653,7 +3653,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     ->SetUnaryNode(
                         dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                         plus_node);
-              preoper_expr=plus_node;
+              preoper_expr = plus_node;
             }
             index++;
             break;
@@ -3673,7 +3673,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     ->SetUnaryNode(
                         dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                         minus_node);
-              preoper_expr=minus_node;
+              preoper_expr = minus_node;
             }
             index++;
             break;
@@ -3693,7 +3693,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     ->SetUnaryNode(
                         dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                         not_node);
-              preoper_expr=not_node;
+              preoper_expr = not_node;
             }
             index++;
             break;
@@ -3714,7 +3714,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     ->SetUnaryNode(
                         dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                         bitwisenot_node);
-              preoper_expr=bitwisenot_node;
+              preoper_expr = bitwisenot_node;
             }
             index++;
             break;
@@ -3840,7 +3840,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     ->SetUnaryNode(
                         dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                         preinc_node);
-              preoper_expr=preinc_node;
+              preoper_expr = preinc_node;
             }
           } else {
             preinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, full_expr);
@@ -3861,11 +3861,10 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     ->SetUnaryNode(
                         dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                         preinc_node);
-                        preoper_expr=preinc_node;
+              preoper_expr = preinc_node;
             }
           } else {
-            preinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc,
-                                       full_expr);
+            preinc_node->SetUnaryNode(UnaryNode::Operator::kPostInc, full_expr);
             full_expr = preinc_node;
           }
           index++;
@@ -3912,19 +3911,22 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           }
           break;
         case Token::OperatorType::period:  // .
-          if (state == State::kPreOper) {
+n c          if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
-            binary_node->SetBinaryNode(BinaryNode::Operator::kMember, main_expr, ParsePrimaryExpr(token, length, ++index));
-            if(full_expr==main_expr){
+            binary_node->SetBinaryNode(
+                BinaryNode::Operator::kMember, main_expr,
+                ParsePrimaryExpr(token, length, ++index));
+            if (full_expr == main_expr) {
+              std::cout<<"Point B"<<std::endl;
               full_expr = main_expr = binary_node;
-            }else{
-              if(preoper_expr!=nullptr){
+            } else {
+              if (preoper_expr != nullptr) {
                 dynamic_cast<UnaryNode*>(preoper_expr)
-                ->SetUnaryNode(
-                    dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                    binary_node);
-                    preoper_expr=binary_node;
-              }else{
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        binary_node);
+                preoper_expr = binary_node;
+              } else {
                 EXIT_COMPILER(
                     "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
                     "Before period isn't main node.");
@@ -3937,29 +3939,31 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           }
           break;
         case Token::OperatorType::arrow:  // ->
-        if (state == State::kPreOper) {
-          BinaryNode* binary_node = new BinaryNode();
-          binary_node->SetBinaryNode(BinaryNode::Operator::kArrow, main_expr, ParsePrimaryExpr(token, length, ++index));
-          if(full_expr==main_expr){
-            full_expr = main_expr = binary_node;
-          }else{
-            if(preoper_expr!=nullptr){
-              dynamic_cast<UnaryNode*>(preoper_expr)
-              ->SetUnaryNode(
-                  dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
-                  binary_node);
-                  preoper_expr=binary_node;
-            }else{
-              EXIT_COMPILER(
-                  "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
-                  "Before period isn't main node.");
+          if (state == State::kPreOper) {
+            BinaryNode* binary_node = new BinaryNode();
+            binary_node->SetBinaryNode(
+                BinaryNode::Operator::kArrow, main_expr,
+                ParsePrimaryExpr(token, length, ++index));
+            if (full_expr == main_expr) {
+              full_expr = main_expr = binary_node;
+            } else {
+              if (preoper_expr != nullptr) {
+                dynamic_cast<UnaryNode*>(preoper_expr)
+                    ->SetUnaryNode(
+                        dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                        binary_node);
+                preoper_expr = binary_node;
+              } else {
+                EXIT_COMPILER(
+                    "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                    "Before period isn't main node.");
+              }
             }
+          } else {
+            EXIT_COMPILER(
+                "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                "Before period isn't pre_oper node.");
           }
-        } else {
-          EXIT_COMPILER(
-              "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
-              "Before period isn't pre_oper node.");
-        }
           break;
         // TODO(Parser): Advanced syntax awaits subsequent development.
         /*case Token::OperatorType::l_brace:  // {
@@ -3998,8 +4002,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
            token[index + 1].value._operator != Token::OperatorType::arrow &&
            token[index + 1].value._operator !=
                Token::OperatorType::periodstar &&
-           token[index + 1].value._operator != Token::OperatorType::arrowstar&&token[index + 1].value._operator !=
-           Token::OperatorType::period))
+           token[index + 1].value._operator != Token::OperatorType::arrowstar &&
+           token[index + 1].value._operator != Token::OperatorType::period))
         state = State::kPostOper;
       index++;
     } else if (token[index].type == Token::Type::NUMBER ||
@@ -8831,7 +8835,7 @@ std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
       expr->GetType() == StmtNode::StmtType::kArray) {
     return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), code);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
-    return HandleBinaryExpr(dynamic_cast<BinaryNode*>(expr), code);
+    return HandleBinaryExpr(static_cast<BinaryNode*>(expr), code);
   }
 
   return GetIndex(expr, code);
@@ -9168,61 +9172,85 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
             Bytecode(_AQVM_OPERATOR_STORE, 2, dereference_ptr_index_, left));
       }*/
       return left;
-    case BinaryNode::Operator::kMember:{
-    std::string expr_type_string = GetExprTypeString(expr->GetLeftExpr());
-      
-    for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-      auto iterator =
-          class_decl_map_.find(current_scope_[i] + "::" + expr_type_string);
-      if (iterator != class_decl_map_.end()) {
-        expr_type_string = current_scope_[i] + "::" + expr_type_string;
-        break;
+    case BinaryNode::Operator::kMember: {
+      std::cout<<"Point A"<<std::endl;
+      std::string expr_type_string = GetExprTypeString(expr->GetLeftExpr());
+
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator =
+            class_decl_map_.find(current_scope_[i] + "::" + expr_type_string);
+        if (iterator != class_decl_map_.end()) {
+          expr_type_string = current_scope_[i] + "::" + expr_type_string;
+          break;
+        }
+        if (i == 0)
+          EXIT_COMPILER(
+              "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+              "Bytecode>&)",
+              "Not found class.");
       }
-      if (i == 0)
-        EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)","Not found class.");
+
+      if (expr->GetRightExpr()->GetType() == StmtNode::StmtType::kFunc) {
+        std::cout<<"Point A"<<std::endl;
+        std::string func_name =
+            (std::string) *
+            dynamic_cast<IdentifierNode*>(
+                dynamic_cast<FuncNode*>(expr->GetRightExpr())->GetName());
+        std::vector<ExprNode*> args =
+            dynamic_cast<FuncNode*>(expr->GetRightExpr())->GetArgs();
+        std::vector<std::size_t> func_args;
+        func_args.push_back(HandleExpr(expr->GetLeftExpr(), code));
+        func_args.push_back(global_memory_.AddString(func_name));
+        func_args.push_back(args.size() + 1);
+
+        std::size_t return_value_index = global_memory_.Add(1);
+        std::size_t return_value_ptr_index = global_memory_.Add(1);
+        std::size_t return_value_reference_index = global_memory_.Add(1);
+        code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2, return_value_index,
+                                return_value_ptr_index));
+        code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2,
+                                return_value_reference_index,
+                                return_value_ptr_index));
+        func_args.push_back(return_value_reference_index);
+
+        for (std::size_t i = 0; i < args.size(); i++) {
+          func_args.push_back(HandleExpr(args[i], code));
+        }
+
+        code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS, func_args));
+        return return_value_index;
+      } else if (expr->GetRightExpr()->GetType() ==
+                 StmtNode::StmtType::kIdentifier) {
+                  std::cout<<"Point A"<<std::endl;
+        std::size_t index = 0;
+        if (class_decl_map_[expr_type_string] != nullptr &&
+            class_decl_map_[expr_type_string]->GetVar(
+                (std::string)(
+                    *dynamic_cast<IdentifierNode*>(expr->GetRightExpr())),
+                index)) {
+          std::size_t return_index = global_memory_.Add(1);
+          code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_index,
+                                  HandleExpr(expr->GetLeftExpr(), code),
+                                  index));
+
+          return return_index;
+        } else {
+          EXIT_COMPILER(
+              "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+              "Bytecode>&)",
+              "Not found class member.");
+        }
+      } else {
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+            "Bytecode>&)",
+            "Unsupported stmt type.");
+      }
+      break;
     }
 
-    if(expr->GetRightExpr()->GetType()==StmtNode::StmtType::kFunc){
-      std::string func_name = (std::string)*dynamic_cast<IdentifierNode*>(dynamic_cast<FuncNode*>(expr->GetRightExpr())->GetName());
-      std::vector<ExprNode*> args = dynamic_cast<FuncNode*>(expr->GetRightExpr())->GetArgs();
-      std::vector<std::size_t> func_args;
-      func_args.push_back(HandleExpr(expr->GetLeftExpr(),code));
-      func_args.push_back(global_memory_.AddString(func_name));
-      func_args.push_back(args.size() + 1);
-
-      std::size_t return_value_index = global_memory_.Add(1);
-      std::size_t return_value_ptr_index = global_memory_.Add(1);
-      std::size_t return_value_reference_index = global_memory_.Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_PTR, 2, return_value_index,
-                              return_value_ptr_index));
-      code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, return_value_reference_index,
-                              return_value_ptr_index));
-                              func_args.push_back(return_value_reference_index);
-      
-      for (std::size_t i = 0; i < args.size(); i++) {
-        func_args.push_back(HandleExpr(args[i], code));
-      }
-
-      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS,func_args));
-      return return_value_index;
-      }else if(expr->GetRightExpr()->GetType()==StmtNode::StmtType::kIdentifier){
-        std::size_t index = 0;
-      if (class_decl_map_[expr_type_string] != nullptr &&
-        class_decl_map_[expr_type_string]->GetVar(
-              (std::string)(*dynamic_cast<IdentifierNode*>(expr->GetRightExpr())), index)) {
-        std::size_t return_index = global_memory_.Add(1);
-        code.push_back(
-            Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_index, 0, index));
-              }else{
-                EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)","Not found class member.");
-              }
-      }else{
-        EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)","Unsupported stmt type.");
-      }
-      break;}
-
     case BinaryNode::Operator::kArrow:
-      
+
     case BinaryNode::Operator::kComma:    // ,
                                           // std::cout << "Comma" << std::endl;
     case BinaryNode::Operator::kPtrMemD:  // .*

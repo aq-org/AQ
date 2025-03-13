@@ -11,6 +11,9 @@ class ABCCLASSCLASS{
     int a1 = 0;
     print(a1);
   }
+  void printa(){
+    print("ABC");
+  }
   int a;
 };
 
@@ -18,7 +21,9 @@ class ABCCLASSCLASS{
 
 ABCCLASSCLASS abc_t;
 
-abc_t.a = 1;
+auto var_1 = abc_t.a;
+
+print(var_1);
 
 //
 /*auto test_func(auto a,auto b){
