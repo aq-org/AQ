@@ -8,13 +8,17 @@ a:
 print("a");*/
 class ABCCLASSCLASS{
   void ABCCLASSCLASS(){
-    //print("ABC Class Create.");
+    int a1 = 0;
+    print(a1);
   }
+  int a;
 };
 
 //ABC::ABCS();
 
 ABCCLASSCLASS abc_t;
+
+abc_t.a = 1;
 
 //
 /*auto test_func(auto a,auto b){
