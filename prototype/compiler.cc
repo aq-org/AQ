@@ -5582,7 +5582,7 @@ class BytecodeGenerator {
   std::size_t HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   std::size_t HandleClassVarDecl(
       ClassMemory& memory,
-      std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
+      std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>&
           var_decl_map,
       VarDeclNode* var_decl, std::vector<Bytecode>& code);
   std::size_t HandleArrayDecl(ArrayDeclNode* array_decl,
@@ -8254,6 +8254,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
   current_class_->GetMemory().AddUint64t(class_decl->GetMembers().size() + 2);
 
   for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
+    std::cout << "Handle var in HandleClassDecl" << std::endl;
     if (class_decl->GetMembers()[i]->GetType() ==
         StmtNode::StmtType::kVarDecl) {
       HandleClassVarDecl(
@@ -8510,7 +8511,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 
 std::size_t BytecodeGenerator::HandleClassVarDecl(
     ClassMemory& memory,
-    std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
+    std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>&
         var_decl_map,
     VarDeclNode* var_decl, std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
@@ -8529,6 +8530,9 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
   }
 
   // TODO(Class)
+
+  std::cout << "HandleClassVarDecl: "
+            << static_cast<std::string>(*var_decl->GetName()) << std::endl;
 
   if (var_decl->GetValue()[0] == nullptr) {
     std::size_t var_index = memory.AddWithType(vm_type);
@@ -8552,7 +8556,11 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
         std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
     return var_index;
   } else {
-    std::size_t var_index = memory.AddWithType(vm_type);
+    std::size_t original_var_index = memory.AddWithType(vm_type);
+    std::size_t var_index = global_memory_.AddWithType(vm_type);
+    code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, var_index, 0,
+                            original_var_index));
+
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference) {
       std::vector<uint8_t> value_ptr = vm_type;
@@ -8986,9 +8994,15 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         ")",
         "expr is nullptr.");
 
+  std::cout << "HandleBinaryExpr RUNNING" << std::endl;
+
   ExprNode* right_expr = expr->GetRightExpr();
   ExprNode* left_expr = expr->GetLeftExpr();
-  std::size_t right = HandleExpr(right_expr, code);
+  std::size_t right = 0;
+  if (expr->GetOperator() != BinaryNode::Operator::kMember &&
+      expr->GetOperator() != BinaryNode::Operator::kArrow) {
+    right = HandleExpr(right_expr, code);
+  }
   std::size_t left = HandleExpr(left_expr, code);
   // uint8_t right_type = GetExprVmType(right_expr);
   // uint8_t left_type = GetExprVmType(left_expr);
@@ -9228,7 +9242,10 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         return return_value_index;
       } else if (expr->GetRightExpr()->GetType() ==
                  StmtNode::StmtType::kIdentifier) {
-        std::cout << "Point A" << std::endl;
+        std::cout << "Point A1" << std::endl;
+        std::cout << (std::string)(
+                         *dynamic_cast<IdentifierNode*>(expr->GetRightExpr()))
+                  << std::endl;
         std::size_t index = 0;
         if (class_decl_map_[expr_type_string] != nullptr &&
             class_decl_map_[expr_type_string]->GetVar(
@@ -9242,6 +9259,9 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
           return return_index;
         } else {
+          std::cout << (std::string)(
+                           *dynamic_cast<IdentifierNode*>(expr->GetRightExpr()))
+                    << std::endl;
           EXIT_COMPILER(
               "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
               "Bytecode>&)",

@@ -7,21 +7,22 @@ goto a;
 a:
 print("a");*/
 class ABCCLASSCLASS{
+  class ABC{};
+  int a;
   void ABCCLASSCLASS(){
     int a1 = 0;
     print(a1);
   }
-  void printa(){
+  /*void printa(){
     print("ABC");
-  }
-  int a;
+  }*/
 };
 
 //ABC::ABCS();
 
 ABCCLASSCLASS abc_t;
 
-auto var_1 = abc_t.a+0;
+auto var_1 = abc_t.a;
 
 print(var_1);
 
