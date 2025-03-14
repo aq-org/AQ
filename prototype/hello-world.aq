@@ -7,11 +7,12 @@ goto a;
 a:
 print("a");*/
 class ABCCLASSCLASS{
-  class ABC{};
+  //class ABC{};
   int a;
   void ABCCLASSCLASS(){
-    int a1 = 0;
-    print(a1);
+    //int a1 = 0;
+    //a =8;
+    //print(a1);
   }
   /*void printa(){
     print("ABC");
@@ -24,7 +25,7 @@ ABCCLASSCLASS abc_t;
 
 auto var_1 = abc_t.a;
 
-print(var_1);
+//print(var_1);
 
 //
 /*auto test_func(auto a,auto b){

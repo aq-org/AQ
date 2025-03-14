@@ -8465,9 +8465,17 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
               "Function not found.");
       }
 
+      std::size_t var_index_ptr = global_memory_.Add(1);
+      std::size_t var_index_reference = global_memory_.Add(1);
+
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_PTR, 2, var_index, var_index_ptr));
+      global_code_.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2,
+                                      var_index_reference, var_index_ptr));
+
       code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3,
                               global_memory_.AddString(func_name), 1,
-                              var_index));
+                              var_index_reference));
     }
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference) {
