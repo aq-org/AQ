@@ -3913,11 +3913,14 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
         case Token::OperatorType::period:  // .
           if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
-            binary_node->SetBinaryNode(
-                BinaryNode::Operator::kMember, main_expr,
-                ParsePrimaryExpr(token, length, ++index));
+            index++;
+            IdentifierNode* identifier_node = new IdentifierNode();
+            identifier_node->SetIdentifierNode(token[index]);
+            index++;
+            binary_node->SetBinaryNode(BinaryNode::Operator::kMember, main_expr,
+                                       identifier_node);
             if (full_expr == main_expr) {
-              std::cout<<"Point B"<<std::endl;
+              std::cout << "Point B" << std::endl;
               full_expr = main_expr = binary_node;
             } else {
               if (preoper_expr != nullptr) {
@@ -3941,9 +3944,13 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
         case Token::OperatorType::arrow:  // ->
           if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
-            binary_node->SetBinaryNode(
-                BinaryNode::Operator::kArrow, main_expr,
-                ParsePrimaryExpr(token, length, ++index));
+            index++;
+            IdentifierNode* identifier_node = new IdentifierNode();
+            identifier_node->SetIdentifierNode(token[index]);
+            index++;
+            binary_node->SetBinaryNode(BinaryNode::Operator::kArrow, main_expr,
+                                       identifier_node);
+
             if (full_expr == main_expr) {
               full_expr = main_expr = binary_node;
             } else {
@@ -8835,7 +8842,7 @@ std::size_t BytecodeGenerator::HandleExpr(ExprNode* expr,
       expr->GetType() == StmtNode::StmtType::kArray) {
     return HandleUnaryExpr(dynamic_cast<UnaryNode*>(expr), code);
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
-    return HandleBinaryExpr(static_cast<BinaryNode*>(expr), code);
+    return HandleBinaryExpr(dynamic_cast<BinaryNode*>(expr), code);
   }
 
   return GetIndex(expr, code);
@@ -9173,7 +9180,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       }*/
       return left;
     case BinaryNode::Operator::kMember: {
-      std::cout<<"Point A"<<std::endl;
+      std::cout << "Point A" << std::endl;
       std::string expr_type_string = GetExprTypeString(expr->GetLeftExpr());
 
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
@@ -9191,7 +9198,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       }
 
       if (expr->GetRightExpr()->GetType() == StmtNode::StmtType::kFunc) {
-        std::cout<<"Point A"<<std::endl;
+        std::cout << "Point A" << std::endl;
         std::string func_name =
             (std::string) *
             dynamic_cast<IdentifierNode*>(
@@ -9221,7 +9228,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         return return_value_index;
       } else if (expr->GetRightExpr()->GetType() ==
                  StmtNode::StmtType::kIdentifier) {
-                  std::cout<<"Point A"<<std::endl;
+        std::cout << "Point A" << std::endl;
         std::size_t index = 0;
         if (class_decl_map_[expr_type_string] != nullptr &&
             class_decl_map_[expr_type_string]->GetVar(

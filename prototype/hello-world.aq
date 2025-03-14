@@ -21,7 +21,7 @@ class ABCCLASSCLASS{
 
 ABCCLASSCLASS abc_t;
 
-auto var_1 = abc_t.a;
+auto var_1 = abc_t.a+0;
 
 print(var_1);
 
