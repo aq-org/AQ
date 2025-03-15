@@ -8138,11 +8138,11 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
   }
 
   code.push_back(Bytecode(
-      _AQVM_OPERATOR_NEW, 2, return_value_reference_index,
+      _AQVM_OPERATOR_NEW, 2, return_value_index,
       global_memory_.AddUint64t(current_class_->GetMemory().GetMemorySize())));
   std::size_t vm_func_str_index = global_memory_.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, vm_func_str_index,
-                          return_value_reference_index, 0));
+                          return_value_index, 0));
   code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, vm_func_str_index,
                           global_memory_.AddString(current_class_->GetName())));
 
@@ -8157,7 +8157,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
   }
 
   std::vector<std::size_t> invoke_class_args;
-  invoke_class_args.push_back(return_value_reference_index);
+  invoke_class_args.push_back(return_value_index);
   invoke_class_args.push_back(global_memory_.AddString(original_func_name));
   invoke_class_args.push_back(1);
   invoke_class_args.push_back(global_memory_.Add(1));
@@ -8410,9 +8410,11 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
               "Function not found.");
       }
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3,
-                              global_memory_.AddString(func_name), 1,
-                              var_index));
+      std::vector<std::size_t> invoke_args;
+      invoke_args.push_back(global_memory_.AddString(func_name));
+      invoke_args.push_back(1);
+      invoke_args.push_back(var_index);
+      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_args));
     }
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
       EXIT_COMPILER(
@@ -8473,9 +8475,11 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       global_code_.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2,
                                       var_index_reference, var_index_ptr));
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, 3,
-                              global_memory_.AddString(func_name), 1,
-                              var_index_reference));
+      std::vector<std::size_t> invoke_args;
+      invoke_args.push_back(global_memory_.AddString(func_name));
+      invoke_args.push_back(1);
+      invoke_args.push_back(var_index_reference);
+      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_args));
     }
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference) {
