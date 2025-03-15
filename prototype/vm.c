@@ -1213,19 +1213,21 @@ void SetReferenceData(size_t index, struct Object* object) {
             "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  // while (data->type[0] == 0x07) data = data->data.reference_data;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
 
   if (object_table[index].const_type && object_table[index].type[0] != 0x07)
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
             "Cannot change const type.");
 
   if (object == NULL) {
-    data->type[0] = 0x07;
-    data->data.reference_data = object;
+    EXIT_VM("SetReferenceData(size_t,struct Object*)",
+            "object is NULL.");
+    //data->type[0] = 0x07;
+    //data->data.reference_data = object;
     return;
   }
 
-  while (object->type[0] == 0x07) object = object->data.reference_data;
+  // while (object->type[0] == 0x07) object = object->data.reference_data;
 
   if (!data->const_type) {
     data->type[0] = 0x07;
@@ -1393,8 +1395,9 @@ void SetObjectData(size_t index, struct Object* object) {
             "Cannot change const type.");
 
   if (object == NULL) {
-    data->type[0] = 0x09;
-    data->data.object_data = object;
+    EXIT_VM("SetObjectData(size_t,struct Object*)", "object is NULL.");
+    //data->type[0] = 0x09;
+    //data->data.object_data = object;
     return;
   }
 
@@ -1510,9 +1513,10 @@ size_t* GetUnknownCountParamentForClass(void** ptr) {
   *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, &return_value));
 
   size_t* args = malloc((arg_count + 4) * sizeof(size_t));
-  args[0] = func;
-  args[1] = arg_count;
-  args[2] = return_value;
+  args[0] = class;
+  args[1] = func;
+  args[2] = arg_count;
+  args[3] = return_value;
 
   for (size_t i = 4; i < arg_count + 3; i++) {
     *ptr = (void*)((uintptr_t)*ptr + DecodeUleb128(*ptr, args + i));
@@ -1611,8 +1615,20 @@ int NEW(size_t ptr, size_t size) {
     EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
 
   size_t size_value = GetUint64tData(size);
-  void* data = calloc(size_value, sizeof(struct Object));
-  if (object_table[ptr].type[0] == 0x09) {
+  struct Object* data = calloc(size_value, sizeof(struct Object));
+  AddFreePtr(data);
+
+  for (size_t i = 0; i < size_value; i++) {
+    uint8_t* type = calloc(1, sizeof(uint8_t));
+    data[i].type = type;
+    data[i].const_type = false;
+    AddFreePtr(type);
+  }
+
+  struct Object* original_object = object_table + ptr;
+  original_object = GetOriginData(original_object);
+
+  if (original_object->type[0] == 0x09) {
     SetObjectData(ptr, data);
   } else {
     SetPtrData(ptr, data);
@@ -2835,7 +2851,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);
   if (class_data == NULL || class_data->type[0] != 0x09)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
 
   /*struct Object* object_member_count = class_data->data.object_data + 1;
   object_member_count = GetOriginData(object_member_count);
@@ -2977,6 +2993,7 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
+  printf("Name: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -3305,7 +3322,7 @@ void* AddFunction(void* location) {
   struct Bytecode* bytecode = (struct Bytecode*)calloc(
       table->pair.second.commands_size, sizeof(struct Bytecode));
   // printf("commands_size: %zu", table->pair.second.commands_size);
-  printf("%zu\n",table->pair.second.commands_size);
+  printf("%zu\n", table->pair.second.commands_size);
   if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "calloc failed.");
   AddFreePtr(bytecode);
 
@@ -3501,13 +3518,15 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
   if (name == NULL)
     EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
             "Invalid func name.");
-  // printf("name: %s\n", name);
+  printf("Class: %s, Name: %s\n", class,name);
   const unsigned int class_hash = hash(class);
-  const struct ClassList* class_table = &class_table[class_hash];
-  while (class_table != NULL && class_table->class.name != NULL) {
-    if (strcmp(class_table->class.name, class) == 0) {
+  const struct ClassList* current_class_table = &class_table[class_hash];
+  while (current_class_table != NULL &&
+         current_class_table->class.name != NULL) {
+    if (strcmp(current_class_table->class.name, class) == 0) {
       const unsigned int name_hash = hash(name);
-      const struct FuncList* table = &class_table->class.methods[name_hash];
+      const struct FuncList* table =
+          &current_class_table->class.methods[name_hash];
       while (table != NULL && table->pair.first != NULL) {
         if (table->pair.first == NULL)
           EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
@@ -3534,7 +3553,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
         table = table->next;
       }
     }
-    class_table = class_table->next;
+    current_class_table = current_class_table->next;
   }
 
   /*const struct FuncList* table = &func_table[name_hash];
@@ -3628,9 +3647,13 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
                         size_t return_value, size_t* args) {
   TRACE_FUNCTION;
   struct Object* class_name_object = GetOriginData(object_table + class);
-  if (class_name_object != NULL && class_name_object->type[0] != 0x05)
-    EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid class name object.");
-  const char* class_name = GetStringData(class);
+  // struct Object* class_object = GetOriginData(object_table + class);
+  class_name_object = class_name_object->data.object_data;
+  class_name_object = GetOriginData(class_name_object);
+  if (class_name_object == NULL)
+    EXIT_VM("InvokeClassFunction(size_t,const char*,size_t,size_t,size_t*)",
+            "Invalid class name object.");
+  const char* class_name = class_name_object->data.string_data;
   FuncInfo func_info = GetClassFunction(class_name, name, args, args_size);
   if (args_size != func_info.args_size) {
     // printf("args_size: %zu\n", args_size);
@@ -3639,7 +3662,8 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
             "Invalid args_size.");
   }
   // printf("object: %zu , %zu", func_info.args[0], return_value);
-  object_table[func_info.args[0]] = object_table[return_value];
+  // TODO(Class): Fixed this bug about return value.
+  // object_table[func_info.args[0]] = object_table[return_value];
   func_info.args++;
   args_size--;
   for (size_t i = 0; i < args_size; i++) {
@@ -3766,6 +3790,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   }
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   object_table[func_info.args[0]] = object_table[return_value];
+  struct Object* return_object = object_table + func_info.args[0];
   func_info.args++;
   args_size--;
   for (size_t i = 0; i < args_size; i++) {
