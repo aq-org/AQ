@@ -8599,7 +8599,7 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
     return var_index;
   } else {
     std::size_t original_var_index = memory.AddWithType(vm_type);
-    std::size_t var_index = global_memory_.AddWithType(vm_type);
+    std::size_t var_index = global_memory_.Add(1);
     code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, var_index, 0,
                             original_var_index));
 
@@ -8635,8 +8635,8 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
     }
     var_decl_map.emplace(
         static_cast<std::string>(*var_decl->GetName()),
-        std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
-    return var_index;
+        std::pair<VarDeclNode*, std::size_t>(var_decl, original_var_index));
+    return original_var_index;
   }
 }
 

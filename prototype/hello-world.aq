@@ -8,10 +8,10 @@ a:
 print("a");*/
 class ABCCLASSCLASS{
   //class ABC{};
-  int a ;
+  int a=0 ;
   void ABCCLASSCLASS(){
     //int a1 = 0;
-    a =8;
+    //a =8;
     //print(a1);
   }
   void printa(){
