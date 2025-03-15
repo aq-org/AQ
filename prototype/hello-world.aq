@@ -25,7 +25,7 @@ ABCCLASSCLASS abc_t;
 
 //abc_t.a = 1;
 
-// abc_t.printa();
+abc_t.printa();
 
 auto var_1 = abc_t.a+1;
 

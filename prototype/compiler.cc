@@ -3786,7 +3786,6 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             }
             index++;
           } else if (state == State::kPostOper &&
-                     main_expr->GetType() == StmtNode::StmtType::kIdentifier &&
                      token[index - 1].type == Token::Type::IDENTIFIER) {
             std::vector<ExprNode*> args;
             index++;
@@ -3807,19 +3806,33 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             }
             index++;
             FuncNode* func_node = new FuncNode();
-            func_node->SetFuncNode(main_expr, args);
-            if (full_expr == nullptr || preoper_expr == nullptr) {
-              full_expr = main_expr = func_node;
+            if (main_expr != nullptr &&
+                main_expr->GetType() == StmtNode::StmtType::kBinary) {
+              func_node->SetFuncNode(
+                  dynamic_cast<BinaryNode*>(main_expr)->GetRightExpr(), args);
+              dynamic_cast<BinaryNode*>(main_expr)->SetBinaryNode(
+                  dynamic_cast<BinaryNode*>(main_expr)->GetOperator(),
+                  dynamic_cast<BinaryNode*>(main_expr)->GetLeftExpr(),
+                  func_node);
+
             } else {
-              if (preoper_expr != nullptr) {
-                UnaryNode* unary_node = dynamic_cast<UnaryNode*>(preoper_expr);
-                if (unary_node == nullptr) {
-                  return nullptr;
+              func_node->SetFuncNode(main_expr, args);
+              if (full_expr == nullptr || preoper_expr == nullptr) {
+                full_expr = main_expr = func_node;
+              } else {
+                if (preoper_expr != nullptr) {
+                  UnaryNode* unary_node =
+                      dynamic_cast<UnaryNode*>(preoper_expr);
+                  if (unary_node == nullptr) {
+                    return nullptr;
+                  }
+                  unary_node->SetUnaryNode(unary_node->GetOperator(),
+                                           func_node);
                 }
-                unary_node->SetUnaryNode(unary_node->GetOperator(), func_node);
+                main_expr = func_node;
               }
-              main_expr = func_node;
             }
+
           } else {
             state = State::kEnd;
           }
@@ -3936,14 +3949,17 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               }
             }
             if (token[index + 1].type != Token::Type::OPERATOR ||
-              (token[index + 1].value._operator !=
-                   Token::OperatorType::coloncolon &&
-               token[index + 1].value._operator != Token::OperatorType::arrow &&
-               token[index + 1].value._operator !=
-                   Token::OperatorType::periodstar &&
-               token[index + 1].value._operator != Token::OperatorType::arrowstar &&
-               token[index + 1].value._operator != Token::OperatorType::period))
-            state = State::kPostOper;
+                (token[index + 1].value._operator !=
+                     Token::OperatorType::coloncolon &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::arrow &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::periodstar &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::arrowstar &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::period))
+              state = State::kPostOper;
           } else {
             EXIT_COMPILER(
                 "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
@@ -3976,14 +3992,17 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               }
             }
             if (token[index + 1].type != Token::Type::OPERATOR ||
-              (token[index + 1].value._operator !=
-                   Token::OperatorType::coloncolon &&
-               token[index + 1].value._operator != Token::OperatorType::arrow &&
-               token[index + 1].value._operator !=
-                   Token::OperatorType::periodstar &&
-               token[index + 1].value._operator != Token::OperatorType::arrowstar &&
-               token[index + 1].value._operator != Token::OperatorType::period))
-            state = State::kPostOper;
+                (token[index + 1].value._operator !=
+                     Token::OperatorType::coloncolon &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::arrow &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::periodstar &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::arrowstar &&
+                 token[index + 1].value._operator !=
+                     Token::OperatorType::period))
+              state = State::kPostOper;
           } else {
             EXIT_COMPILER(
                 "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
@@ -4177,7 +4196,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
       }
 
       case Token::OperatorType::plus: {
-        std::cout<<"plus BinaryNode"<<std::endl;
+        std::cout << "plus BinaryNode" << std::endl;
         BinaryNode* plus_node = new BinaryNode();
         index++;
         plus_node->SetBinaryNode(
@@ -8269,7 +8288,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
                   "Has same name class.");
   class_decl_map_.emplace(class_name, current_class);
 
-  current_class->GetMemory().AddString(std::string(class_decl->GetName()));
+  current_class->GetMemory().AddString(std::string(class_name));
   current_class->GetMemory().AddUint64t(class_decl->GetMembers().size() + 2);
 
   for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
@@ -8441,8 +8460,6 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       invoke_args.push_back(global_memory_.AddString(func_name));
       invoke_args.push_back(1);
       invoke_args.push_back(var_index_reference);
-
-
 
       code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_args));
     }
