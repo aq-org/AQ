@@ -3935,6 +3935,15 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     "Before period isn't main node.");
               }
             }
+            if (token[index + 1].type != Token::Type::OPERATOR ||
+              (token[index + 1].value._operator !=
+                   Token::OperatorType::coloncolon &&
+               token[index + 1].value._operator != Token::OperatorType::arrow &&
+               token[index + 1].value._operator !=
+                   Token::OperatorType::periodstar &&
+               token[index + 1].value._operator != Token::OperatorType::arrowstar &&
+               token[index + 1].value._operator != Token::OperatorType::period))
+            state = State::kPostOper;
           } else {
             EXIT_COMPILER(
                 "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
@@ -3966,6 +3975,15 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                     "Before period isn't main node.");
               }
             }
+            if (token[index + 1].type != Token::Type::OPERATOR ||
+              (token[index + 1].value._operator !=
+                   Token::OperatorType::coloncolon &&
+               token[index + 1].value._operator != Token::OperatorType::arrow &&
+               token[index + 1].value._operator !=
+                   Token::OperatorType::periodstar &&
+               token[index + 1].value._operator != Token::OperatorType::arrowstar &&
+               token[index + 1].value._operator != Token::OperatorType::period))
+            state = State::kPostOper;
           } else {
             EXIT_COMPILER(
                 "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
@@ -4159,6 +4177,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
       }
 
       case Token::OperatorType::plus: {
+        std::cout<<"plus BinaryNode"<<std::endl;
         BinaryNode* plus_node = new BinaryNode();
         index++;
         plus_node->SetBinaryNode(
@@ -8094,11 +8113,11 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
       scope_name + "#!return",
       std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
-  std::size_t return_value_reference_index = global_memory_.Add(1);
+  /*std::size_t return_value_reference_index = global_memory_.Add(1);
   var_decl_map_.emplace(scope_name + "#!return_reference",
                         std::pair<VarDeclNode*, std::size_t>(
-                            nullptr, return_value_reference_index));
-  args_index.push_back(return_value_reference_index);
+                            nullptr, return_value_reference_index));*/
+  args_index.push_back(return_value_index);
 
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
@@ -8242,16 +8261,16 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
   current_class->SetClass(class_decl);
   current_class_ = current_class;
 
-  current_class_->GetMemory().SetCode(&current_class_->GetCode());
-  current_class_->GetMemory().SetGlobalMemory(&global_memory_);
+  current_class->GetMemory().SetCode(&current_class->GetCode());
+  current_class->GetMemory().SetGlobalMemory(&global_memory_);
 
   if (class_decl_map_.find(class_name) != class_decl_map_.end())
     EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
                   "Has same name class.");
   class_decl_map_.emplace(class_name, current_class);
 
-  current_class_->GetMemory().AddString(std::string(class_decl->GetName()));
-  current_class_->GetMemory().AddUint64t(class_decl->GetMembers().size() + 2);
+  current_class->GetMemory().AddString(std::string(class_decl->GetName()));
+  current_class->GetMemory().AddUint64t(class_decl->GetMembers().size() + 2);
 
   for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
     std::cout << "Handle var in HandleClassDecl" << std::endl;
@@ -8410,10 +8429,21 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
               "Function not found.");
       }
 
+      std::size_t var_index_ptr = global_memory_.Add(1);
+      std::size_t var_index_reference = global_memory_.Add(1);
+
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_PTR, 2, var_index, var_index_ptr));
+      global_code_.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2,
+                                      var_index_reference, var_index_ptr));
+
       std::vector<std::size_t> invoke_args;
       invoke_args.push_back(global_memory_.AddString(func_name));
       invoke_args.push_back(1);
-      invoke_args.push_back(var_index);
+      invoke_args.push_back(var_index_reference);
+
+
+
       code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_args));
     }
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {

@@ -1220,8 +1220,10 @@ void SetReferenceData(size_t index, struct Object* object) {
             "Cannot change const type.");
 
   if (object == NULL) {
-    data->type[0] = 0x07;
-    data->data.reference_data = object;
+    EXIT_VM("SetReferenceData(size_t,struct Object*)",
+            "object is NULL.");
+    //data->type[0] = 0x07;
+    //data->data.reference_data = object;
     return;
   }
 
@@ -1393,8 +1395,9 @@ void SetObjectData(size_t index, struct Object* object) {
             "Cannot change const type.");
 
   if (object == NULL) {
-    data->type[0] = 0x09;
-    data->data.object_data = object;
+    EXIT_VM("SetObjectData(size_t,struct Object*)", "object is NULL.");
+    //data->type[0] = 0x09;
+    //data->data.object_data = object;
     return;
   }
 
@@ -1622,7 +1625,10 @@ int NEW(size_t ptr, size_t size) {
     AddFreePtr(type);
   }
 
-  if (object_table[ptr].type[0] == 0x09) {
+  struct Object* original_object = object_table + ptr;
+  original_object = GetOriginData(original_object);
+
+  if (original_object->type[0] == 0x09) {
     SetObjectData(ptr, data);
   } else {
     SetPtrData(ptr, data);
@@ -3783,6 +3789,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   }
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   object_table[func_info.args[0]] = object_table[return_value];
+  struct Object* return_object = object_table + func_info.args[0];
   func_info.args++;
   args_size--;
   for (size_t i = 0; i < args_size; i++) {
