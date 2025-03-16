@@ -485,6 +485,75 @@ int8_t GetByteData(size_t index) {
   return -1;
 }
 
+int8_t GetByteObjectData(struct Object* data) {
+  TRACE_FUNCTION;
+  if (data==NULL)
+    EXIT_VM("GetByteObjectData(struct Object*)", "data is NULL.");
+  switch (data->type[0]) {
+    case 0x01:
+      return data->data.byte_data;
+    case 0x02:
+      return data->data.long_data;
+    case 0x03:
+      return data->data.double_data;
+    case 0x04:
+      return data->data.uint64t_data;
+    case 0x07: {
+      struct Object reference_data = *data->data.reference_data;
+      while (true) {
+        switch (reference_data.type[0]) {
+          case 0x01:
+            return reference_data.data.byte_data;
+          case 0x02:
+            return reference_data.data.long_data;
+          case 0x03:
+            return reference_data.data.double_data;
+          case 0x04:
+            return reference_data.data.uint64t_data;
+          case 0x07:
+            reference_data = *reference_data.data.reference_data;
+            break;
+          case 0x08:
+            reference_data = *reference_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetByteObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+    case 0x08: {
+      struct Object const_data = *data->data.const_data;
+      while (true) {
+        switch (const_data.type[0]) {
+          case 0x01:
+            return const_data.data.byte_data;
+          case 0x02:
+            return const_data.data.long_data;
+          case 0x03:
+            return const_data.data.double_data;
+          case 0x04:
+            return const_data.data.uint64t_data;
+          case 0x07:
+            const_data = *const_data.data.reference_data;
+            break;
+          case 0x08:
+            const_data = *const_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetByteObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+    default:
+      EXIT_VM("GetByteObjectData(struct Object*)", "Invalid type.");
+      break;
+  }
+  return -1;
+}
+
+
 /*int GetIntData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type[0]) {
@@ -1607,7 +1676,7 @@ int STORE(size_t ptr, size_t operand) {
   }
   return 0;
 }
-int NEW(size_t ptr, size_t size) {
+int NEW(size_t ptr, size_t size,size_t type) {
   TRACE_FUNCTION;
   if (ptr >= object_table_size)
     EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
@@ -1618,12 +1687,33 @@ int NEW(size_t ptr, size_t size) {
   struct Object* data = calloc(size_value, sizeof(struct Object));
   AddFreePtr(data);
 
+  if(type==0){    for (size_t i = 0; i < size_value; i++) {
+    uint8_t* type = calloc(1, sizeof(uint8_t));
+    data[i].type = 0x00;
+    data[i].const_type = false;
+    AddFreePtr(type);
+  }}else{
+  struct Object* type_data = object_table + type;
+  type_data = GetOriginData(type_data);
+
+  if(type_data->type[0] == 0x06){
+  struct Object* current_type = type_data->data.ptr_data;
+    for (size_t i = 0; i < size_value; i++) {
+    uint8_t* type = calloc(1, sizeof(uint8_t));
+    data[i].type = GetByteObjectData(current_type);
+    data[i].const_type = false;
+    AddFreePtr(type);
+    current_type++;
+  }
+}else{
   for (size_t i = 0; i < size_value; i++) {
     uint8_t* type = calloc(1, sizeof(uint8_t));
-    data[i].type = type;
+    data[i].type = GetByteData(type);
     data[i].const_type = false;
     AddFreePtr(type);
   }
+}
+}
 
   struct Object* original_object = object_table + ptr;
   original_object = GetOriginData(original_object);
@@ -3043,9 +3133,9 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
         break;
 
       case OPERATOR_NEW:
-        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
         location =
-            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+            Get3Parament(location, bytecode[i].args, bytecode[i].args + 1,bytecode[i].args + 2);
         break;
 
       case OPERATOR_FREE:
@@ -3349,9 +3439,9 @@ void* AddFunction(void* location) {
         break;
 
       case OPERATOR_NEW:
-        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
         location =
-            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+            Get3Parament(location, bytecode[i].args, bytecode[i].args + 1,bytecode[i].args + 2);
         break;
 
       case OPERATOR_FREE:
@@ -3683,7 +3773,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
         STORE(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x03:
-        NEW(run_code[i].args[0], run_code[i].args[1]);
+        NEW(run_code[i].args[0], run_code[i].args[1],run_code[i].args[2]);
         break;
       case 0x04:
         FREE(run_code[i].args[0]);
@@ -3810,7 +3900,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         STORE(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x03:
-        NEW(run_code[i].args[0], run_code[i].args[1]);
+        NEW(run_code[i].args[0], run_code[i].args[1],run_code[i].args[2]);
         break;
       case 0x04:
         FREE(run_code[i].args[0]);

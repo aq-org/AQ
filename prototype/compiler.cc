@@ -8175,6 +8175,8 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
     }
   }
 
+  for(std::size_t i = 0;i<current_class_->GetMemory()){}
+
   code.push_back(Bytecode(
       _AQVM_OPERATOR_NEW, 2, return_value_index,
       global_memory_.AddUint64t(current_class_->GetMemory().GetMemorySize())));
