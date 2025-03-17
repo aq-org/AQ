@@ -11,7 +11,6 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <ratio>
 #include <stack>
 #include <stdexcept>
 #include <string>

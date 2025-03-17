@@ -23,7 +23,7 @@ class ABCCLASSCLASS{
 
 ABCCLASSCLASS abc_t;
 
-//abc_t.a = 1;
+abc_t.a = 21.1;
 
 abc_t.printa();
 

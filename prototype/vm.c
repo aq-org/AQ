@@ -1012,6 +1012,11 @@ struct Object* GetOriginData(struct Object* object) {
   }
 }
 
+void SetByteData(size_t,int8_t);
+void SetLongData(size_t,int64_t);
+void SetDoubleData(size_t,double);
+void SetUint64tData(size_t,uint64_t);
+
 void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
@@ -1110,9 +1115,22 @@ void SetByteData(size_t index, int8_t value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type[0] != 0x01)
+  if (data->const_type && data->type[0] != 0x01){
+    switch(data->type[0]){
+      case 0x02:
+        SetLongData(index, value);
+        return;
+      case 0x03:
+        SetDoubleData(index, value);
+        return;
+      case 0x04:
+        SetUint64tData(index, value);
+        return;
+      default:
+        break;
+    }
     EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const type.");
-
+  }
   data->type[0] = 0x01;
   data->data.byte_data = value;
 }
@@ -1169,7 +1187,19 @@ void SetLongData(size_t index, int64_t value) {
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
   if (data->const_type && data->type[0] != 0x02) {
-    // printf("%zu,%i,%zu", index, data->type[0], value);
+    switch(data->type[0]){
+      case 0x01:
+        SetByteData(index, value);
+        return;
+      case 0x03:
+        SetDoubleData(index, value);
+        return;
+      case 0x04:
+        SetUint64tData(index, value);
+        return;
+      default:
+        break;
+    }
     EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
   }
   data->type[0] = 0x02;
@@ -1226,8 +1256,21 @@ void SetDoubleData(size_t index, double value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type[0] != 0x03)
-    EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
+  if (data->const_type && data->type[0] != 0x03){
+    switch(data->type[0]){
+      case 0x01:
+        SetByteData(index, value);
+        return;
+      case 0x02:
+        SetLongData(index, value);
+        return;
+      case 0x04:
+        SetUint64tData(index, value);
+        return;
+      default:
+        break;
+    }
+    EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");}
 
   data->type[0] = 0x03;
   data->data.double_data = value;
@@ -1243,8 +1286,21 @@ void SetUint64tData(size_t index, uint64_t value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type[0] != 0x04)
-    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
+  if (data->const_type && data->type[0] != 0x04){
+    switch(data->type[0]){
+      case 0x01:
+        SetByteData(index, value);
+        return;
+      case 0x02:
+        SetLongData(index, value);
+        return;
+      case 0x03:
+        SetDoubleData(index, value);
+        return;
+      default:
+        break;
+    }
+    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");}
 
   data->type[0] = 0x04;
   data->data.uint64t_data = value;
