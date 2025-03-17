@@ -1012,10 +1012,10 @@ struct Object* GetOriginData(struct Object* object) {
   }
 }
 
-void SetByteData(size_t,int8_t);
-void SetLongData(size_t,int64_t);
-void SetDoubleData(size_t,double);
-void SetUint64tData(size_t,uint64_t);
+void SetByteData(size_t, int8_t);
+void SetLongData(size_t, int64_t);
+void SetDoubleData(size_t, double);
+void SetUint64tData(size_t, uint64_t);
 
 void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
@@ -1115,8 +1115,8 @@ void SetByteData(size_t index, int8_t value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type[0] != 0x01){
-    switch(data->type[0]){
+  if (data->const_type && data->type[0] != 0x01) {
+    switch (data->type[0]) {
       case 0x02:
         SetLongData(index, value);
         return;
@@ -1187,7 +1187,7 @@ void SetLongData(size_t index, int64_t value) {
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
   if (data->const_type && data->type[0] != 0x02) {
-    switch(data->type[0]){
+    switch (data->type[0]) {
       case 0x01:
         SetByteData(index, value);
         return;
@@ -1256,8 +1256,8 @@ void SetDoubleData(size_t index, double value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type[0] != 0x03){
-    switch(data->type[0]){
+  if (data->const_type && data->type[0] != 0x03) {
+    switch (data->type[0]) {
       case 0x01:
         SetByteData(index, value);
         return;
@@ -1270,7 +1270,8 @@ void SetDoubleData(size_t index, double value) {
       default:
         break;
     }
-    EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");}
+    EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
+  }
 
   data->type[0] = 0x03;
   data->data.double_data = value;
@@ -1286,8 +1287,8 @@ void SetUint64tData(size_t index, uint64_t value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (data->const_type && data->type[0] != 0x04){
-    switch(data->type[0]){
+  if (data->const_type && data->type[0] != 0x04) {
+    switch (data->type[0]) {
       case 0x01:
         SetByteData(index, value);
         return;
@@ -1300,7 +1301,8 @@ void SetUint64tData(size_t index, uint64_t value) {
       default:
         break;
     }
-    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");}
+    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
+  }
 
   data->type[0] = 0x04;
   data->data.uint64t_data = value;
@@ -1866,7 +1868,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
   struct Object* original_object = object_table + ptr;
   original_object = GetOriginData(original_object);
 
-  if (original_object->type[0] == 0x09&&size_value==1) {
+  if (original_object->type[0] == 0x09 && size_value == 1) {
     SetObjectData(ptr, data->data.object_data);
   } else {
     SetPtrData(ptr, data);
@@ -2138,7 +2140,63 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
   operand1_data = GetOriginData(operand1_data);
   operand2_data = GetOriginData(operand2_data);
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
+  if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
+    EXIT_VM("DIV(size_t,size_t,size_t)", "Unsupported type.");
+  uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
+                            ? operand1_data->type[0]
+                            : operand2_data->type[0];
+
+  switch (result_type) {
+    case 0x01:
+      if (GetByteData(operand1) / GetByteData(operand2) > INT8_MAX ||
+          GetByteData(operand1) / GetByteData(operand2) < INT8_MIN) {
+        if (GetByteData(operand1) % GetByteData(operand2) == 0) {
+          SetLongData(result, GetByteData(operand1) / GetByteData(operand2));
+        } else {
+          SetDoubleData(result, (double)GetByteData(operand1) /
+                                    (double)GetByteData(operand2));
+        }
+      } else {
+        if (GetByteData(operand1) % GetByteData(operand2) == 0) {
+          SetByteData(result, GetByteData(operand1) / GetByteData(operand2));
+        } else {
+          SetDoubleData(result, (double)GetByteData(operand1) /
+                                    (double)GetByteData(operand2));
+        }
+      }
+      break;
+    case 0x02:
+      if (GetLongData(operand1) % GetLongData(operand2) == 0) {
+        SetLongData(result, GetLongData(operand1) / GetLongData(operand2));
+      } else {
+        SetDoubleData(result, (double)GetLongData(operand1) /
+                                  (double)GetLongData(operand2));
+      }
+      break;
+    case 0x03:
+      SetDoubleData(result, (double)GetDoubleData(operand1) /
+                                (double)GetDoubleData(operand2));
+      break;
+    case 0x04:
+      if (GetUint64tData(operand1) / GetUint64tData(operand2) > INT64_MAX) {
+        SetUint64tData(result,
+                       GetUint64tData(operand1) / GetUint64tData(operand2));
+      } else {
+        if (GetUint64tData(operand1) % GetUint64tData(operand2) == 0) {
+          SetLongData(result,
+                      GetUint64tData(operand1) / GetUint64tData(operand2));
+        } else {
+          SetDoubleData(result, (double)GetUint64tData(operand1) /
+                                    (double)GetUint64tData(operand2));
+        }
+      }
+      break;
+    default:
+      EXIT_VM("DIV(size_t,size_t,size_t)", "Unsupported type.");
+      break;
+  }
+
+  /*if (operand1_data->type[0] == operand2_data->type[0]) {
     switch (operand1_data->type[0]) {
       case 0x01:
         if (GetByteData(operand1) / GetByteData(operand2) > INT8_MAX ||
@@ -2185,7 +2243,7 @@ int DIV(size_t result, size_t operand1, size_t operand2) {
         EXIT_VM("DIV(size_t,size_t,size_t)", "Unsupported type.");
         break;
     }
-  }
+  }*/
   return 0;
 }
 int REM(size_t result, size_t operand1, size_t operand2) {

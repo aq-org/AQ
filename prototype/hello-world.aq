@@ -1,4 +1,7 @@
 int print(auto str);
+int printf(auto str){
+  print(str);
+}
 /*auto test_func(auto a){
   print("\n");
   return a;
@@ -48,5 +51,6 @@ auto main(){
   print(ref);
   print(test_func(1,10));
   print(test_func(1,10,"test"));*/
-  //return 0;
+  printf(1/1);
+  return 1/2;
 }

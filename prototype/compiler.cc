@@ -1599,6 +1599,8 @@ class Type {
 
   static Type* CreateType(Token* token, std::size_t length, std::size_t& index);
 
+  static Type* CreateDoubleType();
+
   std::vector<uint8_t> GetVmType();
 
   virtual std::size_t GetSize() {
@@ -2956,6 +2958,13 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
   EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                 "index is out of range.");
   return nullptr;
+}
+
+Type* Type::CreateDoubleType() {
+  TRACE_FUNCTION;
+  Type* type = new Type();
+  type->SetType(Type::BaseType::kDouble);
+  return type;
 }
 
 std::vector<uint8_t> Type::GetVmType() {
@@ -11705,6 +11714,11 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
   } else if (expr->GetType() == StmtNode::StmtType::kBinary) {
     Type* left = GetExprType(dynamic_cast<BinaryNode*>(expr)->GetLeftExpr());
     Type* right = GetExprType(dynamic_cast<BinaryNode*>(expr)->GetRightExpr());
+
+    if (dynamic_cast<BinaryNode*>(expr)->GetOperator() ==
+        BinaryNode::Operator::kDiv) {
+      return Type::CreateDoubleType();
+    }
 
     if (left->GetType() == Type::TypeType::kConst)
       left = dynamic_cast<ConstType*>(left)->GetSubType();
