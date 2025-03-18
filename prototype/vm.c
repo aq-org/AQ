@@ -13,7 +13,7 @@
 
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
-/*typedef struct StackNode {
+typedef struct StackNode {
   char* function_name;
   struct StackNode* next;
 } StackNode;
@@ -38,16 +38,16 @@ void PopStack() {
 
 void PrintStackRecursive(StackNode* node) {
   if (node == NULL) {
-    // printf("[INFO] Run: ");
+    printf("[INFO] Run: ");
     return;
   }
   PrintStackRecursive(node->next);
-  // printf("%s -> ", node->function_name);
+  printf("%s -> ", node->function_name);
 }
 
 void PrintStack() {
   PrintStackRecursive(call_stack);
-  // printf("Success\n");
+  printf("Success\n");
 }
 
 typedef struct Trace {
@@ -75,9 +75,9 @@ void TraceDestroy(Trace* trace) {
 
 #define TRACE_FUNCTION                                  \
   Trace _trace __attribute__((cleanup(TraceDestroy))) = \
-      TraceCreate(__FUNCTION__)*/
+      TraceCreate(__FUNCTION__)
 
-#define TRACE_FUNCTION
+//#define TRACE_FUNCTION
 
 union Data {
   int8_t byte_data;
@@ -1322,7 +1322,7 @@ void SetStringData(size_t index, const char* string) {
   }
 
   if (data->const_type && data->type[0] != 0x05) {
-    // printf("%zu,%i,%s", index, data->type[0], string);
+    printf("%zu,%i,%s", index, data->type[0], string);
     EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
   }
 
@@ -1552,6 +1552,223 @@ void SetObjectData(size_t index, struct Object* object) {
 
   data->data.object_data = object;
 }
+
+unsigned int hash(const char* str);
+
+void CopyObjectData(size_t index, struct Object* object) {
+  TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("CopyObjectData(size_t,struct Object*)", "Out of memory.");
+  if (object == NULL) {
+    EXIT_VM("CopyObjectData(size_t,struct Object*)", "object is NULL.");
+  }
+
+  struct Object* data = object_table + index;
+  while (data->type[0] == 0x07) data = data->data.reference_data;
+
+  if (data->const_type && data->type[0] != 0x09)
+    EXIT_VM("CopyObjectData(size_t,struct Object*)",
+            "Cannot change const type.");
+
+  if (data->const_type) {
+    if (data->data.object_data == NULL)
+      EXIT_VM("CopyObjectData(size_t,struct Object*)", "data object is NULL.");
+
+    if (data->data.object_data->type[0] != 0x05 || object->type[0] != 0x05)
+      EXIT_VM("CopyObjectData(size_t,struct Object*)", "Invalid name type.");
+
+    if (data->data.object_data->data.string_data == NULL ||
+        object->data.string_data == NULL)
+      EXIT_VM("CopyObjectData(size_t,struct Object*)", "Invalid name string.");
+
+    if (strcmp(data->data.object_data->data.string_data,
+               object->data.string_data) != 0)
+      EXIT_VM("CopyObjectData(size_t,struct Object*)", "Different name type.");
+
+    struct Object* new_data = data->data.object_data + 1;
+    struct Object* origin_data = object + 1;
+    size_t length = GetUint64tObjectData(origin_data) -1;
+    for (size_t i = 0; i < length; i++) {
+      new_data[i].const_type = origin_data[i].const_type;
+      uint8_t* location = origin_data[i].type;
+      size_t type_length = 1;
+      bool is_type_end = false;
+      while (!is_type_end) {
+        switch (*location) {
+          case 0x00:
+          case 0x01:
+          case 0x02:
+          case 0x03:
+          case 0x04:
+          case 0x05:
+          case 0x09:
+            is_type_end = true;
+            break;
+
+          case 0x06:
+          case 0x07:
+          case 0x08:
+            type_length++;
+            location++;
+            break;
+
+          default:
+            EXIT_VM("CopyObjectData(size_t,struct Object*)",
+                    "Unsupported type.");
+            break;
+        }
+      }
+
+      memcpy(new_data[i].type, origin_data[i].type, type_length);
+      new_data[i].data = origin_data[i].data;
+    }
+
+  } else {
+    struct Object* origin_data = object;
+    if (data->type[0] != 0x09 || data->data.object_data->type == NULL ||
+        data->data.object_data->type[0] != 0x05 ||
+        data->data.object_data == NULL ||
+        strcmp(data->data.object_data->data.string_data,
+               object->data.string_data) != 0) {
+      const char* type = object->data.string_data;
+      size_t size_value = GetUint64tObjectData(origin_data + 1);
+      origin_data = GetOriginData(origin_data);
+      if (origin_data->type[0] == 0x05) {
+        for (size_t i = 0; i < size_value; i++) {
+          uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+          data[i].type = type_ptr;
+          data[i].type[0] = 0x09;
+          data[i].const_type = true;
+          AddFreePtr(type_ptr);
+
+          struct Class* class_data = NULL;
+          const char* class = type;
+          const unsigned int class_hash = hash(class);
+          struct ClassList* current_class_table = &class_table[class_hash];
+          while (current_class_table != NULL &&
+                 current_class_table->class.name != NULL) {
+            if (strcmp(current_class_table->class.name, class) == 0) {
+              class_data = &current_class_table->class;
+              break;
+            }
+            current_class_table = current_class_table->next;
+          }
+
+          if (class_data == NULL) {
+            EXIT_VM("CopyObjectData(size_t,struct Object*)",
+                    "Class not found.");
+          }
+
+          struct Object* class_object =
+              calloc(class_data->members_size, sizeof(struct Object));
+          AddFreePtr(class_object);
+          for (size_t j = 0; j < class_data->members_size; j++) {
+            uint8_t* location = class_data->members[j].type;
+            size_t length = 1;
+            bool is_type_end = false;
+            while (!is_type_end) {
+              switch (*location) {
+                case 0x00:
+                case 0x01:
+                case 0x02:
+                case 0x03:
+                case 0x04:
+                case 0x05:
+                case 0x09:
+                  is_type_end = true;
+                  break;
+
+                case 0x06:
+                case 0x07:
+                case 0x08:
+                  length++;
+                  location++;
+                  break;
+
+                default:
+                  EXIT_VM("CopyObjectData(size_t,struct Object*)",
+                          "Unsupported type.");
+                  break;
+              }
+            }
+
+            class_object[j].type = calloc(length, sizeof(uint8_t));
+            AddFreePtr(class_object[j].type);
+            memcpy(class_object[j].type, class_data->members[j].type, length);
+            class_object[j].const_type = class_data->members[j].const_type;
+          }
+          class_object[0].const_type = true;
+          class_object[0].type[0] = 0x05;
+          class_object[0].data.string_data = class;
+          printf("Class Name NEW: %s\n", class_object[0].data.string_data);
+          class_object[1].const_type = true;
+          class_object[1].type[0] = 0x04;
+          class_object[1].data.uint64t_data = class_data->members_size;
+          data[i].data.object_data = class_object;
+        }
+      } else {
+        EXIT_VM("CopyObjectData(size_t,struct Object*)", "Invalid type.");
+      }
+
+    } else {
+      if (data->data.object_data == NULL)
+        EXIT_VM("CopyObjectData(size_t,struct Object*)",
+                "data object is NULL.");
+
+      if (data->data.object_data->type[0] != 0x05 || object->type[0] != 0x05)
+        EXIT_VM("CopyObjectData(size_t,struct Object*)", "Invalid name type.");
+
+      if (data->data.object_data->data.string_data == NULL ||
+          object->data.string_data == NULL)
+        EXIT_VM("CopyObjectData(size_t,struct Object*)",
+                "Invalid name string.");
+
+      if (strcmp(data->data.object_data->data.string_data,
+                 object->data.string_data) != 0)
+        EXIT_VM("CopyObjectData(size_t,struct Object*)",
+                "Different name type.");
+
+      struct Object* new_data = data->data.object_data + 1;
+      struct Object* origin_data = object + 1;
+      size_t length = GetUint64tObjectData(origin_data)-1;
+      for (size_t i = 0; i < length; i++) {
+        new_data[i].const_type = origin_data[i].const_type;
+        uint8_t* location = origin_data[i].type;
+        size_t type_length = 1;
+        bool is_type_end = false;
+        while (!is_type_end) {
+          switch (*location) {
+            case 0x00:
+            case 0x01:
+            case 0x02:
+            case 0x03:
+            case 0x04:
+            case 0x05:
+            case 0x09:
+              is_type_end = true;
+              break;
+
+            case 0x06:
+            case 0x07:
+            case 0x08:
+              type_length++;
+              location++;
+              break;
+
+            default:
+              EXIT_VM("CopyObjectData(size_t,struct Object*)",
+                      "Unsupported type.");
+              break;
+          }
+        }
+
+        memcpy(new_data[i].type, origin_data[i].type, type_length);
+        new_data[i].data = origin_data[i].data;
+      }
+    }
+  }
+}
+
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
   TRACE_FUNCTION;
   *result = 0;
@@ -1732,7 +1949,6 @@ int STORE(size_t ptr, size_t operand) {
   }
   return 0;
 }
-unsigned int hash(const char* str);
 int NEW(size_t ptr, size_t size, size_t type) {
   TRACE_FUNCTION;
   if (ptr >= object_table_size)
@@ -3021,7 +3237,7 @@ int EQUAL(size_t result, size_t value) {
       SetPtrData(result, GetPtrData(value));
       break;
     case 0x09:
-      SetObjectData(result, GetObjectData(value));
+      CopyObjectData(result, GetObjectData(value));
       break;
     default:
       // printf("value type: %d\n", value_data->type[0]);

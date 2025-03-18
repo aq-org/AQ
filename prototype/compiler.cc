@@ -8504,6 +8504,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     return var_index;
   } else {
     // std::cout << "Has Value" << std::endl;
+    std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kClass) {
       std::string func_name = (std::string)*var_decl->GetVarType() +
@@ -8539,8 +8540,8 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       invoke_args.push_back(1);
       invoke_args.push_back(var_index_reference);
       code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_args));
+      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
     }
-    std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference) {
       std::vector<uint8_t> value_ptr = vm_type;
       value_ptr.erase(value_ptr.begin());
