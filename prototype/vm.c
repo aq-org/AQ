@@ -13,7 +13,7 @@
 
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
-typedef struct StackNode {
+/*typedef struct StackNode {
   char* function_name;
   struct StackNode* next;
 } StackNode;
@@ -38,16 +38,16 @@ void PopStack() {
 
 void PrintStackRecursive(StackNode* node) {
   if (node == NULL) {
-    printf("[INFO] Run: ");
+    // printf("[INFO] Run: ");
     return;
   }
   PrintStackRecursive(node->next);
-  printf("%s -> ", node->function_name);
+  // printf("%s -> ", node->function_name);
 }
 
 void PrintStack() {
   PrintStackRecursive(call_stack);
-  printf("Success\n");
+  // printf("Success\n");
 }
 
 typedef struct Trace {
@@ -75,9 +75,9 @@ void TraceDestroy(Trace* trace) {
 
 #define TRACE_FUNCTION                                  \
   Trace _trace __attribute__((cleanup(TraceDestroy))) = \
-      TraceCreate(__FUNCTION__)
+      TraceCreate(__FUNCTION__)*/
 
-//#define TRACE_FUNCTION
+#define TRACE_FUNCTION
 
 union Data {
   int8_t byte_data;
@@ -122,7 +122,7 @@ enum Operator {
   OPERATOR_LOAD,
   OPERATOR_STORE,
   OPERATOR_NEW,
-  OPERATOR_FREE,
+  OPERATOR_ARRAY,
   OPERATOR_PTR,
   OPERATOR_ADD,
   OPERATOR_SUB,
@@ -1322,7 +1322,7 @@ void SetStringData(size_t index, const char* string) {
   }
 
   if (data->const_type && data->type[0] != 0x05) {
-    printf("%zu,%i,%s", index, data->type[0], string);
+    // printf("%zu,%i,%s", index, data->type[0], string);
     EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
   }
 
@@ -1553,9 +1553,7 @@ void SetObjectData(size_t index, struct Object* object) {
   data->data.object_data = object;
 }
 
-unsigned int hash(const char* str);
-
-void CopyObjectData(size_t index, struct Object* object) {
+/*void CopyObjectData(size_t index, struct Object* object) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
     EXIT_VM("CopyObjectData(size_t,struct Object*)", "Out of memory.");
@@ -1586,12 +1584,12 @@ void CopyObjectData(size_t index, struct Object* object) {
       EXIT_VM("CopyObjectData(size_t,struct Object*)", "Different name type.");
 
     struct Object* new_data = data->data.object_data + 1;
-    struct Object* origin_data = object + 1;
-    size_t length = GetUint64tObjectData(origin_data) -1;
+    struct Object* origin_data = object->data + 1;
+    size_t length = GetUint64tObjectData(origin_data);
     for (size_t i = 0; i < length; i++) {
-      new_data[i].const_type = origin_data[i].const_type;
+      new_data[i].const_type = origin_data[i].const_data;
       uint8_t* location = origin_data[i].type;
-      size_t type_length = 1;
+      size_t length = 1;
       bool is_type_end = false;
       while (!is_type_end) {
         switch (*location) {
@@ -1608,7 +1606,7 @@ void CopyObjectData(size_t index, struct Object* object) {
           case 0x06:
           case 0x07:
           case 0x08:
-            type_length++;
+            length++;
             location++;
             break;
 
@@ -1619,21 +1617,20 @@ void CopyObjectData(size_t index, struct Object* object) {
         }
       }
 
-      memcpy(new_data[i].type, origin_data[i].type, type_length);
+      memcpy(new_data[i].type, origin_data[i].type, length);
       new_data[i].data = origin_data[i].data;
     }
 
   } else {
-    struct Object* origin_data = object;
+    struct Object* origin_data = object->data + 1;
     if (data->type[0] != 0x09 || data->data.object_data->type == NULL ||
         data->data.object_data->type[0] != 0x05 ||
         data->data.object_data == NULL ||
         strcmp(data->data.object_data->data.string_data,
                object->data.string_data) != 0) {
-      const char* type = object->data.string_data;
-      size_t size_value = GetUint64tObjectData(origin_data + 1);
-      origin_data = GetOriginData(origin_data);
-      if (origin_data->type[0] == 0x05) {
+      struct Object* type_data = object_table + type;
+      type_data = GetOriginData(type_data);
+      if (type_data->type[0] == 0x05) {
         for (size_t i = 0; i < size_value; i++) {
           uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
           data[i].type = type_ptr;
@@ -1642,7 +1639,7 @@ void CopyObjectData(size_t index, struct Object* object) {
           AddFreePtr(type_ptr);
 
           struct Class* class_data = NULL;
-          const char* class = type;
+          const char* class = GetStringData(type);
           const unsigned int class_hash = hash(class);
           struct ClassList* current_class_table = &class_table[class_hash];
           while (current_class_table != NULL &&
@@ -1655,8 +1652,8 @@ void CopyObjectData(size_t index, struct Object* object) {
           }
 
           if (class_data == NULL) {
-            EXIT_VM("CopyObjectData(size_t,struct Object*)",
-                    "Class not found.");
+            EXIT_VM("CopyObjectData(size_t,struct Object*)", "Class not
+found.");
           }
 
           struct Object* class_object =
@@ -1686,9 +1683,8 @@ void CopyObjectData(size_t index, struct Object* object) {
                   break;
 
                 default:
-                  EXIT_VM("CopyObjectData(size_t,struct Object*)",
-                          "Unsupported type.");
-                  break;
+                  EXIT_VM("CopyObjectData(size_t,struct Object*)", "Unsupported
+type."); break;
               }
             }
 
@@ -1707,67 +1703,13 @@ void CopyObjectData(size_t index, struct Object* object) {
           data[i].data.object_data = class_object;
         }
       } else {
-        EXIT_VM("CopyObjectData(size_t,struct Object*)", "Invalid type.");
+        EXIT_VM("CopyObjectData(size_t,struct Object*)","Invalid type.");
       }
 
     } else {
-      if (data->data.object_data == NULL)
-        EXIT_VM("CopyObjectData(size_t,struct Object*)",
-                "data object is NULL.");
-
-      if (data->data.object_data->type[0] != 0x05 || object->type[0] != 0x05)
-        EXIT_VM("CopyObjectData(size_t,struct Object*)", "Invalid name type.");
-
-      if (data->data.object_data->data.string_data == NULL ||
-          object->data.string_data == NULL)
-        EXIT_VM("CopyObjectData(size_t,struct Object*)",
-                "Invalid name string.");
-
-      if (strcmp(data->data.object_data->data.string_data,
-                 object->data.string_data) != 0)
-        EXIT_VM("CopyObjectData(size_t,struct Object*)",
-                "Different name type.");
-
-      struct Object* new_data = data->data.object_data + 1;
-      struct Object* origin_data = object + 1;
-      size_t length = GetUint64tObjectData(origin_data)-1;
-      for (size_t i = 0; i < length; i++) {
-        new_data[i].const_type = origin_data[i].const_type;
-        uint8_t* location = origin_data[i].type;
-        size_t type_length = 1;
-        bool is_type_end = false;
-        while (!is_type_end) {
-          switch (*location) {
-            case 0x00:
-            case 0x01:
-            case 0x02:
-            case 0x03:
-            case 0x04:
-            case 0x05:
-            case 0x09:
-              is_type_end = true;
-              break;
-
-            case 0x06:
-            case 0x07:
-            case 0x08:
-              type_length++;
-              location++;
-              break;
-
-            default:
-              EXIT_VM("CopyObjectData(size_t,struct Object*)",
-                      "Unsupported type.");
-              break;
-          }
-        }
-
-        memcpy(new_data[i].type, origin_data[i].type, type_length);
-        new_data[i].data = origin_data[i].data;
-      }
     }
   }
-}
+}*/
 
 size_t DecodeUleb128(const uint8_t* input, size_t* result) {
   TRACE_FUNCTION;
@@ -1949,6 +1891,7 @@ int STORE(size_t ptr, size_t operand) {
   }
   return 0;
 }
+unsigned int hash(const char* str);
 int NEW(size_t ptr, size_t size, size_t type) {
   TRACE_FUNCTION;
   if (ptr >= object_table_size)
@@ -2092,8 +2035,21 @@ int NEW(size_t ptr, size_t size, size_t type) {
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
-int FREE(size_t ptr) {
-  free(GetPtrData(ptr));
+int ARRAY(size_t result, size_t ptr, size_t index) {
+  // free(GetPtrData(ptr));
+  struct Object* array_object = GetPtrData(ptr);
+
+  if (index >= GetUint64tObjectData(array_object)) {
+    // new_allocated = (size_t)newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6);
+  } else {
+    if ((array_object + 1 + ptr)->type == NULL) {
+      if ((array_object + 1)->const_type) {
+      } else {
+      }
+    }
+    SetReferenceData(result, array_object + 1 + index);
+  }
+
   return 0;
 }
 int PTR(size_t index, size_t ptr) {
@@ -3237,7 +3193,8 @@ int EQUAL(size_t result, size_t value) {
       SetPtrData(result, GetPtrData(value));
       break;
     case 0x09:
-      CopyObjectData(result, GetObjectData(value));
+      // CopyObjectData(result, GetObjectData(value));
+      SetObjectData(result, GetObjectData(value));
       break;
     default:
       // printf("value type: %d\n", value_data->type[0]);
@@ -3560,9 +3517,10 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
                                 bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
-      case OPERATOR_FREE:
-        bytecode[i].args = (size_t*)malloc(sizeof(size_t));
-        location = Get1Parament(location, bytecode[i].args);
+      case OPERATOR_ARRAY:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
       case OPERATOR_PTR:
@@ -3866,9 +3824,10 @@ void* AddFunction(void* location) {
                                 bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
-      case OPERATOR_FREE:
-        bytecode[i].args = (size_t*)malloc(sizeof(size_t));
-        location = Get1Parament(location, bytecode[i].args);
+      case OPERATOR_ARRAY:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
         break;
 
       case OPERATOR_PTR:
@@ -4198,7 +4157,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
         NEW(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x04:
-        FREE(run_code[i].args[0]);
+        ARRAY(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x05:
         PTR(run_code[i].args[0], run_code[i].args[1]);
@@ -4325,7 +4284,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         NEW(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x04:
-        FREE(run_code[i].args[0]);
+        ARRAY(run_code[i].args[0], run_code[i].args[1], run_code[i].args[2]);
         break;
       case 0x05:
         PTR(run_code[i].args[0], run_code[i].args[1]);

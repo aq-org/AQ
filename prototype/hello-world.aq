@@ -28,15 +28,20 @@ ABCCLASSCLASS abc_1;
 
 abc_1.a = 21.1;
 
+ABCCLASSCLASS abc_class_test(){
+  ABCCLASSCLASS abc_12;
+  return abc_12;
+}
+
 ABCCLASSCLASS* abc_p = & abc_1;
 
 ABCCLASSCLASS abc_t = *abc_p;
 
 // abc_t.printa();
 
-auto var_1 = *abc_p;
+auto var_1 = abc_class_test();
 
-//print(var_1);
+//print(var_1.a);
 
 //
 /*auto test_func(auto a,auto b){
@@ -57,5 +62,5 @@ auto main(){
   print(test_func(1,10,"test"));*/
   auto a =  1/1;
   //printf((double)a);
-  return 1/2;
+  //return 1/2;
 }

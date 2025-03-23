@@ -21,7 +21,7 @@
 #define _AQVM_OPERATOR_LOAD 0x01
 #define _AQVM_OPERATOR_STORE 0x02
 #define _AQVM_OPERATOR_NEW 0x03
-#define _AQVM_OPERATOR_FREE 0x04
+#define _AQVM_OPERATOR_ARRAY 0x04
 #define _AQVM_OPERATOR_PTR 0x05
 #define _AQVM_OPERATOR_ADD 0x06
 #define _AQVM_OPERATOR_SUB 0x07
@@ -400,60 +400,60 @@ struct Token {
   enum class OperatorType {
     // TODO: Add more operators.
     NONE = 0,
-    l_square,               //[
-    r_square,               //]
-    l_paren,                //(
-    r_paren,                //)
-    l_brace,                //{
-    r_brace,                //}
-    period,                 //.
-    ellipsis,               //...
-    amp,                    //&
-    ampamp,                 //&&
-    ampequal,               //&=
-    star,                   //*
-    starequal,              //*=
-    plus,                   //+
-    plusplus,               //++
-    plusequal,              //+=
-    minus,                  //-
-    arrow,                  //->
-    minusminus,             //--
-    minusequal,             //-=
-    tilde,                  //~
-    exclaim,                //!
-    exclaimequal,           //!=
-    slash,                  ///
-    slashequal,             ///=
-    percent,                //%
-    percentequal,           //%=
-    less,                   //<
-    lessless,               //<<
-    lessequal,              //<=
-    lesslessequal,          //<<=
-    spaceship,              //<=>
-    greater,                //>
-    greatergreater,         //>>
-    greaterequal,           //>=
-    greatergreaterequal,    //>>=
-    caret,                  //^
-    caretequal,             //^=
-    pipe,                   //|
-    pipepipe,               //||
-    pipeequal,              //|=
-    question,               //?
-    colon,                  //:
-    semi,                   //;
-    equal,                  //=
-    equalequal,             //==
-    comma,                  //,
-    hash,                   // #
-    hashhash,               // ##
-    hashat,                 // #@
-    periodstar,             //.*
-    arrowstar,              //->*
-    coloncolon,             //::
-    at,                     //@
+    l_square,   //[
+    r_square,   //]
+    l_paren,    //(
+    r_paren,    //)
+    l_brace,    //{
+    r_brace,    //}
+    period,     //.
+    ellipsis,   //...
+    amp,        //&
+    ampamp,     //&&
+    ampequal,   //&=
+    star,       //*
+    starequal,  //*=
+    plus,       //+
+    plusplus,   //++
+    plusequal,  //+=
+    minus,      //-
+    // arrow,                  //->
+    minusminus,           //--
+    minusequal,           //-=
+    tilde,                //~
+    exclaim,              //!
+    exclaimequal,         //!=
+    slash,                ///
+    slashequal,           ///=
+    percent,              //%
+    percentequal,         //%=
+    less,                 //<
+    lessless,             //<<
+    lessequal,            //<=
+    lesslessequal,        //<<=
+    spaceship,            //<=>
+    greater,              //>
+    greatergreater,       //>>
+    greaterequal,         //>=
+    greatergreaterequal,  //>>=
+    caret,                //^
+    caretequal,           //^=
+    pipe,                 //|
+    pipepipe,             //||
+    pipeequal,            //|=
+    question,             //?
+    colon,                //:
+    semi,                 //;
+    equal,                //=
+    equalequal,           //==
+    comma,                //,
+    // hash,                   // #
+    // hashhash,               // ##
+    // hashat,                 // #@
+    // periodstar,             //.*
+    // arrowstar,              //->*
+    // coloncolon,             //::
+    // at,                     //@
     lesslessless,           //<<<
     greatergreatergreater,  //>>>
     caretcaret,             //^^
@@ -789,8 +789,8 @@ struct Token {
         return "+=";
       case Token::OperatorType::minus:
         return "-";
-      case Token::OperatorType::arrow:
-        return "->";
+      /*case Token::OperatorType::arrow:
+        return "->";*/
       case Token::OperatorType::minusminus:
         return "--";
       case Token::OperatorType::minusequal:
@@ -849,7 +849,7 @@ struct Token {
         return "==";
       case Token::OperatorType::comma:
         return ",";
-      case Token::OperatorType::hash:
+      /*case Token::OperatorType::hash:
         return "#";
       case Token::OperatorType::hashhash:
         return "##";
@@ -862,7 +862,7 @@ struct Token {
       case Token::OperatorType::coloncolon:
         return "::";
       case Token::OperatorType::at:
-        return "@";
+        return "@";*/
       case Token::OperatorType::lesslessless:
         return "<<<";
       case Token::OperatorType::greatergreatergreater:
@@ -1006,7 +1006,7 @@ TokenMap::TokenMap() {
   operator_map.Insert("++", Token::OperatorType::plusplus);
   operator_map.Insert("+=", Token::OperatorType::plusequal);
   operator_map.Insert("-", Token::OperatorType::minus);
-  operator_map.Insert("->", Token::OperatorType::arrow);
+  //operator_map.Insert("->", Token::OperatorType::arrow);
   operator_map.Insert("--", Token::OperatorType::minusminus);
   operator_map.Insert("-=", Token::OperatorType::minusequal);
   operator_map.Insert("~", Token::OperatorType::tilde);
@@ -1036,13 +1036,13 @@ TokenMap::TokenMap() {
   operator_map.Insert("=", Token::OperatorType::equal);
   operator_map.Insert("==", Token::OperatorType::equalequal);
   operator_map.Insert(",", Token::OperatorType::comma);
-  operator_map.Insert("#", Token::OperatorType::hash);
+  /*operator_map.Insert("#", Token::OperatorType::hash);
   operator_map.Insert("##", Token::OperatorType::hashhash);
   operator_map.Insert("#@", Token::OperatorType::hashat);
   operator_map.Insert(".*", Token::OperatorType::periodstar);
   operator_map.Insert("->*", Token::OperatorType::arrowstar);
   operator_map.Insert("::", Token::OperatorType::coloncolon);
-  operator_map.Insert("@", Token::OperatorType::at);
+  operator_map.Insert("@", Token::OperatorType::at);*/
   operator_map.Insert("<<<", Token::OperatorType::lesslessless);
   operator_map.Insert(">>>", Token::OperatorType::greatergreatergreater);
   operator_map.Insert("^^", Token::OperatorType::caretcaret);
@@ -1667,7 +1667,7 @@ class StmtNode {
     kBinary,
     kConditional,
     kFunc,
-    kCast,
+    //kCast,
     kArrayDecl,
     kArray,
     kReturn
@@ -2333,7 +2333,7 @@ class GotoNode : public StmtNode {
   IdentifierNode label_;
 };
 
-class CastNode : public ExprNode {
+/*class CastNode : public ExprNode {
  public:
   CastNode() {
     type_ = StmtType::kCast;
@@ -2354,7 +2354,7 @@ class CastNode : public ExprNode {
  private:
   Type* cast_type_;
   ExprNode* expr_;
-};
+};*/
 
 class ReturnNode : public StmtNode {
  public:
@@ -3161,10 +3161,14 @@ bool Parser::IsFuncDecl(Token* token, std::size_t length, std::size_t index) {
         token[i + 1].value._operator == Token::OperatorType::l_paren) {
       return true;
     }
-    if (token[i].type == Token::Type::OPERATOR &&
+    /*if (token[i].type == Token::Type::OPERATOR &&
         token[i].value._operator != Token::OperatorType::coloncolon &&
         token[i].value._operator != Token::OperatorType::period &&
         token[i].value._operator != Token::OperatorType::arrow) {
+      return false;
+    }*/
+    if (token[i].type == Token::Type::OPERATOR &&
+        token[i].value._operator != Token::OperatorType::period) {
       return false;
     }
   }
@@ -3762,17 +3766,20 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           if (state == State::kPreOper) {
             index++;
             if (full_expr == nullptr || preoper_expr == nullptr) {
-              if (token[index].type == Token::Type::KEYWORD) {
+              /*if (token[index].type == Token::Type::KEYWORD) {
                 full_expr = new CastNode();
                 dynamic_cast<CastNode*>(full_expr)->SetCastNode(
                     Type::CreateType(token, length, index), nullptr);
               } else {
                 full_expr = ParseExpr(token, length, index);
                 state = State::kPostOper;
-              }
+              }*/
+
+              full_expr = ParseExpr(token, length, index);
+              state = State::kPostOper;
               preoper_expr = full_expr;
             } else {
-              if (token[index].type == Token::Type::KEYWORD) {
+              /*if (token[index].type == Token::Type::KEYWORD) {
                 CastNode* convert_node = new CastNode();
                 convert_node->SetCastNode(
                     Type::CreateType(token, length, index), nullptr);
@@ -3790,7 +3797,15 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                           dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                           full_expr_node);
                 state = State::kPostOper;
-              }
+              }*/
+
+              ExprNode* full_expr_node = ParseExpr(token, length, index);
+                if (preoper_expr != nullptr)
+                  dynamic_cast<UnaryNode*>(preoper_expr)
+                      ->SetUnaryNode(
+                          dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                          full_expr_node);
+                state = State::kPostOper;
             }
             index++;
           } else if (state == State::kPostOper &&
@@ -3892,7 +3907,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           break;
         }
 
-        case Token::OperatorType::coloncolon:  // ::
+        /*case Token::OperatorType::coloncolon:  // ::
           if (state == State::kPreOper) {
             if (main_expr->GetType() == StmtNode::StmtType::kIdentifier) {
               index++;
@@ -3930,7 +3945,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                 "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
                 "Before coloncolon isn't identifier node.");
           }
-          break;
+          break;*/
         case Token::OperatorType::period:  // .
           if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
@@ -3957,16 +3972,9 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               }
             }
             if (token[index + 1].type != Token::Type::OPERATOR ||
-                (token[index + 1].value._operator !=
-                     Token::OperatorType::coloncolon &&
+                
                  token[index + 1].value._operator !=
-                     Token::OperatorType::arrow &&
-                 token[index + 1].value._operator !=
-                     Token::OperatorType::periodstar &&
-                 token[index + 1].value._operator !=
-                     Token::OperatorType::arrowstar &&
-                 token[index + 1].value._operator !=
-                     Token::OperatorType::period))
+                     Token::OperatorType::period)
               state = State::kPostOper;
           } else {
             EXIT_COMPILER(
@@ -3974,7 +3982,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                 "Before period isn't pre_oper node.");
           }
           break;
-        case Token::OperatorType::arrow:  // ->
+        /*case Token::OperatorType::arrow:  // ->
           if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
             index++;
@@ -4016,7 +4024,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                 "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
                 "Before period isn't pre_oper node.");
           }
-          break;
+          break;*/
         // TODO(Parser): Advanced syntax awaits subsequent development.
         /*case Token::OperatorType::l_brace:  // {
           break;
@@ -4049,12 +4057,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
         main_expr = identifier_node;
       }
       if (token[index + 1].type != Token::Type::OPERATOR ||
-          (token[index + 1].value._operator !=
-               Token::OperatorType::coloncolon &&
-           token[index + 1].value._operator != Token::OperatorType::arrow &&
-           token[index + 1].value._operator !=
-               Token::OperatorType::periodstar &&
-           token[index + 1].value._operator != Token::OperatorType::arrowstar &&
+          (
            token[index + 1].value._operator != Token::OperatorType::period))
         state = State::kPostOper;
       index++;
@@ -4151,7 +4154,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
           "unsigned int)",
           "Unexpected code.");
     switch (token[index].value._operator) {
-      case Token::OperatorType::periodstar: {
+      /*case Token::OperatorType::periodstar: {
         BinaryNode* periodstar_node = new BinaryNode();
         index++;
         periodstar_node->SetBinaryNode(
@@ -4170,7 +4173,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
                             ParsePrimaryExpr(token, length, index), 14));
         expr = arrowstar_node;
         break;
-      }
+      }*/
 
       case Token::OperatorType::star: {
         BinaryNode* star_node = new BinaryNode();
@@ -4526,7 +4529,7 @@ ExprNode* Parser::ParseBinaryExprWithoutComma(Token* token, std::size_t length,
           "ExprNode*,unsigned int)",
           "Unexpected code.");
     switch (token[index].value._operator) {
-      case Token::OperatorType::periodstar: {
+      /*case Token::OperatorType::periodstar: {
         BinaryNode* periodstar_node = new BinaryNode();
         index++;
         periodstar_node->SetBinaryNode(
@@ -4545,7 +4548,7 @@ ExprNode* Parser::ParseBinaryExprWithoutComma(Token* token, std::size_t length,
                             ParsePrimaryExpr(token, length, index), 14));
         expr = arrowstar_node;
         break;
-      }
+      }*/
 
       case Token::OperatorType::star: {
         BinaryNode* star_node = new BinaryNode();
@@ -4875,9 +4878,9 @@ unsigned int Parser::GetPriority(Token token) {
   TRACE_FUNCTION;
   if (token.type == Token::Type::OPERATOR) {
     switch (token.value._operator) {
-      case Token::OperatorType::periodstar:
+      /*case Token::OperatorType::periodstar:
       case Token::OperatorType::arrowstar:
-        return 14;
+        return 14;*/
       case Token::OperatorType::star:
       case Token::OperatorType::slash:
       case Token::OperatorType::percent:
@@ -5948,15 +5951,23 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
             buffer.clear();
             break;
 
-          case _AQVM_OPERATOR_FREE:
-            code_.push_back(_AQVM_OPERATOR_FREE);
+          case _AQVM_OPERATOR_ARRAY:
+            code_.push_back(_AQVM_OPERATOR_ARRAY);
 
-            if (func_list[z].GetCode()[j].GetArgs().size() != 1)
+            if (func_list[z].GetCode()[j].GetArgs().size() != 3)
               EXIT_COMPILER(
                   "BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                  "Unexpected FREE args size.");
+                  "Unexpected ARRAY args size.");
 
             EncodeUleb128(func_list[z].GetCode()[j].GetArgs()[0], buffer);
+            code_.insert(code_.end(), buffer.begin(), buffer.end());
+            buffer.clear();
+
+            EncodeUleb128(func_list[z].GetCode()[j].GetArgs()[1], buffer);
+            code_.insert(code_.end(), buffer.begin(), buffer.end());
+            buffer.clear();
+
+            EncodeUleb128(func_list[z].GetCode()[j].GetArgs()[2], buffer);
             code_.insert(code_.end(), buffer.begin(), buffer.end());
             buffer.clear();
             break;
@@ -6527,14 +6538,22 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
           break;
 
-        case _AQVM_OPERATOR_FREE:
-          code_.push_back(_AQVM_OPERATOR_FREE);
+        case _AQVM_OPERATOR_ARRAY:
+          code_.push_back(_AQVM_OPERATOR_ARRAY);
 
-          if (func_list[i].GetCode()[j].GetArgs().size() != 1)
+          if (func_list[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected FREE args size.");
+                          "Unexpected ARRAY args size.");
 
           EncodeUleb128(func_list[i].GetCode()[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list[i].GetCode()[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
@@ -7051,14 +7070,22 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
           buffer.clear();
           break;
 
-        case _AQVM_OPERATOR_FREE:
-          code_.push_back(_AQVM_OPERATOR_FREE);
+        case _AQVM_OPERATOR_ARRAY:
+          code_.push_back(_AQVM_OPERATOR_ARRAY);
 
-          if (func_list_[i].GetCode()[j].GetArgs().size() != 1)
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*)",
-                          "Unexpected FREE args size.");
+                          "Unexpected ARRAY args size.");
 
           EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[0], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[1], buffer);
+          code_.insert(code_.end(), buffer.begin(), buffer.end());
+          buffer.clear();
+
+          EncodeUleb128(func_list_[i].GetCode()[j].GetArgs()[2], buffer);
           code_.insert(code_.end(), buffer.begin(), buffer.end());
           buffer.clear();
           break;
@@ -7569,10 +7596,13 @@ void BytecodeGenerator::GenerateMnemonicFile() {
                     << func_list_[i].GetCode()[j].GetArgs()[2] << std::endl;
           break;
 
-        case _AQVM_OPERATOR_FREE:
-          if (func_list_[i].GetCode()[j].GetArgs().size() != 1)
+        case _AQVM_OPERATOR_ARRAY:
+          if (func_list_[i].GetCode()[j].GetArgs().size() != 3)
             EXIT_COMPILER("BytecodeGenerator::GenerateMnemonicFile()",
-                          "Unexpected FREE args size.");
+                          "Unexpected ARRAY args size.");
+          std::cout << "ARRAY: " << func_list_[i].GetCode()[j].GetArgs()[0]
+                    << " ," << func_list_[i].GetCode()[j].GetArgs()[1] << " ,"
+                    << func_list_[i].GetCode()[j].GetArgs()[2] << std::endl;
           break;
 
         case _AQVM_OPERATOR_PTR:
@@ -9007,12 +9037,12 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       code.push_back(Bytecode(_AQVM_OPERATOR_NEG, 2, new_index, sub_expr));
       return new_index;
     }
-    case UnaryNode::Operator::CONVERT: {  // ()
+    /*case UnaryNode::Operator::CONVERT: {  // ()
       std::size_t new_index = global_memory_.AddWithType(
           dynamic_cast<CastNode*>(expr)->GetCastType()->GetVmType());
       code.push_back(Bytecode(_AQVM_OPERATOR_CONVERT, 2, new_index, sub_expr));
       return new_index;
-    }
+    }*/
 
     case UnaryNode::Operator::ARRAY: {  // []
       // std::cout << "ARRAY" << std::endl;
@@ -11706,8 +11736,8 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
       case UnaryNode::Operator::ARRAY:
         EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                       "Unexpected code.");
-      case UnaryNode::Operator::CONVERT:
-        return dynamic_cast<CastNode*>(expr)->GetCastType();
+      /*case UnaryNode::Operator::CONVERT:
+        return dynamic_cast<CastNode*>(expr)->GetCastType();*/
       default:
         EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                       "Unexpected code.");
@@ -12054,9 +12084,9 @@ Type* BytecodeGenerator::GetExprType(ExprNode* expr) {
       EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                     "Unexpected code.");
     }
-  } else if (expr->GetType() == StmtNode::StmtType::kCast) {
+  } /*else if (expr->GetType() == StmtNode::StmtType::kCast) {
     return dynamic_cast<CastNode*>(expr)->GetCastType();
-  } else {
+  } */else {
     EXIT_COMPILER("BytecodeGenerator::GetExprType(ExprNode*)",
                   "Unsupport type.");
   }
