@@ -33,13 +33,10 @@ ABCCLASSCLASS abc_class_test(){
   return abc_12;
 }
 
-ABCCLASSCLASS* abc_p = & abc_1;
 
-ABCCLASSCLASS abc_t = *abc_p;
 
 // abc_t.printa();
 
-auto var_1 = abc_class_test();
 
 //print(var_1.a);
 

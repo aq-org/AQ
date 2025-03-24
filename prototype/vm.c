@@ -1900,7 +1900,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
     EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
 
   size_t size_value = GetUint64tData(size);
-  struct Object* data = calloc(size_value, sizeof(struct Object));
+  struct Object* data = calloc(size_value + 1, sizeof(struct Object));
   AddFreePtr(data);
 
   /*if (type == 0) {
@@ -1932,8 +1932,17 @@ int NEW(size_t ptr, size_t size, size_t type) {
       }
     }
   }*/
+
+  uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+  data[0].type = type_ptr;
+  type_ptr[0] = 0x05;
+  data[0].const_type = true;
+  data[0].data.uint64t_data = size_value;
+
+  AddFreePtr(type_ptr);
+
   if (type == 0) {
-    for (size_t i = 0; i < size_value; i++) {
+    for (size_t i = 1; i < size_value; i++) {
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
       data[i].type = type_ptr;
       data[i].const_type = false;
@@ -2014,12 +2023,9 @@ int NEW(size_t ptr, size_t size, size_t type) {
         data[i].data.object_data = class_object;
       }
     } else {
-      for (size_t i = 0; i < size_value; i++) {
-        uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
-        data[i].type = type_ptr;
-        data[i].type[0] = GetByteData(type);
-        data[i].const_type = false;
-        AddFreePtr(type_ptr);
+      for (size_t i = 1; i < size_value; i++) {
+        data[i].type = type_data->type;
+        data[i].const_type = true;
       }
     }
   }
@@ -2040,15 +2046,25 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
   struct Object* array_object = GetPtrData(ptr);
 
   if (index >= GetUint64tObjectData(array_object)) {
-    // new_allocated = (size_t)newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6);
-  } else {
-    if ((array_object + 1 + ptr)->type == NULL) {
-      if ((array_object + 1)->const_type) {
-      } else {
-      }
-    }
-    SetReferenceData(result, array_object + 1 + index);
+    size_t newsize = index + 1;
+    size_t new_allocated =
+        (size_t)newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6) + 1;
+    struct Object* new_array = calloc(new_allocated, sizeof(struct Object));
+    AddFreePtr(new_array);
+    memcpy(new_array, array_object,
+           sizeof(struct Object) * (GetUint64tObjectData(array_object) + 1));
+    SetPtrData(ptr, new_array);
+    array_object = new_array;
   }
+  if ((array_object + 1 + ptr)->type == NULL) {
+    if ((array_object + 1)->const_type) {
+      (array_object + 1 + ptr)->const_type = true;
+      (array_object + 1 + ptr)->type = (array_object + 1)->type;
+    } else {
+      (array_object + 1 + ptr)->type = calloc(1, sizeof(uint8_t));
+    }
+  }
+  SetReferenceData(result, array_object + 1 + index);
 
   return 0;
 }
@@ -2624,7 +2640,7 @@ int REFER(size_t result, size_t operand1) {
     EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
 
   // printf("REFER: %zu , %zu\n", result,operand1);
-  SetReferenceData(result, GetPtrData(operand1));
+  SetReferenceData(result, object_table + operand1);
 
   return 0;
 }
@@ -3287,7 +3303,7 @@ int CONST(size_t result, size_t operand1) {
   if (operand1 >= object_table_size)
     EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
 
-  SetConstData(result, GetPtrData(operand1));
+  SetConstData(result, object_table + operand1);
   return 0;
 }
 
