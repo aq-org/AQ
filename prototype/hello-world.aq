@@ -34,6 +34,11 @@ ABCCLASSCLASS abc_class_test(){
 }
 
 
+int arr[10];// = {9,9,9};
+//arr[1] = 100;
+int test_num = arr[1];
+print(arr[1]);
+
 
 // abc_t.printa();
 
@@ -59,5 +64,5 @@ auto main(){
   print(test_func(1,10,"test"));*/
   auto a =  1/1;
   //printf((double)a);
-  //return 1/2;
+  return 1/2;
 }

@@ -1071,13 +1071,15 @@ void SetPtrData(size_t index, struct Object* ptr) {
     }
   }
 
-  struct Object* temp = ptr;
+  struct Object* temp = ptr + 1;
   for (size_t i = 1; i < size; i++) {
     if (temp == NULL)
       EXIT_VM("SetPtrData(size_t,struct Object*)", "Invalid ptr.");
     if (data->type[i] == 0x00) break;
-    if (temp->type[0] != data->type[i])
+    if (temp->type[0] != data->type[i]) {
+      printf("%i,%i", temp->type[0], data->type[i]);
       EXIT_VM("SetPtrData(size_t,struct Object*)", "Invalid type.");
+    }
     switch (temp->type[0]) {
       case 0x00:
       case 0x01:
@@ -1935,7 +1937,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
   uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
   data[0].type = type_ptr;
-  type_ptr[0] = 0x05;
+  type_ptr[0] = 0x04;
   data[0].const_type = true;
   data[0].data.uint64t_data = size_value;
 
@@ -2045,6 +2047,8 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
   // free(GetPtrData(ptr));
   struct Object* array_object = GetPtrData(ptr);
 
+  index = GetUint64tData(index);
+
   if (index >= GetUint64tObjectData(array_object)) {
     size_t newsize = index + 1;
     size_t new_allocated =
@@ -2054,16 +2058,20 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     memcpy(new_array, array_object,
            sizeof(struct Object) * (GetUint64tObjectData(array_object) + 1));
     SetPtrData(ptr, new_array);
+    new_array[0].const_type = true;
+    new_array[0].type[0] = 0x04;
+    new_array[0].data.uint64t_data = newsize;
     array_object = new_array;
   }
-  if ((array_object + 1 + ptr)->type == NULL) {
+  if ((array_object + 1 + index)->type == NULL) {
     if ((array_object + 1)->const_type) {
-      (array_object + 1 + ptr)->const_type = true;
-      (array_object + 1 + ptr)->type = (array_object + 1)->type;
+      (array_object + 1 + index)->const_type = true;
+      (array_object + 1 + index)->type = (array_object + 1)->type;
     } else {
-      (array_object + 1 + ptr)->type = calloc(1, sizeof(uint8_t));
+      (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
     }
   }
+  printf("t: %i\n",(array_object + 1 + index)->type[0]);
   SetReferenceData(result, array_object + 1 + index);
 
   return 0;
