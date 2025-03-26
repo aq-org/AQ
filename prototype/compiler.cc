@@ -2168,7 +2168,7 @@ class ArrayDeclNode : public VarDeclNode {
     var_type_ = type;
     name_ = name;
     size_ = size;
-    value_.push_back(new ExprNode());
+    value_.clear();
   }
   void SetArrayDeclNode(Type* type, ExprNode* name, ExprNode* size,
                         std::vector<ExprNode*> value) {
