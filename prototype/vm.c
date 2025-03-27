@@ -1953,7 +1953,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
   } else {
     struct Object* type_data = object_table + type;
     type_data = GetOriginData(type_data);
-    if (type_data->type[0] == 0x05) {
+    if (type_data->type[0] == 0x05 && type_data->data.string_data != NULL) {
       for (size_t i = 0; i < size_value; i++) {
         uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
         data[i].type = type_ptr;
@@ -2071,7 +2071,7 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
       (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
     }
   }
-  printf("t: %i\n",(array_object + 1 + index)->type[0]);
+  printf("t: %i\n", (array_object + 1 + index)->type[0]);
   SetReferenceData(result, array_object + 1 + index);
 
   return 0;

@@ -1,5 +1,6 @@
 int print(auto str);
-int arr[10];
-int main(){
+string arr[10]={"A","B"};
+auto main(){
+  arr[0] ="ab";
   return arr[0];
 }
