@@ -78,11 +78,11 @@ class Trace {
       temp_stack.pop();
     }
 
-    //std::cerr << "[INFO] Run: ";
+    // std::cerr << "[INFO] Run: ";
     for (auto it = reverse_stack.rbegin(); it != reverse_stack.rend(); ++it) {
-     // std::cerr << *it << " -> ";
+      // std::cerr << *it << " -> ";
     }
-    //std::cerr << "Success" << std::endl;
+    // std::cerr << "Success" << std::endl;
   }
 };
 
@@ -1717,7 +1717,25 @@ class ValueNode : public ExprNode {
   void SetValueNode(Token value) { value_ = value; }
   virtual ~ValueNode() = default;
 
-  char GetCharValue() { return value_.value.character; }
+  /*bool GetBoolValue() {
+    if (value_.value.keyword == Token::KeywordType::True) {
+      return true;
+    } else if (value_.value.keyword == Token::KeywordType::False) {
+      return false;
+    }
+  }*/
+  int8_t GetByteValue() {
+    if (value_.type == Token::Type::KEYWORD) {
+      if (value_.value.keyword == Token::KeywordType::True) {
+        return true;
+      } else if (value_.value.keyword == Token::KeywordType::False) {
+        return false;
+      } else {
+        EXIT_COMPILER("ValueNode::GetByteValue()", "Unexpected type.");
+      }
+    }
+    return value_.value.character;
+  }
   std::string GetStringValue() { return *value_.value.string; }
   int GetIntValue() {
     /*std::cout << "stoi: "
@@ -1815,6 +1833,14 @@ class ValueNode : public ExprNode {
   }*/
 
   std::size_t GetVmType() {
+    if (value_.type == Token::Type::KEYWORD) {
+      if (value_.value.keyword == Token::KeywordType::True ||
+          value_.value.keyword == Token::KeywordType::False) {
+        return 0x01;
+      } else {
+        EXIT_COMPILER("ValueNode::GetVmType()", "Unexpected type.");
+      }
+    }
     if (value_.type == Token::Type::CHARACTER) {
       return 0x01;
     }
@@ -4075,6 +4101,30 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
       }
       index++;
       state = State::kEnd;
+    } else if (token[index].type == Token::Type::KEYWORD) {
+      switch (token[index].value.keyword) {
+        case Token::KeywordType::True:
+        case Token::KeywordType::False: {
+          ValueNode* bool_node = new ValueNode();
+          bool_node->SetValueNode(token[index]);
+          if (full_expr == nullptr || preoper_expr == nullptr) {
+            full_expr = main_expr = bool_node;
+          } else {
+            dynamic_cast<UnaryNode*>(preoper_expr)
+                ->SetUnaryNode(
+                    dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
+                    bool_node);
+            main_expr = bool_node;
+          }
+          index++;
+          state = State::kEnd;
+          break;
+        }
+        default:
+          EXIT_COMPILER(
+              "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+              "Unexpected keyword.");
+      }
     } else {
       state = State::kEnd;
     }
@@ -8783,7 +8833,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     switch (value_vm_type) {
       case 0x01:
         array_size =
-            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetCharValue();
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetByteValue();
         break;
       case 0x02:
         array_size =
@@ -8846,7 +8896,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     switch (value_vm_type) {
       case 0x01:
         array_size =
-            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetCharValue();
+            dynamic_cast<ValueNode*>(array_decl->GetSize())->GetByteValue();
         break;
       case 0x02:
         array_size =
@@ -8878,7 +8928,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
 
     std::size_t array_index =
         global_memory_.AddWithType(array_type->GetVmType());
-        std::cout << "array type .1" << std::endl;
+    std::cout << "array type .1" << std::endl;
     std::size_t array_type_index = global_memory_.AddWithType(
         dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
     std::cout << "array type ." << std::endl;
@@ -8897,8 +8947,8 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
       std::cout << "Handle Array DECL with value." << std::endl;
       std::size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
       std::size_t current_index = global_memory_.Add(1);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index, global_memory_.AddUint64t(i)));
+      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory_.AddUint64t(i)));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
@@ -8981,8 +9031,8 @@ std::size_t BytecodeGenerator::HandleClassArrayDecl(
     for (std::size_t i = 0; i < array_decl->GetValue().size(); i++) {
       std::size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
       std::size_t current_index = global_memory_.Add(1);
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index, global_memory_.AddUint64t(i)));
+      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory_.AddUint64t(i)));
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
@@ -9134,7 +9184,8 @@ std::size_t BytecodeGenerator::HandleUnaryExpr(UnaryNode* expr,
       // code.push_back(Bytecode(_AQVM_OPERATOR_LOAD, 2, dereference_ptr_index_,
       // new_index));
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, new_index, sub_expr,offset));
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_ARRAY, 3, new_index, sub_expr, offset));
       return new_index;
     }
     case UnaryNode::Operator::kBitwiseNot:  // ~ (bitwise NOT)
@@ -10218,7 +10269,7 @@ std::size_t BytecodeGenerator::GetClassIndex(ExprNode* expr,
       std::size_t vm_type = dynamic_cast<ValueNode*>(expr)->GetVmType();
       switch (vm_type) {
         case 0x01: {
-          int8_t value = dynamic_cast<ValueNode*>(expr)->GetCharValue();
+          int8_t value = dynamic_cast<ValueNode*>(expr)->GetByteValue();
           return global_memory_.AddByte(value);
           break;
         }
@@ -10312,7 +10363,7 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
       std::size_t vm_type = dynamic_cast<ValueNode*>(expr)->GetVmType();
       switch (vm_type) {
         case 0x01: {
-          int8_t value = dynamic_cast<ValueNode*>(expr)->GetCharValue();
+          int8_t value = dynamic_cast<ValueNode*>(expr)->GetByteValue();
           return global_memory_.AddByte(value);
           break;
         }
