@@ -5825,7 +5825,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   std::vector<std::size_t> args;
   args.push_back(1);
   // std::vector<Bytecode> start_code;
-  std::size_t main_func = global_memory_.AddString("global::main");
+  std::size_t main_func = global_memory_.AddString("global.main");
   /*for (size_t i = 0; i < global_memory_.GetCode().size(); i++) {
     start_code.push_back(global_memory_.GetCode()[i]);
   }
@@ -7883,7 +7883,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   std::string func_name;
   // for (std::size_t i = 0; i < current_scope_.size(); i++) {
   func_name += current_scope_.back();
-  func_name += "::";
+  func_name += ".";
   //}
   func_name += *func_decl->GetStat()->GetName();
 
@@ -8023,7 +8023,7 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
   std::vector<Bytecode> code;
   std::string scope_name;
   scope_name += current_scope_.back();
-  scope_name += "::";
+  scope_name += ".";
   scope_name += *func_decl->GetStat()->GetName();
 
   std::string func_name = *func_decl->GetStat()->GetName();
@@ -8171,7 +8171,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
   std::string class_name = current_class_->GetName();
   std::string scope_name;
   scope_name += current_scope_.back();
-  scope_name += "::";
+  scope_name += ".";
   scope_name += *func_decl->GetStat()->GetName();
 
   std::string original_func_name = *func_decl->GetStat()->GetName();
@@ -8347,7 +8347,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
                   "class_decl is nullptr.");
 
   std::string class_name =
-      current_scope_.back() + "::" + std::string(class_decl->GetName());
+      current_scope_.back() + "." + std::string(class_decl->GetName());
 
   current_scope_.push_back(class_name);
   /*for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
@@ -8518,16 +8518,16 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     // std::cout << "None Value" << std::endl;
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kClass) {
-      std::string func_name = (std::string)*var_decl->GetVarType() +
-                              "::" + (std::string)*var_decl->GetVarType();
+      std::string func_name = (std::string)*var_decl->GetVarType() + "." +
+                              (std::string)*var_decl->GetVarType();
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
                   << std::endl;*/
         auto iterator =
-            func_decl_map_.find(current_scope_[i] + "::" + func_name);
+            func_decl_map_.find(current_scope_[i] + "." + func_name);
         if (iterator != func_decl_map_.end()) {
           // func_decl = iterator->second;
-          func_name = current_scope_[i] + "::" + func_name;
+          func_name = current_scope_[i] + "." + func_name;
           break;
         }
         if (i == 0)
@@ -8585,16 +8585,16 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kClass) {
-      std::string func_name = (std::string)*var_decl->GetVarType() +
-                              "::" + (std::string)*var_decl->GetVarType();
+      std::string func_name = (std::string)*var_decl->GetVarType() + "." +
+                              (std::string)*var_decl->GetVarType();
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
                   << std::endl;*/
         auto iterator =
-            func_decl_map_.find(current_scope_[i] + "::" + func_name);
+            func_decl_map_.find(current_scope_[i] + "." + func_name);
         if (iterator != func_decl_map_.end()) {
           // func_decl = iterator->second;
-          func_name = current_scope_[i] + "::" + func_name;
+          func_name = current_scope_[i] + "." + func_name;
           break;
         }
         if (i == 0)
@@ -9406,11 +9406,64 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       std::cout << "Point A" << std::endl;
       std::string expr_type_string = GetExprTypeString(expr->GetLeftExpr());
 
+      if(expr->GetLeftExpr()->GetType()!=StmtNode::StmtType::kIdentifier)EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)","Unexpected expr type.");
+      std::string full_name = *dynamic_cast<IdentifierNode*>(expr->GetLeftExpr());
+      
+      ExprNode* handle_expr = expr->GetRightExpr();
+
+      bool is_end = false;
+      bool is_func = false;
+
+      while(handle_expr!=nullptr&&!is_end){
+      if(handle_expr->GetType()==StmtNode::StmtType::kBinary){
+        if(dynamic_cast<BinaryNode*>(handle_expr)->GetOperator() !=BinaryNode::Operator::kMember)EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)","Unexpected right expr type.");
+        full_name +=*dynamic_cast<IdentifierNode*>(dynamic_cast<BinaryNode*>(handle_expr)->GetLeftExpr());
+        handle_expr = dynamic_cast<IdentifierNode*>(dynamic_cast<BinaryNode*>(handle_expr)->GetRightExpr());
+      }else if(handle_expr->GetType()==StmtNode::StmtType::kIdentifier){
+        full_name +=*dynamic_cast<IdentifierNode*>(handle_expr);
+        handle_expr = nullptr;
+
+      }else if(handle_expr->GetType()==StmtNode::StmtType::kFunc){
+        full_name += (std::string)*(dynamic_cast<FuncNode*>(handle_expr)->GetName());
+        for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+          auto iterator = func_decl_map_.find(current_scope_[i] + "." + full_name);
+          if (iterator != func_decl_map_.end()) {
+            full_name = current_scope_[i] + "." + full_name;
+            break;
+          }
+          if (i == 0)
+            EXIT_COMPILER(
+                "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)",
+                "Function not found.");
+        }
+        is_end = true;
+        is_func =true;
+        handle_expr = nullptr;
+        break;
+      }
+
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator = var_decl_map_.find(
+            current_scope_[i] + "#" +
+            full_name);
+        if (iterator != var_decl_map_.end()) {
+           full_name=current_scope_[i] + "#" +
+           full_name;
+           is_end = true;
+        }
+      }
+      }
+      if(!is_end)EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)",
+                "Unexpected Error.");
+      
+      
+      //TODO(Scope)
+
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         auto iterator =
-            class_decl_map_.find(current_scope_[i] + "::" + expr_type_string);
+            class_decl_map_.find(current_scope_[i] + "." + expr_type_string);
         if (iterator != class_decl_map_.end()) {
-          expr_type_string = current_scope_[i] + "::" + expr_type_string;
+          expr_type_string = current_scope_[i] + "." + expr_type_string;
           break;
         }
         if (i == 0)
@@ -9920,10 +9973,10 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
     /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
               << std::endl;*/
-    auto iterator = func_decl_map_.find(current_scope_[i] + "::" + func_name);
+    auto iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
     if (iterator != func_decl_map_.end()) {
       // func_decl = iterator->second;
-      func_name = current_scope_[i] + "::" + func_name;
+      func_name = current_scope_[i] + "." + func_name;
       break;
     }
     if (i == 0)
@@ -10055,10 +10108,10 @@ std::size_t BytecodeGenerator::HandleClassFuncInvoke(
   for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
     /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
     << std::endl;*/
-    auto iterator = func_decl_map_.find(current_scope_[i] + "::" + func_name);
+    auto iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
     if (iterator != func_decl_map_.end()) {
       // func_decl = iterator->second;
-      func_name = current_scope_[i] + "::" + func_name;
+      func_name = current_scope_[i] + "." + func_name;
       break;
     }
     if (i == 0)

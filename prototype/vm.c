@@ -3458,12 +3458,12 @@ unsigned int hash(const char* str) {
 
 void InitializeNameTable(struct LinkedList* list) {
   TRACE_FUNCTION;
-  unsigned int name_hash = hash("global::print");
+  unsigned int name_hash = hash("global.print");
   struct LinkedList* table = &list[name_hash];
   while (table->next != NULL) {
     table = table->next;
   }
-  table->pair.first = "global::print";
+  table->pair.first = "global.print";
   table->pair.second = print;
   table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
   AddFreePtr(table->next);
