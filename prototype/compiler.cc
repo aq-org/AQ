@@ -9406,58 +9406,73 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       std::cout << "Point A" << std::endl;
       std::string expr_type_string = GetExprTypeString(expr->GetLeftExpr());
 
-      if(expr->GetLeftExpr()->GetType()!=StmtNode::StmtType::kIdentifier)EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)","Unexpected expr type.");
-      std::string full_name = *dynamic_cast<IdentifierNode*>(expr->GetLeftExpr());
-      
+      if (expr->GetLeftExpr()->GetType() != StmtNode::StmtType::kIdentifier)
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected expr type.");
+      std::string full_name =
+          *dynamic_cast<IdentifierNode*>(expr->GetLeftExpr());
+
       ExprNode* handle_expr = expr->GetRightExpr();
 
       bool is_end = false;
       bool is_func = false;
 
-      while(handle_expr!=nullptr&&!is_end){
-      if(handle_expr->GetType()==StmtNode::StmtType::kBinary){
-        if(dynamic_cast<BinaryNode*>(handle_expr)->GetOperator() !=BinaryNode::Operator::kMember)EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)","Unexpected right expr type.");
-        full_name +=*dynamic_cast<IdentifierNode*>(dynamic_cast<BinaryNode*>(handle_expr)->GetLeftExpr());
-        handle_expr = dynamic_cast<IdentifierNode*>(dynamic_cast<BinaryNode*>(handle_expr)->GetRightExpr());
-      }else if(handle_expr->GetType()==StmtNode::StmtType::kIdentifier){
-        full_name +=*dynamic_cast<IdentifierNode*>(handle_expr);
-        handle_expr = nullptr;
-
-      }else if(handle_expr->GetType()==StmtNode::StmtType::kFunc){
-        full_name += (std::string)*(dynamic_cast<FuncNode*>(handle_expr)->GetName());
-        for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-          auto iterator = func_decl_map_.find(current_scope_[i] + "." + full_name);
-          if (iterator != func_decl_map_.end()) {
-            full_name = current_scope_[i] + "." + full_name;
-            break;
-          }
-          if (i == 0)
+      while (handle_expr != nullptr && !is_end) {
+        if (handle_expr->GetType() == StmtNode::StmtType::kBinary) {
+          if (dynamic_cast<BinaryNode*>(handle_expr)->GetOperator() !=
+              BinaryNode::Operator::kMember)
             EXIT_COMPILER(
-                "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)",
-                "Function not found.");
-        }
-        is_end = true;
-        is_func =true;
-        handle_expr = nullptr;
-        break;
-      }
+                "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+                "Bytecode>&)",
+                "Unexpected right expr type.");
+          full_name += *dynamic_cast<IdentifierNode*>(
+              dynamic_cast<BinaryNode*>(handle_expr)->GetLeftExpr());
+          handle_expr = dynamic_cast<IdentifierNode*>(
+              dynamic_cast<BinaryNode*>(handle_expr)->GetRightExpr());
+        } else if (handle_expr->GetType() == StmtNode::StmtType::kIdentifier) {
+          full_name += *dynamic_cast<IdentifierNode*>(handle_expr);
+          handle_expr = nullptr;
 
-      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
-        auto iterator = var_decl_map_.find(
-            current_scope_[i] + "#" +
-            full_name);
-        if (iterator != var_decl_map_.end()) {
-           full_name=current_scope_[i] + "#" +
-           full_name;
-           is_end = true;
+        } else if (handle_expr->GetType() == StmtNode::StmtType::kFunc) {
+          full_name +=
+              (std::string) * (dynamic_cast<FuncNode*>(handle_expr)->GetName());
+          for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+            auto iterator =
+                func_decl_map_.find(current_scope_[i] + "." + full_name);
+            if (iterator != func_decl_map_.end()) {
+              full_name = current_scope_[i] + "." + full_name;
+              break;
+            }
+            if (i == 0)
+              EXIT_COMPILER(
+                  "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+                  "Bytecode>&)",
+                  "Function not found.");
+          }
+          is_end = true;
+          is_func = true;
+          handle_expr = nullptr;
+          break;
+        }
+
+        for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+          auto iterator =
+              var_decl_map_.find(current_scope_[i] + "#" + full_name);
+          if (iterator != var_decl_map_.end()) {
+            full_name = current_scope_[i] + "#" + full_name;
+            is_end = true;
+          }
         }
       }
-      }
-      if(!is_end)EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<Bytecode>&)",
-                "Unexpected Error.");
-      
-      
-      //TODO(Scope)
+      if (!is_end)
+        EXIT_COMPILER(
+            "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+            "Bytecode>&)",
+            "Unexpected Error.");
+
+      // TODO(Scope)
 
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         auto iterator =
