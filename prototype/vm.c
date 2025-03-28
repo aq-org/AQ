@@ -3378,7 +3378,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
       const unsigned int member_hash = hash(var_name);
       struct ClassVarInfoList* current_var_table =
           &(current_class_table->class.var_info_table[member_hash]);
-      while (current_class_table != NULL) {
+      while (current_var_table != NULL&&current_var_table->name != NULL) {
         if (strcmp(current_var_table->name, var_name) == 0) {
           offset = current_var_table->index;
           is_var_find = true;

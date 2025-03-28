@@ -1,6 +1,12 @@
 int print(auto str);
 string arr[10]={"A","B"};
+class TESTCLASS{
+  void TESTCLASS(){}
+  auto inter;
+};
+TESTCLASS abc;
+abc.inter = 1;
 auto main(){
   arr[0] ="ab";
-  return arr[0];
+  //return abc.inter;
 }
