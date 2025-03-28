@@ -189,11 +189,18 @@ struct Memory {
   size_t size;
 };
 
+struct ClassVarInfoList {
+  const char* name;
+  size_t index;
+  struct ClassVarInfoList* next;
+};
+
 struct Class {
   const char* name;
   struct Object* members;
+  struct ClassVarInfoList var_info_table[256];
   size_t members_size;
-  struct FuncList methods[1024];
+  struct FuncList methods[256];
 };
 
 struct ClassList {
@@ -206,11 +213,11 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size);
 
 struct Memory* memory;
 
-struct LinkedList name_table[1024];
+struct LinkedList name_table[256];
 
-struct FuncList func_table[1024];
+struct FuncList func_table[256];
 
-struct ClassList class_table[1024];
+struct ClassList class_table[256];
 
 struct FreeList* free_list;
 
@@ -3346,12 +3353,57 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   if (class_data == NULL || class_data->type[0] != 0x09)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
 
+  if (class_data->data.object_data == NULL ||
+      class_data->data.object_data->type == NULL ||
+      class_data->data.object_data->type[0] != 0x05)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)",
+            "Unsupported class name type.");
+  const char* class_name = class_data->data.object_data->data.string_data;
+
+  struct Object* name_data = object_table + operand;
+  name_data = GetOriginData(name_data);
+  if (name_data == NULL || name_data->type[0] != 0x05)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
+
+  const char* var_name = name_data->data.string_data;
+
+  size_t offset = 0;
+  bool is_find = false;
+  const unsigned int class_hash = hash(class_name);
+  struct ClassList* current_class_table = &class_table[class_hash];
+  while (current_class_table != NULL &&
+         current_class_table->class.name != NULL) {
+    if (strcmp(current_class_table->class.name, class_name) == 0) {
+      bool is_var_find = false;
+      const unsigned int member_hash = hash(var_name);
+      struct ClassVarInfoList* current_var_table =
+          &(current_class_table->class.var_info_table[member_hash]);
+      while (current_class_table != NULL) {
+        if (strcmp(current_var_table->name, var_name) == 0) {
+          offset = current_var_table->index;
+          is_var_find = true;
+          break;
+        }
+        current_var_table = current_var_table->next;
+      }
+      if (!is_var_find)
+        EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class Var not found.");
+      is_find = true;
+      break;
+    }
+    current_class_table = current_class_table->next;
+  }
+
+  if (!is_find)
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class not found.");
+
   /*struct Object* object_member_count = class_data->data.object_data + 1;
   object_member_count = GetOriginData(object_member_count);
   if (operand >= GetUint64tObjectData(object_member_count))
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");*/
 
-  struct Object* object_data = class_data->data.object_data + operand;
+  // TODO
+  struct Object* object_data = class_data->data.object_data + offset;
 
   SetReferenceData(result, object_data);
   return 0;
@@ -3453,7 +3505,7 @@ unsigned int hash(const char* str) {
   while ((c = *str++)) {
     hash = ((hash << 5) + hash) + c;
   }
-  return hash % 1024;
+  return hash % 256;
 }
 
 void InitializeNameTable(struct LinkedList* list) {
@@ -3724,6 +3776,22 @@ void* AddClass(void* location) {
   AddFreePtr(table->class.members);
 
   for (size_t i = 0; i < object_size; i++) {
+    struct ClassVarInfoList* var_info =
+        &table->class.var_info_table[hash(location)];
+    if (var_info == NULL) EXIT_VM("AddClass(void*)", "var info table is NULL.");
+    while (var_info->next != NULL) {
+      var_info = var_info->next;
+    }
+    var_info->name = location;
+    var_info->index = i;
+    var_info->next =
+        (struct ClassVarInfoList*)calloc(1, sizeof(struct ClassVarInfoList));
+    AddFreePtr(var_info->next);
+    while (*(char*)location != '\0') {
+      location = (void*)((uintptr_t)location + 1);
+    }
+    location = (void*)((uintptr_t)location + 1);
+
     table->class.members[i].type = location;
     bool is_type_end = false;
     while (!is_type_end) {
