@@ -2044,10 +2044,12 @@ int NEW(size_t ptr, size_t size, size_t type) {
           object_table[ptr].type = calloc(1,sizeof(uint8_t));
           object_table[ptr].type[0]=0x07;
           object_table[ptr].const_type = false;
+          union Data ptr_data = object_table[ptr].data;
           object_table[ptr].data.reference_data = data+i;
           InvokeClassFunction(ptr,"@constructor",1,ptr,NULL);
           object_table[ptr].type = ptr_type;
           object_table[ptr].const_type = ptr_is_const;
+          object_table[ptr].data = ptr_data;
       } else {
         for (size_t i = 1; i < size_value+1; i++) {
           uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
@@ -2121,13 +2123,16 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
           uint8_t* ptr_type = object_table[ptr].type;
           bool ptr_is_const = object_table[ptr].const_type;
+          
           object_table[ptr].type = calloc(1,sizeof(uint8_t));
           object_table[ptr].type[0]=0x07;
           object_table[ptr].const_type = false;
+          union Data ptr_data = object_table[ptr].data;
           object_table[ptr].data.reference_data = data+i;
           InvokeClassFunction(ptr,"@constructor",1,ptr,NULL);
           object_table[ptr].type = ptr_type;
           object_table[ptr].const_type = ptr_is_const;
+          object_table[ptr].data = ptr_data;
         }
       }
     } else {
@@ -3493,15 +3498,21 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   if (!is_find)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class not found.");
 
-  /*struct Object* object_member_count = class_data->data.object_data + 1;
-  object_member_count = GetOriginData(object_member_count);
-  if (operand >= GetUint64tObjectData(object_member_count))
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");*/
-
-  // TODO
   struct Object* object_data = class_data->data.object_data + offset;
-
+  
+  // 保存原始类型信息
+  uint8_t* original_type = object_table[result].type;
+  bool original_const_type = object_table[result].const_type;
+  
+  // 设置引用
   SetReferenceData(result, object_data);
+  
+  // 如果成员本身是对象类型,需要保持其类型信息
+  if (object_data->type[0] == 0x09) {
+    object_table[result].type = original_type;
+    object_table[result].const_type = original_const_type;
+  }
+  
   return 0;
 
   /*struct Object* class_name = GetOriginData(object_table + class);

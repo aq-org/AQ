@@ -13,8 +13,8 @@ class TESTCLASS{
 };
 TESTCLASS abc;
 //TESTCLASS.TESTABC abc_too;
-abc.inter = 2323213211;
-abc.inter_abc.abc = abc.inter;
+//abc.inter = 2323213211;
+abc.inter_abc.abc = 100;
 
 //long data = 2323213211;
 auto main(){

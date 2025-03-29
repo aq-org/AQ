@@ -9063,10 +9063,10 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
 
       /*global_code_.push_back(
           Bytecode(_AQVM_OPERATOR_PTR, 2, var_index, var_index_ptr));*/
-      global_code_.push_back(
+      code.push_back(
           Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
 
-      global_code_.push_back(
+      code.push_back(
           Bytecode(_AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),global_memory_.AddString(func_name)));
       /*std::vector<std::size_t> invoke_args;
       invoke_args.push_back(global_memory_.AddString(func_name));
@@ -9151,11 +9151,11 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
 
       /*global_code_.push_back(
           Bytecode(_AQVM_OPERATOR_PTR, 2, var_index, var_index_ptr));*/
-      global_code_.push_back(
+      code.push_back(
           Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
 
 
-global_code_.push_back(
+      code.push_back(
           Bytecode(_AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),global_memory_.AddString(func_name)));
       /*std::vector<std::size_t> invoke_args;
       invoke_args.push_back(global_memory_.AddString(func_name));
