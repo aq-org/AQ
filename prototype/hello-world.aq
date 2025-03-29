@@ -1,13 +1,47 @@
 int print(auto str);
 //string arr[10]={"A","B"};
-/*class TESTCLASS{
+class TESTCLASS{
   void TESTCLASS(){}
+  class TESTABC{
+    void TESTABC(){
+      print("TESTABC Create");
+    }
+    double abc;
+  };
+  TESTABC inter_abc;
   long inter;
 };
 TESTCLASS abc;
-abc.inter = 2323213211;*/
-long data = 2323213211;
+//TESTCLASS.TESTABC abc_too;
+abc.inter = 2323213211;
+abc.inter_abc.abc = abc.inter;
+
+//long data = 2323213211;
 auto main(){
   //arr[0] ="ab";
-  return data;
+  //return abc.inter_abc.abc;
 }
+/*auto fabs(auto num){
+  if(num <0){
+    num=-num;
+  }
+  return num;
+}
+int main()
+{ 
+    int i=1;int sign=1; // 定义整型变量i和sign，分别表示序列项和符号
+    double t=1;double pi=0; // 定义双精度浮点型变量t和pi，分别表示序列项和π的近似值
+
+    while(fabs(t)>=0.0001) // 当序列项的绝对值大于等于 1e-4 时循环执行以下操作
+    {
+        pi=pi+t; // 将当前序列项累加到pi中，更新pi的值
+        sign=-sign; // 更改符号，用于计算下一个序列项
+        i=i+2; // 更新序列项，每次递增2
+        t=1.0*sign/i; // 计算下一个序列项的值，并赋给t
+    }
+    
+    print("圆周率约为: ");
+    print(4*pi); // 输出π的近似值，乘以4得到圆周率的近似值
+    print("\n");
+    return 0;
+}*/

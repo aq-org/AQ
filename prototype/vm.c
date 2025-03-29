@@ -1901,6 +1901,12 @@ int STORE(size_t ptr, size_t operand) {
   return 0;
 }
 unsigned int hash(const char* str);
+
+
+int InvokeClassFunction(size_t class, const char* name, size_t args_size,
+                        size_t return_value, size_t* args);
+
+
 int NEW(size_t ptr, size_t size, size_t type) {
   TRACE_FUNCTION;
   if (ptr >= object_table_size)
@@ -1951,7 +1957,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
   AddFreePtr(type_ptr);
 
   if (type == 0) {
-    for (size_t i = 1; i < size_value; i++) {
+    for (size_t i = 1; i < size_value+1; i++) {
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
       data[i].type = type_ptr;
       data[i].const_type = false;
@@ -1961,7 +1967,8 @@ int NEW(size_t ptr, size_t size, size_t type) {
     struct Object* type_data = object_table + type;
     type_data = GetOriginData(type_data);
     if (type_data->type[0] == 0x05 && type_data->data.string_data != NULL) {
-      for (size_t i = 0; i < size_value; i++) {
+      if (size_value == 0) {
+        size_t i = 0;
         uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
         data[i].type = type_ptr;
         data[i].type[0] = 0x09;
@@ -2030,9 +2037,101 @@ int NEW(size_t ptr, size_t size, size_t type) {
         class_object[1].type[0] = 0x04;
         class_object[1].data.uint64t_data = class_data->members_size;
         data[i].data.object_data = class_object;
+
+
+                  uint8_t* ptr_type = object_table[ptr].type;
+          bool ptr_is_const = object_table[ptr].const_type;
+          object_table[ptr].type = calloc(1,sizeof(uint8_t));
+          object_table[ptr].type[0]=0x07;
+          object_table[ptr].const_type = false;
+          object_table[ptr].data.reference_data = data+i;
+          InvokeClassFunction(ptr,"@constructor",1,ptr,NULL);
+          object_table[ptr].type = ptr_type;
+          object_table[ptr].const_type = ptr_is_const;
+      } else {
+        for (size_t i = 1; i < size_value+1; i++) {
+          uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+          data[i].type = type_ptr;
+          data[i].type[0] = 0x09;
+          data[i].const_type = true;
+          AddFreePtr(type_ptr);
+
+          struct Class* class_data = NULL;
+          const char* class = GetStringData(type);
+          const unsigned int class_hash = hash(class);
+          struct ClassList* current_class_table = &class_table[class_hash];
+          while (current_class_table != NULL &&
+                 current_class_table->class.name != NULL) {
+            if (strcmp(current_class_table->class.name, class) == 0) {
+              class_data = &current_class_table->class;
+              break;
+            }
+            current_class_table = current_class_table->next;
+          }
+
+          if (class_data == NULL) {
+            EXIT_VM("NEW(size_t, size_t)", "Class not found.");
+          }
+
+          struct Object* class_object =
+              calloc(class_data->members_size, sizeof(struct Object));
+          AddFreePtr(class_object);
+          for (size_t j = 0; j < class_data->members_size; j++) {
+            uint8_t* location = class_data->members[j].type;
+            size_t length = 1;
+            bool is_type_end = false;
+            while (!is_type_end) {
+              switch (*location) {
+                case 0x00:
+                case 0x01:
+                case 0x02:
+                case 0x03:
+                case 0x04:
+                case 0x05:
+                case 0x09:
+                  is_type_end = true;
+                  break;
+
+                case 0x06:
+                case 0x07:
+                case 0x08:
+                  length++;
+                  location++;
+                  break;
+
+                default:
+                  EXIT_VM("AddClass(void*)", "Unsupported type.");
+                  break;
+              }
+            }
+
+            class_object[j].type = calloc(length, sizeof(uint8_t));
+            AddFreePtr(class_object[j].type);
+            memcpy(class_object[j].type, class_data->members[j].type, length);
+            class_object[j].const_type = class_data->members[j].const_type;
+          }
+          class_object[0].const_type = true;
+          class_object[0].type[0] = 0x05;
+          class_object[0].data.string_data = class;
+          printf("Class Name NEW: %s\n", class_object[0].data.string_data);
+          class_object[1].const_type = true;
+          class_object[1].type[0] = 0x04;
+          class_object[1].data.uint64t_data = class_data->members_size;
+          data[i].data.object_data = class_object;
+
+          uint8_t* ptr_type = object_table[ptr].type;
+          bool ptr_is_const = object_table[ptr].const_type;
+          object_table[ptr].type = calloc(1,sizeof(uint8_t));
+          object_table[ptr].type[0]=0x07;
+          object_table[ptr].const_type = false;
+          object_table[ptr].data.reference_data = data+i;
+          InvokeClassFunction(ptr,"@constructor",1,ptr,NULL);
+          object_table[ptr].type = ptr_type;
+          object_table[ptr].const_type = ptr_is_const;
+        }
       }
     } else {
-      for (size_t i = 1; i < size_value; i++) {
+      for (size_t i = 1; i < size_value+1; i++) {
         data[i].type = type_data->type;
         data[i].const_type = true;
       }
@@ -2042,7 +2141,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
   struct Object* original_object = object_table + ptr;
   original_object = GetOriginData(original_object);
 
-  if (original_object->type[0] == 0x09 && size_value == 1) {
+  if (size_value == 0) {
     SetObjectData(ptr, data->data.object_data);
   } else {
     SetPtrData(ptr, data);
@@ -3322,9 +3421,6 @@ int CONST(size_t result, size_t operand1) {
   return 0;
 }
 
-int InvokeClassFunction(size_t class, const char* name, size_t args_size,
-                        size_t return_value, size_t* args);
-
 int INVOKE_CLASS(size_t* args) {
   TRACE_FUNCTION;
   if (args == NULL) EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid args.");
@@ -3378,7 +3474,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
       const unsigned int member_hash = hash(var_name);
       struct ClassVarInfoList* current_var_table =
           &(current_class_table->class.var_info_table[member_hash]);
-      while (current_var_table != NULL&&current_var_table->name != NULL) {
+      while (current_var_table != NULL && current_var_table->name != NULL) {
         if (strcmp(current_var_table->name, var_name) == 0) {
           offset = current_var_table->index;
           is_var_find = true;
