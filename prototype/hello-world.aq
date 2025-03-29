@@ -1,12 +1,13 @@
 int print(auto str);
-string arr[10]={"A","B"};
-class TESTCLASS{
+//string arr[10]={"A","B"};
+/*class TESTCLASS{
   void TESTCLASS(){}
-  auto inter;
+  long inter;
 };
 TESTCLASS abc;
-abc.inter = 1;
+abc.inter = 2323213211;*/
+long data = 2323213211;
 auto main(){
-  arr[0] ="ab";
-  //return abc.inter;
+  //arr[0] ="ab";
+  return data;
 }

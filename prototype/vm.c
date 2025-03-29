@@ -274,7 +274,7 @@ int64_t SwapLong(int64_t x) {
        ((ux >> 24) & 0x0000000000FF0000ULL) |
        ((ux >> 40) & 0x000000000000FF00ULL) |
        ((ux >> 56) & 0x00000000000000FFULL);
-  return (long)ux;
+  return (int64_t)ux;
 }
 
 /*float SwapFloat(float x) {
