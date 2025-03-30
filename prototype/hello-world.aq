@@ -12,14 +12,15 @@ class TESTCLASS{
   long inter;
 };
 TESTCLASS abc;
-//TESTCLASS.TESTABC abc_too;
-//abc.inter = 2323213211;
-abc.inter_abc.abc = 100;
+TESTCLASS.TESTABC abc_too;
+abc.inter = 2323213211;
+abc.inter_abc.abc = abc.inter;
 
-//long data = 2323213211;
+long data =6666211;
 auto main(){
+  abc_too.abc=data;
   //arr[0] ="ab";
-  //return abc.inter_abc.abc;
+  return abc_too.abc;
 }
 /*auto fabs(auto num){
   if(num <0){

@@ -13,7 +13,7 @@
 
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
-/*typedef struct StackNode {
+typedef struct StackNode {
   char* function_name;
   struct StackNode* next;
 } StackNode;
@@ -38,16 +38,16 @@ void PopStack() {
 
 void PrintStackRecursive(StackNode* node) {
   if (node == NULL) {
-    // printf("[INFO] Run: ");
+     printf("[INFO] Run: ");
     return;
   }
   PrintStackRecursive(node->next);
-  // printf("%s -> ", node->function_name);
+   printf("%s -> ", node->function_name);
 }
 
 void PrintStack() {
   PrintStackRecursive(call_stack);
-  // printf("Success\n");
+   printf("Success\n");
 }
 
 typedef struct Trace {
@@ -75,9 +75,9 @@ void TraceDestroy(Trace* trace) {
 
 #define TRACE_FUNCTION                                  \
   Trace _trace __attribute__((cleanup(TraceDestroy))) = \
-      TraceCreate(__FUNCTION__)*/
+      TraceCreate(__FUNCTION__)
 
-#define TRACE_FUNCTION
+//#define TRACE_FUNCTION
 
 union Data {
   int8_t byte_data;
@@ -1348,7 +1348,7 @@ void SetReferenceData(size_t index, struct Object* object) {
             "Cannot change const data.");
 
   struct Object* data = object_table + index;
-  while (data->type[0] == 0x07) data = data->data.reference_data;
+  // while (data->type[0] == 0x07) data = data->data.reference_data;
 
   if (object_table[index].const_type && object_table[index].type[0] != 0x07)
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
@@ -1524,7 +1524,7 @@ void SetObjectData(size_t index, struct Object* object) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if (object_table[index].const_type && object_table[index].type[0] != 0x09)
+  if (data->const_type && data->type != NULL && data->type[0] != 0x09)
     EXIT_VM("SetObjectData(size_t,struct Object*)",
             "Cannot change const type.");
 
@@ -1902,10 +1902,8 @@ int STORE(size_t ptr, size_t operand) {
 }
 unsigned int hash(const char* str);
 
-
 int InvokeClassFunction(size_t class, const char* name, size_t args_size,
                         size_t return_value, size_t* args);
-
 
 int NEW(size_t ptr, size_t size, size_t type) {
   TRACE_FUNCTION;
@@ -1957,7 +1955,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
   AddFreePtr(type_ptr);
 
   if (type == 0) {
-    for (size_t i = 1; i < size_value+1; i++) {
+    for (size_t i = 1; i < size_value + 1; i++) {
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
       data[i].type = type_ptr;
       data[i].const_type = false;
@@ -2038,20 +2036,19 @@ int NEW(size_t ptr, size_t size, size_t type) {
         class_object[1].data.uint64t_data = class_data->members_size;
         data[i].data.object_data = class_object;
 
-
-                  uint8_t* ptr_type = object_table[ptr].type;
-          bool ptr_is_const = object_table[ptr].const_type;
-          object_table[ptr].type = calloc(1,sizeof(uint8_t));
-          object_table[ptr].type[0]=0x07;
-          object_table[ptr].const_type = false;
-          union Data ptr_data = object_table[ptr].data;
-          object_table[ptr].data.reference_data = data+i;
-          InvokeClassFunction(ptr,"@constructor",1,ptr,NULL);
-          object_table[ptr].type = ptr_type;
-          object_table[ptr].const_type = ptr_is_const;
-          object_table[ptr].data = ptr_data;
+        uint8_t* ptr_type = object_table[ptr].type;
+        bool ptr_is_const = object_table[ptr].const_type;
+        object_table[ptr].type = calloc(1, sizeof(uint8_t));
+        object_table[ptr].type[0] = 0x07;
+        object_table[ptr].const_type = false;
+        union Data ptr_data = object_table[ptr].data;
+        object_table[ptr].data.reference_data = data + i;
+        InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
+        object_table[ptr].type = ptr_type;
+        object_table[ptr].const_type = ptr_is_const;
+        object_table[ptr].data = ptr_data;
       } else {
-        for (size_t i = 1; i < size_value+1; i++) {
+        for (size_t i = 1; i < size_value + 1; i++) {
           uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
           data[i].type = type_ptr;
           data[i].type[0] = 0x09;
@@ -2123,20 +2120,20 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
           uint8_t* ptr_type = object_table[ptr].type;
           bool ptr_is_const = object_table[ptr].const_type;
-          
-          object_table[ptr].type = calloc(1,sizeof(uint8_t));
-          object_table[ptr].type[0]=0x07;
+
+          object_table[ptr].type = calloc(1, sizeof(uint8_t));
+          object_table[ptr].type[0] = 0x07;
           object_table[ptr].const_type = false;
           union Data ptr_data = object_table[ptr].data;
-          object_table[ptr].data.reference_data = data+i;
-          InvokeClassFunction(ptr,"@constructor",1,ptr,NULL);
+          object_table[ptr].data.reference_data = data + i;
+          InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
           object_table[ptr].type = ptr_type;
           object_table[ptr].const_type = ptr_is_const;
           object_table[ptr].data = ptr_data;
         }
       }
     } else {
-      for (size_t i = 1; i < size_value+1; i++) {
+      for (size_t i = 1; i < size_value + 1; i++) {
         data[i].type = type_data->type;
         data[i].const_type = true;
       }
@@ -2759,7 +2756,9 @@ int REFER(size_t result, size_t operand1) {
     EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
 
   // printf("REFER: %zu , %zu\n", result,operand1);
-  SetReferenceData(result, object_table + operand1);
+  struct Object* data =GetOriginData(object_table + operand1);
+  
+  SetReferenceData(result, data);
 
   return 0;
 }
@@ -3499,20 +3498,20 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class not found.");
 
   struct Object* object_data = class_data->data.object_data + offset;
-  
+
   // 保存原始类型信息
   uint8_t* original_type = object_table[result].type;
   bool original_const_type = object_table[result].const_type;
-  
+
   // 设置引用
   SetReferenceData(result, object_data);
-  
+
   // 如果成员本身是对象类型,需要保持其类型信息
   if (object_data->type[0] == 0x09) {
     object_table[result].type = original_type;
     object_table[result].const_type = original_const_type;
   }
-  
+
   return 0;
 
   /*struct Object* class_name = GetOriginData(object_table + class);
