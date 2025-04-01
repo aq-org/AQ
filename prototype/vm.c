@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "aqstl.h"
 
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
@@ -80,7 +81,7 @@ void TraceDestroy(Trace* trace) {
 
 #define TRACE_FUNCTION
 
-union Data {
+/*union Data {
   int8_t byte_data;
   int64_t long_data;
   double double_data;
@@ -96,22 +97,22 @@ struct Object {
   uint8_t* type;
   bool const_type;
   union Data data;
-};
+};*/
 
 struct Object* const_object_table;
 
 size_t const_object_table_size;
 
-struct Object* object_table;
+//struct Object* object_table;
 
-size_t object_table_size;
+//size_t object_table_size;
 
-typedef struct {
+/*typedef struct {
   size_t size;
   size_t* index;
 } InternalObject;
 
-typedef void (*func_ptr)(InternalObject, size_t);
+typedef void (*func_ptr)(InternalObject, size_t);*/
 
 struct Pair {
   char* first;
@@ -1020,10 +1021,10 @@ struct Object* GetOriginData(struct Object* object) {
   }
 }
 
-void SetByteData(size_t, int8_t);
+/*void SetByteData(size_t, int8_t);
 void SetLongData(size_t, int64_t);
 void SetDoubleData(size_t, double);
-void SetUint64tData(size_t, uint64_t);
+void SetUint64tData(size_t, uint64_t);*/
 
 void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
