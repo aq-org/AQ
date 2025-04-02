@@ -1,5 +1,12 @@
 int print(auto str);
+void test_func(int abc){
+  print("Int");
+}
+void test_func(double abc,...){
+  print("Double");
+}
 auto main(){
   auto result = print("Hello World!\n");
+  test_func(0.12);
   return result;
 }

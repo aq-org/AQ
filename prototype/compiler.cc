@@ -2114,12 +2114,15 @@ class FuncNode : public ExprNode {
   ExprNode* GetName() { return name_; }
   std::vector<ExprNode*> GetArgs() { return args_; }
 
+  void EnableVaFlag() { va_flag_ = true; }
+
   FuncNode(const FuncNode&) = default;
   FuncNode& operator=(const FuncNode&) = default;
 
  private:
   ExprNode* name_;
   std::vector<ExprNode*> args_;
+  bool va_flag_ = false;
 };
 
 class IdentifierNode : public ExprNode {
@@ -3888,8 +3891,19 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                      token[index - 1].type == Token::Type::IDENTIFIER) {
             std::vector<ExprNode*> args;
             index++;
+            bool va_flag = false;
             while (index < length && token[index].value._operator !=
                                          Token::OperatorType::r_paren) {
+              if (token[index].type == Token::Type::OPERATOR &&
+                  token[index].value._operator ==
+                      Token::OperatorType::ellipsis &&
+                  token[index + 1].type == Token::Type::OPERATOR &&
+                  token[index + 1].value._operator ==
+                      Token::OperatorType::r_paren) {
+                va_flag = true;
+                index++;
+                break;
+              }
               args.push_back(ParseExprWithoutComma(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
                   token[index].value._operator == Token::OperatorType::comma) {
@@ -3905,6 +3919,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             }
             index++;
             FuncNode* func_node = new FuncNode();
+            if (va_flag) func_node->EnableVaFlag();
             if (main_expr != nullptr &&
                 main_expr->GetType() == StmtNode::StmtType::kBinary) {
               func_node->SetFuncNode(
@@ -4032,7 +4047,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             binary_node->SetBinaryNode(BinaryNode::Operator::kMember, main_expr,
                                        identifier_node);
             if (full_expr == main_expr) {
-              //std::cout << "Point B" << std::endl;
+              // std::cout << "Point B" << std::endl;
               full_expr = main_expr = binary_node;
             } else {
               if (preoper_expr != nullptr) {
@@ -4057,6 +4072,16 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                 "Before period isn't pre_oper node.");
           }
           break;
+
+        /*case Token::OperatorType::ellipsis:
+          if(state!=State::kPreOper)EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                "ellipsis isn't pre_oper node.");
+          if(main_expr==NULL||main_expr->GetType()!=StmtNode::StmtType::kFunc)EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                "main expr isn't func node.");
+          if(token[index+1].type!=Token::Type::OPERATOR||token[index+1].value._operator!=Token::OperatorType::r_paren)EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+                "Next token isn't r_paren.");
+          dynamic_cast<FuncNode*>(main_expr)->EnableVaFlag();
+          index++;*/
         /*case Token::OperatorType::arrow:  // ->
           if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
@@ -4305,7 +4330,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
       }
 
       case Token::OperatorType::plus: {
-        //std::cout << "plus BinaryNode" << std::endl;
+        // std::cout << "plus BinaryNode" << std::endl;
         BinaryNode* plus_node = new BinaryNode();
         index++;
         plus_node->SetBinaryNode(
@@ -5873,7 +5898,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
             "BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)",
             "Label not found.");
     }
-    //std::cout << global_code_[start_goto_map_.back().second].GetOper() << std::endl;
+    // std::cout << global_code_[start_goto_map_.back().second].GetOper() <<
+    // std::endl;
     global_code_[start_goto_map_.back().second].SetArgs(1, goto_location);
     start_goto_map_.pop_back();
   }
@@ -5939,20 +5965,20 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                  reinterpret_cast<const uint8_t*>(class_name +
                                                   class_name_str.size() + 1));
 
-    //std::cout << "Point A" << std::endl;
+    // std::cout << "Point A" << std::endl;
 
     std::size_t memory_size = class_list_[i].GetMemory().GetMemorySize();
-    //std::cout << "Size: " << memory_size << std::endl;
+    // std::cout << "Size: " << memory_size << std::endl;
     memory_size = is_big_endian_ ? memory_size : SwapUint64t(memory_size);
 
-    //std::cout << "Point E" << std::endl;
+    // std::cout << "Point E" << std::endl;
 
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(&memory_size),
                  reinterpret_cast<const uint8_t*>(&memory_size + 1));
 
-    //std::cout << "Size: " << memory_size << std::endl;
+    // std::cout << "Size: " << memory_size << std::endl;
 
-    //std::cout << "Point D" << std::endl;
+    // std::cout << "Point D" << std::endl;
 
     for (std::size_t j = 0;
          j < class_list_[i].GetMemory().GetMemoryType().size(); j++) {
@@ -5963,7 +5989,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
       code_.push_back(class_list_[i].GetMemory().GetMemoryType()[j]);
     }
 
-    //std::cout << "Point B" << std::endl;
+    // std::cout << "Point B" << std::endl;
 
     std::size_t methods_size = class_list_[i].GetFuncList().size();
     methods_size = is_big_endian_ ? methods_size : SwapUint64t(methods_size);
@@ -5972,14 +5998,14 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
 
     std::vector<Function> func_list = class_list_[i].GetFuncList();
 
-    //std::cout << "Point C" << std::endl;
+    // std::cout << "Point C" << std::endl;
 
     for (std::size_t z = 0; z < func_list.size(); z++) {
-      //std::cout << func_list.size() << std::endl;
-      // Function name (with '\0')
+      // std::cout << func_list.size() << std::endl;
+      //  Function name (with '\0')
       std::string func_name_str = func_list[z].GetName();
       const char* func_name = func_name_str.c_str();
-      //std::cout << func_name_str << std::endl;
+      // std::cout << func_name_str << std::endl;
       code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(func_name),
                    reinterpret_cast<const uint8_t*>(
                        func_name + func_list[z].GetName().size() + 1));
@@ -6539,7 +6565,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
     }
   }
 
-  //std::cout << "SUCCESS BEFORE __start" << std::endl;
+  // std::cout << "SUCCESS BEFORE __start" << std::endl;
 
   std::string class_name_str = "__start";
 
@@ -6565,11 +6591,11 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
   std::vector<Function> func_list = func_list_;
 
   for (std::size_t i = 0; i < func_list.size(); i++) {
-    //std::cout << func_list.size() << std::endl;
-    // Function name (with '\0')
+    // std::cout << func_list.size() << std::endl;
+    //  Function name (with '\0')
     std::string func_name_str = func_list[i].GetName();
     const char* func_name = func_name_str.c_str();
-    //std::cout << func_name_str << std::endl;
+    // std::cout << func_name_str << std::endl;
     code_.insert(code_.end(), reinterpret_cast<const uint8_t*>(func_name),
                  reinterpret_cast<const uint8_t*>(
                      func_name + func_list[i].GetName().size() + 1));
@@ -7060,7 +7086,8 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                           "Unexpected INVOKE_CLASS args size.");
 
           /*std::cout << "INVOKE_CLASS SIZE: "
-                    << func_list[i].GetCode()[j].GetArgs().size() << std::endl;*/
+                    << func_list[i].GetCode()[j].GetArgs().size() <<
+             std::endl;*/
 
           for (std::size_t k = 0;
                k < func_list[i].GetCode()[j].GetArgs().size(); k++) {
@@ -8522,7 +8549,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
     EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                   "current_class_ is nullptr.");
 
-  //std::cout << "HandleClassConstructor" << std::endl;
+  // std::cout << "HandleClassConstructor" << std::endl;
 
   std::vector<Bytecode> code;
   std::string class_name = current_class_->GetName();
@@ -8533,7 +8560,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
 
   // std::string original_func_name = *func_decl->GetStat()->GetName();
   std::string original_func_name = "@constructor";
-  //std::cout << "Class Name: " << original_func_name << std::endl;
+  // std::cout << "Class Name: " << original_func_name << std::endl;
   std::string func_name = scope_name;
 
   // std::cout << "func_name: " << func_name << std::endl;
@@ -8754,7 +8781,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
   current_class_ = current_class;
 
   for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
-    //std::cout << "Handle var in HandleClassDecl" << std::endl;
+    // std::cout << "Handle var in HandleClassDecl" << std::endl;
     if (class_decl->GetMembers()[i]->GetType() ==
         StmtNode::StmtType::kVarDecl) {
       HandleClassVarDecl(
@@ -9255,7 +9282,7 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
 
 std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
                                                std::vector<Bytecode>& code) {
-  //std::cout << "Array DECL Handle. 1" << std::endl;
+  // std::cout << "Array DECL Handle. 1" << std::endl;
   TRACE_FUNCTION;
   if (array_decl == nullptr)
     EXIT_COMPILER(
@@ -9276,7 +9303,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
         "Bytecode>&)",
         "const array not support.");
 
-  //std::cout << "Array DECL Handle. 2" << std::endl;
+  // std::cout << "Array DECL Handle. 2" << std::endl;
 
   /*if (array_type->GetType() == Type::TypeType::kConst)
     array_type = dynamic_cast<ConstType*>(array_type)->GetSubType();
@@ -9328,7 +9355,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     vm_type = 0x06;
   }*/
   if (array_decl->GetValue().empty()) {
-    //std::cout << "Array DECL Handle." << std::endl;
+    // std::cout << "Array DECL Handle." << std::endl;
     /*if (array_decl->GetSize()->GetType() != StmtNode::StmtType::kValue)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
@@ -9391,7 +9418,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
             dynamic_cast<VarDeclNode*>(array_decl), array_index));
     return array_index;
   } else {
-    //std::cout << "Array DECL Handle. value" << std::endl;
+    // std::cout << "Array DECL Handle. value" << std::endl;
     if (array_decl->GetSize()->GetType() != StmtNode::StmtType::kValue)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleArrayDecl(ArrayDeclNode*,std::vector<"
@@ -9435,10 +9462,10 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
 
     std::size_t array_index =
         global_memory_.AddWithType(array_type->GetVmType());
-    //std::cout << "array type .1" << std::endl;
+    // std::cout << "array type .1" << std::endl;
     std::size_t array_type_index = global_memory_.AddWithType(
         dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
-    //std::cout << "array type ." << std::endl;
+    // std::cout << "array type ." << std::endl;
     if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType()[0] ==
         0x00)
       array_type_index = 0;
@@ -9451,7 +9478,7 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
         Bytecode(_AQVM_OPERATOR_PTR, 2, array_index, array_ptr_index));*/
 
     for (std::size_t i = 0; i < array_decl->GetValue().size(); i++) {
-      //std::cout << "Handle Array DECL with value." << std::endl;
+      // std::cout << "Handle Array DECL with value." << std::endl;
       std::size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
       std::size_t current_index = global_memory_.Add(1);
       code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
@@ -9716,7 +9743,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         ")",
         "expr is nullptr.");
 
-  //std::cout << "HandleBinaryExpr RUNNING" << std::endl;
+  // std::cout << "HandleBinaryExpr RUNNING" << std::endl;
 
   ExprNode* right_expr = expr->GetRightExpr();
   ExprNode* left_expr = expr->GetLeftExpr();
@@ -9916,8 +9943,8 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       }*/
       return left;
     case BinaryNode::Operator::kMember: {
-      //std::cout << "Point A" << std::endl;
-      // std::string expr_type_string = GetExprTypeString(expr->GetLeftExpr());
+      // std::cout << "Point A" << std::endl;
+      //  std::string expr_type_string = GetExprTypeString(expr->GetLeftExpr());
 
       if (expr->GetRightExpr()->GetType() != StmtNode::StmtType::kIdentifier)
         EXIT_COMPILER(
@@ -10387,7 +10414,7 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       break;
 
     case StmtNode::StmtType::kStmt:
-      //std::cout << "STMT WARNING." << std::endl;
+      // std::cout << "STMT WARNING." << std::endl;
       break;
 
     default:
@@ -10464,7 +10491,7 @@ void BytecodeGenerator::HandleClassStmt(StmtNode* stmt,
       break;
 
     case StmtNode::StmtType::kStmt:
-      //std::cout << "STMT WARNING." << std::endl;
+      // std::cout << "STMT WARNING." << std::endl;
       break;
 
     default:
