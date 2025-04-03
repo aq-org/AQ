@@ -2,11 +2,11 @@ int print(auto str);
 void test_func(int abc){
   print("Int");
 }
-void test_func(double abc,...){
-  print("Double");
+void test_func(char abc){
+  print("Char");
 }
 auto main(){
   auto result = print("Hello World!\n");
-  test_func(0.12);
+  test_func('A');
   return result;
 }
