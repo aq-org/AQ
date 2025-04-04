@@ -3839,7 +3839,11 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           }
           break;
         case Token::OperatorType::r_square:  // ]
-          state = State::kEnd;
+          if(token[index+1].type==Token::Type::OPERATOR&&token[index+1].value._operator==Token::OperatorType::period){
+            // continue
+            index++;
+          }else{
+          state = State::kEnd;}
           break;
         case Token::OperatorType::l_paren:  // (
           if (state == State::kPreOper) {
@@ -4037,8 +4041,8 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                 "Before coloncolon isn't identifier node.");
           }
           break;*/
-        case Token::OperatorType::period:  // .
-          if (state == State::kPreOper) {
+        case Token::OperatorType::period:{  // .
+          //if (state == State::kPreOper) {
             BinaryNode* binary_node = new BinaryNode();
             index++;
             IdentifierNode* identifier_node = new IdentifierNode();
@@ -4066,12 +4070,13 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
 
                 token[index].value._operator != Token::OperatorType::period)
               state = State::kPostOper;
-          } else {
+          /*} else {
             EXIT_COMPILER(
                 "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
                 "Before period isn't pre_oper node.");
-          }
+          }*/
           break;
+        }
 
         /*case Token::OperatorType::ellipsis:
           if(state!=State::kPreOper)EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
@@ -4277,7 +4282,17 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
           "unsigned int)",
           "Unexpected code.");
     switch (token[index].value._operator) {
-        /*case Token::OperatorType::periodstar: {
+        /*case Token::OperatorType::period: {
+          BinaryNode* period_node = new BinaryNode();
+          index++;
+          period_node->SetBinaryNode(
+              BinaryNode::Operator::kMember, expr,
+              ParseBinaryExpr(token, length, index,
+                              ParsePrimaryExpr(token, length, index), 14));
+          expr = period_node;
+          break;
+        }
+        case Token::OperatorType::periodstar: {
           BinaryNode* periodstar_node = new BinaryNode();
           index++;
           periodstar_node->SetBinaryNode(
@@ -9996,6 +10011,16 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
       std::size_t not_handle_index = 0;
       for (std::size_t i = 0; i < exprs.size() && !is_end; i++) {
+        if(exprs[i]->GetType() == StmtNode::StmtType::kArray){
+          if (i == 0) {
+            full_name +=
+                (std::string) * dynamic_cast<IdentifierNode*>(dynamic_cast<UnaryNode*>(exprs[i])->GetExpr());
+          } else {
+            full_name +=
+                std::string(".") +
+                (std::string) * dynamic_cast<IdentifierNode*>(dynamic_cast<UnaryNode*>(exprs[i])->GetExpr());
+          }
+        }else
         if (exprs[i]->GetType() == StmtNode::StmtType::kIdentifier) {
           if (i == 0) {
             full_name +=

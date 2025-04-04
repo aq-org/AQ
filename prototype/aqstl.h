@@ -141,7 +141,7 @@ void aqstl_print(InternalObject args, size_t return_value) {
       break;
     case 0x02:
       // printf("print long");
-      SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
+      SetLongData(return_value, printf("%ld", GetLongData(*args.index)));
       break;
     case 0x03:
       SetLongData(return_value, printf("%f", GetDoubleData(*args.index)));

@@ -2491,6 +2491,22 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
       (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
     }
   }
+
+  if((array_object+1)->const_type&&(array_object+1)->type[0]==0x09&&(array_object+1+index)->type==NULL){
+    (array_object+1+index)->const_type = true;
+    (array_object+1+index)->type = (array_object+1)->type;
+    size_t class_data_size = GetUint64tObjectData( (array_object+1)->data.object_data + 1);
+    (array_object+1+index)->data.object_data = calloc(class_data_size+2,sizeof(struct Object));
+    (array_object+1+index)->data.object_data->const_type = true;
+    (array_object+1+index)->data.object_data->type = (array_object+1)->data.object_data->type;
+    (array_object+1+index)->data.object_data->data = (array_object+1)->data.object_data->data;
+    ((array_object+1+index)->data.object_data+1)->const_type = true;
+    ((array_object+1+index)->data.object_data+1)->type = ((array_object+1)->data.object_data+1)->type;
+    ((array_object+1+index)->data.object_data+1)->data = ((array_object+1)->data.object_data+1)->data;
+    SetReferenceData(result, array_object + 1 + index);
+    InvokeClassFunction(result, "@constructor", 1, result, NULL);
+  }
+
   // printf("t: %i\n", (array_object + 1 + index)->type[0]);
   SetReferenceData(result, array_object + 1 + index);
 
@@ -3892,7 +3908,7 @@ void print(InternalObject args, size_t return_value) {
       break;
     case 0x02:
       // printf("print long");
-      SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
+      SetLongData(return_value, printf("%ld", GetLongData(*args.index)));
       break;
     case 0x03:
       SetLongData(return_value, printf("%f", GetDoubleData(*args.index)));

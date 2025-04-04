@@ -17,6 +17,8 @@ void test_func(TEST_CLASS abc){
 }
   
 auto main(){
+  TEST_CLASS class_arr[10];
+  class_arr[8].data_=100;
   auto result = print("Hello World!\n");
   auto tc = TEST_CLASS();
   tc.data_ = 666;
