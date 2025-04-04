@@ -10042,9 +10042,9 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
         }
         for (int64_t k = current_scope_.size() - 1; k >= 0; k--) {
           auto iterator =
-              var_decl_map_.find(current_scope_[i] + "#" + full_name);
+              var_decl_map_.find(current_scope_[k] + "#" + full_name);
           if (iterator != var_decl_map_.end()) {
-            full_name = current_scope_[i] + "#" + full_name;
+            full_name = current_scope_[k] + "#" + full_name;
             is_end = true;
             not_handle_index = i + 1;
           }

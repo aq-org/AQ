@@ -1940,10 +1940,28 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
           }
           break;
         case 0x06: {
-          if (object_table[args[i]].type[0] != 0x06) return -1;
-          if (object_table[func_args[i + 1]].type[1] == 0x00) break;
           bool is_end = false;
-          size_t final_type = 0x00;
+          uint8_t final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            switch (object_table[func_args[i + 1]].type[j]) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x06:
+              case 0x09:
+                final_type = object_table[func_args[i + 1]].type[j];
+                is_end = true;
+              default:
+                break;
+            }
+          }
+          if (final_type != 0x06) return -1;
+          if (object_table[func_args[i + 1]].type[1] == 0x00) break;
+          is_end = false;
+          final_type = 0x00;
           for (size_t j = 0; !is_end; j++) {
             if (object_table[func_args[i + 1]].type[j] == 0x00) {
               is_end = true;
@@ -1985,6 +2003,8 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x03:
               case 0x04:
               case 0x05:
+              case 0x06:
+              case 0x09:
                 final_type = object_table[func_args[i + 1]].type[j];
                 is_end = true;
               default:
@@ -2003,6 +2023,8 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x03:
               case 0x04:
               case 0x05:
+              case 0x06:
+              case 0x09:
                 arg_final_type = object_table[args[i]].type[j];
                 is_end = true;
               default:
@@ -2031,6 +2053,8 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x03:
               case 0x04:
               case 0x05:
+              case 0x06:
+              case 0x09:
                 final_type = object_table[func_args[i + 1]].type[j];
                 is_end = true;
               default:
@@ -2049,6 +2073,8 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x03:
               case 0x04:
               case 0x05:
+              case 0x06:
+              case 0x09:
                 arg_final_type = object_table[args[i]].type[j];
                 is_end = true;
               default:
@@ -2077,6 +2103,8 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x03:
               case 0x04:
               case 0x05:
+              case 0x06:
+              case 0x09:
                 arg_final_type = object_table[args[i]].type[j];
                 is_end = true;
               default:

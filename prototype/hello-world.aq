@@ -1,12 +1,27 @@
 int print(auto str);
+class TEST_CLASS{
+  void TEST_CLASS(){
+    print("TEST_CLASS Created.\n");
+  }
+  auto data_ = 100;
+};
 void test_func(int abc){
   print("Int");
 }
 void test_func(char abc){
   print("Char");
 }
+void test_func(TEST_CLASS abc){
+  print("TEST_CLASS");
+  abc.data_=999;
+}
+  
 auto main(){
   auto result = print("Hello World!\n");
-  test_func('A');
+  auto tc = TEST_CLASS();
+  tc.data_ = 666;
+  print(tc.data_);
+  test_func(tc);
+  print(tc.data_);
   return result;
 }
