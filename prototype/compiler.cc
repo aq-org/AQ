@@ -10047,6 +10047,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       // ExprNode* wait_handle_expr = nullptr;
       ExprNode* handle_expr = expr->GetLeftExpr();
       bool is_end = false;
+      bool is_array = false;
       bool is_func = false;
       /*while(handle_expr != nullptr){
         if (dynamic_cast<BinaryNode*>(handle_expr)->GetOperator() !=
@@ -10086,6 +10087,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
       }
 
       std::size_t not_handle_index = 0;
+      ExprNode* array_index = nullptr;
       for (std::size_t i = 0; i < exprs.size() && !is_end; i++) {
         if(exprs[i]->GetType() == StmtNode::StmtType::kArray){
           if (i == 0) {
@@ -10096,6 +10098,23 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
                 std::string(".") +
                 (std::string) * dynamic_cast<IdentifierNode*>(dynamic_cast<UnaryNode*>(exprs[i])->GetExpr());
           }
+          for (int64_t k = current_scope_.size() - 1; k >= 0; k--) {
+            auto iterator =
+                var_decl_map_.find(current_scope_[k] + "#" + full_name);
+            if (iterator != var_decl_map_.end()) {
+              full_name = current_scope_[k] + "#" + full_name;
+              is_end = true;
+              not_handle_index = i + 1;
+              break;
+            }
+            if(k==0)EXIT_COMPILER("BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+            "Bytecode>&)","Not found array.");
+          }
+          is_array = true;
+          is_end = true;
+          array_index = dynamic_cast<ArrayNode*>(exprs[i])->GetIndex();
+          break;
+
         }else if (exprs[i]->GetType() == StmtNode::StmtType::kIdentifier) {
           if (i == 0) {
             full_name +=
@@ -10209,7 +10228,14 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
             "Unexpected Error.");
 
       // TODO(Scope)
+      if(is_array){
+        if (not_handle_index < exprs.size()) {
 
+        }else{
+        std::size_t array_reference_index = global_memory_.Add(1);
+        code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY,3,array_reference_index,var_decl_map_[full_name].second,HandleExpr(array_index,code)));
+      }
+    }else
       if (is_func) {
         if (not_handle_index < exprs.size()) {
           std::vector<ExprNode*> args =
@@ -10232,6 +10258,10 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
           std::size_t current_index = return_value_index;
           while (not_handle_index < exprs.size()) {
+            if(exprs[not_handle_index]->GetType()==StmtNode::StmtType::kArray){
+              std::size_t array_reference_index = 0;
+              code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY,3,));
+            }else
             if (exprs[not_handle_index]->GetType() ==
                 StmtNode::StmtType::kIdentifier) {
               std::size_t new_index = global_memory_.Add(1);

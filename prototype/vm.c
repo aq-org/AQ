@@ -3862,6 +3862,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);
+  printf("\nType: %i\n",class_data->type[0]);
   if (class_data == NULL || class_data->type[0] != 0x09)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
 
