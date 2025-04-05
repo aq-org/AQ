@@ -2443,6 +2443,87 @@ int NEW(size_t ptr, size_t size, size_t type) {
           object_table[ptr].const_type = ptr_is_const;
           object_table[ptr].data = ptr_data;
         }
+        /*size_t i = 0;
+        uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+        data[i].type = type_ptr;
+        data[i].type[0] = 0x09;
+        data[i].const_type = true;
+        AddFreePtr(type_ptr);
+
+        struct Class* class_data = NULL;
+        const char* class = GetStringData(type);
+        const unsigned int class_hash = hash(class);
+        struct ClassList* current_class_table = &class_table[class_hash];
+        while (current_class_table != NULL &&
+               current_class_table->class.name != NULL) {
+          if (strcmp(current_class_table->class.name, class) == 0) {
+            class_data = &current_class_table->class;
+            break;
+          }
+          current_class_table = current_class_table->next;
+        }
+
+        if (class_data == NULL) {
+          EXIT_VM("NEW(size_t, size_t)", "Class not found.");
+        }
+
+        struct Object* class_object =
+            calloc(class_data->members_size, sizeof(struct Object));
+        AddFreePtr(class_object);
+        for (size_t j = 0; j < class_data->members_size; j++) {
+          uint8_t* location = class_data->members[j].type;
+          size_t length = 1;
+          bool is_type_end = false;
+          while (!is_type_end) {
+            switch (*location) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x09:
+                is_type_end = true;
+                break;
+
+              case 0x06:
+              case 0x07:
+              case 0x08:
+                length++;
+                location++;
+                break;
+
+              default:
+                EXIT_VM("AddClass(void*)", "Unsupported type.");
+                break;
+            }
+          }
+
+          class_object[j].type = calloc(length, sizeof(uint8_t));
+          AddFreePtr(class_object[j].type);
+          memcpy(class_object[j].type, class_data->members[j].type, length);
+          class_object[j].const_type = class_data->members[j].const_type;
+        }
+        class_object[0].const_type = true;
+        class_object[0].type[0] = 0x05;
+        class_object[0].data.string_data = class;
+        // printf("Class Name NEW: %s\n", class_object[0].data.string_data);
+        class_object[1].const_type = true;
+        class_object[1].type[0] = 0x04;
+        class_object[1].data.uint64t_data = class_data->members_size;
+        data[i].data.object_data = class_object;
+
+        uint8_t* ptr_type = object_table[ptr].type;
+        bool ptr_is_const = object_table[ptr].const_type;
+        object_table[ptr].type = calloc(1, sizeof(uint8_t));
+        object_table[ptr].type[0] = 0x07;
+        object_table[ptr].const_type = false;
+        union Data ptr_data = object_table[ptr].data;
+        object_table[ptr].data.reference_data = data + i;
+        InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
+        object_table[ptr].type = ptr_type;
+        object_table[ptr].const_type = ptr_is_const;
+        object_table[ptr].data = ptr_data;*/
       }
     } else {
       for (size_t i = 1; i < size_value + 1; i++) {
@@ -2476,7 +2557,7 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     struct Object* new_array = calloc(new_allocated, sizeof(struct Object));
     AddFreePtr(new_array);
     memcpy(new_array, array_object,
-           sizeof(struct Object) * (GetUint64tObjectData(array_object) + 1));
+           sizeof(struct Object) * (GetUint64tObjectData(array_object) +1));
     SetPtrData(ptr, new_array);
     new_array[0].const_type = true;
     new_array[0].type[0] = 0x04;
@@ -2496,7 +2577,8 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     (array_object+1+index)->const_type = true;
     (array_object+1+index)->type = (array_object+1)->type;
     size_t class_data_size = GetUint64tObjectData( (array_object+1)->data.object_data + 1);
-    (array_object+1+index)->data.object_data = calloc(class_data_size+2,sizeof(struct Object));
+    (array_object+1+index)->data.object_data = calloc(class_data_size,sizeof(struct Object));
+    if((array_object+1+index)->data.object_data==NULL)EXIT_VM("ARRAY(size_t,size_t,size_t)","Object is NULL.");
     (array_object+1+index)->data.object_data->const_type = true;
     (array_object+1+index)->data.object_data->type = (array_object+1)->data.object_data->type;
     (array_object+1+index)->data.object_data->data = (array_object+1)->data.object_data->data;
@@ -2504,9 +2586,11 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     ((array_object+1+index)->data.object_data+1)->type = ((array_object+1)->data.object_data+1)->type;
     ((array_object+1+index)->data.object_data+1)->data = ((array_object+1)->data.object_data+1)->data;
     SetReferenceData(result, array_object + 1 + index);
+    printf("DEBUG ARRAY\n");
     InvokeClassFunction(result, "@constructor", 1, result, NULL);
   }
 
+  printf("DEBUG ARRAY OUT OF OBJECT.\n");
   // printf("t: %i\n", (array_object + 1 + index)->type[0]);
   SetReferenceData(result, array_object + 1 + index);
 
@@ -3791,7 +3875,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   struct Object* name_data = object_table + operand;
   name_data = GetOriginData(name_data);
   if (name_data == NULL || name_data->type[0] != 0x05)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class name data.");
 
   const char* var_name = name_data->data.string_data;
 

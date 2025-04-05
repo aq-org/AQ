@@ -9413,8 +9413,27 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     }*/
     std::size_t array_index =
         global_memory_.AddWithType(array_type->GetVmType());
-    std::size_t array_type_index = global_memory_.AddWithType(
-        dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
+        std::size_t array_type_index = 0;
+    if(dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetType()==Type::TypeType::kClass){
+      std::string expr_type_string = *dynamic_cast<ArrayType*>(array_type)->GetSubType();
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator =
+            class_decl_map_.find(current_scope_[i] + "." + expr_type_string);
+        if (iterator != class_decl_map_.end()) {
+          expr_type_string = current_scope_[i] + "." + expr_type_string;
+          break;
+        }
+        if (i == 0)
+          EXIT_COMPILER(
+              "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+              "Bytecode>&)",
+              "Not found class.");
+      }
+      array_type_index = global_memory_.AddString(expr_type_string);
+
+    }else{
+        array_type_index = global_memory_.AddWithType(
+        dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());}
     if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType()[0] ==
         0x00)
       array_type_index = 0;
@@ -9478,8 +9497,27 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     std::size_t array_index =
         global_memory_.AddWithType(array_type->GetVmType());
     // std::cout << "array type .1" << std::endl;
-    std::size_t array_type_index = global_memory_.AddWithType(
-        dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
+    std::size_t array_type_index = 0;
+    if(dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetType()==Type::TypeType::kClass){
+      std::string expr_type_string = *dynamic_cast<ArrayType*>(array_type)->GetSubType();
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator =
+            class_decl_map_.find(current_scope_[i] + "." + expr_type_string);
+        if (iterator != class_decl_map_.end()) {
+          expr_type_string = current_scope_[i] + "." + expr_type_string;
+          break;
+        }
+        if (i == 0)
+          EXIT_COMPILER(
+              "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+              "Bytecode>&)",
+              "Not found class.");
+      }
+      array_type_index = global_memory_.AddString(expr_type_string);
+
+    }else{
+        array_type_index = global_memory_.AddWithType(
+        dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());}
     // std::cout << "array type ." << std::endl;
     if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType()[0] ==
         0x00)
@@ -9545,8 +9583,27 @@ std::size_t BytecodeGenerator::HandleClassArrayDecl(
     code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 0,
                             global_memory_.AddString(static_cast<std::string>(
                                 *array_decl->GetName()))));
-    std::size_t array_type_index = global_memory_.AddWithType(
-        dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
+                                std::size_t array_type_index = 0;
+                                if(dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetType()==Type::TypeType::kClass){
+                                  std::string expr_type_string = *dynamic_cast<ArrayType*>(array_type)->GetSubType();
+                                  for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+                                    auto iterator =
+                                        class_decl_map_.find(current_scope_[i] + "." + expr_type_string);
+                                    if (iterator != class_decl_map_.end()) {
+                                      expr_type_string = current_scope_[i] + "." + expr_type_string;
+                                      break;
+                                    }
+                                    if (i == 0)
+                                      EXIT_COMPILER(
+                                          "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+                                          "Bytecode>&)",
+                                          "Not found class.");
+                                  }
+                                  array_type_index = global_memory_.AddString(expr_type_string);
+                            
+                                }else{
+                                    array_type_index = global_memory_.AddWithType(
+                                    dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());}
     if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType()[0] ==
         0x00)
       array_type_index = 0;
@@ -9572,8 +9629,27 @@ std::size_t BytecodeGenerator::HandleClassArrayDecl(
     code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 0,
                             global_memory_.AddString(static_cast<std::string>(
                                 *array_decl->GetName()))));
-    std::size_t array_type_index = global_memory_.AddWithType(
-        dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
+                                std::size_t array_type_index = 0;
+                                if(dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetType()==Type::TypeType::kClass){
+                                  std::string expr_type_string = *dynamic_cast<ArrayType*>(array_type)->GetSubType();
+                                  for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+                                    auto iterator =
+                                        class_decl_map_.find(current_scope_[i] + "." + expr_type_string);
+                                    if (iterator != class_decl_map_.end()) {
+                                      expr_type_string = current_scope_[i] + "." + expr_type_string;
+                                      break;
+                                    }
+                                    if (i == 0)
+                                      EXIT_COMPILER(
+                                          "BytecodeGenerator::HandleBinaryExpr(BinaryNode*,std::vector<"
+                                          "Bytecode>&)",
+                                          "Not found class.");
+                                  }
+                                  array_type_index = global_memory_.AddString(expr_type_string);
+                            
+                                }else{
+                                    array_type_index = global_memory_.AddWithType(
+                                    dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());}
     if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType()[0] ==
         0x00)
       array_type_index = 0;
@@ -10020,8 +10096,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
                 std::string(".") +
                 (std::string) * dynamic_cast<IdentifierNode*>(dynamic_cast<UnaryNode*>(exprs[i])->GetExpr());
           }
-        }else
-        if (exprs[i]->GetType() == StmtNode::StmtType::kIdentifier) {
+        }else if (exprs[i]->GetType() == StmtNode::StmtType::kIdentifier) {
           if (i == 0) {
             full_name +=
                 (std::string) * dynamic_cast<IdentifierNode*>(exprs[i]);
