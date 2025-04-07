@@ -161,6 +161,7 @@ typedef struct {
   const char* name;
   void* location;
   size_t commands_size;
+  bool va_flag;
   struct Bytecode* commands;
   size_t args_size;
   size_t* args;
@@ -1822,12 +1823,16 @@ size_t* GetUnknownCountParamentForClass(void** ptr) {
 }
 
 int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
-                        size_t func_args_size) {
+                        size_t func_args_size, bool va_flag) {
   int cost = 0;
   // printf("%i,%i", args_size, func_args_size);
-  if (args_size != func_args_size) return -1;
+  if (args_size != func_args_size && !va_flag) return -1;
+  if (args_size < func_args_size) return -1;
+  if (args_size == 0)
+    EXIT_VM("GetFuncOverloadCost(size_t*,size_t,size_t*,size_t,bool)",
+            "Unexpected args size.");
   if (args_size == 1) return 0;
-  for (size_t i = 0; i < args_size; i++) {
+  for (size_t i = 0; i < func_args_size; i++) {
     if (object_table[func_args[i + 1]].const_type) {
       switch (object_table[func_args[i + 1]].type[0]) {
         case 0x01:
@@ -2127,6 +2132,9 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
           return -1;
       }
     }
+  }
+  if (args_size < func_args_size) {
+    cost += (func_args_size - args_size) * 10;
   }
   return cost;
 }
@@ -4073,15 +4081,35 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   }
   location = (void*)((uintptr_t)location + 1);
 
+  if (*(uint8_t*)location == 0xFF) {
+    location = (void*)((uintptr_t)location + 1);
+    table->pair.second.va_flag = true;
+  } else {
+    table->pair.second.va_flag = false;
+  }
+
   location = (void*)((uintptr_t)location +
                      DecodeUleb128(location, &table->pair.second.args_size));
-  table->pair.second.args =
+  if(table->pair.second.va_flag){
+    printf("TEST 2");
+    table->pair.second.args_size--;
+table->pair.second.args =
+      (size_t*)calloc(table->pair.second.args_size+1, sizeof(size_t));
+  // printf("args_size: %zu", table->pair.second.args_size);
+  for (size_t i = 0; i < table->pair.second.args_size+1; i++) {
+    location = (void*)((uintptr_t)location +
+                       DecodeUleb128(location, &table->pair.second.args[i]));
+  }
+  }else{
+    table->pair.second.args =
       (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
   // printf("args_size: %zu", table->pair.second.args_size);
   for (size_t i = 0; i < table->pair.second.args_size; i++) {
     location = (void*)((uintptr_t)location +
                        DecodeUleb128(location, &table->pair.second.args[i]));
   }
+  }
+  
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
@@ -4396,15 +4424,34 @@ void* AddFunction(void* location) {
   }
   location = (void*)((uintptr_t)location + 1);
 
+  if (*(uint8_t*)location == 0xFF) {
+    location = (void*)((uintptr_t)location + 1);
+    table->pair.second.va_flag = true;
+  } else {
+    table->pair.second.va_flag = false;
+  }
+
   location = (void*)((uintptr_t)location +
                      DecodeUleb128(location, &table->pair.second.args_size));
-  table->pair.second.args =
+  if(table->pair.second.va_flag){
+    printf("TEST 1");
+    table->pair.second.args_size--;
+    table->pair.second.args =
+      (size_t*)calloc(table->pair.second.args_size+1, sizeof(size_t));
+  // printf("args_size: %zu", table->pair.second.args_size);
+  for (size_t i = 0; i < table->pair.second.args_size+1; i++) {
+    location = (void*)((uintptr_t)location +
+                       DecodeUleb128(location, &table->pair.second.args[i]));
+  }}else{
+    table->pair.second.args =
       (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
   // printf("args_size: %zu", table->pair.second.args_size);
   for (size_t i = 0; i < table->pair.second.args_size; i++) {
     location = (void*)((uintptr_t)location +
                        DecodeUleb128(location, &table->pair.second.args[i]));
   }
+  }
+  
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
@@ -4633,9 +4680,9 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
               EXIT_VM(
                   "GetClassFunction(const char*,const char*,size_t*,size_t)",
                   "Invalid args.");*/
-            int temp_cost =
-                GetFuncOverloadCost(args, args_size, table->pair.second.args,
-                                    table->pair.second.args_size);
+            int temp_cost = GetFuncOverloadCost(
+                args, args_size, table->pair.second.args,
+                table->pair.second.args_size, table->pair.second.va_flag);
             if (temp_cost == -1) {
             } else if (temp_cost == 0) {
               // printf("Check failed.\n");
@@ -4712,9 +4759,9 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
                   "Invalid args.");*/
         // printf("Type compare:
         // %i,%i",object_table[table->pair.second.args[i+1]].type[0],object_table[args[i]].type[0]);
-        int temp_cost =
-            GetFuncOverloadCost(args, args_size, table->pair.second.args,
-                                table->pair.second.args_size);
+        int temp_cost = GetFuncOverloadCost(
+            args, args_size, table->pair.second.args,
+            table->pair.second.args_size, table->pair.second.va_flag);
         if (temp_cost == -1) {
         } else if (temp_cost == 0) {
           // printf("Check failed.\n");
