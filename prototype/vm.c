@@ -1826,6 +1826,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
   int cost = 0;
   // printf("%i,%i", args_size, func_args_size);
   if (args_size != func_args_size) return -1;
+  if (args_size == 1) return 0;
   for (size_t i = 0; i < args_size; i++) {
     if (object_table[func_args[i + 1]].const_type) {
       switch (object_table[func_args[i + 1]].type[0]) {
@@ -2544,12 +2545,17 @@ int NEW(size_t ptr, size_t size, size_t type) {
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
+
+int InvokeCustomFunction(const char* name, size_t args_size,
+                         size_t return_value, size_t* args);
+
 int ARRAY(size_t result, size_t ptr, size_t index) {
   // free(GetPtrData(ptr));
   struct Object* array_object = GetPtrData(ptr);
 
   index = GetUint64tData(index);
 
+  size_t original_size = GetUint64tObjectData(array_object);
   if (index >= GetUint64tObjectData(array_object)) {
     size_t newsize = index + 1;
     size_t new_allocated =
@@ -2557,7 +2563,7 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     struct Object* new_array = calloc(new_allocated, sizeof(struct Object));
     AddFreePtr(new_array);
     memcpy(new_array, array_object,
-           sizeof(struct Object) * (GetUint64tObjectData(array_object) +1));
+           sizeof(struct Object) * (GetUint64tObjectData(array_object) + 1));
     SetPtrData(ptr, new_array);
     new_array[0].const_type = true;
     new_array[0].type[0] = 0x04;
@@ -2573,24 +2579,33 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     }
   }
 
-  if((array_object+1)->const_type&&(array_object+1)->type[0]==0x09&&(array_object+1+index)->type==NULL){
-    (array_object+1+index)->const_type = true;
+  if ((array_object + 1)->const_type && (array_object + 1)->type[0] == 0x09 &&
+      index >= original_size) {
+    /*(array_object+1+index)->const_type = true;
     (array_object+1+index)->type = (array_object+1)->type;
-    size_t class_data_size = GetUint64tObjectData( (array_object+1)->data.object_data + 1);
-    (array_object+1+index)->data.object_data = calloc(class_data_size,sizeof(struct Object));
-    if((array_object+1+index)->data.object_data==NULL)EXIT_VM("ARRAY(size_t,size_t,size_t)","Object is NULL.");
-    (array_object+1+index)->data.object_data->const_type = true;
-    (array_object+1+index)->data.object_data->type = (array_object+1)->data.object_data->type;
-    (array_object+1+index)->data.object_data->data = (array_object+1)->data.object_data->data;
+    size_t class_data_size = GetUint64tObjectData(
+    (array_object+1)->data.object_data + 1);
+    (array_object+1+index)->data.object_data =
+    calloc(class_data_size,sizeof(struct Object));
+    if((array_object+1+index)->data.object_data==NULL)EXIT_VM("ARRAY(size_t,size_t,size_t)","Object
+    is NULL."); (array_object+1+index)->data.object_data->const_type = true;
+    (array_object+1+index)->data.object_data->type =
+    (array_object+1)->data.object_data->type;
+    (array_object+1+index)->data.object_data->data =
+    (array_object+1)->data.object_data->data;
     ((array_object+1+index)->data.object_data+1)->const_type = true;
-    ((array_object+1+index)->data.object_data+1)->type = ((array_object+1)->data.object_data+1)->type;
-    ((array_object+1+index)->data.object_data+1)->data = ((array_object+1)->data.object_data+1)->data;
+    ((array_object+1+index)->data.object_data+1)->type =
+    ((array_object+1)->data.object_data+1)->type;
+    ((array_object+1+index)->data.object_data+1)->data =
+    ((array_object+1)->data.object_data+1)->data; SetReferenceData(result,
+    array_object + 1 + index); printf("DEBUG ARRAY\n");
+    InvokeClassFunction(result, "@constructor", 1, result, NULL);*/
     SetReferenceData(result, array_object + 1 + index);
-    printf("DEBUG ARRAY\n");
-    InvokeClassFunction(result, "@constructor", 1, result, NULL);
+    InvokeCustomFunction((array_object + 1)->data.object_data->data.string_data,
+                         1, result, NULL);
   }
 
-  printf("DEBUG ARRAY OUT OF OBJECT.\n");
+  // printf("DEBUG ARRAY OUT OF OBJECT.\n");
   // printf("t: %i\n", (array_object + 1 + index)->type[0]);
   SetReferenceData(result, array_object + 1 + index);
 
@@ -3174,8 +3189,6 @@ int REFER(size_t result, size_t operand1) {
 
   return 0;
 }
-int InvokeCustomFunction(const char* name, size_t args_size,
-                         size_t return_value, size_t* args);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
   TRACE_FUNCTION;
   // printf("condition: %d\n", GetByteData(condition));
@@ -3862,7 +3875,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);
-  printf("\nType: %i\n",class_data->type[0]);
+  printf("\nType: %i\n", class_data->type[0]);
   if (class_data == NULL || class_data->type[0] != 0x09)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
 

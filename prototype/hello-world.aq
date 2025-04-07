@@ -4,6 +4,12 @@ class TEST_CLASS{
     print("TEST_CLASS Created.\n");
   }
   auto data_ = 100;
+  class TS{
+    void TS(){
+      print("TS C");
+    }
+  };
+  TS ts;
 };
 void test_func(int abc){
   print("Int");
@@ -18,7 +24,7 @@ void test_func(TEST_CLASS abc){
   
 auto main(){
   TEST_CLASS class_arr[10];
-  class_arr[8].data_=100;
+  class_arr[11].data_=100;
   
   auto result = print("Hello World!\n");
   print("1");
