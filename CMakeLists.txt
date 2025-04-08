@@ -6,6 +6,9 @@ cmake_minimum_required(VERSION 3.10)
 project(AQ C CXX)
 enable_testing()
 
+set(CMAKE_CXX_COMPILER "g++")
+set(CMAKE_C_COMPILER "gcc")
+
 include_directories(${PROJECT_SOURCE_DIR})
 
 set(COMPILER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/compiler.cc)

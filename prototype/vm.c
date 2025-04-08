@@ -423,6 +423,7 @@ struct Object* GetPtrData(size_t index) {
     }
   } else {
     // printf("Type: %d\n", object_table[index].type[0]);
+    printf("Type: %i", object_table[index].type[0]);
     EXIT_VM("GetPtrData(size_t)", "Unsupported Type.");
   }
   return NULL;
@@ -1826,13 +1827,26 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
                         size_t func_args_size, bool va_flag) {
   int cost = 0;
   // printf("%i,%i", args_size, func_args_size);
-  if (args_size != func_args_size && !va_flag) return -1;
-  if (args_size < func_args_size) return -1;
+  printf("VAF1\n");
+  if (args_size != func_args_size && !va_flag) {
+    printf("VAF2\n");
+    return -1;
+  }
+  if (args_size < func_args_size) {
+    printf("VAF3\n");
+    return -1;
+  }
   if (args_size == 0)
     EXIT_VM("GetFuncOverloadCost(size_t*,size_t,size_t*,size_t,bool)",
             "Unexpected args size.");
-  if (args_size == 1) return 0;
-  for (size_t i = 0; i < func_args_size; i++) {
+  printf("now out for loop1\n");
+  if (args_size == 1) {
+    printf("ARGS SIZE == 1.");
+    return 0;
+  }
+  printf("now out for loop\n");
+  for (size_t i = 0; i < func_args_size - 1; i++) {
+    printf("NOW IN FOR LOOP\n");
     if (object_table[func_args[i + 1]].const_type) {
       switch (object_table[func_args[i + 1]].type[0]) {
         case 0x01:
@@ -2229,11 +2243,11 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
 int NEW(size_t ptr, size_t size, size_t type) {
   TRACE_FUNCTION;
   if (ptr >= object_table_size)
-    EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
+    EXIT_VM("NEW(size_t, size_t)", "ptr is out of memory.");
   if (size >= object_table_size)
-    EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
+    EXIT_VM("NEW(size_t, size_t)", "size is out of memory.");
 
-  size_t size_value = GetUint64tData(size);
+  size_t size_value = GetUint64tData(size) + 1;
   struct Object* data = calloc(size_value + 1, sizeof(struct Object));
   AddFreePtr(data);
 
@@ -2275,6 +2289,9 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
   AddFreePtr(type_ptr);
 
+  struct Object* type_data = object_table + type;
+  type_data = GetOriginData(type_data);
+
   if (type == 0) {
     for (size_t i = 1; i < size_value + 1; i++) {
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
@@ -2283,8 +2300,6 @@ int NEW(size_t ptr, size_t size, size_t type) {
       AddFreePtr(type_ptr);
     }
   } else {
-    struct Object* type_data = object_table + type;
-    type_data = GetOriginData(type_data);
     if (type_data->type[0] == 0x05 && type_data->data.string_data != NULL) {
       if (size_value == 0) {
         size_t i = 0;
@@ -2545,7 +2560,8 @@ int NEW(size_t ptr, size_t size, size_t type) {
   struct Object* original_object = object_table + ptr;
   original_object = GetOriginData(original_object);
 
-  if (size_value == 0) {
+  if (size_value == 0 && type_data->type[0] == 0x05 &&
+      type_data->data.string_data != NULL) {
     SetObjectData(ptr, data->data.object_data);
   } else {
     SetPtrData(ptr, data);
@@ -4090,26 +4106,25 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
 
   location = (void*)((uintptr_t)location +
                      DecodeUleb128(location, &table->pair.second.args_size));
-  if(table->pair.second.va_flag){
+  if (table->pair.second.va_flag) {
     printf("TEST 2");
     table->pair.second.args_size--;
-table->pair.second.args =
-      (size_t*)calloc(table->pair.second.args_size+1, sizeof(size_t));
-  // printf("args_size: %zu", table->pair.second.args_size);
-  for (size_t i = 0; i < table->pair.second.args_size+1; i++) {
-    location = (void*)((uintptr_t)location +
-                       DecodeUleb128(location, &table->pair.second.args[i]));
-  }
-  }else{
     table->pair.second.args =
-      (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
-  // printf("args_size: %zu", table->pair.second.args_size);
-  for (size_t i = 0; i < table->pair.second.args_size; i++) {
-    location = (void*)((uintptr_t)location +
-                       DecodeUleb128(location, &table->pair.second.args[i]));
+        (size_t*)calloc(table->pair.second.args_size + 1, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size + 1; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
+  } else {
+    table->pair.second.args =
+        (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
   }
-  }
-  
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
@@ -4433,25 +4448,26 @@ void* AddFunction(void* location) {
 
   location = (void*)((uintptr_t)location +
                      DecodeUleb128(location, &table->pair.second.args_size));
-  if(table->pair.second.va_flag){
+  if (table->pair.second.va_flag) {
     printf("TEST 1");
     table->pair.second.args_size--;
     table->pair.second.args =
-      (size_t*)calloc(table->pair.second.args_size+1, sizeof(size_t));
-  // printf("args_size: %zu", table->pair.second.args_size);
-  for (size_t i = 0; i < table->pair.second.args_size+1; i++) {
-    location = (void*)((uintptr_t)location +
-                       DecodeUleb128(location, &table->pair.second.args[i]));
-  }}else{
+        (size_t*)calloc(table->pair.second.args_size + 1, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size + 1; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
+  } else {
+    printf("TEST WITHOUT VA");
     table->pair.second.args =
-      (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
-  // printf("args_size: %zu", table->pair.second.args_size);
-  for (size_t i = 0; i < table->pair.second.args_size; i++) {
-    location = (void*)((uintptr_t)location +
-                       DecodeUleb128(location, &table->pair.second.args[i]));
+        (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
   }
-  }
-  
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
@@ -4673,7 +4689,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
           EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
                   "Invalid name.");
         if (strcmp(table->pair.first, name) == 0) {
-          if (table->pair.second.args_size == args_size) {
+          if (table->pair.second.args_size <= args_size) {
             // bool is_same = true;
             // for (size_t i = 0; i < args_size - 1; i++) {
             /*if (args == NULL)
@@ -4685,7 +4701,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
                 table->pair.second.args_size, table->pair.second.va_flag);
             if (temp_cost == -1) {
             } else if (temp_cost == 0) {
-              // printf("Check failed.\n");
+              printf("Check 0.\n");
               return table->pair.second;
             } else if (temp_cost < cost) {
               temp_func = table->pair.second;
@@ -4751,7 +4767,7 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
     if (table->pair.first == NULL)
       EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)", "Invalid name.");
     if (strcmp(table->pair.first, name) == 0) {
-      if (table->pair.second.args_size == args_size) {
+      if (table->pair.second.args_size <= args_size) {
         // bool is_same = true;
         // for (size_t i = 0; i < args_size - 1; i++) {
         /*if (args == NULL)
@@ -4764,7 +4780,9 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
             table->pair.second.args_size, table->pair.second.va_flag);
         if (temp_cost == -1) {
         } else if (temp_cost == 0) {
-          // printf("Check failed.\n");
+          printf("Check 0.\n");
+          temp_func = table->pair.second;
+          cost = temp_cost;
           return table->pair.second;
         } else if (temp_cost < cost) {
           temp_func = table->pair.second;
@@ -4822,9 +4840,30 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   // TODO(Class): Fixed this bug about return value.
   // object_table[func_info.args[0]] = object_table[return_value];
+
+  if (func_info.va_flag) {
+    uint8_t* type = calloc(1, sizeof(uintptr_t));
+    type[0] = 0x04;
+    object_table[return_value].type = type;
+    object_table[return_value].data.uint64t_data =
+        args_size - func_info.args_size;
+
+    NEW(func_info.args[func_info.args_size], return_value, 0x00);
+
+    printf("RUN OK!\n");
+    for (size_t i = 0; i < args_size - func_info.args_size; i++) {
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .type = object_table[args[func_info.args_size + i]].type;
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .data = object_table[args[func_info.args_size + i]].data;
+    }
+  }
+
   func_info.args++;
   args_size--;
-  for (size_t i = 0; i < args_size; i++) {
+  for (size_t i = 0; i < func_info.args_size - 1; i++) {
     object_table[func_info.args[i]] = object_table[args[i]];
   }
   struct Bytecode* run_code = func_info.commands;
@@ -4940,18 +4979,48 @@ int InvokeCustomFunction(const char* name, size_t args_size,
                          size_t return_value, size_t* args) {
   TRACE_FUNCTION;
   FuncInfo func_info = GetCustomFunction(name, args, args_size);
-  if (args_size != func_info.args_size) {
+  if (args_size < func_info.args_size) {
     // printf("args_size: %zu\n", args_size);
     // printf("func_info.args_size: %zu\n", func_info.args_size);
     EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
             "Invalid args_size.");
   }
   // printf("object: %zu , %zu", func_info.args[0], return_value);
+
+  if (func_info.va_flag) {
+    uint8_t* type = calloc(1, sizeof(uintptr_t));
+    type[0] = 0x04;
+    object_table[return_value].type = type;
+    object_table[return_value].data.uint64t_data =
+        args_size - func_info.args_size;
+
+    NEW(func_info.args[func_info.args_size], return_value, 0x00);
+
+    printf("Type: %i\n",
+           object_table[func_info.args[func_info.args_size]].type[0]);
+
+    if (object_table[func_info.args[func_info.args_size]].type == NULL ||
+        object_table[func_info.args[func_info.args_size]].type[0] != 0x06)
+      EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
+              "Invalid va_arg array.");
+
+    printf("RUN OK!\n");
+    for (size_t i = 0; i < args_size - func_info.args_size; i++) {
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .type = object_table[args[func_info.args_size - 1 + i]].type;
+
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .data = object_table[args[func_info.args_size - 1 + i]].data;
+    }
+  }
+
   object_table[func_info.args[0]] = object_table[return_value];
   struct Object* return_object = object_table + func_info.args[0];
   func_info.args++;
   args_size--;
-  for (size_t i = 0; i < args_size; i++) {
+  for (size_t i = 0; i < func_info.args_size - 1; i++) {
     object_table[func_info.args[i]] = object_table[args[i]];
   }
   struct Bytecode* run_code = func_info.commands;

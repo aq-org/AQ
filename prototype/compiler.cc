@@ -8375,6 +8375,8 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
                             nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
+std::size_t va_array_index = 0;
+
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
       args_index.push_back(
@@ -8387,7 +8389,8 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
     if(i==args.size()-1&& func_decl->GetStat()->GetVaFlag()){
-      args_index.push_back(global_memory_.Add(1));
+      va_array_index = global_memory_.Add(1);
+      args_index.push_back(va_array_index);
     }
   }
 
@@ -8416,7 +8419,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
     if(i == func_decl->GetStat()->GetArgs().size()-1&& func_decl->GetStat()->GetVaFlag()){
       var_decl_map_.emplace(current_scope_.back() + "#args",
                             std::pair<VarDeclNode*, std::size_t>(
-                                NULL, global_memory_.Add(1)));
+                                NULL, va_array_index));
     }
   }
 
@@ -8542,6 +8545,8 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
                             nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
+std::size_t va_array_index = 0;
+
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
       args_index.push_back(
@@ -8554,7 +8559,8 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
     if(i == args.size()-1&& func_decl->GetStat()->GetVaFlag()){
-      args_index.push_back(global_memory_.Add(1));
+      va_array_index = global_memory_.Add(1);
+      args_index.push_back(va_array_index);
     }
   }
 
@@ -8584,7 +8590,7 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
       var_decl_map_.emplace(
           current_scope_.back() + "#args",
           std::pair<VarDeclNode*, std::size_t>(
-              NULL, global_memory_.Add(1)));
+              NULL, va_array_index));
     }
   }
 
@@ -8703,6 +8709,8 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
                             nullptr, return_value_reference_index));*/
   args_index.push_back(return_value_index);
 
+std::size_t va_array_index = 0;
+
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
       args_index.push_back(
@@ -8715,7 +8723,8 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
     if(i==args.size()-1&& func_decl->GetStat()->GetVaFlag()){
-      args_index.push_back(global_memory_.Add(1));
+      va_array_index = global_memory_.Add(1);
+      args_index.push_back(va_array_index);
     }
   }
 
@@ -8745,7 +8754,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
       var_decl_map_.emplace(
           current_scope_.back() + "#args",
           std::pair<VarDeclNode*, std::size_t>(
-              NULL, global_memory_.Add(1)));
+              NULL, va_array_index));
     }
   }
 

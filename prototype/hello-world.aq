@@ -1,5 +1,5 @@
 int print(auto str);
-class TEST_CLASS{
+/*class TEST_CLASS{
   void TEST_CLASS(){
     print("TEST_CLASS Created.\n");
   }
@@ -13,26 +13,32 @@ class TEST_CLASS{
 };
 void test_func(int abc){
   print("Int");
+}*/
+void test_func(char abc,...){
+  print(args[0]);
+  print("Char VA");
 }
-void test_func(char abc){
-  print("Char");
-}
-void test_func(TEST_CLASS abc){
+/*void test_func(TEST_CLASS abc){
   print("TEST_CLASS");
   abc.data_=999;
 }
+
+void test_func(char abc){
+  // print(args[0]);
+  print("Char INT NOT VA");
+}*/
   
 auto main(){
-  TEST_CLASS class_arr[10];
-  class_arr[11].data_=100;
+  //TEST_CLASS class_arr[10];
+  //class_arr[11].data_=100;
   
-  auto result = print("Hello World!\n");
-  print("1");
-  auto tc = class_arr[8];
-  tc.data_ = 666;
-  print(tc.data_);
-  print(1);
-  test_func(tc);
-  print( class_arr[8].data_);
-  return result;
+  //auto result = print("Hello World!\n");
+  test_func('1',"ABC");
+  //auto tc = class_arr[8];
+  //tc.data_ = 666;
+  //print(tc.data_);
+  //print(1);
+  //test_func(tc);
+  //print( class_arr[8].data_);
+  //return result;
 }
