@@ -1,44 +1,25 @@
 int print(auto str);
-/*class TEST_CLASS{
-  void TEST_CLASS(){
-    print("TEST_CLASS Created.\n");
+double fabs(double num){
+  if(num < 0) {
+    num = -num;
   }
-  auto data_ = 100;
-  class TS{
-    void TS(){
-      print("TS C");
-    }
-  };
-  TS ts;
-};
-void test_func(int abc){
-  print("Int");
-}*/
-void test_func(char abc,...){
-  print(args[0]);
-  print("Char VA");
+  return num;
 }
-/*void test_func(TEST_CLASS abc){
-  print("TEST_CLASS");
-  abc.data_=999;
-}
+int main() {
+  int i=1;
+  int sign=1;
+  double t=1;
+  double pi=0;
 
-void test_func(char abc){
-  // print(args[0]);
-  print("Char INT NOT VA");
-}*/
-  
-auto main(){
-  //TEST_CLASS class_arr[10];
-  //class_arr[11].data_=100;
-  
-  //auto result = print("Hello World!\n");
-  test_func('1',"ABC");
-  //auto tc = class_arr[8];
-  //tc.data_ = 666;
-  //print(tc.data_);
-  //print(1);
-  //test_func(tc);
-  //print( class_arr[8].data_);
-  //return result;
+  while(fabs(t)>=0.0000001) {
+    pi=pi+t;
+    sign=-sign;
+    i=i+2;
+    t=1.0*sign/i;
+  }
+
+  print("Pi: ");
+  print(4 * pi);
+  print("\n");
+  return 0;
 }
