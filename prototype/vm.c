@@ -1829,6 +1829,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
   // printf("%i,%i", args_size, func_args_size);
   // printf("VAF1\n");
   if (args_size != func_args_size && !va_flag) {
+    // printf("%i,%i", args_size, func_args_size);
     // printf("VAF2\n");
     return -1;
   }
@@ -1836,17 +1837,17 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
     // printf("VAF3\n");
     return -1;
   }
-  if (args_size == 0)
+  if (func_args_size == 0)
     EXIT_VM("GetFuncOverloadCost(size_t*,size_t,size_t*,size_t,bool)",
             "Unexpected args size.");
   // printf("now out for loop1\n");
-  if (args_size == 1) {
+  if (func_args_size == 1) {
     // printf("ARGS SIZE == 1.");
     return 0;
   }
   // printf("now out for loop\n");
   for (size_t i = 0; i < func_args_size - 1; i++) {
-    // printf("NOW IN FOR LOOP\n");
+    // printf("NOW IN FOR LOOP %i\n", object_table[func_args[i + 1]].type[0]);
     if (object_table[func_args[i + 1]].const_type) {
       switch (object_table[func_args[i + 1]].type[0]) {
         case 0x01:
@@ -1876,6 +1877,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
         case 0x02:
           if (object_table[args[i]].type[0] == 0x06 ||
               object_table[args[i]].type[0] == 0x09) {
+            // printf("ERROR 1\n");
             return -1;
           } else {
             struct Object* origin_object =
@@ -1885,13 +1887,16 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
                 cost += 3;
                 break;
               case 0x02:
+                // printf("RUN OK\n");
                 break;
               case 0x03:
                 cost += 2;
+                break;
               case 0x04:
                 cost += 1;
                 break;
               default:
+                // printf("ERROR\n");
                 return -1;
             }
           }
@@ -1974,6 +1979,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x09:
                 final_type = object_table[func_args[i + 1]].type[j];
                 is_end = true;
+                break;
               default:
                 break;
             }
@@ -2027,6 +2033,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x09:
                 final_type = object_table[func_args[i + 1]].type[j];
                 is_end = true;
+                break;
               default:
                 break;
             }
@@ -2047,6 +2054,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x09:
                 arg_final_type = object_table[args[i]].type[j];
                 is_end = true;
+                break;
               default:
                 break;
             }
@@ -2077,6 +2085,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x09:
                 final_type = object_table[func_args[i + 1]].type[j];
                 is_end = true;
+                break;
               default:
                 break;
             }
@@ -2097,6 +2106,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x09:
                 arg_final_type = object_table[args[i]].type[j];
                 is_end = true;
+                break;
               default:
                 break;
             }
@@ -2127,6 +2137,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
               case 0x09:
                 arg_final_type = object_table[args[i]].type[j];
                 is_end = true;
+                break;
               default:
                 break;
             }
@@ -2247,7 +2258,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
   if (size >= object_table_size)
     EXIT_VM("NEW(size_t, size_t)", "size is out of memory.");
 
-  size_t size_value = GetUint64tData(size) + 1;
+  size_t size_value = GetUint64tData(size);
   struct Object* data = calloc(size_value + 1, sizeof(struct Object));
   AddFreePtr(data);
 
@@ -2379,7 +2390,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
         object_table[ptr].const_type = false;
         union Data ptr_data = object_table[ptr].data;
         object_table[ptr].data.reference_data = data + i;
-        InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
+        // InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
         object_table[ptr].type = ptr_type;
         object_table[ptr].const_type = ptr_is_const;
         object_table[ptr].data = ptr_data;
@@ -4703,7 +4714,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
             } else if (temp_cost == 0) {
               // printf("Check 0.\n");
               return table->pair.second;
-            } else if (temp_cost < cost) {
+            } else if (temp_cost < cost || cost < 0) {
               temp_func = table->pair.second;
               cost = temp_cost;
             }
@@ -4781,10 +4792,10 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
         if (temp_cost == -1) {
         } else if (temp_cost == 0) {
           // printf("Check 0.\n");
-          temp_func = table->pair.second;
-          cost = temp_cost;
+          // temp_func = table->pair.second;
+          // cost = temp_cost;
           return table->pair.second;
-        } else if (temp_cost < cost) {
+        } else if (temp_cost < cost || cost < 0) {
           temp_func = table->pair.second;
           cost = temp_cost;
         }

@@ -1,25 +1,13 @@
 int print(auto str);
-double fabs(double num){
-  if(num < 0) {
-    num = -num;
+struct TEST{
+  void TEST(){
+    print("no ARGS.\n");
   }
-  return num;
-}
-int main() {
-  int i=1;
-  int sign=1;
-  double t=1;
-  double pi=0;
-
-  while(fabs(t)>=0.0000001) {
-    pi=pi+t;
-    sign=-sign;
-    i=i+2;
-    t=1.0*sign/i;
+  void TEST(double a,int abc){
+    print("double ARGS.\n");
   }
-
-  print("Pi: ");
-  print(4 * pi);
-  print("\n");
-  return 0;
+  auto abc;
+};
+auto main(){
+TEST a[10];
 }

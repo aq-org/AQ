@@ -6038,9 +6038,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                    reinterpret_cast<const uint8_t*>(
                        func_name + func_list[z].GetName().size() + 1));
 
-      if(func_list[z].GetVaFlag())
-        code_.push_back(0xFF);
-      
+      if (func_list[z].GetVaFlag()) code_.push_back(0xFF);
 
       std::vector<uint8_t> args_buffer;
 
@@ -6633,12 +6631,11 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                  reinterpret_cast<const uint8_t*>(
                      func_name + func_list[i].GetName().size() + 1));
 
-                     if(func_list[i].GetVaFlag())
-        code_.push_back(0xFF);
+    if (func_list[i].GetVaFlag()) code_.push_back(0xFF);
 
     std::vector<uint8_t> args_buffer;
-          
-      EncodeUleb128(func_list[i].GetArgs().size(), args_buffer);
+
+    EncodeUleb128(func_list[i].GetArgs().size(), args_buffer);
     code_.insert(code_.end(), args_buffer.begin(), args_buffer.end());
     for (std::size_t j = 0; j < func_list[i].GetArgs().size(); j++) {
       args_buffer.clear();
@@ -8375,7 +8372,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
                             nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
-std::size_t va_array_index = 0;
+  std::size_t va_array_index = 0;
 
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
@@ -8388,7 +8385,7 @@ std::size_t va_array_index = 0;
       EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
-    if(i==args.size()-1&& func_decl->GetStat()->GetVaFlag()){
+    if (i == args.size() - 1 && func_decl->GetStat()->GetVaFlag()) {
       va_array_index = global_memory_.Add(1);
       args_index.push_back(va_array_index);
     }
@@ -8416,10 +8413,11 @@ std::size_t va_array_index = 0;
       EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
-    if(i == func_decl->GetStat()->GetArgs().size()-1&& func_decl->GetStat()->GetVaFlag()){
-      var_decl_map_.emplace(current_scope_.back() + "#args",
-                            std::pair<VarDeclNode*, std::size_t>(
-                                NULL, va_array_index));
+    if (i == func_decl->GetStat()->GetArgs().size() - 1 &&
+        func_decl->GetStat()->GetVaFlag()) {
+      var_decl_map_.emplace(
+          current_scope_.back() + "#args",
+          std::pair<VarDeclNode*, std::size_t>(NULL, va_array_index));
     }
   }
 
@@ -8431,7 +8429,7 @@ std::size_t va_array_index = 0;
     code[exit_index_[i]].SetArgs(1, return_location);
   }
   Function func_decl_bytecode(func_name, args_index, code);
-  if(func_decl->GetStat()->GetVaFlag())func_decl_bytecode.EnableVaFlag();
+  if (func_decl->GetStat()->GetVaFlag()) func_decl_bytecode.EnableVaFlag();
   func_list_.push_back(func_decl_bytecode);
   exit_index_.clear();
 
@@ -8545,7 +8543,7 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
                             nullptr, return_value_reference_index));
   args_index.push_back(return_value_reference_index);
 
-std::size_t va_array_index = 0;
+  std::size_t va_array_index = 0;
 
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
@@ -8558,7 +8556,7 @@ std::size_t va_array_index = 0;
       EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
-    if(i == args.size()-1&& func_decl->GetStat()->GetVaFlag()){
+    if (i == args.size() - 1 && func_decl->GetStat()->GetVaFlag()) {
       va_array_index = global_memory_.Add(1);
       args_index.push_back(va_array_index);
     }
@@ -8586,11 +8584,11 @@ std::size_t va_array_index = 0;
       EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
-    if(i==func_decl->GetStat()->GetArgs().size()-1&& func_decl->GetStat()->GetVaFlag()){
+    if (i == func_decl->GetStat()->GetArgs().size() - 1 &&
+        func_decl->GetStat()->GetVaFlag()) {
       var_decl_map_.emplace(
           current_scope_.back() + "#args",
-          std::pair<VarDeclNode*, std::size_t>(
-              NULL, va_array_index));
+          std::pair<VarDeclNode*, std::size_t>(NULL, va_array_index));
     }
   }
 
@@ -8602,7 +8600,7 @@ std::size_t va_array_index = 0;
     code[exit_index_[i]].SetArgs(1, return_location);
   }
   Function func_decl_bytecode(func_name, args_index, code);
-    if(func_decl->GetStat()->GetVaFlag())func_decl_bytecode.EnableVaFlag();
+  if (func_decl->GetStat()->GetVaFlag()) func_decl_bytecode.EnableVaFlag();
   current_class_->GetFuncList().push_back(func_decl_bytecode);
   exit_index_.clear();
 
@@ -8709,7 +8707,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
                             nullptr, return_value_reference_index));*/
   args_index.push_back(return_value_index);
 
-std::size_t va_array_index = 0;
+  std::size_t va_array_index = 0;
 
   for (std::size_t i = 0; i < args.size(); i++) {
     if (args[i]->GetType() == StmtNode::StmtType::kVarDecl) {
@@ -8722,7 +8720,7 @@ std::size_t va_array_index = 0;
       EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
-    if(i==args.size()-1&& func_decl->GetStat()->GetVaFlag()){
+    if (i == args.size() - 1 && func_decl->GetStat()->GetVaFlag()) {
       va_array_index = global_memory_.Add(1);
       args_index.push_back(va_array_index);
     }
@@ -8750,11 +8748,11 @@ std::size_t va_array_index = 0;
       EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                     "args is not VarDeclNode or ArrayDeclNode.");
     }
-    if(i==func_decl->GetStat()->GetArgs().size()-1&& func_decl->GetStat()->GetVaFlag()){
+    if (i == func_decl->GetStat()->GetArgs().size() - 1 &&
+        func_decl->GetStat()->GetVaFlag()) {
       var_decl_map_.emplace(
           current_scope_.back() + "#args",
-          std::pair<VarDeclNode*, std::size_t>(
-              NULL, va_array_index));
+          std::pair<VarDeclNode*, std::size_t>(NULL, va_array_index));
     }
   }
 
@@ -8775,13 +8773,15 @@ std::size_t va_array_index = 0;
   std::vector<std::size_t> invoke_class_args;
   invoke_class_args.push_back(return_value_index);
   invoke_class_args.push_back(global_memory_.AddString(original_func_name));
-  invoke_class_args.push_back(1);
+  invoke_class_args.push_back(args_index.size());
   invoke_class_args.push_back(global_memory_.Add(1));
+  invoke_class_args.insert(invoke_class_args.end(), args_index.begin() + 1,
+                           args_index.end());
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS, invoke_class_args));
 
   // code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   Function func_decl_bytecode(func_name, args_index, code);
-    if(func_decl->GetStat()->GetVaFlag())func_decl_bytecode.EnableVaFlag();
+  if (func_decl->GetStat()->GetVaFlag()) func_decl_bytecode.EnableVaFlag();
   func_list_.push_back(func_decl_bytecode);
 
   current_scope_.pop_back();
@@ -8807,7 +8807,7 @@ std::size_t va_array_index = 0;
     code[exit_index_[i]].SetArgs(1, return_location);
   }
   Function new_func_decl_bytecode(original_func_name, args_index, code);
-    if(func_decl->GetStat()->GetVaFlag())new_func_decl_bytecode.EnableVaFlag();
+  if (func_decl->GetStat()->GetVaFlag()) new_func_decl_bytecode.EnableVaFlag();
   current_class_->GetFuncList().push_back(new_func_decl_bytecode);
   exit_index_.clear();
 
@@ -9047,6 +9047,8 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       global_code_.push_back(Bytecode(
           _AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),
           global_memory_.AddString(func_name)));
+
+      global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS,4,var_index_reference,global_memory_.AddString("@constructor"),1,0));
       /*std::vector<std::size_t> invoke_args;
       invoke_args.push_back(global_memory_.AddString(func_name));
       invoke_args.push_back(1);
