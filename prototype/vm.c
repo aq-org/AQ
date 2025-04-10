@@ -2389,7 +2389,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
         class_object[1].data.uint64t_data = class_data->members_size;
         data[i].data.object_data = class_object;
 
-        uint8_t* ptr_type = object_table[ptr].type;
+        /*uint8_t* ptr_type = object_table[ptr].type;
         bool ptr_is_const = object_table[ptr].const_type;
         object_table[ptr].type = calloc(1, sizeof(uint8_t));
         object_table[ptr].type[0] = 0x07;
@@ -2399,9 +2399,9 @@ int NEW(size_t ptr, size_t size, size_t type) {
         // InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
         object_table[ptr].type = ptr_type;
         object_table[ptr].const_type = ptr_is_const;
-        object_table[ptr].data = ptr_data;
+        object_table[ptr].data = ptr_data;*/
       } else {
-        for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
+        for (size_t i = 1; i < size_value + 1; i++) {
           uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
           data[i].type = type_ptr;
           data[i].type[0] = 0x09;
@@ -2471,7 +2471,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
           class_object[1].data.uint64t_data = class_data->members_size;
           data[i].data.object_data = class_object;
 
-          uint8_t* ptr_type = object_table[ptr].type;
+          /*uint8_t* ptr_type = object_table[ptr].type;
           bool ptr_is_const = object_table[ptr].const_type;
 
           object_table[ptr].type = calloc(1, sizeof(uint8_t));
@@ -2482,7 +2482,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
           // InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
           object_table[ptr].type = ptr_type;
           object_table[ptr].const_type = ptr_is_const;
-          object_table[ptr].data = ptr_data;
+          object_table[ptr].data = ptr_data;*/
         }
         /*size_t i = 0;
         uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
