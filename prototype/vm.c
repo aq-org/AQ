@@ -2258,7 +2258,16 @@ int NEW(size_t ptr, size_t size, size_t type) {
   if (size >= object_table_size)
     EXIT_VM("NEW(size_t, size_t)", "size is out of memory.");
 
+  struct Object* type_data = object_table + type;
+  type_data = GetOriginData(type_data);
+
   size_t size_value = GetUint64tData(size);
+
+  if ((type == 0 ||
+       (type_data->type[0] != 0x05 || type_data->data.string_data == NULL)) &&
+      size_value == 0)
+    size_value = 1;
+
   struct Object* data = calloc(size_value + 1, sizeof(struct Object));
   AddFreePtr(data);
 
@@ -2300,11 +2309,8 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
   AddFreePtr(type_ptr);
 
-  struct Object* type_data = object_table + type;
-  type_data = GetOriginData(type_data);
-
   if (type == 0) {
-    for (size_t i = 1; i < size_value + 1; i++) {
+    for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
       data[i].type = type_ptr;
       data[i].const_type = false;
@@ -2395,7 +2401,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
         object_table[ptr].const_type = ptr_is_const;
         object_table[ptr].data = ptr_data;
       } else {
-        for (size_t i = 1; i < size_value + 1; i++) {
+        for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
           uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
           data[i].type = type_ptr;
           data[i].type[0] = 0x09;
@@ -2473,7 +2479,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
           object_table[ptr].const_type = false;
           union Data ptr_data = object_table[ptr].data;
           object_table[ptr].data.reference_data = data + i;
-          InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
+          // InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
           object_table[ptr].type = ptr_type;
           object_table[ptr].const_type = ptr_is_const;
           object_table[ptr].data = ptr_data;
@@ -2561,15 +2567,12 @@ int NEW(size_t ptr, size_t size, size_t type) {
         object_table[ptr].data = ptr_data;*/
       }
     } else {
-      for (size_t i = 1; i < size_value + 1; i++) {
+      for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
         data[i].type = type_data->type;
         data[i].const_type = true;
       }
     }
   }
-
-  struct Object* original_object = object_table + ptr;
-  original_object = GetOriginData(original_object);
 
   if (size_value == 0 && type_data->type[0] == 0x05 &&
       type_data->data.string_data != NULL) {
@@ -2605,17 +2608,9 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     new_array[0].data.uint64t_data = newsize;
     array_object = new_array;
   }
-  if ((array_object + 1 + index)->type == NULL) {
-    if ((array_object + 1)->const_type) {
-      (array_object + 1 + index)->const_type = true;
-      (array_object + 1 + index)->type = (array_object + 1)->type;
-    } else {
-      (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
-    }
-  }
 
   if ((array_object + 1)->const_type && (array_object + 1)->type[0] == 0x09 &&
-      index >= original_size) {
+      (array_object + 1 + index)->type == NULL) {
     /*(array_object+1+index)->const_type = true;
     (array_object+1+index)->type = (array_object+1)->type;
     size_t class_data_size = GetUint64tObjectData(
@@ -2638,6 +2633,15 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     SetReferenceData(result, array_object + 1 + index);
     InvokeCustomFunction((array_object + 1)->data.object_data->data.string_data,
                          1, result, NULL);
+  }
+
+  if ((array_object + 1 + index)->type == NULL) {
+    if ((array_object + 1)->const_type) {
+      (array_object + 1 + index)->const_type = true;
+      (array_object + 1 + index)->type = (array_object + 1)->type;
+    } else {
+      (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
+    }
   }
 
   // printf("DEBUG ARRAY OUT OF OBJECT.\n");
