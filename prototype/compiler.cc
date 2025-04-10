@@ -1671,7 +1671,8 @@ class StmtNode {
     // kCast,
     kArrayDecl,
     kArray,
-    kReturn
+    kReturn,
+    kStatic
     // kArrow,
     // kMember
   };
@@ -2249,21 +2250,41 @@ class FuncDeclNode : public DeclNode {
   CompoundNode* stmts_;
 };
 
+class StaticNode : public DeclNode {
+ public:
+  StaticNode() { type_ = StmtType::kStatic; }
+  ~StaticNode() = default;
+
+  void SetDecl(DeclNode* decl) { decl_ = decl; }
+
+  DeclNode* GetDecl() { return decl_; }
+
+  StaticNode(const StaticNode&) = default;
+  StaticNode& operator=(const StaticNode&) = default;
+
+ private:
+  DeclNode* decl_ = nullptr;
+};
+
 class ClassDeclNode : public DeclNode {
  public:
   ClassDeclNode() { type_ = StmtType::kClassDecl; }
   ~ClassDeclNode() = default;
 
-  void SetClassDeclNode(IdentifierNode name, std::vector<VarDeclNode*> members,
+  void SetClassDeclNode(IdentifierNode name,
+                        std::vector<StaticNode*> static_members,
+                        std::vector<VarDeclNode*> members,
                         std::vector<FuncDeclNode*> methods,
                         std::vector<ClassDeclNode*> class_decl) {
     name_ = name;
+    static_members_ = static_members;
     members_ = members;
     methods_ = methods;
     class_ = class_decl;
   }
 
   IdentifierNode GetName() { return name_; }
+  std::vector<StaticNode*> GetStaticMembers() { return static_members_; }
   std::vector<VarDeclNode*> GetMembers() { return members_; }
   std::vector<FuncDeclNode*> GetMethods() { return methods_; }
   std::vector<ClassDeclNode*> GetClasses() { return class_; }
@@ -2273,6 +2294,7 @@ class ClassDeclNode : public DeclNode {
 
  private:
   IdentifierNode name_;
+  std::vector<StaticNode*> static_members_;
   std::vector<VarDeclNode*> members_;
   std::vector<FuncDeclNode*> methods_;
   std::vector<ClassDeclNode*> class_;
@@ -2489,6 +2511,8 @@ class Parser {
                                      std::size_t& index);
   static ClassDeclNode* ParseClassDecl(Token* token, std::size_t length,
                                        std::size_t& index);
+  static StaticNode* ParseStatic(Token* token, std::size_t length,
+                                 std::size_t& index);
   static ExprNode* ParseBinaryExpr(Token* token, std::size_t length,
                                    std::size_t& index, ExprNode* left,
                                    unsigned int priority);
@@ -3427,6 +3451,10 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           return result;
         }
 
+        /*case Token::KeywordType::Static:
+          index++;
+          return ParseStatic(token, length, index);*/
+
         default:
           return nullptr;
       }
@@ -3524,6 +3552,7 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
 
   index++;
 
+  std::vector<StaticNode*> static_decls;
   std::vector<VarDeclNode*> var_decls;
   std::vector<FuncDeclNode*> func_decls;
   std::vector<ClassDeclNode*> class_decls;
@@ -3545,14 +3574,17 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
               "semi not found.");
         index++;
       }
+    } else if (token[index].type == Token::Type::KEYWORD &&
+               token[index].value.keyword == Token::KeywordType::Static) {
+      static_decls.push_back(ParseStatic(token, length, index));
     } else {
       EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                     "Unexpected code.");
     }
   }
-  index += 2;
+  index ++;
 
-  class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name), var_decls,
+  class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name), static_decls,var_decls,
                                func_decls, class_decls);
   return class_decl;
 }
@@ -3672,6 +3704,41 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
   }
 
   return nullptr;
+}
+
+StaticNode* Parser::ParseStatic(Token* token, std::size_t length,
+                                std::size_t& index) {
+  TRACE_FUNCTION;
+  if (token == nullptr)
+    EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
+                  "token is nullptr.");
+  if (index >= length)
+    EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
+                  "index is out of range.");
+
+  StaticNode* static_node = new StaticNode();
+
+  if (IsDecl(token, length, index)) {
+    if (IsFuncDecl(token, length, index)) {
+      static_node->SetDecl(ParseFuncDecl(token, length, index));
+    } else if (IsClassDecl(token, length, index)) {
+      EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)", "Keyword static unsupprot class.");
+      // static_node->SetDecl(ParseClassDecl(token, length, index));
+    } else {
+      static_node->SetDecl(
+          dynamic_cast<DeclNode*>(ParseVarDecl(token, length, index)));
+      if (token[index].type != Token::Type::OPERATOR ||
+          token[index].value._operator != Token::OperatorType::semi) {
+        EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)","not found semi.");
+        return nullptr;
+      }
+      index++;
+    }
+  } else {
+    EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
+                  "Unexpected code.");
+  }
+  return static_node;
 }
 
 ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
@@ -8886,6 +8953,30 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
     }
   }
   current_class_ = current_class;
+
+  for (std::size_t i = 0; i < class_decl->GetStaticMembers().size(); i++) {
+    // class_decl->GetStaticMembers()[i]->GetDecl()
+
+    if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
+        StmtNode::StmtType::kVarDecl) {
+      HandleVarDecl(
+          dynamic_cast<VarDeclNode*>(class_decl->GetStaticMembers()[i]->GetDecl()),
+          current_class->GetCode());
+    } else if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
+               StmtNode::StmtType::kArrayDecl) {
+      HandleArrayDecl(
+          dynamic_cast<ArrayDeclNode*>(class_decl->GetStaticMembers()[i]->GetDecl()),
+          current_class->GetCode());
+    } else if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
+        StmtNode::StmtType::kFuncDecl) {
+      HandleFuncDecl(
+          dynamic_cast<FuncDeclNode*>(class_decl->GetStaticMembers()[i]->GetDecl()));
+    }else {
+      EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  
+  }
 
   for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
     // std::cout << "Handle var in HandleClassDecl" << std::endl;

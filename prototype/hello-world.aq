@@ -2,17 +2,26 @@ int print(auto str);
 struct TEST{
   void TEST(){
     print("no ARGS.\n");
-    abc = 999.999;
+    
   }
   void TEST(double a,int abc){
     print("double ARGS.\n");
     abc = 100.0;
   }
-  auto abc;
-};
+  auto abc = "ABC";
+}
+int func_A(){
+  int a;
+  a++;
+  return a;
+}
 auto main(){
 TEST a[0] = {TEST(1,1),TEST(21,1)};
 a[0].abc = "STR";
 //a[100].abc = 1.9;
-return a[100].abc;
+while(1){
+print(func_A());
+print("\n");
+}
+return a[0].abc;
 }
