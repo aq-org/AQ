@@ -2609,8 +2609,19 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     array_object = new_array;
   }
 
+  bool is_type_null = (array_object + 1 + index)->type == NULL;
+
+  if ((array_object + 1 + index)->type == NULL) {
+    if ((array_object + 1)->const_type) {
+      (array_object + 1 + index)->const_type = true;
+      (array_object + 1 + index)->type = (array_object + 1)->type;
+    } else {
+      (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
+    }
+  }
+
   if ((array_object + 1)->const_type && (array_object + 1)->type[0] == 0x09 &&
-      (array_object + 1 + index)->type == NULL) {
+      is_type_null) {
     /*(array_object+1+index)->const_type = true;
     (array_object+1+index)->type = (array_object+1)->type;
     size_t class_data_size = GetUint64tObjectData(
@@ -2633,15 +2644,6 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     SetReferenceData(result, array_object + 1 + index);
     InvokeCustomFunction((array_object + 1)->data.object_data->data.string_data,
                          1, result, NULL);
-  }
-
-  if ((array_object + 1 + index)->type == NULL) {
-    if ((array_object + 1)->const_type) {
-      (array_object + 1 + index)->const_type = true;
-      (array_object + 1 + index)->type = (array_object + 1)->type;
-    } else {
-      (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
-    }
   }
 
   // printf("DEBUG ARRAY OUT OF OBJECT.\n");
