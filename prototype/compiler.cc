@@ -78,11 +78,11 @@ class Trace {
       temp_stack.pop();
     }
 
-    // std::cerr << "[INFO] Run: ";
+    std::cerr << "[INFO] Run: ";
     for (auto it = reverse_stack.rbegin(); it != reverse_stack.rend(); ++it) {
-      // std::cerr << *it << " -> ";
+      std::cerr << *it << " -> ";
     }
-    // std::cerr << "Success" << std::endl;
+    std::cerr << "Success" << std::endl;
   }
 };*/
 #define TRACE_FUNCTION
@@ -3451,9 +3451,9 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           return result;
         }
 
-        /*case Token::KeywordType::Static:
-          index++;
-          return ParseStatic(token, length, index);*/
+          /*case Token::KeywordType::Static:
+            index++;
+            return ParseStatic(token, length, index);*/
 
         default:
           return nullptr;
@@ -3582,10 +3582,11 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
                     "Unexpected code.");
     }
   }
-  index ++;
+  index++;
 
-  class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name), static_decls,var_decls,
-                               func_decls, class_decls);
+  class_decl->SetClassDeclNode(*dynamic_cast<IdentifierNode*>(name),
+                               static_decls, var_decls, func_decls,
+                               class_decls);
   return class_decl;
 }
 
@@ -3716,20 +3717,30 @@ StaticNode* Parser::ParseStatic(Token* token, std::size_t length,
     EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
                   "index is out of range.");
 
+  if (token[index].type == Token::Type::KEYWORD &&
+      token[index].value.keyword == Token::KeywordType::Static) {
+    index++;
+  } else {
+    EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
+                  "Unexpected keyword.");
+  }
+
   StaticNode* static_node = new StaticNode();
 
   if (IsDecl(token, length, index)) {
     if (IsFuncDecl(token, length, index)) {
       static_node->SetDecl(ParseFuncDecl(token, length, index));
     } else if (IsClassDecl(token, length, index)) {
-      EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)", "Keyword static unsupprot class.");
+      EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
+                    "Keyword static unsupprot class.");
       // static_node->SetDecl(ParseClassDecl(token, length, index));
     } else {
       static_node->SetDecl(
           dynamic_cast<DeclNode*>(ParseVarDecl(token, length, index)));
       if (token[index].type != Token::Type::OPERATOR ||
           token[index].value._operator != Token::OperatorType::semi) {
-        EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)","not found semi.");
+        EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
+                      "not found semi.");
         return nullptr;
       }
       index++;
@@ -4130,7 +4141,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                   ->SetUnaryNode(
                       dynamic_cast<UnaryNode*>(preoper_expr)->GetOperator(),
                       binary_node);
-              preoper_expr = binary_node;
+              preoper_expr = main_expr = binary_node;
             } else {
               EXIT_COMPILER(
                   "Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
@@ -8959,23 +8970,22 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
 
     if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
         StmtNode::StmtType::kVarDecl) {
-      HandleVarDecl(
-          dynamic_cast<VarDeclNode*>(class_decl->GetStaticMembers()[i]->GetDecl()),
-          current_class->GetCode());
+      HandleVarDecl(dynamic_cast<VarDeclNode*>(
+                        class_decl->GetStaticMembers()[i]->GetDecl()),
+                    current_class->GetCode());
     } else if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
                StmtNode::StmtType::kArrayDecl) {
-      HandleArrayDecl(
-          dynamic_cast<ArrayDeclNode*>(class_decl->GetStaticMembers()[i]->GetDecl()),
-          current_class->GetCode());
+      HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(
+                          class_decl->GetStaticMembers()[i]->GetDecl()),
+                      current_class->GetCode());
     } else if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
-        StmtNode::StmtType::kFuncDecl) {
-      HandleFuncDecl(
-          dynamic_cast<FuncDeclNode*>(class_decl->GetStaticMembers()[i]->GetDecl()));
-    }else {
+               StmtNode::StmtType::kFuncDecl) {
+      HandleFuncDecl(dynamic_cast<FuncDeclNode*>(
+          class_decl->GetStaticMembers()[i]->GetDecl()));
+    } else {
       EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
                     "Unexpected code.");
     }
-  
   }
 
   for (std::size_t i = 0; i < class_decl->GetMembers().size(); i++) {
@@ -10051,12 +10061,14 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
   ExprNode* right_expr = expr->GetRightExpr();
   ExprNode* left_expr = expr->GetLeftExpr();
+  
+  std::size_t left=0;
   std::size_t right = 0;
   if (expr->GetOperator() != BinaryNode::Operator::kMember &&
-      expr->GetOperator() != BinaryNode::Operator::kArrow) {
+      expr->GetOperator() != BinaryNode::Operator::kArrow) 
     right = HandleExpr(right_expr, code);
-  }
-  std::size_t left = HandleExpr(left_expr, code);
+  if(expr->GetOperator()!=BinaryNode::Operator::kMember)
+  left = HandleExpr(left_expr, code);
   // uint8_t right_type = GetExprVmType(right_expr);
   // uint8_t left_type = GetExprVmType(left_expr);
   // uint8_t result_type = left_type > right_type ? left_type : right_type;
@@ -10708,6 +10720,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
                                                 std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
+  std::cout<<"HandlePeriodExpr CALLED."<<std::endl;
   if (expr->GetOperator() != BinaryNode::Operator::kMember)
     EXIT_COMPILER(
         "BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<Bytecode>&"
@@ -10716,7 +10729,7 @@ std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
 
   ExprNode* handle_expr = expr;
   std::vector<ExprNode*> exprs;
-  exprs.push_back(expr->GetRightExpr());
+  // exprs.push_back(expr->GetRightExpr());
   while (handle_expr != nullptr) {
     if (handle_expr->GetType() == StmtNode::StmtType::kBinary) {
       if (dynamic_cast<BinaryNode*>(handle_expr)->GetOperator() !=
@@ -10781,7 +10794,7 @@ std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
         }
       }
     } else {
-      EXIT_COMPILER("", "");
+      EXIT_COMPILER("BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<Bytecode>&)", "Unsupported stmt type.");
     }
   }
 
