@@ -9023,82 +9023,81 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
   if (iterator == func_decl_map_.end()) {
     std::vector<FuncDeclNode> func_decl_vector;
     FuncDeclNode* func_decl = new FuncDeclNode();
-    func_decl->SetFuncDeclNode(nullptr,nullptr,nullptr);
+    func_decl->SetFuncDeclNode(nullptr, nullptr, nullptr);
     std::vector<Bytecode> code;
-  std::string class_name = current_class_->GetName();
-  std::string scope_name;
-  scope_name += current_scope_.back();
-  std::string original_func_name = "@constructor";
-  std::string func_name = scope_name;
+    std::string class_name = current_class_->GetName();
+    std::string scope_name;
+    scope_name += current_scope_.back();
+    std::string original_func_name = "@constructor";
+    std::string func_name = scope_name;
 
-  goto_map_.clear();
-  current_scope_.push_back(scope_name);
-  current_func_index_ = current_scope_.size() - 1;
-  if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
-    std::vector<FuncDeclNode> func_decl_vector;
-    func_decl_vector.push_back(*func_decl);
-    func_decl_map_.emplace(func_name, func_decl_vector);
-  } else {
-    func_decl_map_[func_name].push_back(*func_decl);
-  }
+    goto_map_.clear();
+    current_scope_.push_back(scope_name);
+    current_func_index_ = current_scope_.size() - 1;
+    if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
+      std::vector<FuncDeclNode> func_decl_vector;
+      func_decl_vector.push_back(*func_decl);
+      func_decl_map_.emplace(func_name, func_decl_vector);
+    } else {
+      func_decl_map_[func_name].push_back(*func_decl);
+    }
 
+    std::vector<std::size_t> args_index;
 
-  std::vector<std::size_t> args_index;
+    std::size_t return_value_index = global_memory_.Add(1);
+    var_decl_map_.emplace(
+        scope_name + "#!return",
+        std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
 
-  std::size_t return_value_index = global_memory_.Add(1);
-  var_decl_map_.emplace(
-      scope_name + "#!return",
-      std::pair<VarDeclNode*, std::size_t>(nullptr, return_value_index));
+    args_index.push_back(return_value_index);
 
-  args_index.push_back(return_value_index);
+    std::size_t va_array_index = 0;
 
-  std::size_t va_array_index = 0;
+    code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_value_index,
+                            global_memory_.AddUint64t(0),
+                            global_memory_.AddString(class_name)));
 
+    if (current_class_->GetFuncDeclMap().find(original_func_name) ==
+        current_class_->GetFuncDeclMap().end()) {
+      func_decl_vector.push_back(*func_decl);
+      current_class_->GetFuncDeclMap().emplace(original_func_name,
+                                               func_decl_vector);
+    } else {
+      current_class_->GetFuncDeclMap()[original_func_name].push_back(
+          *func_decl);
+    }
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_value_index,
-                          global_memory_.AddUint64t(0),
-                          global_memory_.AddString(class_name)));
+    std::vector<std::size_t> invoke_class_args;
+    invoke_class_args.push_back(return_value_index);
+    invoke_class_args.push_back(global_memory_.AddString(original_func_name));
+    invoke_class_args.push_back(args_index.size());
+    invoke_class_args.push_back(global_memory_.Add(1));
+    invoke_class_args.insert(invoke_class_args.end(), args_index.begin() + 1,
+                             args_index.end());
+    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS, invoke_class_args));
 
-  if (current_class_->GetFuncDeclMap().find(original_func_name) ==
-      current_class_->GetFuncDeclMap().end()) {
-    func_decl_vector.push_back(*func_decl);
-    current_class_->GetFuncDeclMap().emplace(original_func_name,
-                                             func_decl_vector);
-  } else {
-    current_class_->GetFuncDeclMap()[original_func_name].push_back(*func_decl);
-  }
+    Function func_decl_bytecode(func_name, args_index, code);
+    func_list_.push_back(func_decl_bytecode);
 
-  std::vector<std::size_t> invoke_class_args;
-  invoke_class_args.push_back(return_value_index);
-  invoke_class_args.push_back(global_memory_.AddString(original_func_name));
-  invoke_class_args.push_back(args_index.size());
-  invoke_class_args.push_back(global_memory_.Add(1));
-  invoke_class_args.insert(invoke_class_args.end(), args_index.begin() + 1,
-                           args_index.end());
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS, invoke_class_args));
+    current_scope_.pop_back();
+    current_func_index_ = 0;
+    goto_map_.clear();
 
-  Function func_decl_bytecode(func_name, args_index, code);
-  func_list_.push_back(func_decl_bytecode);
+    code.clear();
+    current_scope_.push_back(scope_name);
+    current_func_index_ = current_scope_.size() - 1;
 
-  current_scope_.pop_back();
-  current_func_index_ = 0;
-  goto_map_.clear();
+    exit_index_.clear();
 
-  code.clear();
-  current_scope_.push_back(scope_name);
-  current_func_index_ = current_scope_.size() - 1;
+    code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
 
-  exit_index_.clear();
+    Function new_func_decl_bytecode(original_func_name, args_index, code);
+    current_class_->GetFuncList().push_back(new_func_decl_bytecode);
+    exit_index_.clear();
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
-
-  Function new_func_decl_bytecode(original_func_name, args_index, code);
-  current_class_->GetFuncList().push_back(new_func_decl_bytecode);
-  exit_index_.clear();
-
-  current_scope_.pop_back();
-  current_func_index_ = 0;
-  goto_map_.clear();
+    current_scope_.pop_back();
+    current_func_index_ = 0;
+    goto_map_.clear();
   }
 
   // current_class_ = current_class;
