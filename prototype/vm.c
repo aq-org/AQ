@@ -228,7 +228,7 @@ struct FreeList* free_list;
 
 bool is_big_endian;
 
-void EXIT_VM(const char* func_name, const char* message) {
+inline void EXIT_VM(const char* func_name, const char* message) {
   fprintf(stderr, "[ERROR] %s: %s\n", func_name, message);
   exit(1);
 }
