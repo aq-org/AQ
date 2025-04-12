@@ -1,6 +1,26 @@
 int print(auto str);
+double fabs(double num) {
+  if (num < 0) {
+    num = -num;
+  }
+  return num;
+}
+int i = 1;
+int sign = 1;
+double t = 1;
+double pi = 0;
 
-auto main(){
-  string str = "中文 こんにちは Hello world\n";
-  return str;
+while (fabs(t) >= 0.00000001) {
+  pi = pi + t;
+  sign = -sign;
+  i = i + 2;
+  t = 1.0 * sign / i;
+}
+
+print("Pi: ");
+print(4 * pi);
+print("\n");
+auto main() {
+  // string str = "中文 こんにちは Hello world\n";
+  // return str;
 }
