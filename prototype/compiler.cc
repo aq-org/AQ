@@ -9240,12 +9240,12 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
 
       code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_args));*/
     }
-    if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
+    /*if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
       EXIT_COMPILER(
           "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
           ")",
           "Const doesn't have value.");
-      /*std::size_t const_var_index = global_memory_.AddWithType(return_type);
+      std::size_t const_var_index = global_memory_.AddWithType(return_type);
       std::vector<uint8_t> value_ptr = vm_type;
       value_ptr.insert(value_ptr.begin(), 0x06);
       std::size_t value_ptr_index = global_memory_.AddWithType(value_ptr);
@@ -9255,8 +9255,8 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
           current_scope_.back() + "#" +
               static_cast<std::string>(*var_decl->GetName()),
           std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
-      return const_var_index;*/
-    }
+      return const_var_index;
+    }*/
     /*if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
@@ -9420,13 +9420,13 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
 
       code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_args));*/
     }
-    if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
+    /*if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
       EXIT_COMPILER(
           "BytecodeGenerator::HandleClassVarDecl(ClassMemory&,std::"
           "unordered_map<std::string,std::pair<VarDeclNode*,std::size_t>>,"
           "VarDeclNode*,std::vector<Bytecode>&)",
           "Const doesn't have value.");
-      /*std::size_t const_var_index = global_memory_.AddWithType(return_type);
+      std::size_t const_var_index = global_memory_.AddWithType(return_type);
       std::vector<uint8_t> value_ptr = vm_type;
       value_ptr.insert(value_ptr.begin(), 0x06);
       std::size_t value_ptr_index = global_memory_.AddWithType(value_ptr);
@@ -9436,8 +9436,8 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
           current_scope_.back() + "#" +
               static_cast<std::string>(*var_decl->GetName()),
           std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
-      return const_var_index;*/
-    }
+      return const_var_index;
+    }*/
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
       EXIT_COMPILER(
           "BytecodeGenerator::HandleClassVarDecl(ClassMemory&,std::"

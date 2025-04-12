@@ -1848,6 +1848,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
   }
   // printf("now out for loop\n");
   for (size_t i = 0; i < func_args_size - 1; i++) {
+    if (!object_table[func_args[i + 1]].const_type) cost += 10;
     // printf("NOW IN FOR LOOP %i\n", object_table[func_args[i + 1]].type[0]);
     if (object_table[func_args[i + 1]].const_type) {
       switch (object_table[func_args[i + 1]].type[0]) {
@@ -2160,7 +2161,7 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
     }
   }
   if (args_size < func_args_size) {
-    cost += (func_args_size - args_size) * 10;
+    cost += (func_args_size - args_size) * 100;
   }
   return cost;
 }
@@ -4883,11 +4884,21 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   args_size--;
   for (size_t i = 0; i < func_info.args_size - 1; i++) {
     if (object_table[func_info.args[i]].const_type &&
-        object_table[func_info.args[i]].type[0] == 0x07) {
+        object_table[func_info.args[i]].type[0] == 0x07 &&
+        object_table[func_info.args[i]].type[1] != 0x08) {
       object_table[func_info.args[i]].data.reference_data =
           object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x07 &&
+               object_table[func_info.args[i]].type[1] == 0x08) {
+      object_table[func_info.args[i]].type =
+          object_table[func_info.args[i]].type + 1;
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x08) {
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
     } else {
-      object_table[func_info.args[i]] = object_table[args[i]];
+      EQUAL(func_info.args[i], args[i]);
     }
   }
   struct Bytecode* run_code = func_info.commands;
@@ -5046,11 +5057,21 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   args_size--;
   for (size_t i = 0; i < func_info.args_size - 1; i++) {
     if (object_table[func_info.args[i]].const_type &&
-        object_table[func_info.args[i]].type[0] == 0x07) {
+        object_table[func_info.args[i]].type[0] == 0x07 &&
+        object_table[func_info.args[i]].type[1] != 0x08) {
       object_table[func_info.args[i]].data.reference_data =
           object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x07 &&
+               object_table[func_info.args[i]].type[1] == 0x08) {
+      object_table[func_info.args[i]].type =
+          object_table[func_info.args[i]].type + 1;
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x08) {
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
     } else {
-      object_table[func_info.args[i]] = object_table[args[i]];
+      EQUAL(func_info.args[i], args[i]);
     }
   }
   struct Bytecode* run_code = func_info.commands;
