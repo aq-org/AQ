@@ -1,6 +1,6 @@
 int print(auto str);
 
 auto main(){
-  string str = "中文 Hello world\n";
+  string str = "中文 こんにちは Hello world\n";
   return str;
 }

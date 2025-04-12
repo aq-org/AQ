@@ -141,10 +141,10 @@ void aqstl_print(InternalObject args, size_t return_value) {
       break;
     case 0x02:
       // printf("print long");
-      SetLongData(return_value, printf("%ld", GetLongData(*args.index)));
+      SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
       break;
     case 0x03:
-      SetLongData(return_value, printf("%f", GetDoubleData(*args.index)));
+      SetLongData(return_value, printf("%.15f", GetDoubleData(*args.index)));
       break;
     case 0x04:
       SetLongData(return_value, printf("%zu", GetUint64tData(*args.index)));

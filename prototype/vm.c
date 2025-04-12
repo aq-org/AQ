@@ -12,6 +12,7 @@
 #include <time.h>
 
 #include "aqstl.h"
+#include "aqvm_init.h"
 
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
@@ -3880,7 +3881,7 @@ int CONVERT(size_t result, size_t operand1) {
   }
   return 0;
 }
-int CONST(size_t result, size_t operand1) {
+int _CONST(size_t result, size_t operand1) {
   TRACE_FUNCTION;
   if (result >= object_table_size)
     EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
@@ -4047,10 +4048,10 @@ void print(InternalObject args, size_t return_value) {
       break;
     case 0x02:
       // printf("print long");
-      SetLongData(return_value, printf("%ld", GetLongData(*args.index)));
+      SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
       break;
     case 0x03:
-      SetLongData(return_value, printf("%f", GetDoubleData(*args.index)));
+      SetLongData(return_value, printf("%.15f", GetDoubleData(*args.index)));
       break;
     case 0x04:
       SetLongData(return_value, printf("%zu", GetUint64tData(*args.index)));
@@ -4966,7 +4967,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
         CONVERT(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x19:
-        CONST(run_code[i].args[0], run_code[i].args[1]);
+        _CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x1A:
         INVOKE_CLASS(run_code[i].args);
@@ -5123,7 +5124,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         CONVERT(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x19:
-        CONST(run_code[i].args[0], run_code[i].args[1]);
+        _CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x1A:
         INVOKE_CLASS(run_code[i].args);
@@ -5160,6 +5161,8 @@ int main(int argc, char* argv[]) {
     EXIT_VM("main(int, char**)", "Could not open file.");
     return -2;
   }
+
+  if(aqvm_init()!=0)EXIT_VM("main(int, char**)","INIT ERROR.");
 
   IsBigEndian();
 
