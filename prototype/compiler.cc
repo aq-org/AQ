@@ -9176,11 +9176,11 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
           std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
       return const_var_index;*/
     }
-    if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference)
+    /*if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&"
           ")",
-          "Reference doesn't have value.");
+          "Reference doesn't have value.");*/
     var_decl_map_.emplace(
         current_scope_.back() + "#" +
             static_cast<std::string>(*var_decl->GetName()),

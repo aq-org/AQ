@@ -4882,7 +4882,13 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   func_info.args++;
   args_size--;
   for (size_t i = 0; i < func_info.args_size - 1; i++) {
-    object_table[func_info.args[i]] = object_table[args[i]];
+    if (object_table[func_info.args[i]].const_type &&
+        object_table[func_info.args[i]].type[0] == 0x07) {
+      object_table[func_info.args[i]].data.reference_data =
+          object_table + args[i];
+    } else {
+      object_table[func_info.args[i]] = object_table[args[i]];
+    }
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
@@ -5039,7 +5045,13 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   func_info.args++;
   args_size--;
   for (size_t i = 0; i < func_info.args_size - 1; i++) {
-    object_table[func_info.args[i]] = object_table[args[i]];
+    if (object_table[func_info.args[i]].const_type &&
+        object_table[func_info.args[i]].type[0] == 0x07) {
+      object_table[func_info.args[i]].data.reference_data =
+          object_table + args[i];
+    } else {
+      object_table[func_info.args[i]] = object_table[args[i]];
+    }
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
