@@ -167,7 +167,7 @@ void aqstl_remove(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_remove(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_remove(InternalObject,size_t)", "Invalid return value.");
-  SetLongData(return_value,remove(GetStringData(*args.index)));
+  SetLongData(return_value, remove(GetStringData(*args.index)));
 }
 void aqstl_rename(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -175,7 +175,8 @@ void aqstl_rename(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_rename(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_rename(InternalObject,size_t)", "Invalid return value.");
-  SetLongData(return_value,rename(GetStringData(*args.index),GetStringData(*(args.index + 1))));
+  SetLongData(return_value, rename(GetStringData(*args.index),
+                                   GetStringData(*(args.index + 1))));
 }
 /*void aqstl_tmpnam(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -191,7 +192,7 @@ void aqstl_getchar(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_getchar(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_getchar(InternalObject,size_t)", "Invalid return value.");
-  SetLongData(return_value,getchar());
+  SetLongData(return_value, getchar());
 }
 void aqstl_putchar(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -199,7 +200,7 @@ void aqstl_putchar(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_putchar(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_putchar(InternalObject,size_t)", "Invalid return value.");
-  SetLongData(return_value,putchar(GetLongData(*args.index)));
+  SetLongData(return_value, putchar(GetLongData(*args.index)));
 }
 void aqstl_puts(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -207,7 +208,7 @@ void aqstl_puts(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_puts(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_puts(InternalObject,size_t)", "Invalid return value.");
-  SetLongData(return_value,puts(GetStringData(*args.index)));
+  SetLongData(return_value, puts(GetStringData(*args.index)));
 }
 void aqstl_perror(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -223,7 +224,8 @@ void aqstl_perror(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_tmpnam_s(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_tmpnam_s(InternalObject,size_t)", "Invalid return value.");
-  SetLongData(return_value,tmpnam_s(GetStringData(*args.index),GetUint64tData(*(args.index + 1))));
+  SetLongData(return_value,tmpnam_s(GetStringData(*args.index),GetUint64tData(*(args.index
++ 1))));
 }
 void aqstl_gets_s(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -231,10 +233,9 @@ void aqstl_gets_s(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_gets_s(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_gets_s(InternalObject,size_t)", "Invalid return value.");
-  SetStringData(return_value,gets_s(GetStringData(*args.index),GetUint64tData(*(args.index + 1))));
+  SetStringData(return_value,gets_s(GetStringData(*args.index),GetUint64tData(*(args.index
++ 1))));
 }*/
-
-
 
 /*int remove(const char* filename);
 int rename(const char* old, const char* new);

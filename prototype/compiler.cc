@@ -10061,14 +10061,14 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 
   ExprNode* right_expr = expr->GetRightExpr();
   ExprNode* left_expr = expr->GetLeftExpr();
-  
-  std::size_t left=0;
+
+  std::size_t left = 0;
   std::size_t right = 0;
   if (expr->GetOperator() != BinaryNode::Operator::kMember &&
-      expr->GetOperator() != BinaryNode::Operator::kArrow) 
+      expr->GetOperator() != BinaryNode::Operator::kArrow)
     right = HandleExpr(right_expr, code);
-  if(expr->GetOperator()!=BinaryNode::Operator::kMember)
-  left = HandleExpr(left_expr, code);
+  if (expr->GetOperator() != BinaryNode::Operator::kMember)
+    left = HandleExpr(left_expr, code);
   // uint8_t right_type = GetExprVmType(right_expr);
   // uint8_t left_type = GetExprVmType(left_expr);
   // uint8_t result_type = left_type > right_type ? left_type : right_type;
@@ -10720,7 +10720,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
                                                 std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  std::cout<<"HandlePeriodExpr CALLED."<<std::endl;
+  std::cout << "HandlePeriodExpr CALLED." << std::endl;
   if (expr->GetOperator() != BinaryNode::Operator::kMember)
     EXIT_COMPILER(
         "BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<Bytecode>&"
@@ -10794,7 +10794,10 @@ std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
         }
       }
     } else {
-      EXIT_COMPILER("BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<Bytecode>&)", "Unsupported stmt type.");
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<"
+          "Bytecode>&)",
+          "Unsupported stmt type.");
     }
   }
 

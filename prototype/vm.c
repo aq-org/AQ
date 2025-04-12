@@ -5162,7 +5162,7 @@ int main(int argc, char* argv[]) {
     return -2;
   }
 
-  if(aqvm_init()!=0)EXIT_VM("main(int, char**)","INIT ERROR.");
+  if (aqvm_init() != 0) EXIT_VM("main(int, char**)", "INIT ERROR.");
 
   IsBigEndian();
 
