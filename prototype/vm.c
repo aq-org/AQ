@@ -5163,7 +5163,7 @@ int main(int argc, char* argv[]) {
 
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);
-    EXIT_VM("main(int, char**)", "Invalid arguments.");
+    // EXIT_VM("main(int, char**)", "Invalid arguments.");
     return -1;
   }
 
@@ -5189,9 +5189,16 @@ int main(int argc, char* argv[]) {
 
   if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
       ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
-    printf("Error: Invalid bytecode file\n");
     EXIT_VM("main(int, char**)", "Invalid bytecode file.");
     return -3;
+  }
+
+  if (((char*)bytecode_file)[4] != 0x00 || ((char*)bytecode_file)[5] != 0x00 ||
+      ((char*)bytecode_file)[6] != 0x00 || ((char*)bytecode_file)[7] != 0x03) {
+    EXIT_VM(
+        "main(int, char**)",
+        "This bytecode version is not supported, please check for updates.");
+    return -4;
   }
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);

@@ -6048,7 +6048,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
   code_.push_back(0x00);
   code_.push_back(0x00);
   code_.push_back(0x00);
-  code_.push_back(0x01);
+  code_.push_back(0x03);
 
   InsertUint64ToCode(is_big_endian_
                          ? global_memory_.GetConstTableSize()
