@@ -11086,11 +11086,11 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       HandleWhileStmt(dynamic_cast<WhileNode*>(stmt), code);
       break;
 
-      case StmtNode::StmtType::kDowhile:
+    case StmtNode::StmtType::kDowhile:
       HandleDowhileStmt(dynamic_cast<DowhileNode*>(stmt), code);
       break;
 
-      case StmtNode::StmtType::kFor:
+    case StmtNode::StmtType::kFor:
       HandleForStmt(dynamic_cast<ForNode*>(stmt), code);
       break;
 
@@ -11171,11 +11171,11 @@ void BytecodeGenerator::HandleClassStmt(StmtNode* stmt,
       HandleWhileStmt(dynamic_cast<WhileNode*>(stmt), code);
       break;
 
-      case StmtNode::StmtType::kDowhile:
+    case StmtNode::StmtType::kDowhile:
       HandleDowhileStmt(dynamic_cast<DowhileNode*>(stmt), code);
       break;
 
-      case StmtNode::StmtType::kFor:
+    case StmtNode::StmtType::kFor:
       HandleForStmt(dynamic_cast<ForNode*>(stmt), code);
       break;
 
@@ -11454,17 +11454,17 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   */
 }
 
-void BytecodeGenerator::HandleDowhileStmt(DowhileNode* stmt, std::vector<Bytecode>& code){
+void BytecodeGenerator::HandleDowhileStmt(DowhileNode* stmt,
+                                          std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
   if (stmt == nullptr)
     EXIT_COMPILER(
-        "BytecodeGenerator::HandleDowhileStmt(DowhileNode*,std::vector<Bytecode>&)",
+        "BytecodeGenerator::HandleDowhileStmt(DowhileNode*,std::vector<"
+        "Bytecode>&)",
         "stmt is nullptr.");
 
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   // std::size_t start_location = code.size();
-
-  
 
   std::size_t body_location = code.size();
 
@@ -11489,20 +11489,19 @@ void BytecodeGenerator::HandleDowhileStmt(DowhileNode* stmt, std::vector<Bytecod
   if_args.push_back(body_location);
   if_args.push_back(exit_location);
   code[if_location].SetArgs(if_args);
-
 }
-void BytecodeGenerator::HandleForStmt(ForNode* stmt, std::vector<Bytecode>& code){
+void BytecodeGenerator::HandleForStmt(ForNode* stmt,
+                                      std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
   if (stmt == nullptr)
     EXIT_COMPILER(
         "BytecodeGenerator::HandleWhileStmt(WhileNode*,std::vector<Bytecode>&)",
         "stmt is nullptr.");
 
-        
   current_scope_.push_back(current_scope_.back() + "@@" +
-  std::to_string(++undefined_count_));
+                           std::to_string(++undefined_count_));
 
-  HandleStmt(stmt->GetStart(),code);
+  HandleStmt(stmt->GetStart(), code);
 
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t start_location = code.size();
