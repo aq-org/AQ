@@ -1652,6 +1652,7 @@ class StmtNode {
 
   enum class StmtType {
     kStmt,
+    kBreak,
     kCompound,
     kDecl,
     kExpr,
@@ -1686,6 +1687,17 @@ class StmtNode {
 
  protected:
   StmtType type_;
+};
+
+class BreakNode: public StmtNode{
+  public:
+  BreakNode(){
+    type_ = StmtType::kBreak;
+  }
+  virtual ~BreakNode()=default;
+
+  BreakNode(const BreakNode&) = default;
+  BreakNode& operator=(const BreakNode&) = default;
 };
 
 class CompoundNode : public StmtNode {
@@ -3558,6 +3570,12 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           return result;
         }
 
+        case Token::KeywordType::Break:
+        index++;
+        if (token[index].type == Token::Type::OPERATOR &&
+          token[index].value._operator == Token::OperatorType::semi)index++;
+          return new BreakNode();
+        
         case Token::KeywordType::Return: {
           index++;
           ReturnNode* result = new ReturnNode();
@@ -6003,6 +6021,7 @@ class BytecodeGenerator {
           var_decl_map,
       ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
   void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
+  void HandleBreakStmt(std::vector<Bytecode>& code);
   void HandleClassStmt(StmtNode* stmt, std::vector<Bytecode>& code);
   void HandleReturn(ReturnNode* stmt, std::vector<Bytecode>& code);
   void HandleCompoundStmt(CompoundNode* stmt, std::vector<Bytecode>& code);
@@ -6060,6 +6079,7 @@ class BytecodeGenerator {
   std::vector<std::pair<std::string, std::size_t>> start_goto_map_;
   std::unordered_map<std::string, std::size_t> label_map_;
   std::vector<std::size_t> exit_index_;
+  std::vector<int64_t> loop_break_index_;
   std::size_t undefined_count_ = 0;
 };
 
@@ -11062,6 +11082,10 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
         "stmt is nullptr.");
 
   switch (stmt->GetType()) {
+    case StmtNode::StmtType::kBreak:
+    HandleBreakStmt(code);
+    break;
+
     case StmtNode::StmtType::kCompound:
       HandleCompoundStmt(dynamic_cast<CompoundNode*>(stmt), code);
       break;
@@ -11224,6 +11248,12 @@ void BytecodeGenerator::HandleClassStmt(StmtNode* stmt,
   }
 }
 
+void BytecodeGenerator::HandleBreakStmt(std::vector<Bytecode>& code){
+  TRACE_FUNCTION;
+  loop_break_index_.push_back(code.size());
+  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO,0));
+}
+
 void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
                                      std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
@@ -11384,6 +11414,8 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
         "BytecodeGenerator::HandleWhileStmt(WhileNode*,std::vector<Bytecode>&)",
         "stmt is nullptr.");
 
+  loop_break_index_.push_back(-1);
+
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t start_location = code.size();
 
@@ -11409,6 +11441,15 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   if_args.push_back(body_location);
   if_args.push_back(exit_location);
   code[if_location].SetArgs(if_args);
+
+  while(loop_break_index_.back()!=-1){
+    std::vector<std::size_t> goto_arg;
+    goto_arg.push_back(exit_location);
+    code[loop_break_index_.back()].SetArgs(goto_arg);
+    loop_break_index_.pop_back();
+  }
+
+  loop_break_index_.pop_back();
 
   /*// condition branch
   std::string condition_name("$condition_" +
@@ -11463,6 +11504,8 @@ void BytecodeGenerator::HandleDowhileStmt(DowhileNode* stmt,
         "Bytecode>&)",
         "stmt is nullptr.");
 
+        loop_break_index_.push_back(-1);
+
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   // std::size_t start_location = code.size();
 
@@ -11489,6 +11532,15 @@ void BytecodeGenerator::HandleDowhileStmt(DowhileNode* stmt,
   if_args.push_back(body_location);
   if_args.push_back(exit_location);
   code[if_location].SetArgs(if_args);
+
+  while(loop_break_index_.back()!=-1){
+    std::vector<std::size_t> goto_arg;
+    goto_arg.push_back(exit_location);
+    code[loop_break_index_.back()].SetArgs(goto_arg);
+    loop_break_index_.pop_back();
+  }
+
+  loop_break_index_.pop_back();
 }
 void BytecodeGenerator::HandleForStmt(ForNode* stmt,
                                       std::vector<Bytecode>& code) {
@@ -11497,6 +11549,8 @@ void BytecodeGenerator::HandleForStmt(ForNode* stmt,
     EXIT_COMPILER(
         "BytecodeGenerator::HandleWhileStmt(WhileNode*,std::vector<Bytecode>&)",
         "stmt is nullptr.");
+
+        loop_break_index_.push_back(-1);
 
   current_scope_.push_back(current_scope_.back() + "@@" +
                            std::to_string(++undefined_count_));
@@ -11527,6 +11581,15 @@ void BytecodeGenerator::HandleForStmt(ForNode* stmt,
   if_args.push_back(body_location);
   if_args.push_back(exit_location);
   code[if_location].SetArgs(if_args);
+
+  while(loop_break_index_.back()!=-1){
+    std::vector<std::size_t> goto_arg;
+    goto_arg.push_back(exit_location);
+    code[loop_break_index_.back()].SetArgs(goto_arg);
+    loop_break_index_.pop_back();
+  }
+
+  loop_break_index_.pop_back();
 }
 
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
