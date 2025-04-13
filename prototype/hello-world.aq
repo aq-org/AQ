@@ -25,6 +25,25 @@ void test_func(int& abc){
   abc = 100;
 }
 
+//int doc = 0;
+/*do{
+  print(doc);
+  print("\n");
+  doc++;
+}while(doc<10)
+
+int doc = 0;
+while(doc<10){
+  print(doc);
+  print("\n");
+  doc++;
+}*/
+
+for(int i = 0 ;i<10;i++){
+  print(i+1);
+  print("\n");
+}
+
 auto main() {
   int ab = 0;
   test_func(ab);

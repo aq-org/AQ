@@ -3513,25 +3513,25 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
                           "For start l_paren not found.");
           ExprNode* start = nullptr;
           if (token[index + 1].type != Token::Type::OPERATOR ||
-              token[index + 1].value._operator != Token::OperatorType::comma)
+              token[index + 1].value._operator != Token::OperatorType::semi)
             start = ParseExpr(token, length, ++index);
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::comma)
+              token[index].value._operator != Token::OperatorType::semi)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
-                          "For start comma not found.");
+                          "For start semi not found.");
           ExprNode* condition = nullptr;
           if (token[index + 1].type != Token::Type::OPERATOR ||
-              token[index + 1].value._operator != Token::OperatorType::comma)
+              token[index + 1].value._operator != Token::OperatorType::semi)
             condition = ParseExpr(token, length, ++index);
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::comma)
+              token[index].value._operator != Token::OperatorType::semi)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
-                          "For condition comma not found.");
+                          "For condition semi not found.");
           ExprNode* end = nullptr;
           if (token[index + 1].type != Token::Type::OPERATOR ||
-              token[index + 1].value._operator != Token::OperatorType::comma)
+              token[index + 1].value._operator != Token::OperatorType::semi)
             end = ParseExpr(token, length, ++index);
 
           if (token[index].type != Token::Type::OPERATOR ||
@@ -6008,6 +6008,8 @@ class BytecodeGenerator {
   void HandleCompoundStmt(CompoundNode* stmt, std::vector<Bytecode>& code);
   void HandleIfStmt(IfNode* stmt, std::vector<Bytecode>& code);
   void HandleWhileStmt(WhileNode* stmt, std::vector<Bytecode>& code);
+  void HandleDowhileStmt(DowhileNode* stmt, std::vector<Bytecode>& code);
+  void HandleForStmt(ForNode* stmt, std::vector<Bytecode>& code);
   std::size_t HandleExpr(ExprNode* expr, std::vector<Bytecode>& code);
   std::size_t HandleUnaryExpr(UnaryNode* expr, std::vector<Bytecode>& code);
   std::size_t HandleBinaryExpr(BinaryNode* expr, std::vector<Bytecode>& code);
@@ -11084,6 +11086,14 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       HandleWhileStmt(dynamic_cast<WhileNode*>(stmt), code);
       break;
 
+      case StmtNode::StmtType::kDowhile:
+      HandleDowhileStmt(dynamic_cast<DowhileNode*>(stmt), code);
+      break;
+
+      case StmtNode::StmtType::kFor:
+      HandleForStmt(dynamic_cast<ForNode*>(stmt), code);
+      break;
+
     case StmtNode::StmtType::kFuncDecl:
       HandleFuncDecl(dynamic_cast<FuncDeclNode*>(stmt));
       break;
@@ -11159,6 +11169,14 @@ void BytecodeGenerator::HandleClassStmt(StmtNode* stmt,
 
     case StmtNode::StmtType::kWhile:
       HandleWhileStmt(dynamic_cast<WhileNode*>(stmt), code);
+      break;
+
+      case StmtNode::StmtType::kDowhile:
+      HandleDowhileStmt(dynamic_cast<DowhileNode*>(stmt), code);
+      break;
+
+      case StmtNode::StmtType::kFor:
+      HandleForStmt(dynamic_cast<ForNode*>(stmt), code);
       break;
 
     case StmtNode::StmtType::kFuncDecl:
@@ -11434,6 +11452,82 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, condition_name_ptr_index,
   0));
   */
+}
+
+void BytecodeGenerator::HandleDowhileStmt(DowhileNode* stmt, std::vector<Bytecode>& code){
+  TRACE_FUNCTION;
+  if (stmt == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleDowhileStmt(DowhileNode*,std::vector<Bytecode>&)",
+        "stmt is nullptr.");
+
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  // std::size_t start_location = code.size();
+
+  
+
+  std::size_t body_location = code.size();
+
+  current_scope_.push_back(current_scope_.back() + "@@" +
+                           std::to_string(++undefined_count_));
+  HandleStmt(stmt->GetBody(), code);
+  current_scope_.pop_back();
+
+  std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
+
+  std::size_t if_location = code.size();
+
+  code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
+
+  // code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, start_location));
+
+  std::size_t exit_location = code.size();
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+
+  std::vector<std::size_t> if_args;
+  if_args.push_back(condition_index);
+  if_args.push_back(body_location);
+  if_args.push_back(exit_location);
+  code[if_location].SetArgs(if_args);
+
+}
+void BytecodeGenerator::HandleForStmt(ForNode* stmt, std::vector<Bytecode>& code){
+  TRACE_FUNCTION;
+  if (stmt == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleWhileStmt(WhileNode*,std::vector<Bytecode>&)",
+        "stmt is nullptr.");
+
+        
+  current_scope_.push_back(current_scope_.back() + "@@" +
+  std::to_string(++undefined_count_));
+
+  HandleStmt(stmt->GetStart(),code);
+
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  std::size_t start_location = code.size();
+
+  std::size_t condition_index = HandleExpr(stmt->GetCondition(), code);
+
+  std::size_t if_location = code.size();
+
+  // Need body branch and exit branch
+  code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
+  std::size_t body_location = code.size();
+
+  HandleStmt(stmt->GetBody(), code);
+  HandleExpr(stmt->GetEnd(), code);
+  current_scope_.pop_back();
+  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, start_location));
+
+  std::size_t exit_location = code.size();
+  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+
+  std::vector<std::size_t> if_args;
+  if_args.push_back(condition_index);
+  if_args.push_back(body_location);
+  if_args.push_back(exit_location);
+  code[if_location].SetArgs(if_args);
 }
 
 std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
