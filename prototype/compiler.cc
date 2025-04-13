@@ -6182,6 +6182,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   Function start_func("__start", args, global_code_);
   func_list_.push_back(start_func);
 
+  if(loop_break_index_.size()!=0)EXIT_COMPILER("BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)","Break cannot be used outside of loops and switches.");
+
+
   GenerateBytecodeFile(output_file);
 }
 
