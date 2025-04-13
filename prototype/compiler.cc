@@ -1660,6 +1660,8 @@ class StmtNode {
     kClassDecl,
     kIf,
     kWhile,
+    kDowhile,
+    kFor,
     kLabel,
     kGoto,
     kValue,
@@ -2354,6 +2356,65 @@ class WhileNode : public StmtNode {
 
  private:
   ExprNode* condition_;
+  StmtNode* body_;
+};
+
+class DowhileNode : public StmtNode {
+ public:
+  DowhileNode() {
+    type_ = StmtType::kDowhile;
+    body_ = nullptr;
+    condition_ = nullptr;
+  }
+  virtual ~DowhileNode() = default;
+
+  void SetDowhileNode(ExprNode* condition, StmtNode* body) {
+    condition_ = condition;
+    body_ = body;
+  }
+
+  ExprNode* GetCondition() { return condition_; }
+  StmtNode* GetBody() { return body_; }
+
+  DowhileNode(const DowhileNode&) = default;
+  DowhileNode& operator=(const DowhileNode&) = default;
+
+ private:
+  ExprNode* condition_;
+  StmtNode* body_;
+};
+
+class ForNode : public StmtNode {
+ public:
+  ForNode() {
+    type_ = StmtType::kFor;
+    body_ = nullptr;
+    start_ = nullptr;
+    condition_ = nullptr;
+    end_ = nullptr;
+  }
+  virtual ~ForNode() = default;
+
+  void SetForNode(ExprNode* start, ExprNode* condition, ExprNode* end,
+                  StmtNode* body) {
+    body_ = body;
+    start_ = start;
+    condition_ = condition;
+    end_ = end;
+  }
+
+  ExprNode* GetStart() { return start_; }
+  ExprNode* GetCondition() { return condition_; }
+  ExprNode* GetEnd() { return end_; }
+  StmtNode* GetBody() { return body_; }
+
+  ForNode(const ForNode&) = default;
+  ForNode& operator=(const ForNode&) = default;
+
+ private:
+  ExprNode* start_;
+  ExprNode* condition_;
+  ExprNode* end_;
   StmtNode* body_;
 };
 
@@ -3414,6 +3475,66 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
                           "While condition r_paren not found.");
 
           result->SetWhileNode(condition, ParseStmt(token, length, ++index));
+          return result;
+        }
+
+        case Token::KeywordType::Do: {
+          index++;
+          DowhileNode* result = new DowhileNode();
+
+          StmtNode* stmt_ = ParseStmt(token, length, index);
+if(token[index].type != Token::Type::KEYWORD ||
+  token[index].value.keyword != Token::KeywordType::While)EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)","Do-while while keyword not found.");
+index++;
+  if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::l_paren)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Do-while condition l_paren not found.");
+          ExprNode* condition = ParseExpr(token, length, ++index);
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::r_paren)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Do-while condition r_paren not found.");
+
+                          index++;
+          result->SetWhileNode(condition, stmt_);
+          return result;
+        }
+
+        case Token::KeywordType::For: {
+          index++;
+          ForNode* result = new ForNode();
+
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::l_paren)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "For start l_paren not found.");
+          ExprNode* start = nullptr;
+          if (token[index+1].type != Token::Type::OPERATOR ||
+            token[index+1].value._operator != Token::OperatorType::comma)start=ParseExpr(token, length, ++index);
+          
+            if (token[index].type != Token::Type::OPERATOR ||
+            token[index].value._operator != Token::OperatorType::comma)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "For start comma not found.");
+          ExprNode* condition = nullptr;
+          if (token[index+1].type != Token::Type::OPERATOR ||
+            token[index+1].value._operator != Token::OperatorType::comma)condition=ParseExpr(token, length, ++index);
+            
+            if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::comma)
+              EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                            "For condition comma not found.");
+                            ExprNode* end = nullptr;
+                            if (token[index+1].type != Token::Type::OPERATOR ||
+                              token[index+1].value._operator != Token::OperatorType::comma)end=ParseExpr(token, length, ++index);
+
+          if (token[index].type != Token::Type::OPERATOR ||
+              token[index].value._operator != Token::OperatorType::r_paren)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "For end r_paren not found.");
+
+          result->SetForNode(condition, start,condition,end,ParseStmt(token, length, ++index));
           return result;
         }
 
