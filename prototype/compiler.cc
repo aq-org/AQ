@@ -6008,6 +6008,7 @@ class BytecodeGenerator {
   void HandleClassConstructor(FuncDeclNode* func_decl);
   void HandleClassDecl(ClassDeclNode* class_decl);
   std::size_t HandleVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
+  std::size_t HandleStaticVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code);
   std::size_t HandleClassVarDecl(
       ClassMemory& memory,
       std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>&
@@ -6015,6 +6016,8 @@ class BytecodeGenerator {
       VarDeclNode* var_decl, std::vector<Bytecode>& code);
   std::size_t HandleArrayDecl(ArrayDeclNode* array_decl,
                               std::vector<Bytecode>& code);
+  std::size_t HandleStaticArrayDecl(ArrayDeclNode* array_decl,
+    std::vector<Bytecode>& code);
   std::size_t HandleClassArrayDecl(
       ClassMemory& memory,
       std::unordered_map<std::string, std::pair<VarDeclNode*, std::size_t>>
@@ -9119,15 +9122,15 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
 
   for (std::size_t i = 0; i < class_decl->GetStaticMembers().size(); i++) {
     // class_decl->GetStaticMembers()[i]->GetDecl()
-
+    std::cout<<"HANDLE STATIC MEMBERS."<<std::endl;
     if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
         StmtNode::StmtType::kVarDecl) {
-      HandleVarDecl(dynamic_cast<VarDeclNode*>(
+      HandleStaticVarDecl(dynamic_cast<VarDeclNode*>(
                         class_decl->GetStaticMembers()[i]->GetDecl()),
                     current_class->GetCode());
     } else if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
                StmtNode::StmtType::kArrayDecl) {
-      HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(
+      HandleStaticArrayDecl(dynamic_cast<ArrayDeclNode*>(
                           class_decl->GetStaticMembers()[i]->GetDecl()),
                       current_class->GetCode());
     } else if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
@@ -9496,6 +9499,123 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
     }
     var_decl_map_.emplace(
         current_scope_.back() + "#" +
+            static_cast<std::string>(*var_decl->GetName()),
+        std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
+    return var_index;
+  }
+}
+
+std::size_t BytecodeGenerator::HandleStaticVarDecl(VarDeclNode* var_decl, std::vector<Bytecode>& code){
+  TRACE_FUNCTION;
+  if (var_decl == nullptr)
+    EXIT_COMPILER(
+      "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+      "Bytecode>&)",
+        "var_decl is nullptr.");
+
+  std::vector<uint8_t> vm_type = var_decl->GetVarType()->GetVmType();
+  std::vector<uint8_t> return_type = vm_type;
+  if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
+    vm_type.erase(vm_type.begin());
+  }
+
+  if (var_decl->GetValue()[0] == nullptr) {
+    std::size_t var_index = global_memory_.AddWithType(vm_type);
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+        "Bytecode>&)",
+        "const var without value not support.");
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kClass) {
+      std::string func_name = (std::string)*var_decl->GetVarType();
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator =
+            func_decl_map_.find(current_scope_[i] + "." + func_name);
+        if (iterator != func_decl_map_.end()) {
+          func_name = current_scope_[i] + "." + func_name;
+          break;
+        }
+        if (i == 0)
+          EXIT_COMPILER(
+            "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+            "Bytecode>&)",
+              "Function not found.");
+      }
+
+      std::size_t var_index_reference = global_memory_.Add(1);
+
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
+
+      global_code_.push_back(Bytecode(
+          _AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),
+          global_memory_.AddString(func_name)));
+
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_INVOKE_CLASS, 4, var_index_reference,
+                   global_memory_.AddString("@constructor"), 1, 0));
+    }
+    var_decl_map_.emplace(
+        current_scope_.back() + "." +
+            static_cast<std::string>(*var_decl->GetName()),
+        std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
+    return var_index;
+  } else {
+    std::size_t value_index = HandleExpr(var_decl->GetValue()[0], code);
+    std::size_t var_index = global_memory_.AddWithType(vm_type);
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kClass) {
+      std::string func_name = (std::string)*var_decl->GetVarType();
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator =
+            func_decl_map_.find(current_scope_[i] + "." + func_name);
+        if (iterator != func_decl_map_.end()) {
+          func_name = current_scope_[i] + "." + func_name;
+          break;
+        }
+        if (i == 0)
+          EXIT_COMPILER(
+            "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+            "Bytecode>&)",
+              "Function not found.");
+      }
+
+      std::size_t var_index_reference = global_memory_.Add(1);
+
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
+
+      global_code_.push_back(Bytecode(
+          _AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),
+          global_memory_.AddString(func_name)));
+
+          global_code_.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
+    }
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kReference) {
+      std::vector<uint8_t> value_ptr = vm_type;
+      value_ptr.erase(value_ptr.begin());
+      value_ptr.insert(value_ptr.begin(), 0x06);
+      global_code_.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, var_index, value_index));
+      var_decl_map_.emplace(
+          current_scope_.back() + "." +
+              static_cast<std::string>(*var_decl->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
+      return var_index;
+    }
+    global_code_.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
+    if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
+      std::size_t const_var_index = global_memory_.AddWithType(return_type);
+      std::vector<uint8_t> value_ptr = vm_type;
+      value_ptr.insert(value_ptr.begin(), 0x06);
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
+      var_decl_map_.emplace(
+          current_scope_.back() + "." +
+              static_cast<std::string>(*var_decl->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(var_decl, const_var_index));
+      return const_var_index;
+    }
+    var_decl_map_.emplace(
+        current_scope_.back() + "." +
             static_cast<std::string>(*var_decl->GetName()),
         std::pair<VarDeclNode*, std::size_t>(var_decl, var_index));
     return var_index;
@@ -9998,6 +10118,143 @@ std::size_t BytecodeGenerator::HandleArrayDecl(ArrayDeclNode* array_decl,
     return array_index;
   }
 }
+
+std::size_t BytecodeGenerator::HandleStaticArrayDecl(ArrayDeclNode* array_decl,
+  std::vector<Bytecode>& code){
+  TRACE_FUNCTION;
+  if (array_decl == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleStaticArrayDecl(ArrayDeclNode*,std::vector<"
+        "Bytecode>&)",
+        "array_decl is nullptr.");
+
+  Type* array_type = array_decl->GetVarType();
+  if (array_type == nullptr)
+    EXIT_COMPILER(
+      "BytecodeGenerator::HandleStaticArrayDecl(ArrayDeclNode*,std::vector<"
+      "Bytecode>&)",
+        "array_type is nullptr.");
+
+  if (array_type->GetType() == Type::TypeType::kConst)
+    EXIT_COMPILER(
+      "BytecodeGenerator::HandleStaticArrayDecl(ArrayDeclNode*,std::vector<"
+      "Bytecode>&)",
+        "const array not support.");
+
+  if (array_decl->GetValue().empty()) {
+    std::size_t array_index =
+        global_memory_.AddWithType(array_type->GetVmType());
+    std::size_t array_type_index = 0;
+    if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetType() ==
+        Type::TypeType::kClass) {
+      std::string expr_type_string =
+          *dynamic_cast<ArrayType*>(array_type)->GetSubType();
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator =
+            class_decl_map_.find(current_scope_[i] + "." + expr_type_string);
+        if (iterator != class_decl_map_.end()) {
+          expr_type_string = current_scope_[i] + "." + expr_type_string;
+          break;
+        }
+        if (i == 0)
+          EXIT_COMPILER(
+            "BytecodeGenerator::HandleStaticArrayDecl(ArrayDeclNode*,std::vector<"
+            "Bytecode>&)",
+              "Not found class.");
+      }
+      array_type_index = global_memory_.AddString(expr_type_string);
+
+    } else {
+      array_type_index = global_memory_.AddWithType(
+          dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
+    }
+    if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType()[0] ==
+        0x00)
+      array_type_index = 0;
+
+      global_code_.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
+                            global_memory_.AddByte(1)
+                            /*HandleExpr(array_decl->GetSize(), code)*/,
+                            array_type_index));
+
+    if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetType() ==
+        Type::TypeType::kClass) {
+      std::size_t current_index = global_memory_.Add(1);
+      global_code_.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory_.AddByte(0)));
+
+                              global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_CLASS, 4, current_index,
+                              global_memory_.AddString("@constructor"), 1, 0));
+    }
+
+    var_decl_map_.emplace(
+        current_scope_.back() + "." +
+            static_cast<std::string>(*array_decl->GetName()),
+        std::pair<VarDeclNode*, std::size_t>(
+            dynamic_cast<VarDeclNode*>(array_decl), array_index));
+    return array_index;
+  } else {
+    if (array_decl->GetSize()->GetType() != StmtNode::StmtType::kValue)
+      EXIT_COMPILER(
+        "BytecodeGenerator::HandleStaticArrayDecl(ArrayDeclNode*,std::vector<"
+        "Bytecode>&)",
+          "array_decl->GetSize() is not ValueNode.");
+
+    std::size_t array_index =
+        global_memory_.AddWithType(array_type->GetVmType());
+    std::size_t array_type_index = 0;
+    if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetType() ==
+        Type::TypeType::kClass) {
+      std::string expr_type_string =
+          *dynamic_cast<ArrayType*>(array_type)->GetSubType();
+      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+        auto iterator =
+            class_decl_map_.find(current_scope_[i] + "." + expr_type_string);
+        if (iterator != class_decl_map_.end()) {
+          expr_type_string = current_scope_[i] + "." + expr_type_string;
+          break;
+        }
+        if (i == 0)
+          EXIT_COMPILER(
+            "BytecodeGenerator::HandleStaticArrayDecl(ArrayDeclNode*,std::vector<"
+            "Bytecode>&)",
+              "Not found class.");
+      }
+      array_type_index = global_memory_.AddString(expr_type_string);
+
+    } else {
+      array_type_index = global_memory_.AddWithType(
+          dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType());
+    }
+    if (dynamic_cast<ArrayType*>(array_type)->GetSubType()->GetVmType()[0] ==
+        0x00)
+      array_type_index = 0;
+
+    std::size_t size_index =
+        global_memory_.AddUint64t(array_decl->GetValue().size());
+        global_code_.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
+                            size_index
+                            /*HandleExpr(array_decl->GetSize(), code)*/,
+                            array_type_index));
+
+
+    for (std::size_t i = 0; i < array_decl->GetValue().size(); i++) {
+      std::size_t value_index = HandleExpr(array_decl->GetValue()[i], code);
+      std::size_t current_index = global_memory_.Add(1);
+      global_code_.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory_.AddUint64t(i)));
+                              global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+    }
+
+    var_decl_map_.emplace(
+        current_scope_.back() + "." +
+            static_cast<std::string>(*array_decl->GetName()),
+        std::pair<VarDeclNode*, std::size_t>(
+            dynamic_cast<VarDeclNode*>(array_decl), array_index));
+    return array_index;
+  }
+  }
 
 std::size_t BytecodeGenerator::HandleClassArrayDecl(
     ClassMemory& memory,
@@ -11019,9 +11276,8 @@ std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
       full_name += *dynamic_cast<IdentifierNode*>(exprs.back());
       for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
         auto iterator = var_decl_map_.find(
-            current_scope_[i] + "#" +
-            static_cast<std::string>(
-                *dynamic_cast<IdentifierNode*>(exprs.back())));
+            current_scope_[i] + "." +
+            full_name);
         if (iterator != var_decl_map_.end()) {
           return iterator->second.second;
         }

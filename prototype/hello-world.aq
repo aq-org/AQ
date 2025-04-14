@@ -46,7 +46,14 @@ while(true){
   if(i==10)break;
 }
 
+class ENUM_TEST{
+static const int MON=1;
+static const int TUE=2;
+static const int WED=3;
+}
+
 auto main() {
+  print(ENUM_TEST.MON);
   int ab = 0;
   test_func(ab);
   // string str = "中文 こんにちは Hello world\n";
