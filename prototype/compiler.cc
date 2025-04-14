@@ -5674,6 +5674,30 @@ class BytecodeGenerator {
       return memory_size_ - 1;
     }
 
+     std::size_t AddUint64tWithoutValue(std::size_t& code) {
+      TRACE_FUNCTION;
+      memory_type_.push_back(0x04);
+      memory_size_++;
+      code_->push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, memory_size_ - 1,
+                                0));
+                                code=code_->size()-1;
+      return memory_size_ - 1;
+    }
+
+     void SetUint64tValue(std::size_t code,uint64_t value){
+      TRACE_FUNCTION;
+      const_table_.push_back(0x04);
+      value = is_big_endian_ ? value : SwapUint64t(value);
+      for (int i = 0; i < 8; ++i) {
+        const_table_.push_back(static_cast<uint8_t>((value >> (i * 8)) & 0xFF));
+      }
+      const_table_size_++;
+
+      auto args = (*code_)[code].GetArgs();
+      args[1] = const_table_size_-1;
+      (*code_)[code].SetArgs(args);
+    }
+
     virtual std::size_t AddString(std::string value) {
       // std::cout << "AddString" << std::endl;
       TRACE_FUNCTION;
@@ -5793,7 +5817,7 @@ class BytecodeGenerator {
     }
 
     bool is_big_endian_ = false;
-    std::vector<Bytecode>* code_;
+   std::vector<Bytecode>* code_;
     std::vector<uint8_t> const_table_;
     std::size_t const_table_size_ = 0;
     std::vector<uint8_t> memory_type_;
@@ -6157,7 +6181,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
     }
     // std::cout << global_code_[start_goto_map_.back().second].GetOper() <<
     // std::endl;
-    global_code_[start_goto_map_.back().second].SetArgs(1, goto_location);
+    global_code_[start_goto_map_.back().second].SetArgs(1, global_memory_.AddUint64t(goto_location));
     start_goto_map_.pop_back();
   }
   current_scope_.pop_back();
@@ -8659,7 +8683,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t return_location = code.size();
   for (std::size_t i = 0; i < exit_index_.size(); i++) {
-    code[exit_index_[i]].SetArgs(1, return_location);
+    code[exit_index_[i]].SetArgs(1, global_memory_.AddUint64t(return_location));
   }
   Function func_decl_bytecode(func_name, args_index, code);
   if (func_decl->GetStat()->GetVaFlag()) func_decl_bytecode.EnableVaFlag();
@@ -8679,7 +8703,7 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
         EXIT_COMPILER("BytecodeGenerator::HandleFuncDecl(FuncDeclNode*)",
                       "Label not found.");
     }
-    code[goto_map_.back().second].SetArgs(1, goto_location);
+    code[goto_map_.back().second].SetArgs(1, global_memory_.AddUint64t(goto_location));
     goto_map_.pop_back();
   }
   current_scope_.pop_back();
@@ -8830,7 +8854,7 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t return_location = code.size();
   for (std::size_t i = 0; i < exit_index_.size(); i++) {
-    code[exit_index_[i]].SetArgs(1, return_location);
+    code[exit_index_[i]].SetArgs(1, global_memory_.AddUint64t(return_location));
   }
   Function func_decl_bytecode(func_name, args_index, code);
   if (func_decl->GetStat()->GetVaFlag()) func_decl_bytecode.EnableVaFlag();
@@ -8850,7 +8874,7 @@ void BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode* func_decl) {
         EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                       "Label not found.");
     }
-    code[goto_map_.back().second].SetArgs(1, goto_location);
+    code[goto_map_.back().second].SetArgs(1, global_memory_.AddUint64t(goto_location));
     goto_map_.pop_back();
   }
   current_scope_.pop_back();
@@ -9037,7 +9061,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
   // code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t return_location = code.size();
   for (std::size_t i = 0; i < exit_index_.size(); i++) {
-    code[exit_index_[i]].SetArgs(1, return_location);
+    code[exit_index_[i]].SetArgs(1, global_memory_.AddUint64t(return_location));
   }
   Function new_func_decl_bytecode(original_func_name, args_index, code);
   if (func_decl->GetStat()->GetVaFlag()) new_func_decl_bytecode.EnableVaFlag();
@@ -9057,7 +9081,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
         EXIT_COMPILER("BytecodeGenerator::HandleClassFuncDecl(FuncDeclNode*)",
                       "Label not found.");
     }
-    code[goto_map_.back().second].SetArgs(1, goto_location);
+    code[goto_map_.back().second].SetArgs(1, global_memory_.AddUint64t(goto_location));
     goto_map_.pop_back();
   }
   current_scope_.pop_back();
@@ -11509,8 +11533,11 @@ void BytecodeGenerator::HandleClassStmt(StmtNode* stmt,
 
 void BytecodeGenerator::HandleBreakStmt(std::vector<Bytecode>& code){
   TRACE_FUNCTION;
-  loop_break_index_.push_back(code.size());
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO,0));
+  std::size_t index = 0;
+  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO,1,global_memory_.AddUint64tWithoutValue(index)));
+  //code.push_back(Bytecode(_AQVM_OPERATOR_GOTO,1,loop_break_index_.back()));
+  
+  loop_break_index_.push_back(index);
 }
 
 void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
@@ -11622,7 +11649,7 @@ void BytecodeGenerator::HandleIfStmt(IfNode* stmt,
   if_args.push_back(false_location);
   code[if_location].SetArgs(if_args);
 
-  goto_args.push_back(exit_branch);
+  goto_args.push_back(global_memory_.AddUint64t(exit_branch));
   code[goto_location].SetArgs(goto_args);
 
   /*  // true branch name
@@ -11674,6 +11701,8 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
         "stmt is nullptr.");
 
   loop_break_index_.push_back(-1);
+ // std::size_t code_index = 0;
+  //loop_break_index_.push_back(global_memory_.AddUint64tWithoutValue(code_index));
 
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t start_location = code.size();
@@ -11690,7 +11719,7 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
                            std::to_string(++undefined_count_));
   HandleStmt(stmt->GetBody(), code);
   current_scope_.pop_back();
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, start_location));
+  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, global_memory_.AddUint64t(start_location)));
 
   std::size_t exit_location = code.size();
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
@@ -11702,9 +11731,10 @@ void BytecodeGenerator::HandleWhileStmt(WhileNode* stmt,
   code[if_location].SetArgs(if_args);
 
   while(loop_break_index_.back()!=-1){
-    std::vector<std::size_t> goto_arg;
-    goto_arg.push_back(exit_location);
-    code[loop_break_index_.back()].SetArgs(goto_arg);
+    //std::vector<std::size_t> goto_arg;
+    //goto_arg.push_back(global_memory_.AddUint64t(exit_location));
+    //code[loop_break_index_.back()].SetArgs(goto_arg);
+    global_memory_.SetUint64tValue(loop_break_index_.back(),exit_location);
     loop_break_index_.pop_back();
   }
 
@@ -11793,9 +11823,10 @@ void BytecodeGenerator::HandleDowhileStmt(DowhileNode* stmt,
   code[if_location].SetArgs(if_args);
 
   while(loop_break_index_.back()!=-1){
-    std::vector<std::size_t> goto_arg;
-    goto_arg.push_back(exit_location);
-    code[loop_break_index_.back()].SetArgs(goto_arg);
+    //std::vector<std::size_t> goto_arg;
+    //goto_arg.push_back(global_memory_.AddUint64t(exit_location));
+    //code[loop_break_index_.back()].SetArgs(goto_arg);
+    global_memory_.SetUint64tValue(loop_break_index_.back(),exit_location);
     loop_break_index_.pop_back();
   }
 
@@ -11830,7 +11861,7 @@ void BytecodeGenerator::HandleForStmt(ForNode* stmt,
   HandleStmt(stmt->GetBody(), code);
   HandleExpr(stmt->GetEnd(), code);
   current_scope_.pop_back();
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, start_location));
+  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, global_memory_.AddUint64t(start_location)));
 
   std::size_t exit_location = code.size();
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
@@ -11842,10 +11873,11 @@ void BytecodeGenerator::HandleForStmt(ForNode* stmt,
   code[if_location].SetArgs(if_args);
 
   while(loop_break_index_.back()!=-1){
-    std::vector<std::size_t> goto_arg;
-    goto_arg.push_back(exit_location);
-    code[loop_break_index_.back()].SetArgs(goto_arg);
-    loop_break_index_.pop_back();
+   // std::vector<std::size_t> goto_arg;
+   // goto_arg.push_back(global_memory_.AddUint64t(exit_location));
+   // code[loop_break_index_.back()].SetArgs(goto_arg);
+   global_memory_.SetUint64tValue(loop_break_index_.back(),exit_location);
+   loop_break_index_.pop_back();
   }
 
   loop_break_index_.pop_back();
@@ -12152,7 +12184,7 @@ void BytecodeGenerator::HandleGoto(GotoNode* label,
   for (int64_t i = current_scope_.size() - 1; i >= current_func_index_; i--) {
     auto iterator = label_map_.find(current_scope_[i] + "$" + label_name);
     if (iterator != label_map_.end()) {
-      code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, iterator->second));
+      code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, global_memory_.AddUint64t(iterator->second)));
       return;
     }
     if (i == current_func_index_) {
@@ -12177,7 +12209,7 @@ void BytecodeGenerator::HandleStartGoto(GotoNode* label,
   for (int64_t i = current_scope_.size() - 1; i >= current_func_index_; i--) {
     auto iterator = label_map_.find(current_scope_[i] + "$" + label_name);
     if (iterator != label_map_.end()) {
-      code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, iterator->second));
+      code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, global_memory_.AddUint64t(iterator->second)));
       return;
     }
     if (i == current_func_index_) {

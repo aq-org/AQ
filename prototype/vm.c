@@ -16,7 +16,7 @@
 
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
-/*typedef struct StackNode {
+typedef struct StackNode {
   char* function_name;
   struct StackNode* next;
 } StackNode;
@@ -79,9 +79,9 @@ void TraceDestroy(Trace* trace) {
 #define TRACE_FUNCTION                                  \
   Trace _trace __attribute__((cleanup(TraceDestroy))) = \
       TraceCreate(__FUNCTION__)
-*/
 
-#define TRACE_FUNCTION
+
+//#define TRACE_FUNCTION
 
 /*union Data {
   int8_t byte_data;
@@ -3806,7 +3806,7 @@ int EQUAL(size_t result, size_t value) {
 }
 size_t GOTO(size_t location) {
   TRACE_FUNCTION;
-  return location;
+  return GetUint64tData(location);
 }
 int LOAD_CONST(size_t object, size_t const_object) {
   TRACE_FUNCTION;
