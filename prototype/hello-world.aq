@@ -51,15 +51,20 @@ static const int MON=1;
 static const int TUE=2;
 static const int WED=3;
 }
+
   int ab = 0;
+abc:
+  print(ENUM_TEST.MON);
 
 
+ab++;
+if(ab<10)
+goto abc;
 //for (int i = 0;i<10;i++)print(i);
 
 auto main() {
 
-  print(ENUM_TEST.MON);
-ab++;
+
   test_func(ab);
   // string str = "中文 こんにちは Hello world\n";
   return ab;

@@ -6178,6 +6178,7 @@ class BytecodeGenerator {
       ArrayDeclNode* array_decl, std::vector<Bytecode>& code);
   void HandleStmt(StmtNode* stmt, std::vector<Bytecode>& code);
   void HandleBreakStmt(std::vector<Bytecode>& code);
+  void HandleSwitchStmt(SwitchNode* stmt, std::vector<Bytecode>& code);
   void HandleClassStmt(StmtNode* stmt, std::vector<Bytecode>& code);
   void HandleReturn(ReturnNode* stmt, std::vector<Bytecode>& code);
   void HandleCompoundStmt(CompoundNode* stmt, std::vector<Bytecode>& code);
@@ -11566,11 +11567,15 @@ void BytecodeGenerator::HandleStmt(StmtNode* stmt,
       break;
 
     case StmtNode::StmtType::kLabel:
-      HandleLabel(dynamic_cast<LabelNode*>(stmt), global_code_);
+      HandleLabel(dynamic_cast<LabelNode*>(stmt), code);
       break;
 
     case StmtNode::StmtType::kGoto:
-      HandleGoto(dynamic_cast<GotoNode*>(stmt), global_code_);
+      HandleGoto(dynamic_cast<GotoNode*>(stmt), code);
+      break;
+
+    case StmtNode::StmtType::kSwitch:
+      HandleSwitchStmt(dynamic_cast<SwitchNode*>(stmt), code);
       break;
 
     case StmtNode::StmtType::kStmt:
@@ -11679,6 +11684,11 @@ void BytecodeGenerator::HandleBreakStmt(std::vector<Bytecode>& code) {
   // code.push_back(Bytecode(_AQVM_OPERATOR_GOTO,1,loop_break_index_.back()));
 
   loop_break_index_.push_back(index);
+}
+
+void BytecodeGenerator::HandleSwitchStmt(SwitchNode* stmt,std::vector<Bytecode>& code){
+  TRACE_FUNCTION;
+  EXIT_COMPILER("BytecodeGenerator::HandleSwitchStmt(SwitchNode*,std::vector<Bytecode>&)","The switch statement is not yet supported.");
 }
 
 void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
