@@ -116,11 +116,6 @@ size_t const_object_table_size;
 
 typedef void (*func_ptr)(InternalObject, size_t);*/
 
-struct Pair {
-  char* first;
-  func_ptr second;
-};
-
 enum Operator {
   OPERATOR_NOP = 0x00,
   OPERATOR_LOAD,
@@ -173,10 +168,6 @@ struct FuncPair {
   FuncInfo second;
 };
 
-struct LinkedList {
-  struct Pair pair;
-  struct LinkedList* next;
-};
 
 struct FreeList {
   struct FreeList* next;
@@ -218,7 +209,6 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size);
 
 struct Memory* memory;
 
-struct LinkedList name_table[256];
 
 struct FuncList func_table[256];
 
@@ -4070,31 +4060,6 @@ void print(InternalObject args, size_t return_value) {
   }
 }
 
-unsigned int hash(const char* str) {
-  TRACE_FUNCTION;
-  unsigned long hash = 5381;
-  int c;
-  while ((c = *str++)) {
-    hash = ((hash << 5) + hash) + c;
-  }
-  return hash % 256;
-}
-
-void InitializeNameTable(struct LinkedList* list) {
-  TRACE_FUNCTION;
-  unsigned int name_hash = hash("global.print");
-  struct LinkedList* table = &list[name_hash];
-  while (table->next != NULL) {
-    table = table->next;
-  }
-  table->pair.first = "global.print";
-  table->pair.second = print;
-  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
-  AddFreePtr(table->next);
-  table->next->next = NULL;
-  table->next->pair.first = NULL;
-  table->next->pair.second = NULL;
-}
 
 void* AddClassMethod(void* location, struct FuncList* methods) {
   TRACE_FUNCTION;

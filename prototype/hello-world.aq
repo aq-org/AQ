@@ -1,4 +1,6 @@
-int print(auto str);
+int print(auto str){
+  __builtin_print(str);
+}
 /*double fabs(double num) {
   if (num < 0) {
     num = -num;

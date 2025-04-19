@@ -6216,6 +6216,8 @@ class BytecodeGenerator {
   Type* GetExprType(ExprNode* expr);
   std::string GetExprTypeString(ExprNode* expr);
   bool IsDereferenced(ExprNode* expr);
+  void AddBuiltInFuncDecl(std::string name);
+  void InitBuiltInFuncDecl();
 
   bool is_big_endian_ = false;
   std::unordered_map<std::string, std::vector<FuncDeclNode>> func_decl_map_;
@@ -6242,8 +6244,32 @@ class BytecodeGenerator {
 
 BytecodeGenerator::BytecodeGenerator() {
   TRACE_FUNCTION;
+  InitBuiltInFuncDecl();
   uint16_t test_data = 0x0011;
   is_big_endian_ = *(uint8_t*)&test_data == 0x00;
+}
+
+void BytecodeGenerator::AddBuiltInFuncDecl(std::string name){
+  TRACE_FUNCTION;
+  if (func_decl_map_.find(name) == func_decl_map_.end()) {
+    std::vector<FuncDeclNode> func_decl_vector;
+    func_decl_vector.push_back(*new FuncDeclNode());
+    func_decl_map_.emplace(name, func_decl_vector);
+  } else {
+    func_decl_map_[name].push_back(*new FuncDeclNode());
+  }
+}
+
+void BytecodeGenerator::InitBuiltInFuncDecl(){
+  TRACE_FUNCTION;
+  AddBuiltInFuncDecl("__builtin_print");
+  AddBuiltInFuncDecl("__builtin_vaprint");
+  AddBuiltInFuncDecl("__builtin_remove");
+  AddBuiltInFuncDecl("__builtin_rename");
+  AddBuiltInFuncDecl("__builtin_getchar");
+  AddBuiltInFuncDecl("__builtin_putchar");
+  AddBuiltInFuncDecl("__builtin_puts");
+  AddBuiltInFuncDecl("__builtin_perror");
 }
 
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
@@ -9515,17 +9541,19 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       /*std::string func_name = (std::string)*var_decl->GetVarType() + "." +
                               (std::string)*var_decl->GetVarType();*/
       std::string func_name = (std::string)*var_decl->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
         /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
                   << std::endl;*/
         auto iterator =
-            func_decl_map_.find(current_scope_[i] + "." + func_name);
+        func_decl_map_.find(func_name);
+        if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
         if (iterator != func_decl_map_.end()) {
-          // func_decl = iterator->second;
+          func_name = func_name;
+          if(i!=-1)
           func_name = current_scope_[i] + "." + func_name;
           break;
         }
-        if (i == 0)
+        if (i == -1)
           EXIT_COMPILER(
               "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<"
               "Bytecode>&"
@@ -9590,17 +9618,19 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
       /*std::string func_name = (std::string)*var_decl->GetVarType() + "." +
                               (std::string)*var_decl->GetVarType();*/
       std::string func_name = (std::string)*var_decl->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
         /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
                   << std::endl;*/
-        auto iterator =
-            func_decl_map_.find(current_scope_[i] + "." + func_name);
-        if (iterator != func_decl_map_.end()) {
-          // func_decl = iterator->second;
-          func_name = current_scope_[i] + "." + func_name;
-          break;
-        }
-        if (i == 0)
+                  auto iterator =
+                  func_decl_map_.find(func_name);
+                  if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
+                  if (iterator != func_decl_map_.end()) {
+                    func_name = func_name;
+                    if(i!=-1)
+                    func_name = current_scope_[i] + "." + func_name;
+                    break;
+                  }
+                  if (i == -1)
           EXIT_COMPILER(
               "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<"
               "Bytecode>&"
@@ -9689,14 +9719,17 @@ std::size_t BytecodeGenerator::HandleStaticVarDecl(
           "const var without value not support.");
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kClass) {
       std::string func_name = (std::string)*var_decl->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
         auto iterator =
-            func_decl_map_.find(current_scope_[i] + "." + func_name);
+        func_decl_map_.find(func_name);
+        if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
         if (iterator != func_decl_map_.end()) {
+          func_name = func_name;
+          if(i!=-1)
           func_name = current_scope_[i] + "." + func_name;
           break;
         }
-        if (i == 0)
+        if (i == -1)
           EXIT_COMPILER(
               "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
               "Bytecode>&)",
@@ -9726,14 +9759,17 @@ std::size_t BytecodeGenerator::HandleStaticVarDecl(
     std::size_t var_index = global_memory_.AddWithType(vm_type);
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kClass) {
       std::string func_name = (std::string)*var_decl->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
         auto iterator =
-            func_decl_map_.find(current_scope_[i] + "." + func_name);
+        func_decl_map_.find(func_name);
+        if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
         if (iterator != func_decl_map_.end()) {
+          func_name = func_name;
+          if(i!=-1)
           func_name = current_scope_[i] + "." + func_name;
           break;
         }
-        if (i == 0)
+        if (i == -1)
           EXIT_COMPILER(
               "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
               "Bytecode>&)",
@@ -9815,17 +9851,19 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
       /*std::string func_name = (std::string)*var_decl->GetVarType() + "." +
                               (std::string)*var_decl->GetVarType();*/
       std::string func_name = (std::string)*var_decl->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
         /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
                   << std::endl;*/
-        auto iterator =
-            func_decl_map_.find(current_scope_[i] + "." + func_name);
-        if (iterator != func_decl_map_.end()) {
-          // func_decl = iterator->second;
-          func_name = current_scope_[i] + "." + func_name;
-          break;
-        }
-        if (i == 0)
+                  auto iterator =
+                  func_decl_map_.find(func_name);
+                  if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
+                  if (iterator != func_decl_map_.end()) {
+                    func_name = func_name;
+                    if(i!=-1)
+                    func_name = current_scope_[i] + "." + func_name;
+                    break;
+                  }
+                  if (i == -1)
           EXIT_COMPILER(
               "BytecodeGenerator::HandleClassVarDecl(ClassMemory&,std::"
               "unordered_map<std::string,std::pair<VarDeclNode*,std::size_t>>,"
@@ -9909,17 +9947,19 @@ std::size_t BytecodeGenerator::HandleClassVarDecl(
       /*std::string func_name = (std::string)*var_decl->GetVarType() + "." +
                               (std::string)*var_decl->GetVarType();*/
       std::string func_name = (std::string)*var_decl->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
         /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
                   << std::endl;*/
-        auto iterator =
-            func_decl_map_.find(current_scope_[i] + "." + func_name);
-        if (iterator != func_decl_map_.end()) {
-          // func_decl = iterator->second;
-          func_name = current_scope_[i] + "." + func_name;
-          break;
-        }
-        if (i == 0)
+                  auto iterator =
+                  func_decl_map_.find(func_name);
+                  if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
+                  if (iterator != func_decl_map_.end()) {
+                    func_name = func_name;
+                    if(i!=-1)
+                    func_name = current_scope_[i] + "." + func_name;
+                    break;
+                  }
+                  if (i == -1)
           EXIT_COMPILER(
               "BytecodeGenerator::HandleClassVarDecl(ClassMemory&,std::"
               "unordered_map<std::string,std::pair<VarDeclNode*,std::size_t>>,"
@@ -12066,16 +12106,19 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
   }*/
 
   // FuncDeclNode func_decl;
-  for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+  for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
     /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
               << std::endl;*/
-    auto iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
-    if (iterator != func_decl_map_.end()) {
-      // func_decl = iterator->second;
-      func_name = current_scope_[i] + "." + func_name;
-      break;
-    }
-    if (i == 0)
+              auto iterator =
+              func_decl_map_.find(func_name);
+              if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
+              if (iterator != func_decl_map_.end()) {
+                func_name = func_name;
+                if(i!=-1)
+                func_name = current_scope_[i] + "." + func_name;
+                break;
+              }
+              if (i == -1)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&"
           ")",
@@ -12201,16 +12244,19 @@ std::size_t BytecodeGenerator::HandleClassFuncInvoke(
   }*/
 
   // FuncDeclNode func_decl;
-  for (int64_t i = current_scope_.size() - 1; i >= 0; i--) {
+  for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
     /*std::cout << "func_name: " << current_scope_[i] + "::" + func_name
     << std::endl;*/
-    auto iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
+    auto iterator =
+    func_decl_map_.find(func_name);
+    if(i!=-1)iterator =func_decl_map_.find(current_scope_[i] + "." + func_name);
     if (iterator != func_decl_map_.end()) {
-      // func_decl = iterator->second;
+      func_name = func_name;
+      if(i!=-1)
       func_name = current_scope_[i] + "." + func_name;
       break;
     }
-    if (i == 0)
+    if (i == -1)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleClassFuncInvoke(FuncNode*,std::vector<"
           "Bytecode>&)",

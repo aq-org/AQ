@@ -2,9 +2,12 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 
 /*typedef struct StackNode {
   char* function_name;
@@ -104,6 +107,20 @@ typedef struct {
 
 typedef void (*func_ptr)(InternalObject, size_t);
 
+struct Pair {
+  char* first;
+  func_ptr second;
+};
+
+struct LinkedList {
+  struct Pair pair;
+  struct LinkedList* next;
+};
+
+struct LinkedList name_table[256];
+
+void AddFreePtr(void* ptr);
+
 struct Object* GetOriginData(struct Object* object);
 struct Object* GetObjectData(size_t index);
 const char* GetStringData(size_t index);
@@ -158,6 +175,45 @@ void aqstl_print(InternalObject args, size_t return_value) {
     default:
       EXIT_VM("aqstl_print(InternalObject,size_t)", "Unsupported type.");
       break;
+  }
+}
+
+void aqstl_vaprint(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 1)
+    EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid return value.");
+  for (size_t i = 0; i < args.size; i++) {
+    struct Object* object = object_table + args.index[i];
+    object = GetOriginData(object);
+    if (object == NULL)
+      EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid object.");
+
+    switch (object->type[0]) {
+      case 0x01:
+        SetLongData(return_value, printf("%d", GetByteData(*args.index)));
+        break;
+      case 0x02:
+        // printf("print long");
+        SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
+        break;
+      case 0x03:
+        SetLongData(return_value, printf("%.15f", GetDoubleData(*args.index)));
+        break;
+      case 0x04:
+        SetLongData(return_value, printf("%zu", GetUint64tData(*args.index)));
+        break;
+      case 0x05:
+        SetLongData(return_value, printf("%s", GetStringData(*args.index)));
+        break;
+      case 0x06:
+        SetLongData(return_value, printf("%p", GetPtrData(*args.index)));
+        break;
+      default:
+        EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Unsupported type.");
+        break;
+    }
   }
 }
 
@@ -309,3 +365,40 @@ errno_t tmpnam_s(char* s, rsize_t maxsize);
 // va_list arg);
 char* gets_s(char* s, rsize_t n);
 */
+
+unsigned int hash(const char* str) {
+  TRACE_FUNCTION;
+  unsigned long hash = 5381;
+  int c;
+  while ((c = *str++)) {
+    hash = ((hash << 5) + hash) + c;
+  }
+  return hash % 256;
+}
+
+void AddFuncToNameTable(char* name, func_ptr func) {
+  TRACE_FUNCTION;
+  unsigned int name_hash = hash(name);
+  struct LinkedList* table = &name_table[name_hash];
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.first = name;
+  table->pair.second = func;
+  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
+  AddFreePtr(table->next);
+  table->next->next = NULL;
+  table->next->pair.first = NULL;
+  table->next->pair.second = NULL;
+}
+
+void InitializeNameTable(struct LinkedList* list) {
+  AddFuncToNameTable("__builtin_print", aqstl_print);
+  AddFuncToNameTable("__builtin_vaprint", aqstl_vaprint);
+  AddFuncToNameTable("__builtin_remove", aqstl_remove);
+  AddFuncToNameTable("__builtin_rename", aqstl_rename);
+  AddFuncToNameTable("__builtin_getchar", aqstl_getchar);
+  AddFuncToNameTable("__builtin_putchar", aqstl_putchar);
+  AddFuncToNameTable("__builtin_puts", aqstl_puts);
+  AddFuncToNameTable("__builtin_perror", aqstl_perror);
+}
