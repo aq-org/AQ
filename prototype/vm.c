@@ -3994,6 +3994,8 @@ int EQUAL(size_t result, size_t value) {
   value_data = GetOriginData(value_data);
 
   switch (value_data->type[0]) {
+    case 0x00:
+      break;
     case 0x01:
       SetByteData(result, GetByteData(value));
       break;

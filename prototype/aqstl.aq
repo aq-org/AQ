@@ -1,0 +1,15 @@
+int print(...) { return __builtin_vaprint(args); }
+
+int remove(string filename) { return __builtin_remove(filename); }
+
+int rename(string oldname, string newname) {
+  return __builtin_rename(oldname, newname);
+}
+
+int getchar() { return __builtin_getchar(); }
+
+int putchar(int c) { return __builtin_putchar(c); }
+
+int puts(string s) { return __builtin_puts(s); }
+
+int perror(string s) { return __builtin_perror(s); }
