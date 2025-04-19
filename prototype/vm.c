@@ -11,6 +11,9 @@
 #include <string.h>
 #include <time.h>
 
+#include "aqstl.h"
+#include "aqvm_init.h"
+
 // #define TRACE_FUNCTION Trace trace(__FUNCTION__)
 
 /*typedef struct StackNode {
@@ -75,12 +78,12 @@ void TraceDestroy(Trace* trace) {
 
 #define TRACE_FUNCTION                                  \
   Trace _trace __attribute__((cleanup(TraceDestroy))) = \
-      TraceCreate(__FUNCTION__)
-*/
+      TraceCreate(__FUNCTION__)*/
+
 
 #define TRACE_FUNCTION
 
-union Data {
+/*union Data {
   int8_t byte_data;
   int64_t long_data;
   double double_data;
@@ -96,22 +99,22 @@ struct Object {
   uint8_t* type;
   bool const_type;
   union Data data;
-};
+};*/
 
 struct Object* const_object_table;
 
 size_t const_object_table_size;
 
-struct Object* object_table;
+// struct Object* object_table;
 
-size_t object_table_size;
+// size_t object_table_size;
 
-typedef struct {
+/*typedef struct {
   size_t size;
   size_t* index;
 } InternalObject;
 
-typedef void (*func_ptr)(InternalObject, size_t);
+typedef void (*func_ptr)(InternalObject, size_t);*/
 
 struct Pair {
   char* first;
@@ -159,6 +162,7 @@ typedef struct {
   const char* name;
   void* location;
   size_t commands_size;
+  bool va_flag;
   struct Bytecode* commands;
   size_t args_size;
   size_t* args;
@@ -224,7 +228,7 @@ struct FreeList* free_list;
 
 bool is_big_endian;
 
-void EXIT_VM(const char* func_name, const char* message) {
+inline void EXIT_VM(const char* func_name, const char* message) {
   fprintf(stderr, "[ERROR] %s: %s\n", func_name, message);
   exit(1);
 }
@@ -420,6 +424,7 @@ struct Object* GetPtrData(size_t index) {
     }
   } else {
     // printf("Type: %d\n", object_table[index].type[0]);
+    // printf("Type: %i", object_table[index].type[0]);
     EXIT_VM("GetPtrData(size_t)", "Unsupported Type.");
   }
   return NULL;
@@ -620,7 +625,7 @@ int64_t GetLongData(size_t index) {
             reference_data = *reference_data.data.const_data;
             break;
           default:
-            //printf("type: %i", reference_data.type[0]);
+            // printf("type: %i", reference_data.type[0]);
             EXIT_VM("GetLongData(size_t)", "Unsupported type.");
             break;
         }
@@ -1020,10 +1025,10 @@ struct Object* GetOriginData(struct Object* object) {
   }
 }
 
-void SetByteData(size_t, int8_t);
+/*void SetByteData(size_t, int8_t);
 void SetLongData(size_t, int64_t);
 void SetDoubleData(size_t, double);
-void SetUint64tData(size_t, uint64_t);
+void SetUint64tData(size_t, uint64_t);*/
 
 void SetPtrData(size_t index, struct Object* ptr) {
   TRACE_FUNCTION;
@@ -1085,7 +1090,7 @@ void SetPtrData(size_t index, struct Object* ptr) {
       EXIT_VM("SetPtrData(size_t,struct Object*)", "Invalid ptr.");
     if (data->type[i] == 0x00) break;
     if (temp->type[0] != data->type[i]) {
-      //printf("%i,%i", temp->type[0], data->type[i]);
+      // printf("%i,%i", temp->type[0], data->type[i]);
       EXIT_VM("SetPtrData(size_t,struct Object*)", "Invalid type.");
     }
     switch (temp->type[0]) {
@@ -1819,6 +1824,348 @@ size_t* GetUnknownCountParamentForClass(void** ptr) {
   return args;
 }
 
+int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
+                        size_t func_args_size, bool va_flag) {
+  int cost = 0;
+  // printf("%i,%i", args_size, func_args_size);
+  // printf("VAF1\n");
+  if (args_size != func_args_size && !va_flag) {
+    // printf("%i,%i", args_size, func_args_size);
+    // printf("VAF2\n");
+    return -1;
+  }
+  if (args_size < func_args_size) {
+    // printf("VAF3\n");
+    return -1;
+  }
+  if (func_args_size == 0)
+    EXIT_VM("GetFuncOverloadCost(size_t*,size_t,size_t*,size_t,bool)",
+            "Unexpected args size.");
+  // printf("now out for loop1\n");
+  if (func_args_size == 1) {
+    // printf("ARGS SIZE == 1.");
+    return 0;
+  }
+  // printf("now out for loop\n");
+  for (size_t i = 0; i < func_args_size - 1; i++) {
+    if (!object_table[func_args[i + 1]].const_type) cost += 10;
+    // printf("NOW IN FOR LOOP %i\n", object_table[func_args[i + 1]].type[0]);
+    if (object_table[func_args[i + 1]].const_type) {
+      switch (object_table[func_args[i + 1]].type[0]) {
+        case 0x01:
+          if (object_table[args[i]].type[0] == 0x06 ||
+              object_table[args[i]].type[0] == 0x09) {
+            return -1;
+          } else {
+            struct Object* origin_object =
+                GetOriginData(object_table + args[i]);
+            switch (origin_object->type[0]) {
+              case 0x01:
+                break;
+              case 0x02:
+                cost += 1;
+                break;
+              case 0x03:
+                cost += 3;
+                break;
+              case 0x04:
+                cost += 2;
+                break;
+              default:
+                return -1;
+            }
+          }
+          break;
+        case 0x02:
+          if (object_table[args[i]].type[0] == 0x06 ||
+              object_table[args[i]].type[0] == 0x09) {
+            // printf("ERROR 1\n");
+            return -1;
+          } else {
+            struct Object* origin_object =
+                GetOriginData(object_table + args[i]);
+            switch (origin_object->type[0]) {
+              case 0x01:
+                cost += 3;
+                break;
+              case 0x02:
+                // printf("RUN OK\n");
+                break;
+              case 0x03:
+                cost += 2;
+                break;
+              case 0x04:
+                cost += 1;
+                break;
+              default:
+                // printf("ERROR\n");
+                return -1;
+            }
+          }
+          break;
+        case 0x03:
+          if (object_table[args[i]].type[0] == 0x06 ||
+              object_table[args[i]].type[0] == 0x09) {
+            return -1;
+          } else {
+            struct Object* origin_object =
+                GetOriginData(object_table + args[i]);
+            switch (origin_object->type[0]) {
+              case 0x01:
+                cost += 3;
+                break;
+              case 0x02:
+                cost += 2;
+                break;
+              case 0x03:
+                break;
+              case 0x04:
+                cost += 1;
+                break;
+              default:
+                return -1;
+            }
+          }
+          break;
+        case 0x04:
+          if (object_table[args[i]].type[0] == 0x06 ||
+              object_table[args[i]].type[0] == 0x09) {
+            return -1;
+          } else {
+            struct Object* origin_object =
+                GetOriginData(object_table + args[i]);
+            switch (origin_object->type[0]) {
+              case 0x01:
+                cost += 3;
+                break;
+              case 0x02:
+                cost += 2;
+                break;
+              case 0x03:
+                cost += 1;
+                break;
+              case 0x04:
+                break;
+              default:
+                return -1;
+            }
+          }
+          break;
+        case 0x05:
+          if (object_table[args[i]].type[0] == 0x06 ||
+              object_table[args[i]].type[0] == 0x09) {
+            return -1;
+          } else {
+            struct Object* origin_object =
+                GetOriginData(object_table + args[i]);
+            switch (origin_object->type[0]) {
+              case 0x05:
+                break;
+              default:
+                return -1;
+            }
+          }
+          break;
+        case 0x06: {
+          bool is_end = false;
+          uint8_t final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            switch (object_table[func_args[i + 1]].type[j]) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x06:
+              case 0x09:
+                final_type = object_table[func_args[i + 1]].type[j];
+                is_end = true;
+                break;
+              default:
+                break;
+            }
+          }
+          if (final_type != 0x06) return -1;
+          if (object_table[func_args[i + 1]].type[1] == 0x00) break;
+          is_end = false;
+          final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            if (object_table[func_args[i + 1]].type[j] == 0x00) {
+              is_end = true;
+              break;
+            }
+            if (object_table[func_args[i + 1]].type[j] !=
+                object_table[args[i]].type[j]) {
+              return -1;
+            }
+            if (object_table[func_args[i + 1]].type[j] == 0x01 ||
+                object_table[func_args[i + 1]].type[j] == 0x02 ||
+                object_table[func_args[i + 1]].type[j] == 0x03 ||
+                object_table[func_args[i + 1]].type[j] == 0x04 ||
+                object_table[func_args[i + 1]].type[j] == 0x05 ||
+                object_table[func_args[i + 1]].type[j] == 0x09) {
+              final_type = object_table[func_args[i + 1]].type[j];
+              is_end = true;
+              break;
+            }
+          }
+          if (final_type == 0x08) {
+            struct Object* arg_object = GetObjectData(args[i]);
+            struct Object* func_arg_object = GetObjectData(func_args[i + 1]);
+            if (strcmp(arg_object->data.string_data,
+                       func_arg_object->data.string_data) != 0) {
+              return -1;
+            }
+          }
+          break;
+        }
+        case 0x07: {
+          bool is_end = false;
+          uint8_t final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            switch (object_table[func_args[i + 1]].type[j]) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x06:
+              case 0x09:
+                final_type = object_table[func_args[i + 1]].type[j];
+                is_end = true;
+                break;
+              default:
+                break;
+            }
+          }
+          if (final_type == 0x00) break;
+
+          is_end = false;
+          uint8_t arg_final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            switch (object_table[args[i]].type[j]) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x06:
+              case 0x09:
+                arg_final_type = object_table[args[i]].type[j];
+                is_end = true;
+                break;
+              default:
+                break;
+            }
+          }
+          if (final_type != arg_final_type) return -1;
+          if (final_type == 0x08) {
+            struct Object* arg_object = GetObjectData(args[i]);
+            struct Object* func_arg_object = GetObjectData(func_args[i + 1]);
+            if (strcmp(arg_object->data.string_data,
+                       func_arg_object->data.string_data) != 0) {
+              return -1;
+            }
+          }
+          break;
+        }
+        case 0x08: {
+          bool is_end = false;
+          uint8_t final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            switch (object_table[func_args[i + 1]].type[j]) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x06:
+              case 0x09:
+                final_type = object_table[func_args[i + 1]].type[j];
+                is_end = true;
+                break;
+              default:
+                break;
+            }
+          }
+          if (final_type == 0x00) break;
+
+          is_end = false;
+          uint8_t arg_final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            switch (object_table[args[i]].type[j]) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x06:
+              case 0x09:
+                arg_final_type = object_table[args[i]].type[j];
+                is_end = true;
+                break;
+              default:
+                break;
+            }
+          }
+          if (final_type != arg_final_type) return -1;
+          if (final_type == 0x08) {
+            struct Object* arg_object = GetObjectData(args[i]);
+            struct Object* func_arg_object = GetObjectData(func_args[i + 1]);
+            if (strcmp(arg_object->data.string_data,
+                       func_arg_object->data.string_data) != 0) {
+              return -1;
+            }
+          }
+          break;
+        }
+        case 0x09: {
+          bool is_end = false;
+          uint8_t arg_final_type = 0x00;
+          for (size_t j = 0; !is_end; j++) {
+            switch (object_table[args[i]].type[j]) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x06:
+              case 0x09:
+                arg_final_type = object_table[args[i]].type[j];
+                is_end = true;
+                break;
+              default:
+                break;
+            }
+          }
+          if (arg_final_type != 0x09) return -1;
+          struct Object* arg_object = GetObjectData(args[i]);
+          struct Object* func_arg_object = GetObjectData(func_args[i + 1]);
+          if (strcmp(arg_object->data.string_data,
+                     func_arg_object->data.string_data) == 0) {
+            break;
+          } else {
+            return -1;
+          }
+          break;
+        }
+        default:
+          return -1;
+      }
+    }
+  }
+  if (args_size < func_args_size) {
+    cost += (func_args_size - args_size) * 100;
+  }
+  return cost;
+}
+
 int NOP() {
   TRACE_FUNCTION;
   return 0;
@@ -1909,11 +2256,20 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
 int NEW(size_t ptr, size_t size, size_t type) {
   TRACE_FUNCTION;
   if (ptr >= object_table_size)
-    EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
+    EXIT_VM("NEW(size_t, size_t)", "ptr is out of memory.");
   if (size >= object_table_size)
-    EXIT_VM("NEW(size_t, size_t)", "Out of memory.");
+    EXIT_VM("NEW(size_t, size_t)", "size is out of memory.");
+
+  struct Object* type_data = object_table + type;
+  type_data = GetOriginData(type_data);
 
   size_t size_value = GetUint64tData(size);
+
+  if ((type == 0 ||
+       (type_data->type[0] != 0x05 || type_data->data.string_data == NULL)) &&
+      size_value == 0)
+    size_value = 1;
+
   struct Object* data = calloc(size_value + 1, sizeof(struct Object));
   AddFreePtr(data);
 
@@ -1956,15 +2312,13 @@ int NEW(size_t ptr, size_t size, size_t type) {
   AddFreePtr(type_ptr);
 
   if (type == 0) {
-    for (size_t i = 1; i < size_value + 1; i++) {
+    for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
       data[i].type = type_ptr;
       data[i].const_type = false;
       AddFreePtr(type_ptr);
     }
   } else {
-    struct Object* type_data = object_table + type;
-    type_data = GetOriginData(type_data);
     if (type_data->type[0] == 0x05 && type_data->data.string_data != NULL) {
       if (size_value == 0) {
         size_t i = 0;
@@ -2031,23 +2385,23 @@ int NEW(size_t ptr, size_t size, size_t type) {
         class_object[0].const_type = true;
         class_object[0].type[0] = 0x05;
         class_object[0].data.string_data = class;
-        //printf("Class Name NEW: %s\n", class_object[0].data.string_data);
+        // printf("Class Name NEW: %s\n", class_object[0].data.string_data);
         class_object[1].const_type = true;
         class_object[1].type[0] = 0x04;
         class_object[1].data.uint64t_data = class_data->members_size;
         data[i].data.object_data = class_object;
 
-        uint8_t* ptr_type = object_table[ptr].type;
+        /*uint8_t* ptr_type = object_table[ptr].type;
         bool ptr_is_const = object_table[ptr].const_type;
         object_table[ptr].type = calloc(1, sizeof(uint8_t));
         object_table[ptr].type[0] = 0x07;
         object_table[ptr].const_type = false;
         union Data ptr_data = object_table[ptr].data;
         object_table[ptr].data.reference_data = data + i;
-        InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
+        // InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
         object_table[ptr].type = ptr_type;
         object_table[ptr].const_type = ptr_is_const;
-        object_table[ptr].data = ptr_data;
+        object_table[ptr].data = ptr_data;*/
       } else {
         for (size_t i = 1; i < size_value + 1; i++) {
           uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
@@ -2113,13 +2467,13 @@ int NEW(size_t ptr, size_t size, size_t type) {
           class_object[0].const_type = true;
           class_object[0].type[0] = 0x05;
           class_object[0].data.string_data = class;
-          //printf("Class Name NEW: %s\n", class_object[0].data.string_data);
+          // printf("Class Name NEW: %s\n", class_object[0].data.string_data);
           class_object[1].const_type = true;
           class_object[1].type[0] = 0x04;
           class_object[1].data.uint64t_data = class_data->members_size;
           data[i].data.object_data = class_object;
 
-          uint8_t* ptr_type = object_table[ptr].type;
+          /*uint8_t* ptr_type = object_table[ptr].type;
           bool ptr_is_const = object_table[ptr].const_type;
 
           object_table[ptr].type = calloc(1, sizeof(uint8_t));
@@ -2127,24 +2481,103 @@ int NEW(size_t ptr, size_t size, size_t type) {
           object_table[ptr].const_type = false;
           union Data ptr_data = object_table[ptr].data;
           object_table[ptr].data.reference_data = data + i;
-          InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
+          // InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
           object_table[ptr].type = ptr_type;
           object_table[ptr].const_type = ptr_is_const;
-          object_table[ptr].data = ptr_data;
+          object_table[ptr].data = ptr_data;*/
         }
+        /*size_t i = 0;
+        uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+        data[i].type = type_ptr;
+        data[i].type[0] = 0x09;
+        data[i].const_type = true;
+        AddFreePtr(type_ptr);
+
+        struct Class* class_data = NULL;
+        const char* class = GetStringData(type);
+        const unsigned int class_hash = hash(class);
+        struct ClassList* current_class_table = &class_table[class_hash];
+        while (current_class_table != NULL &&
+               current_class_table->class.name != NULL) {
+          if (strcmp(current_class_table->class.name, class) == 0) {
+            class_data = &current_class_table->class;
+            break;
+          }
+          current_class_table = current_class_table->next;
+        }
+
+        if (class_data == NULL) {
+          EXIT_VM("NEW(size_t, size_t)", "Class not found.");
+        }
+
+        struct Object* class_object =
+            calloc(class_data->members_size, sizeof(struct Object));
+        AddFreePtr(class_object);
+        for (size_t j = 0; j < class_data->members_size; j++) {
+          uint8_t* location = class_data->members[j].type;
+          size_t length = 1;
+          bool is_type_end = false;
+          while (!is_type_end) {
+            switch (*location) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x09:
+                is_type_end = true;
+                break;
+
+              case 0x06:
+              case 0x07:
+              case 0x08:
+                length++;
+                location++;
+                break;
+
+              default:
+                EXIT_VM("AddClass(void*)", "Unsupported type.");
+                break;
+            }
+          }
+
+          class_object[j].type = calloc(length, sizeof(uint8_t));
+          AddFreePtr(class_object[j].type);
+          memcpy(class_object[j].type, class_data->members[j].type, length);
+          class_object[j].const_type = class_data->members[j].const_type;
+        }
+        class_object[0].const_type = true;
+        class_object[0].type[0] = 0x05;
+        class_object[0].data.string_data = class;
+        // printf("Class Name NEW: %s\n", class_object[0].data.string_data);
+        class_object[1].const_type = true;
+        class_object[1].type[0] = 0x04;
+        class_object[1].data.uint64t_data = class_data->members_size;
+        data[i].data.object_data = class_object;
+
+        uint8_t* ptr_type = object_table[ptr].type;
+        bool ptr_is_const = object_table[ptr].const_type;
+        object_table[ptr].type = calloc(1, sizeof(uint8_t));
+        object_table[ptr].type[0] = 0x07;
+        object_table[ptr].const_type = false;
+        union Data ptr_data = object_table[ptr].data;
+        object_table[ptr].data.reference_data = data + i;
+        InvokeClassFunction(ptr, "@constructor", 1, 0, NULL);
+        object_table[ptr].type = ptr_type;
+        object_table[ptr].const_type = ptr_is_const;
+        object_table[ptr].data = ptr_data;*/
       }
     } else {
-      for (size_t i = 1; i < size_value + 1; i++) {
+      for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
         data[i].type = type_data->type;
         data[i].const_type = true;
       }
     }
   }
 
-  struct Object* original_object = object_table + ptr;
-  original_object = GetOriginData(original_object);
-
-  if (size_value == 0) {
+  if (size_value == 0 && type_data->type[0] == 0x05 &&
+      type_data->data.string_data != NULL) {
     SetObjectData(ptr, data->data.object_data);
   } else {
     SetPtrData(ptr, data);
@@ -2152,12 +2585,17 @@ int NEW(size_t ptr, size_t size, size_t type) {
   // WriteData(memory, ptr, &data, sizeof(data));
   return 0;
 }
+
+int InvokeCustomFunction(const char* name, size_t args_size,
+                         size_t return_value, size_t* args);
+
 int ARRAY(size_t result, size_t ptr, size_t index) {
   // free(GetPtrData(ptr));
   struct Object* array_object = GetPtrData(ptr);
 
   index = GetUint64tData(index);
 
+  size_t original_size = GetUint64tObjectData(array_object);
   if (index >= GetUint64tObjectData(array_object)) {
     size_t newsize = index + 1;
     size_t new_allocated =
@@ -2172,6 +2610,9 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
     new_array[0].data.uint64t_data = newsize;
     array_object = new_array;
   }
+
+  bool is_type_null = (array_object + 1 + index)->type == NULL;
+
   if ((array_object + 1 + index)->type == NULL) {
     if ((array_object + 1)->const_type) {
       (array_object + 1 + index)->const_type = true;
@@ -2180,7 +2621,35 @@ int ARRAY(size_t result, size_t ptr, size_t index) {
       (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
     }
   }
-  //printf("t: %i\n", (array_object + 1 + index)->type[0]);
+
+  if ((array_object + 1)->const_type && (array_object + 1)->type[0] == 0x09 &&
+      is_type_null) {
+    /*(array_object+1+index)->const_type = true;
+    (array_object+1+index)->type = (array_object+1)->type;
+    size_t class_data_size = GetUint64tObjectData(
+    (array_object+1)->data.object_data + 1);
+    (array_object+1+index)->data.object_data =
+    calloc(class_data_size,sizeof(struct Object));
+    if((array_object+1+index)->data.object_data==NULL)EXIT_VM("ARRAY(size_t,size_t,size_t)","Object
+    is NULL."); (array_object+1+index)->data.object_data->const_type = true;
+    (array_object+1+index)->data.object_data->type =
+    (array_object+1)->data.object_data->type;
+    (array_object+1+index)->data.object_data->data =
+    (array_object+1)->data.object_data->data;
+    ((array_object+1+index)->data.object_data+1)->const_type = true;
+    ((array_object+1+index)->data.object_data+1)->type =
+    ((array_object+1)->data.object_data+1)->type;
+    ((array_object+1+index)->data.object_data+1)->data =
+    ((array_object+1)->data.object_data+1)->data; SetReferenceData(result,
+    array_object + 1 + index); printf("DEBUG ARRAY\n");
+    InvokeClassFunction(result, "@constructor", 1, result, NULL);*/
+    SetReferenceData(result, array_object + 1 + index);
+    InvokeCustomFunction((array_object + 1)->data.object_data->data.string_data,
+                         1, result, NULL);
+  }
+
+  // printf("DEBUG ARRAY OUT OF OBJECT.\n");
+  // printf("t: %i\n", (array_object + 1 + index)->type[0]);
   SetReferenceData(result, array_object + 1 + index);
 
   return 0;
@@ -2763,8 +3232,6 @@ int REFER(size_t result, size_t operand1) {
 
   return 0;
 }
-int InvokeCustomFunction(const char* name, size_t args_size,
-                         size_t return_value, size_t* args);
 size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
   TRACE_FUNCTION;
   // printf("condition: %d\n", GetByteData(condition));
@@ -3339,7 +3806,7 @@ int EQUAL(size_t result, size_t value) {
 }
 size_t GOTO(size_t location) {
   TRACE_FUNCTION;
-  return location;
+  return GetUint64tData(location);
 }
 int LOAD_CONST(size_t object, size_t const_object) {
   TRACE_FUNCTION;
@@ -3415,7 +3882,7 @@ int CONVERT(size_t result, size_t operand1) {
   }
   return 0;
 }
-int CONST(size_t result, size_t operand1) {
+int _CONST(size_t result, size_t operand1) {
   TRACE_FUNCTION;
   if (result >= object_table_size)
     EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
@@ -3451,6 +3918,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);
+  // printf("\nType: %i\n", class_data->type[0]);
   if (class_data == NULL || class_data->type[0] != 0x09)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
 
@@ -3464,7 +3932,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   struct Object* name_data = object_table + operand;
   name_data = GetOriginData(name_data);
   if (name_data == NULL || name_data->type[0] != 0x05)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class name data.");
 
   const char* var_name = name_data->data.string_data;
 
@@ -3584,7 +4052,7 @@ void print(InternalObject args, size_t return_value) {
       SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
       break;
     case 0x03:
-      SetLongData(return_value, printf("%f", GetDoubleData(*args.index)));
+      SetLongData(return_value, printf("%.15f", GetDoubleData(*args.index)));
       break;
     case 0x04:
       SetLongData(return_value, printf("%zu", GetUint64tData(*args.index)));
@@ -3642,20 +4110,39 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  //printf("Name: %s\n", table->pair.second.name);
+  // printf("Name: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
   location = (void*)((uintptr_t)location + 1);
 
+  if (*(uint8_t*)location == 0xFF) {
+    location = (void*)((uintptr_t)location + 1);
+    table->pair.second.va_flag = true;
+  } else {
+    table->pair.second.va_flag = false;
+  }
+
   location = (void*)((uintptr_t)location +
                      DecodeUleb128(location, &table->pair.second.args_size));
-  table->pair.second.args =
-      (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
-  // printf("args_size: %zu", table->pair.second.args_size);
-  for (size_t i = 0; i < table->pair.second.args_size; i++) {
-    location = (void*)((uintptr_t)location +
-                       DecodeUleb128(location, &table->pair.second.args[i]));
+  if (table->pair.second.va_flag) {
+    // printf("TEST 2");
+    table->pair.second.args_size--;
+    table->pair.second.args =
+        (size_t*)calloc(table->pair.second.args_size + 1, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size + 1; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
+  } else {
+    table->pair.second.args =
+        (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
   }
 
   table->pair.second.commands_size =
@@ -3863,7 +4350,7 @@ void* AddClass(void* location) {
     table = table->next;
   }
   table->class.name = location;
-  //printf("Class Name: %s\n", table->class.name);
+  // printf("Class Name: %s\n", table->class.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -3917,10 +4404,10 @@ void* AddClass(void* location) {
           break;
 
         default:
-          //printf("%d\n", *(uint8_t*)location);
-          //printf("%d\n", *(uint8_t*)((uintptr_t)location + 1));
-          //printf("%d\n", *(uint8_t*)((uintptr_t)location + 2));
-          //printf("%d\n", *(uint8_t*)((uintptr_t)location + 3));
+          // printf("%d\n", *(uint8_t*)location);
+          // printf("%d\n", *(uint8_t*)((uintptr_t)location + 1));
+          // printf("%d\n", *(uint8_t*)((uintptr_t)location + 2));
+          // printf("%d\n", *(uint8_t*)((uintptr_t)location + 3));
           EXIT_VM("AddClass(void*)", "Unsupported type.");
           break;
       }
@@ -3964,21 +4451,41 @@ void* AddFunction(void* location) {
   table->pair.first = location;
   table->pair.second.name = location;
 
-  //printf("Name: %s\n", table->pair.second.name);
+  // printf("Name: %s\n", table->pair.second.name);
 
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
   location = (void*)((uintptr_t)location + 1);
 
+  if (*(uint8_t*)location == 0xFF) {
+    location = (void*)((uintptr_t)location + 1);
+    table->pair.second.va_flag = true;
+  } else {
+    table->pair.second.va_flag = false;
+  }
+
   location = (void*)((uintptr_t)location +
                      DecodeUleb128(location, &table->pair.second.args_size));
-  table->pair.second.args =
-      (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
-  // printf("args_size: %zu", table->pair.second.args_size);
-  for (size_t i = 0; i < table->pair.second.args_size; i++) {
-    location = (void*)((uintptr_t)location +
-                       DecodeUleb128(location, &table->pair.second.args[i]));
+  if (table->pair.second.va_flag) {
+    // printf("TEST 1");
+    table->pair.second.args_size--;
+    table->pair.second.args =
+        (size_t*)calloc(table->pair.second.args_size + 1, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size + 1; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
+  } else {
+    // printf("TEST WITHOUT VA");
+    table->pair.second.args =
+        (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
   }
 
   table->pair.second.commands_size =
@@ -3988,7 +4495,7 @@ void* AddFunction(void* location) {
   struct Bytecode* bytecode = (struct Bytecode*)calloc(
       table->pair.second.commands_size, sizeof(struct Bytecode));
   // printf("commands_size: %zu", table->pair.second.commands_size);
-  //printf("%zu\n", table->pair.second.commands_size);
+  // printf("%zu\n", table->pair.second.commands_size);
   if (bytecode == NULL) EXIT_VM("AddFunction(void*)", "calloc failed.");
   AddFreePtr(bytecode);
 
@@ -4185,9 +4692,11 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
   if (name == NULL)
     EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
             "Invalid func name.");
-  //printf("Class: %s, Name: %s\n", class, name);
+  // printf("Class: %s, Name: %s\n", class, name);
   const unsigned int class_hash = hash(class);
   const struct ClassList* current_class_table = &class_table[class_hash];
+  FuncInfo temp_func;
+  int cost = -1;
   while (current_class_table != NULL &&
          current_class_table->class.name != NULL) {
     if (strcmp(current_class_table->class.name, class) == 0) {
@@ -4199,28 +4708,38 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
           EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
                   "Invalid name.");
         if (strcmp(table->pair.first, name) == 0) {
-          if (table->pair.second.args_size == args_size) {
-            bool is_same = true;
-            for (size_t i = 0; i < args_size - 1; i++) {
-              if (args == NULL)
-                EXIT_VM(
-                    "GetClassFunction(const char*,const char*,size_t*,size_t)",
-                    "Invalid args.");
-              if (object_table[table->pair.second.args[i]].const_type &&
-                  object_table[table->pair.second.args[i]].type[0] !=
-                      object_table[args[i]].type[0]) {
-                is_same = false;
-                break;
-              }
+          if (table->pair.second.args_size <= args_size) {
+            // bool is_same = true;
+            // for (size_t i = 0; i < args_size - 1; i++) {
+            /*if (args == NULL)
+              EXIT_VM(
+                  "GetClassFunction(const char*,const char*,size_t*,size_t)",
+                  "Invalid args.");*/
+            int temp_cost = GetFuncOverloadCost(
+                args, args_size, table->pair.second.args,
+                table->pair.second.args_size, table->pair.second.va_flag);
+            if (temp_cost == -1) {
+            } else if (temp_cost == 0) {
+              // printf("Check 0.\n");
+              return table->pair.second;
+            } else if (temp_cost < cost || cost < 0) {
+              temp_func = table->pair.second;
+              cost = temp_cost;
             }
-            if (is_same) return table->pair.second;
           }
+          // if (is_same) return table->pair.second;
+          //}
           // return table->pair.second;
         }
         table = table->next;
       }
+    } else {
+      current_class_table = current_class_table->next;
     }
-    current_class_table = current_class_table->next;
+    if (cost == -1)
+      EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
+              "Not found func.");
+    return temp_func;
   }
 
   /*const struct FuncList* table = &func_table[name_hash];
@@ -4261,34 +4780,43 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
   // printf("name: %s\n", name);
   const unsigned int name_hash = hash(name);
   const struct FuncList* table = &func_table[name_hash];
+  FuncInfo temp_func;
+  int cost = -1;
   while (table != NULL && table->pair.first != NULL) {
     if (table->pair.first == NULL)
       EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)", "Invalid name.");
     if (strcmp(table->pair.first, name) == 0) {
-      if (table->pair.second.args_size == args_size) {
-        bool is_same = true;
-        for (size_t i = 0; i < args_size - 1; i++) {
-          if (args == NULL)
-            EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)",
-                    "Invalid args.");
-          if (object_table[table->pair.second.args[i]].const_type &&
-              object_table[table->pair.second.args[i]].type[0] !=
-                  object_table[args[i]].type[0]) {
-            is_same = false;
-            break;
-          }
+      if (table->pair.second.args_size <= args_size) {
+        // bool is_same = true;
+        // for (size_t i = 0; i < args_size - 1; i++) {
+        /*if (args == NULL)
+          EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)",
+                  "Invalid args.");*/
+        // printf("Type compare:
+        // %i,%i",object_table[table->pair.second.args[i+1]].type[0],object_table[args[i]].type[0]);
+        int temp_cost = GetFuncOverloadCost(
+            args, args_size, table->pair.second.args,
+            table->pair.second.args_size, table->pair.second.va_flag);
+        if (temp_cost == -1) {
+        } else if (temp_cost == 0) {
+          // printf("Check 0.\n");
+          // temp_func = table->pair.second;
+          // cost = temp_cost;
+          return table->pair.second;
+        } else if (temp_cost < cost || cost < 0) {
+          temp_func = table->pair.second;
+          cost = temp_cost;
         }
-        if (is_same) return table->pair.second;
+        //}
       }
       // return table->pair.second;
     }
     table = table->next;
   }
-
-  //printf("%s\n", name);
-  EXIT_VM("GetCustomFunction(const char*,size_t*,size_t)",
-          "Function not found.");
-  return (FuncInfo){NULL, NULL, 0, NULL};
+  if (cost == -1)
+    EXIT_VM("GetCustomFunction(const char*,const char*,size_t*,size_t)",
+            "Not found func.");
+  return temp_func;
 }
 
 func_ptr GetFunction(const char* name) {
@@ -4331,10 +4859,47 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   // TODO(Class): Fixed this bug about return value.
   // object_table[func_info.args[0]] = object_table[return_value];
+
+  if (func_info.va_flag) {
+    uint8_t* type = calloc(1, sizeof(uintptr_t));
+    type[0] = 0x04;
+    object_table[return_value].type = type;
+    object_table[return_value].data.uint64t_data =
+        args_size - func_info.args_size;
+
+    NEW(func_info.args[func_info.args_size], return_value, 0x00);
+
+    // printf("RUN OK!\n");
+    for (size_t i = 0; i < args_size - func_info.args_size; i++) {
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .type = object_table[args[func_info.args_size + i]].type;
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .data = object_table[args[func_info.args_size + i]].data;
+    }
+  }
+
   func_info.args++;
   args_size--;
-  for (size_t i = 0; i < args_size; i++) {
-    object_table[func_info.args[i]] = object_table[args[i]];
+  for (size_t i = 0; i < func_info.args_size - 1; i++) {
+    if (object_table[func_info.args[i]].const_type &&
+        object_table[func_info.args[i]].type[0] == 0x07 &&
+        object_table[func_info.args[i]].type[1] != 0x08) {
+      object_table[func_info.args[i]].data.reference_data =
+          object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x07 &&
+               object_table[func_info.args[i]].type[1] == 0x08) {
+      object_table[func_info.args[i]].type =
+          object_table[func_info.args[i]].type + 1;
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x08) {
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
+    } else {
+      EQUAL(func_info.args[i], args[i]);
+    }
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
@@ -4419,7 +4984,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
         CONVERT(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x19:
-        CONST(run_code[i].args[0], run_code[i].args[1]);
+        _CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x1A:
         INVOKE_CLASS(run_code[i].args);
@@ -4449,19 +5014,65 @@ int InvokeCustomFunction(const char* name, size_t args_size,
                          size_t return_value, size_t* args) {
   TRACE_FUNCTION;
   FuncInfo func_info = GetCustomFunction(name, args, args_size);
-  if (args_size != func_info.args_size) {
+  if (args_size < func_info.args_size) {
     // printf("args_size: %zu\n", args_size);
     // printf("func_info.args_size: %zu\n", func_info.args_size);
     EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
             "Invalid args_size.");
   }
   // printf("object: %zu , %zu", func_info.args[0], return_value);
+
+  if (func_info.va_flag) {
+    uint8_t* type = calloc(1, sizeof(uintptr_t));
+    type[0] = 0x04;
+    object_table[return_value].type = type;
+    object_table[return_value].data.uint64t_data =
+        args_size - func_info.args_size;
+
+    NEW(func_info.args[func_info.args_size], return_value, 0x00);
+
+    // printf("Type: %i\n",
+    // object_table[func_info.args[func_info.args_size]].type[0]);
+
+    if (object_table[func_info.args[func_info.args_size]].type == NULL ||
+        object_table[func_info.args[func_info.args_size]].type[0] != 0x06)
+      EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
+              "Invalid va_arg array.");
+
+    // printf("RUN OK!\n");
+    for (size_t i = 0; i < args_size - func_info.args_size; i++) {
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .type = object_table[args[func_info.args_size - 1 + i]].type;
+
+      object_table[func_info.args[func_info.args_size]]
+          .data.ptr_data[i + 1]
+          .data = object_table[args[func_info.args_size - 1 + i]].data;
+    }
+  }
+
   object_table[func_info.args[0]] = object_table[return_value];
   struct Object* return_object = object_table + func_info.args[0];
   func_info.args++;
   args_size--;
-  for (size_t i = 0; i < args_size; i++) {
-    object_table[func_info.args[i]] = object_table[args[i]];
+  for (size_t i = 0; i < func_info.args_size - 1; i++) {
+    if (object_table[func_info.args[i]].const_type &&
+        object_table[func_info.args[i]].type[0] == 0x07 &&
+        object_table[func_info.args[i]].type[1] != 0x08) {
+      object_table[func_info.args[i]].data.reference_data =
+          object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x07 &&
+               object_table[func_info.args[i]].type[1] == 0x08) {
+      object_table[func_info.args[i]].type =
+          object_table[func_info.args[i]].type + 1;
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
+    } else if (object_table[func_info.args[i]].const_type &&
+               object_table[func_info.args[i]].type[0] == 0x08) {
+      object_table[func_info.args[i]].data.const_data = object_table + args[i];
+    } else {
+      EQUAL(func_info.args[i], args[i]);
+    }
   }
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
@@ -4546,7 +5157,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         CONVERT(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x19:
-        CONST(run_code[i].args[0], run_code[i].args[1]);
+        _CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x1A:
         INVOKE_CLASS(run_code[i].args);
@@ -4573,7 +5184,7 @@ int main(int argc, char* argv[]) {
 
   if (argc < 2) {
     printf("Usage: %s <filename>\n", argv[0]);
-    EXIT_VM("main(int, char**)", "Invalid arguments.");
+    // EXIT_VM("main(int, char**)", "Invalid arguments.");
     return -1;
   }
 
@@ -4583,6 +5194,8 @@ int main(int argc, char* argv[]) {
     EXIT_VM("main(int, char**)", "Could not open file.");
     return -2;
   }
+
+  if (aqvm_init() != 0) EXIT_VM("main(int, char**)", "INIT ERROR.");
 
   IsBigEndian();
 
@@ -4597,9 +5210,16 @@ int main(int argc, char* argv[]) {
 
   if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
       ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
-    printf("Error: Invalid bytecode file\n");
     EXIT_VM("main(int, char**)", "Invalid bytecode file.");
     return -3;
+  }
+
+  if (((char*)bytecode_file)[4] != 0x00 || ((char*)bytecode_file)[5] != 0x00 ||
+      ((char*)bytecode_file)[6] != 0x00 || ((char*)bytecode_file)[7] != 0x03) {
+    EXIT_VM(
+        "main(int, char**)",
+        "This bytecode version is not supported, please check for updates.");
+    return -4;
   }
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
