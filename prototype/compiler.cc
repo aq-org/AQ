@@ -11686,9 +11686,12 @@ void BytecodeGenerator::HandleBreakStmt(std::vector<Bytecode>& code) {
   loop_break_index_.push_back(index);
 }
 
-void BytecodeGenerator::HandleSwitchStmt(SwitchNode* stmt,std::vector<Bytecode>& code){
+void BytecodeGenerator::HandleSwitchStmt(SwitchNode* stmt,
+                                         std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  EXIT_COMPILER("BytecodeGenerator::HandleSwitchStmt(SwitchNode*,std::vector<Bytecode>&)","The switch statement is not yet supported.");
+  EXIT_COMPILER(
+      "BytecodeGenerator::HandleSwitchStmt(SwitchNode*,std::vector<Bytecode>&)",
+      "The switch statement is not yet supported.");
 }
 
 void BytecodeGenerator::HandleReturn(ReturnNode* stmt,
