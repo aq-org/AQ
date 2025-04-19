@@ -8752,6 +8752,9 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
       scope_name += ",...";
     }
   }
+  if(args.size()==0&& func_decl->GetStat()->GetVaFlag()){
+    scope_name += "@...";
+  }
 
   goto_map_.clear();
   current_scope_.push_back(scope_name);
@@ -8807,6 +8810,11 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
     }
   }
 
+  if (args.size() ==0 && func_decl->GetStat()->GetVaFlag()) {
+    va_array_index = global_memory_.Add(1);
+    args_index.push_back(va_array_index);
+  }
+
   for (size_t i = 0; i < func_decl->GetStat()->GetArgs().size(); i++) {
     if (func_decl->GetStat()->GetArgs()[i]->GetType() ==
         StmtNode::StmtType::kVarDecl) {
@@ -8836,6 +8844,13 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
           std::pair<VarDeclNode*, std::size_t>(NULL, va_array_index));
     }
   }
+
+  if (func_decl->GetStat()->GetArgs().size() == 0 &&
+        func_decl->GetStat()->GetVaFlag()) {
+      var_decl_map_.emplace(
+          current_scope_.back() + "#args",
+          std::pair<VarDeclNode*, std::size_t>(NULL, va_array_index));
+    }
 
   exit_index_.clear();
   HandleStmt(func_decl->GetStmts(), code);

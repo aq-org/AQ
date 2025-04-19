@@ -1,5 +1,5 @@
-int print(auto str){
-  __builtin_print(str);
+int print(...){
+  __builtin_vaprint(args);
 }
 /*double fabs(double num) {
   if (num < 0) {

@@ -420,6 +420,51 @@ struct Object* GetPtrData(size_t index) {
   return NULL;
 }
 
+struct Object* GetPtrObjectData(struct Object* object) {
+  TRACE_FUNCTION;
+  
+  if (object->type[0] == 0x06) {
+    return object->data.ptr_data;
+  } else if (object->type[0] == 0x07) {
+    struct Object reference_data = *object->data.reference_data;
+    while (true) {
+      switch (reference_data.type[0]) {
+        case 0x06:
+          return object->data.ptr_data;
+        case 0x07:
+          reference_data = *reference_data.data.reference_data;
+          break;
+        case 0x08:
+          reference_data = *reference_data.data.const_data;
+          break;
+        default:
+          EXIT_VM("GetPtrObjectData(struct Object*)", "Unsupported type.");
+          break;
+      }
+    }
+  } else if (object->type[0] == 0x08) {
+    struct Object const_data = *object->data.const_data;
+    while (true) {
+      switch (const_data.type[0]) {
+        case 0x06:
+          return object->data.ptr_data;
+        case 0x07:
+          const_data = *const_data.data.reference_data;
+          break;
+        case 0x08:
+          const_data = *const_data.data.const_data;
+          break;
+        default:
+          EXIT_VM("GetPtrObjectData(struct Object*)", "Unsupported type.");
+          break;
+      }
+    }
+  } else {
+    EXIT_VM("GetPtrObjectData(struct Object*)", "Unsupported Type.");
+  }
+  return NULL;
+}
+
 int8_t GetByteData(size_t index) {
   TRACE_FUNCTION;
   if (index >= object_table_size)
@@ -652,6 +697,74 @@ int64_t GetLongData(size_t index) {
   return -1;
 }
 
+int64_t GetLongObjectData(struct Object* object){
+  TRACE_FUNCTION;
+  switch (object->type[0]) {
+    case 0x01:
+      return object->data.byte_data;
+    case 0x02:
+      return object->data.long_data;
+    case 0x03:
+      return object->data.double_data;
+    case 0x04:
+      return object->data.uint64t_data;
+    case 0x07: {
+      struct Object reference_data = *object->data.reference_data;
+      while (true) {
+        switch (reference_data.type[0]) {
+          case 0x01:
+            return reference_data.data.byte_data;
+          case 0x02:
+            return reference_data.data.long_data;
+          case 0x03:
+            return reference_data.data.double_data;
+          case 0x04:
+            return reference_data.data.uint64t_data;
+          case 0x07:
+            reference_data = *reference_data.data.reference_data;
+            break;
+          case 0x08:
+            reference_data = *reference_data.data.const_data;
+            break;
+          default:
+            // printf("type: %i", reference_data.type[0]);
+            EXIT_VM("GetLongObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+    case 0x08: {
+      struct Object const_data = *object->data.const_data;
+      while (true) {
+        switch (const_data.type[0]) {
+          case 0x01:
+            return const_data.data.byte_data;
+          case 0x02:
+            return const_data.data.long_data;
+          case 0x03:
+            return const_data.data.double_data;
+          case 0x04:
+            return const_data.data.uint64t_data;
+          case 0x07:
+            const_data = *const_data.data.reference_data;
+            break;
+          case 0x08:
+            const_data = *const_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetLongObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+    default:
+      EXIT_VM("GetLongObjectData(struct Object*)", "Invalid type.");
+      break;
+  }
+  return -1;
+
+}
+
 /*float GetFloatData(size_t index) {
   TRACE_FUNCTION;
   switch (object_table[index].type[0]) {
@@ -741,6 +854,72 @@ double GetDoubleData(size_t index) {
     }
     default:
       EXIT_VM("GetDoubleData(size_t)", "Invalid type.");
+      break;
+  }
+  return -1;
+}
+
+double GetDoubleObjectData(struct Object* object) {
+  TRACE_FUNCTION;
+  switch (object->type[0]) {
+    case 0x01:
+      return object->data.byte_data;
+    case 0x02:
+      return object->data.long_data;
+    case 0x03:
+      return object->data.double_data;
+    case 0x04:
+      return object->data.uint64t_data;
+    case 0x07: {
+      struct Object reference_data = *object->data.reference_data;
+      while (true) {
+        switch (reference_data.type[0]) {
+          case 0x01:
+            return reference_data.data.byte_data;
+          case 0x02:
+            return reference_data.data.long_data;
+          case 0x03:
+            return reference_data.data.double_data;
+          case 0x04:
+            return reference_data.data.uint64t_data;
+          case 0x07:
+            reference_data = *reference_data.data.reference_data;
+            break;
+          case 0x08:
+            reference_data = *reference_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetDoubleObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+    case 0x08: {
+      struct Object const_data = *object->data.const_data;
+      while (true) {
+        switch (const_data.type[0]) {
+          case 0x01:
+            return const_data.data.byte_data;
+          case 0x02:
+            return const_data.data.long_data;
+          case 0x03:
+            return const_data.data.double_data;
+          case 0x04:
+            return const_data.data.uint64t_data;
+          case 0x07:
+            const_data = *const_data.data.reference_data;
+            break;
+          case 0x08:
+            const_data = *const_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetDoubleObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+    default:
+      EXIT_VM("GetDoubleObjectData(struct Object*)", "Invalid type.");
       break;
   }
   return -1;
@@ -933,6 +1112,56 @@ const char* GetStringData(size_t index) {
       // printf("Index: %zu\n", index);
       // printf("Type: %d\n", object_table[index].type[0]);
       EXIT_VM("GetStringData(size_t)", "Invalid type.");
+      break;
+  }
+  return NULL;
+}
+
+const char* GetStringObjectData(struct Object* object) {
+  TRACE_FUNCTION;
+  switch (object->type[0]) {
+    case 0x05:
+      return object->data.string_data;
+
+    case 0x07: {
+      struct Object reference_data = *object->data.reference_data;
+      while (true) {
+        switch (reference_data.type[0]) {
+          case 0x05:
+            return reference_data.data.string_data;
+          case 0x07:
+            reference_data = *reference_data.data.reference_data;
+            break;
+          case 0x08:
+            reference_data = *reference_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetStringObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+
+    case 0x08: {
+      struct Object const_data = *object->data.const_data;
+      while (true) {
+        switch (const_data.type[0]) {
+          case 0x05:
+            return const_data.data.string_data;
+          case 0x07:
+            const_data = *const_data.data.reference_data;
+            break;
+          case 0x08:
+            const_data = *const_data.data.const_data;
+            break;
+          default:
+            EXIT_VM("GetStringObjectData(struct Object*)", "Unsupported type.");
+            break;
+        }
+      }
+    }
+    default:
+      EXIT_VM("GetStringObjectData(struct Object*)", "Invalid type.");
       break;
   }
   return NULL;

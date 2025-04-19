@@ -124,12 +124,16 @@ void AddFreePtr(void* ptr);
 struct Object* GetOriginData(struct Object* object);
 struct Object* GetObjectData(size_t index);
 const char* GetStringData(size_t index);
+const char* GetStringObjectData(struct Object* object);
 uint64_t GetUint64tObjectData(struct Object* object);
 uint64_t GetUint64tData(size_t index);
+int64_t GetLongObjectData(struct Object* object);
+double GetDoubleObjectData(struct Object* object);
 double GetDoubleData(size_t index);
 int64_t GetLongData(size_t index);
 int8_t GetByteObjectData(struct Object* data);
 int8_t GetByteData(size_t index);
+struct Object* GetPtrObjectData(struct Object* object);
 struct Object* GetPtrData(size_t index);
 void SetByteData(size_t, int8_t);
 void SetLongData(size_t, int64_t);
@@ -180,37 +184,38 @@ void aqstl_print(InternalObject args, size_t return_value) {
 
 void aqstl_vaprint(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
-  if (args.size < 1)
+  if (args.size != 1)
     EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid return value.");
-  for (size_t i = 0; i < args.size; i++) {
-    struct Object* object = object_table + args.index[i];
+    struct Object* object = object_table + args.index[0];
     object = GetOriginData(object);
-    if (object == NULL)
+
+    if(object == NULL||object->type == NULL||object->type[0] != 0x06)
       EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid object.");
 
-    switch (object->type[0]) {
+    for (size_t i = 1; i < GetUint64tObjectData(object->data.ptr_data)+1; i++) {
+    switch (GetOriginData(object->data.ptr_data+i)->type[0]) {
       case 0x01:
-        SetLongData(return_value, printf("%d", GetByteData(*args.index)));
+        SetLongData(return_value, printf("%d", GetByteObjectData(object->data.ptr_data+i)));
         break;
       case 0x02:
-        // printf("print long");
-        SetLongData(return_value, printf("%lld", GetLongData(*args.index)));
+        SetLongData(return_value, printf("%lld", GetLongObjectData(object->data.ptr_data+i)));
         break;
       case 0x03:
-        SetLongData(return_value, printf("%.15f", GetDoubleData(*args.index)));
+        SetLongData(return_value, printf("%.15f", GetDoubleObjectData(object->data.ptr_data+i)));
         break;
       case 0x04:
-        SetLongData(return_value, printf("%zu", GetUint64tData(*args.index)));
+        SetLongData(return_value, printf("%zu", GetUint64tObjectData(object->data.ptr_data+i)));
         break;
       case 0x05:
-        SetLongData(return_value, printf("%s", GetStringData(*args.index)));
+        SetLongData(return_value, printf("%s", GetStringObjectData(object->data.ptr_data+i)));
         break;
       case 0x06:
-        SetLongData(return_value, printf("%p", GetPtrData(*args.index)));
+        SetLongData(return_value, printf("%p", GetPtrObjectData(object->data.ptr_data+i)));
         break;
       default:
+        //printf("Type: %u\n", (object->data.ptr_data+i)->type[0]);
         EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Unsupported type.");
         break;
     }
