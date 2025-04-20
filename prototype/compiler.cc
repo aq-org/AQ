@@ -6155,6 +6155,15 @@ class BytecodeGenerator {
     std::size_t name_index = 0;
   };
 
+  void PreProcessDecl(CompoundNode* stmt);
+  void PreProcessFuncDecl(FuncDeclNode* stmt);
+  void PreProcessClassDecl(ClassDeclNode* stmt);
+  // void PreProcessClassConstructor(FuncDeclNode* func_decl);
+  //void PreProcessVarDecl(VarDeclNode* stmt);
+  void PreProcessStaticDecl(ClassDeclNode* stmt);
+  //void PreProcessArrayDecl(ArrayDeclNode* stmt);
+  //void PreProcessStaticArrayDecl(ArrayDeclNode* stmt);
+
   void HandleFuncDecl(FuncDeclNode* func_decl);
   void HandleClassFuncDecl(FuncDeclNode* func_decl);
   void HandleClassConstructor(FuncDeclNode* func_decl);
@@ -6272,6 +6281,177 @@ void BytecodeGenerator::InitBuiltInFuncDecl(){
   AddBuiltInFuncDecl("__builtin_perror");
 }
 
+void BytecodeGenerator::PreProcessDecl(CompoundNode* stmt){
+  TRACE_FUNCTION;
+  if (stmt == nullptr)
+    EXIT_COMPILER("BytecodeGenerator::PreProcessDecl(CompoundNode*)",
+                  "stmt is nullptr.");
+  
+                  std::vector<StmtNode*> stmts;
+
+                  for (std::size_t i = 0; i < stmt->GetStmts().size(); i++) {
+                    switch (stmt->GetStmts()[i]->GetType()) {
+                      case StmtNode::StmtType::kClassDecl:
+                      PreProcessClassDecl(dynamic_cast<ClassDeclNode*>(stmt->GetStmts()[i]));
+                      stmts.push_back(stmt->GetStmts()[i])  ;
+                      break;
+
+                      case StmtNode::StmtType::kFuncDecl:
+                      PreProcessFuncDecl(dynamic_cast<FuncDeclNode*>(stmt->GetStmts()[i])
+                                      );
+                        break;
+                
+                      case StmtNode::StmtType::kVarDecl:
+                      //PreProcessVarDecl(dynamic_cast<VarDeclNode*>(stmt->GetStmts()[i]));
+                      stmts.push_back(stmt->GetStmts()[i])  ;
+                      break;
+                
+                      case StmtNode::StmtType::kArrayDecl:
+                      //PreProcessArrayDecl(dynamic_cast<ArrayDeclNode*>(stmt->GetStmts()[i]));
+                      stmts.push_back(stmt->GetStmts()[i])  ;  
+                      break;
+                
+                      default:
+                        break;
+                    }
+                  }
+
+                  for(std::size_t i = 0;i<stmts.size();i++){
+                    switch(stmts[i]->GetType()){
+                      case StmtNode::StmtType::kClassDecl:
+                      PreProcessStaticDecl(dynamic_cast<ClassDeclNode*>(stmts[i]));
+                      break;
+                      case StmtNode::StmtType::kVarDecl:
+                      HandleVarDecl(dynamic_cast<VarDeclNode*>(stmts[i]), global_code_);
+                      break;
+                      case StmtNode::StmtType::kArrayDecl:
+                      HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(stmts[i]), global_code_);
+                      break;
+                      default:
+                      EXIT_COMPILER("BytecodeGenerator::PreProcessDecl(CompoundNode*)","Unexpected stmt type.");
+                    }
+                  }
+}
+
+void BytecodeGenerator::PreProcessFuncDecl(FuncDeclNode* stmt){
+  TRACE_FUNCTION;
+  std::string func_name = current_scope_.back()+"."+(std::string)(*stmt->GetStat()->GetName());
+  //std::cout<<"FN: "<<func_name<<std::endl;
+  if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
+    std::vector<FuncDeclNode> func_decl_vector;
+    func_decl_vector.push_back(*stmt);
+    func_decl_map_.emplace(func_name, func_decl_vector);
+  } else {
+    func_decl_map_[func_name].push_back(*stmt);
+  }
+}
+void BytecodeGenerator::PreProcessClassDecl(ClassDeclNode* stmt){
+  TRACE_FUNCTION;
+  std::string class_name =
+  current_scope_.back() + "." + std::string(stmt->GetName());
+  current_scope_.push_back(class_name);
+
+  Class* current_class = new Class();
+  current_class->SetName(class_name);
+  current_class->SetClass(stmt);
+
+  current_class->GetMemory().SetCode(&current_class->GetCode());
+  current_class->GetMemory().SetGlobalMemory(&global_memory_);
+
+  if (class_decl_map_.find(class_name) != class_decl_map_.end())
+  EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+                "Has same name class.");
+  class_decl_map_.emplace(class_name, current_class);
+
+  for (std::size_t i = 0; i < stmt->GetClasses().size(); i++) {
+    if (stmt->GetClasses()[i]->GetType() ==
+        StmtNode::StmtType::kClassDecl) {
+          PreProcessClassDecl(
+          dynamic_cast<ClassDeclNode*>(stmt->GetClasses()[i]));
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::PreProcessClassDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }
+
+  for (std::size_t i = 0; i < stmt->GetStaticMembers().size(); i++) {
+    if (stmt->GetStaticMembers()[i]->GetDecl()->GetType() ==
+               StmtNode::StmtType::kFuncDecl) {
+      PreProcessFuncDecl(dynamic_cast<FuncDeclNode*>(
+        stmt->GetStaticMembers()[i]->GetDecl()));
+    }
+  }
+
+  //auto iterator = func_decl_map_.find(current_scope_.back());
+  //if (iterator == func_decl_map_.end()) {
+    std::vector<FuncDeclNode> func_decl_vector;
+    FuncDeclNode* func_decl = new FuncDeclNode();
+    func_decl->SetFuncDeclNode(nullptr, nullptr, nullptr);
+    std::string func_name = current_scope_.back();
+
+    if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
+      std::vector<FuncDeclNode> func_decl_vector;
+      func_decl_vector.push_back(*func_decl);
+      func_decl_map_.emplace(func_name, func_decl_vector);
+    } else {
+      func_decl_map_[func_name].push_back(*func_decl);
+    }
+  //}
+  current_scope_.pop_back();
+}
+void BytecodeGenerator::PreProcessStaticDecl(ClassDeclNode* stmt){
+  TRACE_FUNCTION;
+  std::string class_name =
+  current_scope_.back() + "." + std::string(stmt->GetName());
+  current_scope_.push_back(class_name);
+
+  if (class_decl_map_.find(class_name) == class_decl_map_.end())  EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+    "Not found class decl.");
+  Class* current_class = class_decl_map_[class_name];
+
+  for (std::size_t i = 0; i < stmt->GetClasses().size(); i++) {
+    if (stmt->GetClasses()[i]->GetType() ==
+        StmtNode::StmtType::kClassDecl) {
+          PreProcessStaticDecl(
+          dynamic_cast<ClassDeclNode*>(stmt->GetClasses()[i]));
+    } else {
+      EXIT_COMPILER("BytecodeGenerator::PreProcessStaticDecl(ClassDeclNode*)",
+                    "Unexpected code.");
+    }
+  }
+
+  for (std::size_t i = 0; i < stmt->GetStaticMembers().size(); i++) {
+    if (stmt->GetStaticMembers()[i]->GetDecl()->GetType() ==
+    StmtNode::StmtType::kVarDecl) {
+  HandleVarDecl(dynamic_cast<VarDeclNode*>(
+    stmt->GetStaticMembers()[i]->GetDecl()),
+                      current_class->GetCode());
+} else if (stmt->GetStaticMembers()[i]->GetDecl()->GetType() ==
+           StmtNode::StmtType::kArrayDecl) {
+            HandleArrayDecl(dynamic_cast<ArrayDeclNode*>(
+    stmt->GetStaticMembers()[i]->GetDecl()),
+                        current_class->GetCode());
+}
+  }
+
+  //auto iterator = func_decl_map_.find(current_scope_.back());
+  //if (iterator == func_decl_map_.end()) {
+    std::vector<FuncDeclNode> func_decl_vector;
+    FuncDeclNode* func_decl = new FuncDeclNode();
+    func_decl->SetFuncDeclNode(nullptr, nullptr, nullptr);
+    std::string func_name = current_scope_.back();
+
+    if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
+      std::vector<FuncDeclNode> func_decl_vector;
+      func_decl_vector.push_back(*func_decl);
+      func_decl_map_.emplace(func_name, func_decl_vector);
+    } else {
+      func_decl_map_[func_name].push_back(*func_decl);
+    }
+  //}
+  current_scope_.pop_back();
+}
+
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
                                          const char* output_file) {
   TRACE_FUNCTION;
@@ -6291,6 +6471,8 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
     EXIT_COMPILER(
         "BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)",
         "stmt is nullptr.");
+
+        PreProcessDecl(stmt);
 
   for (std::size_t i = 0; i < stmt->GetStmts().size(); i++) {
     switch (stmt->GetStmts()[i]->GetType()) {
@@ -8761,13 +8943,13 @@ void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
   // single_scope_.push_back(single_scope_name);
   current_func_index_ = current_scope_.size() - 1;
   // std::cout << "func_name: " << func_name << std::endl;
-  if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
+  /*if (func_decl_map_.find(func_name) == func_decl_map_.end()) {
     std::vector<FuncDeclNode> func_decl_vector;
     func_decl_vector.push_back(*func_decl);
     func_decl_map_.emplace(func_name, func_decl_vector);
   } else {
     func_decl_map_[func_name].push_back(*func_decl);
-  }
+  }*/
 
   if (func_decl->GetStmts() == nullptr) {
     current_scope_.pop_back();
@@ -9293,7 +9475,11 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
     }
   }*/
 
-  Class* current_class = new Class();
+  if (class_decl_map_.find(class_name) == class_decl_map_.end())  EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
+    "Not found class decl.");
+  Class* current_class =class_decl_map_[class_name];
+  current_class_ = current_class;
+  /*Class* current_class = new Class();
   current_class->SetName(class_name);
   current_class->SetClass(class_decl);
   current_class_ = current_class;
@@ -9307,7 +9493,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
   class_decl_map_.emplace(class_name, current_class);
 
   current_class->GetMemory().Add("@name");
-  current_class->GetMemory().Add("@size");
+  current_class->GetMemory().Add("@size");*/
 
   for (std::size_t i = 0; i < class_decl->GetClasses().size(); i++) {
     if (class_decl->GetClasses()[i]->GetType() ==
@@ -9323,7 +9509,7 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
 
   for (std::size_t i = 0; i < class_decl->GetStaticMembers().size(); i++) {
     // class_decl->GetStaticMembers()[i]->GetDecl()
-    std::cout << "HANDLE STATIC MEMBERS." << std::endl;
+    // std::cout << "HANDLE STATIC MEMBERS." << std::endl;
     if (class_decl->GetStaticMembers()[i]->GetDecl()->GetType() ==
         StmtNode::StmtType::kVarDecl) {
       HandleStaticVarDecl(dynamic_cast<VarDeclNode*>(
@@ -9570,9 +9756,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
         }
         if (i == -1)
           EXIT_COMPILER(
-              "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<"
-              "Bytecode>&"
-              ")",
+              "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
               "Function not found.");
       }
 
@@ -9647,9 +9831,7 @@ std::size_t BytecodeGenerator::HandleVarDecl(VarDeclNode* var_decl,
                   }
                   if (i == -1)
           EXIT_COMPILER(
-              "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<"
-              "Bytecode>&"
-              ")",
+            "BytecodeGenerator::HandleVarDecl(VarDeclNode*,std::vector<Bytecode>&)",
               "Function not found.");
       }
 
@@ -12133,6 +12315,9 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
                 func_name = current_scope_[i] + "." + func_name;
                 break;
               }
+              //if(i!=-1)
+              //std::cout<<"FN: "<<current_scope_[i] + "." + func_name<<std::endl;
+            
               if (i == -1)
       EXIT_COMPILER(
           "BytecodeGenerator::HandleFuncInvoke(FuncNode*,std::vector<Bytecode>&"

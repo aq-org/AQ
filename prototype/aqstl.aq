@@ -1,3 +1,8 @@
+
+
+
+auto main(){return print("ABC");}
+
 int print(...) { return __builtin_vaprint(args); }
 
 int remove(string filename) { return __builtin_remove(filename); }
