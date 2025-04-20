@@ -80,7 +80,6 @@ void TraceDestroy(Trace* trace) {
   Trace _trace __attribute__((cleanup(TraceDestroy))) = \
       TraceCreate(__FUNCTION__)*/
 
-
 #define TRACE_FUNCTION
 
 /*union Data {
@@ -168,7 +167,6 @@ struct FuncPair {
   FuncInfo second;
 };
 
-
 struct FreeList {
   struct FreeList* next;
   void* ptr;
@@ -208,7 +206,6 @@ func_ptr GetFunction(const char* name);
 FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size);
 
 struct Memory* memory;
-
 
 struct FuncList func_table[256];
 
@@ -422,7 +419,7 @@ struct Object* GetPtrData(size_t index) {
 
 struct Object* GetPtrObjectData(struct Object* object) {
   TRACE_FUNCTION;
-  
+
   if (object->type[0] == 0x06) {
     return object->data.ptr_data;
   } else if (object->type[0] == 0x07) {
@@ -697,7 +694,7 @@ int64_t GetLongData(size_t index) {
   return -1;
 }
 
-int64_t GetLongObjectData(struct Object* object){
+int64_t GetLongObjectData(struct Object* object) {
   TRACE_FUNCTION;
   switch (object->type[0]) {
     case 0x01:
@@ -762,7 +759,6 @@ int64_t GetLongObjectData(struct Object* object){
       break;
   }
   return -1;
-
 }
 
 /*float GetFloatData(size_t index) {
@@ -4290,7 +4286,6 @@ void print(InternalObject args, size_t return_value) {
       break;
   }
 }
-
 
 void* AddClassMethod(void* location, struct FuncList* methods) {
   TRACE_FUNCTION;
