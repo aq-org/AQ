@@ -333,6 +333,7 @@ struct Token {
   };
   enum class KeywordType {
     NONE = 0,
+    As,
     Auto,
     And,
     Bitand,
@@ -357,6 +358,7 @@ struct Token {
     Float,
     For,
     Friend,
+    From,
     Goto,
     If,
     Import,
@@ -925,6 +927,8 @@ class TokenMap {
 };
 
 TokenMap::TokenMap() {
+  TRACE_FUNCTION;
+  keyword_map.Insert("as", Token::KeywordType::As);
   keyword_map.Insert("auto", Token::KeywordType::Auto);
   keyword_map.Insert("and", Token::KeywordType::And);
   keyword_map.Insert("bitand", Token::KeywordType::Bitand);
@@ -949,6 +953,7 @@ TokenMap::TokenMap() {
   keyword_map.Insert("float", Token::KeywordType::Float);
   keyword_map.Insert("for", Token::KeywordType::For);
   keyword_map.Insert("friend", Token::KeywordType::Friend);
+  keyword_map.Insert("from", Token::KeywordType::From);
   keyword_map.Insert("goto", Token::KeywordType::Goto);
   keyword_map.Insert("if", Token::KeywordType::If);
   keyword_map.Insert("import", Token::KeywordType::Import);
@@ -1652,6 +1657,7 @@ class StmtNode {
 
   enum class StmtType {
     kStmt,
+    kImport,
     kBreak,
     kCompound,
     kDecl,
@@ -1689,6 +1695,33 @@ class StmtNode {
 
  protected:
   StmtType type_;
+};
+
+class ImportNode : public StmtNode {
+ public:
+  ImportNode() { type_ = StmtType::kImport; }
+  virtual ~ImportNode() = default;
+
+  void SetImportNode(std::string import_location, std::string name) {
+    import_location_ = import_location;
+    name_ = name;
+  }
+
+  void SetFromImport(std::string import_location,
+                     std::vector<std::string> content,
+                     std::vector<std::string> alias) {
+    is_from_import_ = true;
+  }
+
+  ImportNode(const ImportNode&) = default;
+  ImportNode& operator=(const ImportNode&) = default;
+
+ private:
+  bool is_from_import_ = false;
+  std::string import_location_;
+  std::string name_;
+  std::vector<std::string> content_;
+  std::vector<std::string> alias_;
 };
 
 class BreakNode : public StmtNode {
@@ -3720,6 +3753,90 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "return_expr is nullptr.");
           result->SetReturnNode(return_expr);
+          index++;
+          return result;
+        }
+
+        case Token::KeywordType::From: {
+          index++;
+          if (token[index].type != Token::Type::STRING)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Unsupported import location.");
+          std::string import_location(*token[index].value.string);
+          index++;
+          if (token[index].type != Token::Type::KEYWORD ||
+              token[index].value.keyword != Token::KeywordType::Import)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Unexpected import behavior.");
+          index++;
+          std::vector<std::string> import_list;
+          if (token[index].type != Token::Type::IDENTIFIER)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Unexpected import identifier.");
+          import_list.push_back(
+              std::string(token[index].value.identifier.location,
+                          token[index].value.identifier.length));
+          index++;
+          while (token[index].type == Token::Type::OPERATOR &&
+                 token[index].value._operator == Token::OperatorType::comma) {
+            index++;
+            if (token[index].type != Token::Type::IDENTIFIER)
+              EXIT_COMPILER(
+                  "Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                  "Unexpected import identifier.");
+            import_list.push_back(
+                std::string(token[index].value.identifier.location,
+                            token[index].value.identifier.length));
+            index++;
+          }
+
+          std::vector<std::string> alias_list;
+
+          if (token[index].type == Token::Type::KEYWORD &&
+              token[index].value.keyword == Token::KeywordType::As) {
+            index++;
+            if (token[index].type != Token::Type::IDENTIFIER)
+              EXIT_COMPILER(
+                  "Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                  "Unexpected import alias.");
+            alias_list.push_back(
+                std::string(token[index].value.identifier.location,
+                            token[index].value.identifier.length));
+            index++;
+            while (token[index].type == Token::Type::OPERATOR &&
+                   token[index].value._operator == Token::OperatorType::comma) {
+              index++;
+              if (token[index].type != Token::Type::IDENTIFIER)
+                EXIT_COMPILER(
+                    "Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                    "Unexpected import alias.");
+              alias_list.push_back(
+                  std::string(token[index].value.identifier.location,
+                              token[index].value.identifier.length));
+              index++;
+            }
+          }
+
+          ImportNode* result = new ImportNode();
+          result->SetFromImport(import_location, import_list, alias_list);
+
+          return result;
+        }
+
+        case Token::KeywordType::Import: {
+          index++;
+          if (token[index].type != Token::Type::STRING)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Unsupported import location.");
+          std::string import_location(*token[index].value.string);
+          index++;
+          if (token[index].type != Token::Type::IDENTIFIER)
+            EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
+                          "Unexpected import behavior.");
+          std::string name(*token[index].value.identifier.location,
+                           token[index].value.identifier.length);
+          ImportNode* result = new ImportNode();
+          result->SetImportNode(import_location, name);
           index++;
           return result;
         }
