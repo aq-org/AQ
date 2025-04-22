@@ -142,7 +142,7 @@ enum Operator {
   OPERATOR_LOAD_CONST,
   OPERATOR_CONVERT,
   OPERATOR_CONST,
-  OPERATOR_INVOKE_CLASS,
+  OPERATOR_INVOKE_METHOD,
   OPERATOR_LOAD_MEMBER,
   OPERATOR_WIDE = 0xFF
 };
@@ -201,6 +201,36 @@ struct ClassList {
   struct Class class;
   struct ClassList* next;
 };
+
+/*struct BytecodeFileList {
+  const char* name;
+  struct BytecodeFile* file;
+  struct BytecodeFileList* next;
+};
+
+struct BytecodeFile {
+  const char* location;
+  struct Memory* memory;
+  struct FuncList func_table[256];
+  struct ClassList class_table[256];
+  struct Object* object_table;
+  size_t object_table_size;
+  struct Object* const_object_table;
+  size_t const_object_table_size;
+  struct BytecodeFile* bytecode_file;
+  struct BytecodeFileList bytecode_file_table[256];
+};
+
+struct BytecodeFileList bytecode_file_table[256];
+
+struct BytecodeFileList global_bytecode_file_table[256];*/
+
+struct BytecodeFileList {
+  const char* name;
+  struct BytecodeFileList* next;
+};
+
+struct BytecodeFileList bytecode_file_table[256];
 
 func_ptr GetFunction(const char* name);
 FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size);
@@ -4110,9 +4140,9 @@ int _CONST(size_t result, size_t operand1) {
   return 0;
 }
 
-int INVOKE_CLASS(size_t* args) {
+int INVOKE_METHOD(size_t* args) {
   TRACE_FUNCTION;
-  if (args == NULL) EXIT_VM("INVOKE_CLASS(size_t*)", "Invalid args.");
+  if (args == NULL) EXIT_VM("INVOKE_METHOD(size_t*)", "Invalid args.");
   size_t func = args[1];
   size_t arg_count = args[2];
   size_t return_value = args[3];
@@ -4505,7 +4535,7 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
             Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
-      case OPERATOR_INVOKE_CLASS:
+      case OPERATOR_INVOKE_METHOD:
         bytecode[i].args = GetUnknownCountParamentForClass(&location);
         break;
 
@@ -4612,7 +4642,7 @@ void* AddClass(void* location) {
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
-  if (strcmp(table->class.name, "__start") == 0) {
+  if (strcmp(table->class.name, ".!__start") == 0) {
     for (size_t i = 0; i < method_size; i++) {
       location = AddFunction(location);
     }
@@ -4848,7 +4878,7 @@ void* AddFunction(void* location) {
             Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
         break;
 
-      case OPERATOR_INVOKE_CLASS:
+      case OPERATOR_INVOKE_METHOD:
         bytecode[i].args = GetUnknownCountParamentForClass(&location);
         break;
 
@@ -5004,6 +5034,7 @@ FuncInfo GetCustomFunction(const char* name, size_t* args, size_t args_size) {
     }
     table = table->next;
   }
+  // printf("%s",name);
   if (cost == -1)
     EXIT_VM("GetCustomFunction(const char*,const char*,size_t*,size_t)",
             "Not found func.");
@@ -5178,7 +5209,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
         _CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x1A:
-        INVOKE_CLASS(run_code[i].args);
+        INVOKE_METHOD(run_code[i].args);
         break;
       case 0x1B:
         if (run_code[i].args[1] == 0) {
@@ -5351,7 +5382,7 @@ int InvokeCustomFunction(const char* name, size_t args_size,
         _CONST(run_code[i].args[0], run_code[i].args[1]);
         break;
       case 0x1A:
-        INVOKE_CLASS(run_code[i].args);
+        INVOKE_METHOD(run_code[i].args);
         break;
       case 0x1B:
         LOAD_MEMBER(run_code[i].args[0], run_code[i].args[1],
@@ -5368,6 +5399,43 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   }
 
   return 0;
+}
+
+size_t AddBytecodeFile(const char* file, size_t size) {
+TRACE_FUNCTION;
+for(size_t i =0;i<size,i++){
+  const char* file_name = file;
+  FILE* bytecode = fopen(file, "rb");
+  if (bytecode == NULL) {
+    printf("Error: Could not open file %s\n", file);
+    EXIT_VM("AddBytecodeFile(const char*,size_t)", "Could not open file.");
+  }
+  fseek(bytecode, 0, SEEK_END);
+  size_t bytecode_size = ftell(bytecode);
+  void* bytecode_file = malloc(bytecode_size);
+  void* bytecode_begin = bytecode_file;
+  void* bytecode_end = (void*)((uintptr_t)bytecode_file + bytecode_size);
+  fseek(bytecode, 0, SEEK_SET);
+  fread(bytecode_file, 1, bytecode_size, bytecode);
+  fclose(bytecode);
+
+  while (file != '\0') {
+    file++;
+  }
+  file++;
+
+  const unsigned int class_hash = hash(file_name);
+  struct BytecodeFileList* current_bytecode_file_table = &bytecode_file_table[class_hash];
+  while(current_bytecode_file_table->next != NULL){
+    if(strcmp(current_bytecode_file_table->bytecode_file, file_name) == 0){
+
+    }
+    current_bytecode_file_table = current_bytecode_file_table->next;
+  }
+  current_bytecode_file_table->next = malloc(sizeof(struct BytecodeFileList));
+  current_bytecode_file_table = current_bytecode_file_table->next;
+  current_bytecode_file_table->bytecode_file = bytecode_file;
+}
 }
 
 int main(int argc, char* argv[]) {
@@ -5427,6 +5495,12 @@ int main(int argc, char* argv[]) {
   1); } else { bytecode_file = (void*)((uintptr_t)bytecode_file +
   object_table_size / 2);
   }*/
+
+  size_t bytecode_file_size = is_big_endian
+  ? *(uint64_t*)bytecode_file
+  : SwapUint64t(*(uint64_t*)bytecode_file);
+  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+  bytecode_file = (void*)((uintptr_t)bytecode_file+AddBytecodeFile(bytecode_file,bytecode_file_size));
 
   const_object_table_size = is_big_endian
                                 ? *(uint64_t*)bytecode_file
@@ -5551,7 +5625,7 @@ int main(int argc, char* argv[]) {
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
 
-  InvokeCustomFunction("__start", 1, 1, NULL);
+  InvokeCustomFunction(".!__start", 1, 1, NULL);
 
   size_t* args = (size_t*)malloc(1 * sizeof(size_t));
   args[0] = 0;
