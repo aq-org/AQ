@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 /*typedef struct StackNode {
   char* function_name;
   struct StackNode* next;
@@ -123,6 +122,7 @@ void AddFreePtr(void* ptr);
 
 struct Object* GetOriginData(struct Object* object);
 struct Object* GetObjectData(size_t index);
+struct Object* GetObjectObjectData(struct Object* data);
 const char* GetStringData(size_t index);
 const char* GetStringObjectData(struct Object* object);
 uint64_t GetUint64tObjectData(struct Object* object);
@@ -143,7 +143,16 @@ void SetPtrData(size_t index, struct Object* ptr);
 void SetStringData(size_t index, const char* string);
 void SetReferenceData(size_t index, struct Object* object);
 void SetConstData(size_t index, struct Object* object);
-void SetObjectData(size_t index, struct Object* object);
+void SetObjectObjectData(struct Object* data, struct Object* object);
+void SetByteObjectData(struct Object* data, int8_t);
+void SetLongObjectData(struct Object* data, int64_t);
+void SetDoubleObjectData(struct Object* data, double);
+void SetUint64tObjectData(struct Object* data, uint64_t);
+void SetPtrObjectData(struct Object* data, struct Object* ptr);
+void SetStringObjectData(struct Object* data, const char* string);
+void SetReferenceObjectData(struct Object* data, struct Object* object);
+void SetConstObjectData(struct Object* data, struct Object* object);
+void SetObjectObjectData(struct Object* data, struct Object* object);
 
 void aqstl_print(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -188,34 +197,44 @@ void aqstl_vaprint(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid return value.");
-    struct Object* object = object_table + args.index[0];
-    object = GetOriginData(object);
+  struct Object* object = object_table + args.index[0];
+  object = GetOriginData(object);
 
-    if(object == NULL||object->type == NULL||object->type[0] != 0x06)
-      EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid object.");
+  if (object == NULL || object->type == NULL || object->type[0] != 0x06)
+    EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid object.");
 
-    for (size_t i = 1; i < GetUint64tObjectData(object->data.ptr_data)+1; i++) {
-    switch (GetOriginData(object->data.ptr_data+i)->type[0]) {
+  for (size_t i = 1; i < GetUint64tObjectData(object->data.ptr_data) + 1; i++) {
+    switch (GetOriginData(object->data.ptr_data + i)->type[0]) {
       case 0x01:
-        SetLongData(return_value, printf("%d", GetByteObjectData(object->data.ptr_data+i)));
+        SetLongData(return_value,
+                    printf("%d", GetByteObjectData(object->data.ptr_data + i)));
         break;
       case 0x02:
-        SetLongData(return_value, printf("%lld", GetLongObjectData(object->data.ptr_data+i)));
+        SetLongData(
+            return_value,
+            printf("%lld", GetLongObjectData(object->data.ptr_data + i)));
         break;
       case 0x03:
-        SetLongData(return_value, printf("%.15f", GetDoubleObjectData(object->data.ptr_data+i)));
+        SetLongData(
+            return_value,
+            printf("%.15f", GetDoubleObjectData(object->data.ptr_data + i)));
         break;
       case 0x04:
-        SetLongData(return_value, printf("%zu", GetUint64tObjectData(object->data.ptr_data+i)));
+        SetLongData(
+            return_value,
+            printf("%zu", GetUint64tObjectData(object->data.ptr_data + i)));
         break;
       case 0x05:
-        SetLongData(return_value, printf("%s", GetStringObjectData(object->data.ptr_data+i)));
+        SetLongData(
+            return_value,
+            printf("%s", GetStringObjectData(object->data.ptr_data + i)));
         break;
       case 0x06:
-        SetLongData(return_value, printf("%p", GetPtrObjectData(object->data.ptr_data+i)));
+        SetLongData(return_value,
+                    printf("%p", GetPtrObjectData(object->data.ptr_data + i)));
         break;
       default:
-        //printf("Type: %u\n", (object->data.ptr_data+i)->type[0]);
+        // printf("Type: %u\n", (object->data.ptr_data+i)->type[0]);
         EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Unsupported type.");
         break;
     }
