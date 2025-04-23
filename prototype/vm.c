@@ -5409,15 +5409,18 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   return 0;
 }
 
-void* AddBytecodeFileClass(const char* name,struct Memory* memory,void* location){
+void* AddBytecodeFileClass(const char* name, struct Memory* memory,
+                           void* location) {
   TRACE_FUNCTION;
-  
-  char* class_name=calloc(strlen(name)+16,sizeof(char));
+
+  char* class_name = calloc(strlen(name) + 16, sizeof(char));
   AddFreePtr(class_name);
-  snprintf("%s%s", strlen(name)+16, class_name, name,location);
+  snprintf("%s%s", strlen(name) + 16, class_name, name, location);
 
   struct ClassList* table = &class_table[hash(class_name)];
-  if (table == NULL) EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)", "table is NULL.");
+  if (table == NULL)
+    EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
+            "table is NULL.");
   while (table->next != NULL) {
     table = table->next;
   }
@@ -5434,13 +5437,16 @@ void* AddBytecodeFileClass(const char* name,struct Memory* memory,void* location
   table->class.members =
       (struct Object*)calloc(object_size, sizeof(struct Object));
   if (table->class.members == NULL)
-    EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",  "calloc failed.");
+    EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
+            "calloc failed.");
   AddFreePtr(table->class.members);
 
   for (size_t i = 0; i < object_size; i++) {
     struct ClassVarInfoList* var_info =
         &table->class.var_info_table[hash(location)];
-    if (var_info == NULL) EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)", "var info table is NULL.");
+    if (var_info == NULL)
+      EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
+              "var info table is NULL.");
     while (var_info->next != NULL) {
       var_info = var_info->next;
     }
@@ -5475,7 +5481,8 @@ void* AddBytecodeFileClass(const char* name,struct Memory* memory,void* location
           break;
 
         default:
-          EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",  "Unsupported type.");
+          EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
+                  "Unsupported type.");
           break;
       }
     }
@@ -5487,10 +5494,10 @@ void* AddBytecodeFileClass(const char* name,struct Memory* memory,void* location
   size_t method_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
-  
-    for (size_t i = 0; i < method_size; i++) {
-      location = AddClassMethod(location, table->class.methods);
-    }
+
+  for (size_t i = 0; i < method_size; i++) {
+    location = AddClassMethod(location, table->class.methods);
+  }
 
   table->next = (struct ClassList*)calloc(1, sizeof(struct ClassList));
   AddFreePtr(table->next);
@@ -5500,19 +5507,20 @@ void* AddBytecodeFileClass(const char* name,struct Memory* memory,void* location
   return location;
 }
 
-size_t AddBytecodeFile(const char* file, size_t size);
+void* AddBytecodeFile(char* file, size_t size);
 
-void HandleBytecodeFile(const char* name, void* bytecode_file,size_t size){
+void HandleBytecodeFile(const char* name, void* bytecode_file, size_t size) {
   TRACE_FUNCTION;
   if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
       ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
-    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)", "Invalid bytecode file.");
+    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
+            "Invalid bytecode file.");
   }
 
   if (((char*)bytecode_file)[4] != 0x00 || ((char*)bytecode_file)[5] != 0x00 ||
       ((char*)bytecode_file)[6] != 0x00 || ((char*)bytecode_file)[7] != 0x03) {
     EXIT_VM(
-        "HandleBytecodeFile(const char*,const char*,size_t)", 
+        "HandleBytecodeFile(const char*,const char*,size_t)",
         "This bytecode version is not supported, please check for updates.");
   }
 
@@ -5521,20 +5529,21 @@ void HandleBytecodeFile(const char* name, void* bytecode_file,size_t size){
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
   size_t bytecode_file_size = is_big_endian
-  ? *(uint64_t*)bytecode_file
-  : SwapUint64t(*(uint64_t*)bytecode_file);
+                                  ? *(uint64_t*)bytecode_file
+                                  : SwapUint64t(*(uint64_t*)bytecode_file);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-  bytecode_file = (void*)((uintptr_t)bytecode_file+AddBytecodeFile(bytecode_file,bytecode_file_size));
+  bytecode_file = AddBytecodeFile(bytecode_file, bytecode_file_size);
 
-  memory->const_object_table_size = is_big_endian
-                                ? *(uint64_t*)bytecode_file
-                                : SwapUint64t(*(uint64_t*)bytecode_file);
+  memory->const_object_table_size =
+      is_big_endian ? *(uint64_t*)bytecode_file
+                    : SwapUint64t(*(uint64_t*)bytecode_file);
 
-                                memory->const_object_table =
-      (struct Object*)malloc(memory->const_object_table_size * sizeof(struct Object));
+  memory->const_object_table = (struct Object*)malloc(
+      memory->const_object_table_size * sizeof(struct Object));
 
   if (memory->const_object_table == NULL)
-    EXIT_VM(  "HandleBytecodeFile(const char*,const char*,size_t)",  "const_object_table malloc failed.");
+    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
+            "const_object_table malloc failed.");
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
@@ -5543,29 +5552,33 @@ void HandleBytecodeFile(const char* name, void* bytecode_file,size_t size){
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
     switch (memory->const_object_table[i].type[0]) {
       case 0x01:
-      memory->const_object_table[i].data.byte_data = *(int8_t*)bytecode_file;
+        memory->const_object_table[i].data.byte_data = *(int8_t*)bytecode_file;
         bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
         break;
 
       case 0x02:
-      memory->const_object_table[i].data.long_data = *(int64_t*)bytecode_file;
-      memory->const_object_table[i].data.long_data =
-            is_big_endian ? memory->const_object_table[i].data.long_data
-                          : SwapLong(memory->const_object_table[i].data.long_data);
+        memory->const_object_table[i].data.long_data = *(int64_t*)bytecode_file;
+        memory->const_object_table[i].data.long_data =
+            is_big_endian
+                ? memory->const_object_table[i].data.long_data
+                : SwapLong(memory->const_object_table[i].data.long_data);
         bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
         break;
 
       case 0x03:
-      memory->const_object_table[i].data.double_data = *(double*)bytecode_file;
-      memory->const_object_table[i].data.double_data =
-            is_big_endian ? const_object_table[i].data.double_data
-                          : SwapDouble(memory->const_object_table[i].data.double_data);
+        memory->const_object_table[i].data.double_data =
+            *(double*)bytecode_file;
+        memory->const_object_table[i].data.double_data =
+            is_big_endian
+                ? const_object_table[i].data.double_data
+                : SwapDouble(memory->const_object_table[i].data.double_data);
         bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
         break;
 
       case 0x04:
-      memory->const_object_table[i].data.uint64t_data = *(uint64_t*)bytecode_file;
-      memory->const_object_table[i].data.uint64t_data =
+        memory->const_object_table[i].data.uint64t_data =
+            *(uint64_t*)bytecode_file;
+        memory->const_object_table[i].data.uint64t_data =
             is_big_endian
                 ? const_object_table[i].data.uint64t_data
                 : SwapUint64t(memory->const_object_table[i].data.uint64t_data);
@@ -5576,30 +5589,33 @@ void HandleBytecodeFile(const char* name, void* bytecode_file,size_t size){
         size_t str_size = 0;
         bytecode_file = (void*)((uintptr_t)bytecode_file +
                                 DecodeUleb128(bytecode_file, &str_size));
-                                memory->const_object_table[i].data.string_data = bytecode_file;
+        memory->const_object_table[i].data.string_data = bytecode_file;
         bytecode_file = (void*)((uintptr_t)bytecode_file + str_size);
         break;
       }
 
       case 0x06:
-      memory->const_object_table[i].data.ptr_data = *(void**)bytecode_file;
+        memory->const_object_table[i].data.ptr_data = *(void**)bytecode_file;
         bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
         break;
 
       default:
-        EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",  "Unknown type.");
+        EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
+                "Unknown type.");
         break;
     }
   }
 
-  memory->object_table_size = is_big_endian ? *(uint64_t*)bytecode_file
-                                    : SwapUint64t(*(uint64_t*)bytecode_file);
+  memory->object_table_size = is_big_endian
+                                  ? *(uint64_t*)bytecode_file
+                                  : SwapUint64t(*(uint64_t*)bytecode_file);
 
-                                    memory->object_table =
+  memory->object_table =
       (struct Object*)calloc(memory->object_table_size, sizeof(struct Object));
 
   if (memory->object_table == NULL)
-    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",  "object_table calloc failed.");
+    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
+            "object_table calloc failed.");
 
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
@@ -5627,158 +5643,214 @@ void HandleBytecodeFile(const char* name, void* bytecode_file,size_t size){
 
         default:
           // printf("object_table type: %i\n", *(uint8_t*)bytecode_file);
-          EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",   "Unsupported type.");
+          EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
+                  "Unsupported type.");
           break;
       }
     }
-    if (memory->object_table[i].type[0] != 0x00) memory->object_table[i].const_type = true;
+    if (memory->object_table[i].type[0] != 0x00)
+      memory->object_table[i].const_type = true;
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
   }
 
-  while (bytecode_file < (void*)((uintptr_t)bytecode_file+size)) {
-    bytecode_file = AddBytecodeFileClass(name,memory,bytecode_file);
+  while (bytecode_file < (void*)((uintptr_t)bytecode_file + size)) {
+    bytecode_file = AddBytecodeFileClass(name, memory, bytecode_file);
   }
 
   // free_list = NULL;
 
-//  InvokeCustomFunction(".!__start", 1, 1, NULL);
-
+  //  InvokeCustomFunction(".!__start", 1, 1, NULL);
 }
 
-size_t AddBytecodeFile(const char* file, size_t size) {
-TRACE_FUNCTION;
-for(size_t i =0;i<size;i++){
-  current_file_count++;
-  const char* file_name = file;
-  FILE* bytecode = fopen(file, "rb");
-  if (bytecode == NULL) {
-    printf("Error: Could not open file %s\n", file);
-    EXIT_VM("AddBytecodeFile(const char*,size_t)", "Could not open file.");
-  }
-  fseek(bytecode, 0, SEEK_END);
-  size_t bytecode_size = ftell(bytecode);
-  void* bytecode_file = malloc(bytecode_size);
-  void* bytecode_begin = bytecode_file;
-  void* bytecode_end = (void*)((uintptr_t)bytecode_file + bytecode_size);
-  fseek(bytecode, 0, SEEK_SET);
-  fread(bytecode_file, 1, bytecode_size, bytecode);
-  fclose(bytecode);
-
-  while (file != '\0') {
-    file++;
-  }
-  file++;
-
-  const unsigned int class_hash = hash(file_name);
-  struct BytecodeFileList* current_bytecode_file_table = &bytecode_file_table[class_hash];
-  bool is_exist = false;
-  while(current_bytecode_file_table->next != NULL){
-    if(strcmp(current_bytecode_file_table->name, file_name) == 0){
-      is_exist = true;break;
+void* AddBytecodeFile(char* file, size_t size) {
+  TRACE_FUNCTION;
+  for (size_t i = 0; i < size; i++) {
+    current_file_count++;
+    const char* file_name = file;
+    FILE* bytecode = fopen(file, "rb");
+    if (bytecode == NULL) {
+      printf("Error: Could not open file %s\n", file);
+      EXIT_VM("AddBytecodeFile(const char*,size_t)", "Could not open file.");
     }
-    current_bytecode_file_table = current_bytecode_file_table->next;
+    fseek(bytecode, 0, SEEK_END);
+    size_t bytecode_size = ftell(bytecode);
+    void* bytecode_file = malloc(bytecode_size);
+    void* bytecode_begin = bytecode_file;
+    void* bytecode_end = (void*)((uintptr_t)bytecode_file + bytecode_size);
+    fseek(bytecode, 0, SEEK_SET);
+    fread(bytecode_file, 1, bytecode_size, bytecode);
+    fclose(bytecode);
+
+    while (*file != '\0') {
+      file++;
+    }
+    file++;
+
+    const unsigned int class_hash = hash(file_name);
+    struct BytecodeFileList* current_bytecode_file_table =
+        &bytecode_file_table[class_hash];
+    bool is_exist = false;
+    while (current_bytecode_file_table->next != NULL) {
+      if (strcmp(current_bytecode_file_table->name, file_name) == 0) {
+        is_exist = true;
+        break;
+      }
+      current_bytecode_file_table = current_bytecode_file_table->next;
+    }
+    if (!is_exist) {
+      current_bytecode_file_table->next =
+          malloc(sizeof(struct BytecodeFileList));
+      // current_bytecode_file_table = current_bytecode_file_table->next;
+      current_bytecode_file_table->name = file_name;
+      char* name = calloc(15, sizeof(char));
+      snprintf("~%i", 15, name, current_file_count);
+      HandleBytecodeFile(name, bytecode_file, bytecode_size);
+
+      char* temp_class_name = calloc(30, sizeof(char));
+      AddFreePtr(temp_class_name);
+      snprintf("%s.!__start", 30, temp_class_name, name);
+
+      current_bytecode_file = temp_class_name;
+
+      struct Object* bytecode_file_object = calloc(1, sizeof(struct Object));
+
+      uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+      bytecode_file_object->type = type_ptr;
+      bytecode_file_object->type[0] = 0x09;
+      bytecode_file_object->const_type = true;
+      AddFreePtr(type_ptr);
+
+      struct Class* class_data = NULL;
+      const unsigned int class_hash = hash(temp_class_name);
+      struct ClassList* current_class_table = &class_table[class_hash];
+      while (current_class_table != NULL &&
+             current_class_table->class.name != NULL) {
+        if (strcmp(current_class_table->class.name, temp_class_name) == 0) {
+          class_data = &current_class_table->class;
+          break;
+        }
+        current_class_table = current_class_table->next;
+      }
+
+      if (class_data == NULL) {
+        EXIT_VM("AddBytecodeFile(const char*,size_t)", "Class not found.");
+      }
+
+      struct Object* class_object =
+          calloc(class_data->members_size, sizeof(struct Object));
+      AddFreePtr(class_object);
+      for (size_t j = 0; j < class_data->members_size; j++) {
+        uint8_t* location = class_data->members[j].type;
+        size_t length = 1;
+        bool is_type_end = false;
+        while (!is_type_end) {
+          switch (*location) {
+            case 0x00:
+            case 0x01:
+            case 0x02:
+            case 0x03:
+            case 0x04:
+            case 0x05:
+            case 0x09:
+              is_type_end = true;
+              break;
+
+            case 0x06:
+            case 0x07:
+            case 0x08:
+              length++;
+              location++;
+              break;
+
+            default:
+              EXIT_VM("AddBytecodeFile(const char*,size_t)",
+                      "Unsupported type.");
+              break;
+          }
+        }
+
+        class_object[j].type = calloc(length, sizeof(uint8_t));
+        AddFreePtr(class_object[j].type);
+        memcpy(class_object[j].type, class_data->members[j].type, length);
+        class_object[j].const_type = class_data->members[j].const_type;
+      }
+      class_object[0].const_type = true;
+      class_object[0].type[0] = 0x05;
+      class_object[0].data.string_data = temp_class_name;
+
+      class_object[1].const_type = true;
+      class_object[1].type[0] = 0x04;
+      class_object[1].data.uint64t_data = class_data->members_size;
+      bytecode_file_object->data.object_data = class_object;
+
+      current_bytecode_file_table->object = bytecode_file_object;
+    }
+
+    const char* scope = file;
+    while (*file != '\0') {
+      file++;
+    }
+    file++;
+
+    struct Class* current_object = NULL;
+
+    const unsigned int current_class_hash = hash(current_bytecode_file);
+    struct ClassList* current_class_table = &class_table[class_hash];
+    while (current_class_table != NULL &&
+           current_class_table->class.name != NULL) {
+      if (strcmp(current_class_table->class.name, current_bytecode_file) == 0) {
+        current_object = &current_class_table->class;
+        break;
+      }
+      current_class_table = current_class_table->next;
+    }
+
+    if (current_object == NULL)
+      EXIT_VM("AddBytecodeFile(const char*,size_t)",
+              "Not current class object.");
+    if (current_object->members_size == 0)
+      EXIT_VM("AddBytecodeFile(const char*,size_t)",
+              "Not current class object.");
+
+    const char* var_name = scope;
+
+    size_t offset = 0;
+
+    bool is_var_find = false;
+    const unsigned int member_hash = hash(var_name);
+    struct ClassVarInfoList* current_var_table =
+        &(current_object->var_info_table[member_hash]);
+    while (current_var_table != NULL && current_var_table->name != NULL) {
+      if (strcmp(current_var_table->name, var_name) == 0) {
+        offset = current_var_table->index;
+        is_var_find = true;
+        break;
+      }
+      current_var_table = current_var_table->next;
+    }
+    if (!is_var_find)
+      EXIT_VM("AddBytecodeFile(const char*,size_t)", "Class Var not found.");
+
+    struct Object* object_data =
+        current_object->members->data.object_data + offset;
+
+    object_data->type[0] = 0x09;
+    object_data->const_type = true;
+    object_data->data.object_data = current_bytecode_file_table->object;
+
+    struct BytecodeFileList* bytecode_file_list =
+        &current_object->bytecode_file[hash(scope)];
+    while (bytecode_file_list->next != NULL) {
+      bytecode_file_list = bytecode_file_list->next;
+    }
+    bytecode_file_list->next = calloc(1, sizeof(struct BytecodeFileList));
+    bytecode_file_list->object = current_bytecode_file_table->object;
+    bytecode_file_list->name = scope;
+
+    current_bytecode_file = NULL;
   }
-  if(!is_exist){
-  current_bytecode_file_table->next = malloc(sizeof(struct BytecodeFileList));
-  //current_bytecode_file_table = current_bytecode_file_table->next;
-  current_bytecode_file_table->name = file_name;
-  char* name = calloc(15,sizeof(char));
-  snprintf("~%i",15,name,current_file_count);
-  HandleBytecodeFile(name,bytecode_file,bytecode_size);
-  
-  
-
-  char* temp_class_name = calloc(30,sizeof(char));
-  AddFreePtr(temp_class_name);
-  snprintf("%s.!__start", 30, temp_class_name, name);
-
-  struct Object* bytecode_file_object = calloc(1,sizeof(struct Object));
-  
-
-
-
-  
-
-
-   
-
-        uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
-        bytecode_file_object->type = type_ptr;
-        bytecode_file_object->type[0] = 0x09;
-        bytecode_file_object->const_type = true;
-        AddFreePtr(type_ptr);
-
-        struct Class* class_data = NULL;
-        const unsigned int class_hash = hash(temp_class_name);
-        struct ClassList* current_class_table = &class_table[class_hash];
-        while (current_class_table != NULL &&
-               current_class_table->class.name != NULL) {
-          if (strcmp(current_class_table->class.name, temp_class_name) == 0) {
-            class_data = &current_class_table->class;
-            break;
-          }
-          current_class_table = current_class_table->next;
-        }
-
-        if (class_data == NULL) {
-          EXIT_VM("NEW(size_t, size_t)", "Class not found.");
-        }
-
-        struct Object* class_object =
-            calloc(class_data->members_size, sizeof(struct Object));
-        AddFreePtr(class_object);
-        for (size_t j = 0; j < class_data->members_size; j++) {
-          uint8_t* location = class_data->members[j].type;
-          size_t length = 1;
-          bool is_type_end = false;
-          while (!is_type_end) {
-            switch (*location) {
-              case 0x00:
-              case 0x01:
-              case 0x02:
-              case 0x03:
-              case 0x04:
-              case 0x05:
-              case 0x09:
-                is_type_end = true;
-                break;
-
-              case 0x06:
-              case 0x07:
-              case 0x08:
-                length++;
-                location++;
-                break;
-
-              default:
-                EXIT_VM("AddClass(void*)", "Unsupported type.");
-                break;
-            }
-          }
-
-          class_object[j].type = calloc(length, sizeof(uint8_t));
-          AddFreePtr(class_object[j].type);
-          memcpy(class_object[j].type, class_data->members[j].type, length);
-          class_object[j].const_type = class_data->members[j].const_type;
-        }
-        class_object[0].const_type = true;
-        class_object[0].type[0] = 0x05;
-        class_object[0].data.string_data = temp_class_name;
-       
-        class_object[1].const_type = true;
-        class_object[1].type[0] = 0x04;
-        class_object[1].data.uint64t_data = class_data->members_size;
-        bytecode_file_object->data.object_data = class_object;
-      
-        current_bytecode_file_table->object = bytecode_file_object;
-    
+  return file;
 }
-// TODO: current_bytecode_file
-
-
-}
-}
-
 
 int main(int argc, char* argv[]) {
   time_t start_time = clock();
@@ -5839,10 +5911,10 @@ int main(int argc, char* argv[]) {
   }*/
 
   size_t bytecode_file_size = is_big_endian
-  ? *(uint64_t*)bytecode_file
-  : SwapUint64t(*(uint64_t*)bytecode_file);
+                                  ? *(uint64_t*)bytecode_file
+                                  : SwapUint64t(*(uint64_t*)bytecode_file);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-  bytecode_file = (void*)((uintptr_t)bytecode_file+AddBytecodeFile(bytecode_file,bytecode_file_size));
+  bytecode_file = AddBytecodeFile(bytecode_file, bytecode_file_size);
 
   const_object_table_size = is_big_endian
                                 ? *(uint64_t*)bytecode_file
