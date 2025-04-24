@@ -3372,8 +3372,10 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
   if (size_value == 0 && type_data->type[0] == 0x05 &&
       type_data->data.string_data != NULL) {
+        printf("TEST");
     SetObjectData(ptr, data->data.object_data);
   } else {
+    printf("TEST 1");
     SetPtrData(ptr, data);
   }
   // WriteData(memory, ptr, &data, sizeof(data));
@@ -4773,7 +4775,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);
-  // printf("\nType: %i\n", class_data->type[0]);
+   printf("\nType: %i\n", class_data->type[0]);
   if (class_data == NULL || class_data->type[0] != 0x09)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
 
@@ -6681,6 +6683,18 @@ int main(int argc, char* argv[]) {
 
   InitializeNameTable(name_table);
   // printf("\nProgram started.\n");
+
+  object_table[2].type[0] = 0x05;
+  object_table[2].const_type = false;
+  object_table[2].data.string_data = ".!__start";
+
+  struct Object temp;
+  temp=object_table[0];
+  object_table[0].type[0] = 0x04;
+  object_table[0].const_type = false;
+  object_table[0].data.uint64t_data = 0;
+  NEW(2,0,2);
+  object_table[0]=temp;
 
   InvokeCustomFunction(".!__start", 1, 1, NULL);
 
