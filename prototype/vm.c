@@ -215,7 +215,9 @@ struct ClassList {
   struct ClassList* next;
 };
 
-size_t current_file_count;
+int current_file_count;
+
+struct Object* current_running_object;
 
 /*struct BytecodeFileList {
   const char* name;
@@ -1511,6 +1513,7 @@ void SetLongData(size_t index, int64_t value) {
         SetUint64tData(index, value);
         return;
       default:
+        // printf("%zu,%i,%lld", index, data->type[0], value);
         break;
     }
     EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
@@ -3128,6 +3131,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
         struct ClassList* current_class_table = &class_table[class_hash];
         while (current_class_table != NULL &&
                current_class_table->class.name != NULL) {
+          // printf("%s,%s\n", current_class_table->class.name, class);
           if (strcmp(current_class_table->class.name, class) == 0) {
             class_data = &current_class_table->class;
             break;
@@ -3372,13 +3376,209 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
   if (size_value == 0 && type_data->type[0] == 0x05 &&
       type_data->data.string_data != NULL) {
-        printf("TEST");
+    // printf("TEST");
     SetObjectData(ptr, data->data.object_data);
   } else {
-    printf("TEST 1");
+    // printf("TEST 1");
     SetPtrData(ptr, data);
   }
   // WriteData(memory, ptr, &data, sizeof(data));
+  return 0;
+}
+
+int CrossMemoryNew(struct Memory* memory, size_t ptr, size_t size,
+                   size_t type) {
+  TRACE_FUNCTION;
+  if (ptr >= memory->object_table_size)
+    EXIT_VM("NEW(size_t, size_t)", "ptr is out of memory.");
+  if (size >= object_table_size)
+    EXIT_VM("NEW(size_t, size_t)", "size is out of memory.");
+
+  struct Object* type_data = object_table + type;
+  type_data = GetOriginData(type_data);
+
+  size_t size_value = GetUint64tData(size);
+
+  if ((type == 0 ||
+       (type_data->type[0] != 0x05 || type_data->data.string_data == NULL)) &&
+      size_value == 0)
+    size_value = 1;
+
+  struct Object* data = calloc(size_value + 1, sizeof(struct Object));
+  AddFreePtr(data);
+
+  uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+  data[0].type = type_ptr;
+  type_ptr[0] = 0x04;
+  data[0].const_type = true;
+  data[0].data.uint64t_data = size_value;
+
+  AddFreePtr(type_ptr);
+
+  if (type == 0) {
+    for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
+      uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+      data[i].type = type_ptr;
+      data[i].const_type = false;
+      AddFreePtr(type_ptr);
+    }
+  } else {
+    if (type_data->type[0] == 0x05 && type_data->data.string_data != NULL) {
+      if (size_value == 0) {
+        size_t i = 0;
+        uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+        data[i].type = type_ptr;
+        data[i].type[0] = 0x09;
+        data[i].const_type = true;
+        AddFreePtr(type_ptr);
+
+        struct Class* class_data = NULL;
+        const char* class = GetStringData(type);
+        const unsigned int class_hash = hash(class);
+        struct ClassList* current_class_table = &class_table[class_hash];
+        while (current_class_table != NULL &&
+               current_class_table->class.name != NULL) {
+          if (strcmp(current_class_table->class.name, class) == 0) {
+            class_data = &current_class_table->class;
+            break;
+          }
+          current_class_table = current_class_table->next;
+        }
+
+        if (class_data == NULL) {
+          EXIT_VM("NEW(size_t, size_t)", "Class not found.");
+        }
+
+        struct Object* class_object =
+            calloc(class_data->members_size, sizeof(struct Object));
+        AddFreePtr(class_object);
+        for (size_t j = 0; j < class_data->members_size; j++) {
+          uint8_t* location = class_data->members[j].type;
+          size_t length = 1;
+          bool is_type_end = false;
+          while (!is_type_end) {
+            switch (*location) {
+              case 0x00:
+              case 0x01:
+              case 0x02:
+              case 0x03:
+              case 0x04:
+              case 0x05:
+              case 0x09:
+                is_type_end = true;
+                break;
+
+              case 0x06:
+              case 0x07:
+              case 0x08:
+                length++;
+                location++;
+                break;
+
+              default:
+                EXIT_VM("AddClass(void*)", "Unsupported type.");
+                break;
+            }
+          }
+
+          class_object[j].type = calloc(length, sizeof(uint8_t));
+          AddFreePtr(class_object[j].type);
+          memcpy(class_object[j].type, class_data->members[j].type, length);
+          class_object[j].const_type = class_data->members[j].const_type;
+        }
+        class_object[0].const_type = true;
+        class_object[0].type[0] = 0x05;
+        class_object[0].data.string_data = class;
+        class_object[1].const_type = true;
+        class_object[1].type[0] = 0x04;
+        class_object[1].data.uint64t_data = class_data->members_size;
+        data[i].data.object_data = class_object;
+
+      } else {
+        for (size_t i = 1; i < size_value + 1; i++) {
+          uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
+          data[i].type = type_ptr;
+          data[i].type[0] = 0x09;
+          data[i].const_type = true;
+          AddFreePtr(type_ptr);
+
+          struct Class* class_data = NULL;
+          const char* class = GetStringData(type);
+          const unsigned int class_hash = hash(class);
+          struct ClassList* current_class_table = &class_table[class_hash];
+          while (current_class_table != NULL &&
+                 current_class_table->class.name != NULL) {
+            if (strcmp(current_class_table->class.name, class) == 0) {
+              class_data = &current_class_table->class;
+              break;
+            }
+            current_class_table = current_class_table->next;
+          }
+
+          if (class_data == NULL) {
+            EXIT_VM("NEW(size_t, size_t)", "Class not found.");
+          }
+
+          struct Object* class_object =
+              calloc(class_data->members_size, sizeof(struct Object));
+          AddFreePtr(class_object);
+          for (size_t j = 0; j < class_data->members_size; j++) {
+            uint8_t* location = class_data->members[j].type;
+            size_t length = 1;
+            bool is_type_end = false;
+            while (!is_type_end) {
+              switch (*location) {
+                case 0x00:
+                case 0x01:
+                case 0x02:
+                case 0x03:
+                case 0x04:
+                case 0x05:
+                case 0x09:
+                  is_type_end = true;
+                  break;
+
+                case 0x06:
+                case 0x07:
+                case 0x08:
+                  length++;
+                  location++;
+                  break;
+
+                default:
+                  EXIT_VM("AddClass(void*)", "Unsupported type.");
+                  break;
+              }
+            }
+
+            class_object[j].type = calloc(length, sizeof(uint8_t));
+            AddFreePtr(class_object[j].type);
+            memcpy(class_object[j].type, class_data->members[j].type, length);
+            class_object[j].const_type = class_data->members[j].const_type;
+          }
+          class_object[0].const_type = true;
+          class_object[0].type[0] = 0x05;
+          class_object[0].data.string_data = class;
+          class_object[1].const_type = true;
+          class_object[1].type[0] = 0x04;
+          class_object[1].data.uint64t_data = class_data->members_size;
+          data[i].data.object_data = class_object;
+        }
+      }
+    } else {
+      for (size_t i = 1; i < 2 /*size_value + 1*/; i++) {
+        data[i].type = type_data->type;
+        data[i].const_type = true;
+      }
+    }
+  }
+
+  if (size_value == 0 && type_data->type[0] == 0x05 &&
+      type_data->data.string_data != NULL) {
+    SetObjectObjectData(memory->object_table + ptr, data->data.object_data);
+  } else {
+    SetPtrObjectData(memory->object_table + ptr, data);
+  }
   return 0;
 }
 
@@ -4762,6 +4962,12 @@ int INVOKE_METHOD(size_t* args) {
   }
   InternalObject args_obj = {arg_count - 1, invoke_args};
 
+  func_ptr invoke_func = GetFunction(GetStringData(func));
+  if (invoke_func != NULL) {
+    invoke_func(args_obj, return_value);
+    return 0;
+  }
+
   return InvokeClassFunction(args[0], GetStringData(func), arg_count,
                              return_value, invoke_args);
 }
@@ -4775,7 +4981,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);
-   printf("\nType: %i\n", class_data->type[0]);
+  // printf("\nType: %i\n", class_data->type[0]);
   if (class_data == NULL || class_data->type[0] != 0x09)
     EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
 
@@ -4932,6 +5138,8 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   // void* original_location = location;
   // printf("point 1\n");
 
+  if (*(char*)location == '.') location = (void*)((uintptr_t)location + 1);
+
   struct FuncList* table = &methods[hash(location)];
   if (table == NULL)
     EXIT_VM("AddClassMethod(void*,struct FuncList*)", "table is NULL.");
@@ -4941,7 +5149,7 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  // printf("Name: %s\n", table->pair.second.name);
+  printf("Name: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -4975,6 +5183,275 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
                          DecodeUleb128(location, &table->pair.second.args[i]));
     }
   }
+
+  // printf("\n\n\n%s",table->pair.second.name);
+
+  /*printf("%02x,%02x, %02x, %02x\n", *(uint8_t*)location,
+         *(uint8_t*)((uintptr_t)location + 1),
+         *(uint8_t*)((uintptr_t)location + 2),
+         *(uint8_t*)((uintptr_t)location + 3));
+         printf("%02x,%02x, %02x, %02x\n", *(uint8_t*)((uintptr_t)location + 4),
+         *(uint8_t*)((uintptr_t)location +5),
+         *(uint8_t*)((uintptr_t)location +6),
+         *(uint8_t*)((uintptr_t)location +7));*/
+
+  table->pair.second.commands_size =
+      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
+  location = (void*)((uintptr_t)location + 8);
+
+  struct Bytecode* bytecode = (struct Bytecode*)calloc(
+      table->pair.second.commands_size, sizeof(struct Bytecode));
+  // printf("commands_size: %zu", table->pair.second.commands_size);
+  if (bytecode == NULL)
+    EXIT_VM("AddClassMethod(void*,struct FuncList*)", "calloc failed.");
+  AddFreePtr(bytecode);
+
+  table->pair.second.commands = bytecode;
+
+  for (size_t i = 0; i < table->pair.second.commands_size; i++) {
+    bytecode[i].operator= *(uint8_t*) location;
+    location = (void*)((uintptr_t)location + 1);
+    switch (bytecode[i].operator) {
+      case OPERATOR_NOP:
+        bytecode[i].args = NULL;
+        break;
+
+      case OPERATOR_LOAD:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_STORE:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_NEW:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_ARRAY:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_PTR:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_ADD:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_SUB:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_MUL:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_DIV:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_REM:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_NEG:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_SHL:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_SHR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_REFER:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_AND:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_OR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_XOR:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_IF:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_CMP:
+        bytecode[i].args = (size_t*)malloc(4 * sizeof(size_t));
+        location =
+            Get4Parament(location, bytecode[i].args, bytecode[i].args + 1,
+                         bytecode[i].args + 2, bytecode[i].args + 3);
+        break;
+
+      case OPERATOR_GOTO:
+        bytecode[i].args = (size_t*)malloc(sizeof(size_t));
+        location = Get1Parament(location, bytecode[i].args);
+        break;
+
+      case OPERATOR_INVOKE:
+        bytecode[i].args = GetUnknownCountParament(&location);
+        break;
+
+      case OPERATOR_EQUAL:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_LOAD_CONST:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_CONVERT:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_CONST:
+        bytecode[i].args = (size_t*)malloc(2 * sizeof(size_t));
+        location =
+            Get2Parament(location, bytecode[i].args, bytecode[i].args + 1);
+        break;
+
+      case OPERATOR_INVOKE_METHOD:
+        bytecode[i].args = GetUnknownCountParamentForClass(&location);
+        break;
+
+      case OPERATOR_LOAD_MEMBER:
+        bytecode[i].args = (size_t*)malloc(3 * sizeof(size_t));
+        location = Get3Parament(location, bytecode[i].args,
+                                bytecode[i].args + 1, bytecode[i].args + 2);
+        break;
+
+      case OPERATOR_WIDE:
+        bytecode[i].args = NULL;
+        break;
+
+      default:
+        EXIT_VM("AddClassMethod(void*,struct FuncList*)", "Invalid operator.");
+    }
+    AddFreePtr(bytecode[i].args);
+  }
+
+  table->next = (struct FuncList*)calloc(1, sizeof(struct FuncList));
+  AddFreePtr(table->next);
+
+  return location;
+}
+
+void* AddClassMethodFromOutside(void* location, struct FuncList* methods) {
+  TRACE_FUNCTION;
+  // void* original_location = location;
+  // printf("point 1\n");
+
+  location = (void*)((uintptr_t)location + 1);
+
+  struct FuncList* table = &methods[hash(location)];
+  if (table == NULL)
+    EXIT_VM("AddClassMethod(void*,struct FuncList*)", "table is NULL.");
+  while (table->next != NULL) {
+    table = table->next;
+  }
+
+  table->pair.second.location = location;
+  table->pair.first = location;
+  table->pair.second.name = location;
+  printf("Name: %s\n", table->pair.second.name);
+  while (*(char*)location != '\0') {
+    location = (void*)((uintptr_t)location + 1);
+  }
+  location = (void*)((uintptr_t)location + 1);
+
+  if (*(uint8_t*)location == 0xFF) {
+    location = (void*)((uintptr_t)location + 1);
+    table->pair.second.va_flag = true;
+  } else {
+    table->pair.second.va_flag = false;
+  }
+
+  location = (void*)((uintptr_t)location +
+                     DecodeUleb128(location, &table->pair.second.args_size));
+  if (table->pair.second.va_flag) {
+    // printf("TEST 2");
+    table->pair.second.args_size--;
+    table->pair.second.args =
+        (size_t*)calloc(table->pair.second.args_size + 1, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size + 1; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
+  } else {
+    table->pair.second.args =
+        (size_t*)calloc(table->pair.second.args_size, sizeof(size_t));
+    // printf("args_size: %zu", table->pair.second.args_size);
+    for (size_t i = 0; i < table->pair.second.args_size; i++) {
+      location = (void*)((uintptr_t)location +
+                         DecodeUleb128(location, &table->pair.second.args[i]));
+    }
+  }
+
+  // printf("\n\n\n%s",table->pair.second.name);
+
+  /*printf("%02x,%02x, %02x, %02x\n", *(uint8_t*)location,
+         *(uint8_t*)((uintptr_t)location + 1),
+         *(uint8_t*)((uintptr_t)location + 2),
+         *(uint8_t*)((uintptr_t)location + 3));
+         printf("%02x,%02x, %02x, %02x\n", *(uint8_t*)((uintptr_t)location + 4),
+         *(uint8_t*)((uintptr_t)location +5),
+         *(uint8_t*)((uintptr_t)location +6),
+         *(uint8_t*)((uintptr_t)location +7));*/
 
   table->pair.second.commands_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
@@ -5175,6 +5652,8 @@ void* AddFunction(void* location);
 void* AddClass(void* location) {
   TRACE_FUNCTION;
 
+  printf("AddClass START.\n");
+
   struct ClassList* table = &class_table[hash(location)];
   if (table == NULL) EXIT_VM("AddClass(void*)", "table is NULL.");
   while (table->next != NULL) {
@@ -5205,6 +5684,7 @@ void* AddClass(void* location) {
       var_info = var_info->next;
     }
     var_info->name = location;
+    printf("MEMBER: %s\n", var_info->name);
     var_info->index = i;
     var_info->next =
         (struct ClassVarInfoList*)calloc(1, sizeof(struct ClassVarInfoList));
@@ -5254,7 +5734,8 @@ void* AddClass(void* location) {
 
   if (strcmp(table->class.name, ".!__start") == 0) {
     for (size_t i = 0; i < method_size; i++) {
-      location = AddFunction(location);
+      // location = AddFunction(location);
+      location = AddClassMethod(location, table->class.methods);
     }
   } else {
     for (size_t i = 0; i < method_size; i++) {
@@ -5526,6 +6007,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
     EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
             "Invalid func name.");
   // printf("Class: %s, Name: %s\n", class, name);
+  if (*name == '.') name++;
   const unsigned int class_hash = hash(class);
   const struct ClassList* current_class_table = &class_table[class_hash];
   FuncInfo temp_func;
@@ -5541,6 +6023,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
           EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
                   "Invalid name.");
         if (strcmp(table->pair.first, name) == 0) {
+          printf("FOUND BUT NOT MATCH.\n");
           if (table->pair.second.args_size <= args_size) {
             // bool is_same = true;
             // for (size_t i = 0; i < args_size - 1; i++) {
@@ -5701,7 +6184,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   }
 
   FuncInfo func_info = GetClassFunction(class_name, name, args, args_size);
-  if (args_size != func_info.args_size) {
+  if (args_size < func_info.args_size) {
     // printf("args_size: %zu\n", args_size);
     // printf("func_info.args_size: %zu\n", func_info.args_size);
     EXIT_VM("InvokeClassFunction(size_t,const char*,size_t,size_t,size_t*)",
@@ -5718,16 +6201,17 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
     object_table[return_value].data.uint64t_data =
         args_size - func_info.args_size;
 
-    NEW(func_info.args[func_info.args_size], return_value, 0x00);
+    CrossMemoryNew(class_memory, func_info.args[func_info.args_size],
+                   return_value, 0x00);
 
     // printf("RUN OK!\n");
     for (size_t i = 0; i < args_size - func_info.args_size; i++) {
       class_memory->object_table[func_info.args[func_info.args_size]]
           .data.ptr_data[i + 1]
-          .type = object_table[args[func_info.args_size + i]].type;
+          .type = object_table[args[func_info.args_size + i - 1]].type;
       class_memory->object_table[func_info.args[func_info.args_size]]
           .data.ptr_data[i + 1]
-          .data = object_table[args[func_info.args_size + i]].data;
+          .data = object_table[args[func_info.args_size + i - 1]].data;
     }
   }
 
@@ -6051,9 +6535,11 @@ void* AddBytecodeFileClass(const char* name, struct Memory* memory,
                            void* location) {
   TRACE_FUNCTION;
 
+  // printf("ABFC. location: %s\n",location);
+
   char* class_name = calloc(strlen(name) + 16, sizeof(char));
   AddFreePtr(class_name);
-  snprintf("%s%s", strlen(name) + 16, class_name, name, location);
+  snprintf(class_name, strlen(name) + 16, "%s%s", name, (char*)location);
 
   struct ClassList* table = &class_table[hash(class_name)];
   if (table == NULL)
@@ -6133,8 +6619,10 @@ void* AddBytecodeFileClass(const char* name, struct Memory* memory,
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
 
+  // printf("Method size: %zu\n", method_size);
   for (size_t i = 0; i < method_size; i++) {
-    location = AddClassMethod(location, table->class.methods);
+    // printf("NOW: %zu,%zu\n", i, method_size);
+    location = AddClassMethodFromOutside(location, table->class.methods);
   }
 
   table->next = (struct ClassList*)calloc(1, sizeof(struct ClassList));
@@ -6147,7 +6635,8 @@ void* AddBytecodeFileClass(const char* name, struct Memory* memory,
 
 void* AddBytecodeFile(char* file, size_t size);
 
-void HandleBytecodeFile(const char* name, void* bytecode_file, size_t size) {
+struct Object* HandleBytecodeFile(const char* name, void* bytecode_file,
+                                  size_t size) {
   TRACE_FUNCTION;
   if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
       ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
@@ -6160,6 +6649,26 @@ void HandleBytecodeFile(const char* name, void* bytecode_file, size_t size) {
     EXIT_VM(
         "HandleBytecodeFile(const char*,const char*,size_t)",
         "This bytecode version is not supported, please check for updates.");
+  }
+
+  void* bytecode_end = (void*)((uintptr_t)bytecode_file + size);
+
+  size_t import_bytecode_file_size =
+      is_big_endian ? *(uint64_t*)bytecode_file
+                    : SwapUint64t(*(uint64_t*)bytecode_file);
+  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+
+  void* import_bytecode_file = bytecode_file;
+
+  for (size_t i = 0; i < import_bytecode_file_size; i++) {
+    while (*(char*)bytecode_file != '\0') {
+      bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    }
+    bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    while (*(char*)bytecode_file != '\0') {
+      bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    }
+    bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
   }
 
   struct Memory* memory = calloc(1, sizeof(struct Memory));
@@ -6291,10 +6800,45 @@ void HandleBytecodeFile(const char* name, void* bytecode_file, size_t size) {
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
   }
 
-  while (bytecode_file < (void*)((uintptr_t)bytecode_file + size)) {
+  while (bytecode_file < bytecode_end) {
     bytecode_file = AddBytecodeFileClass(name, memory, bytecode_file);
+
+    // printf("%p , %p",bytecode_file,(void*)((uintptr_t)bytecode_file + size));
   }
 
+  struct Memory origin_memory = {object_table, object_table_size,
+                                 const_object_table, const_object_table_size};
+
+  object_table = memory->object_table;
+  object_table_size = memory->object_table_size;
+  const_object_table = memory->const_object_table;
+  const_object_table_size = memory->const_object_table_size;
+
+  char* temp_class_name = calloc(30, sizeof(char));
+  AddFreePtr(temp_class_name);
+  snprintf(temp_class_name, 30, "%s.!__start", name);
+
+  object_table[2].type[0] = 0x05;
+  object_table[2].const_type = false;
+  object_table[2].data.string_data = temp_class_name;
+
+  struct Object temp;
+  temp = object_table[0];
+  object_table[0].type[0] = 0x04;
+  object_table[0].const_type = false;
+  object_table[0].data.uint64t_data = 0;
+  NEW(2, 0, 2);
+  object_table[0] = temp;
+  current_running_object = object_table + 2;
+
+  AddBytecodeFile(import_bytecode_file, import_bytecode_file_size);
+
+  object_table = origin_memory.object_table;
+  object_table_size = origin_memory.object_table_size;
+  const_object_table = origin_memory.const_object_table;
+  const_object_table_size = origin_memory.const_object_table_size;
+
+  return memory->object_table + 2;
   // free_list = NULL;
 
   //  InvokeCustomFunction(".!__start", 1, 1, NULL);
@@ -6328,6 +6872,7 @@ void* AddBytecodeFile(char* file, size_t size) {
     struct BytecodeFileList* current_bytecode_file_table =
         &bytecode_file_table[class_hash];
     bool is_exist = false;
+    const char* current_scope_name = NULL;
     while (current_bytecode_file_table->next != NULL) {
       if (strcmp(current_bytecode_file_table->name, file_name) == 0) {
         is_exist = true;
@@ -6341,16 +6886,21 @@ void* AddBytecodeFile(char* file, size_t size) {
       // current_bytecode_file_table = current_bytecode_file_table->next;
       current_bytecode_file_table->name = file_name;
       char* name = calloc(15, sizeof(char));
-      snprintf("~%i", 15, name, current_file_count);
-      HandleBytecodeFile(name, bytecode_file, bytecode_size);
-
+      snprintf(name, 15, "~%d", current_file_count);
       char* temp_class_name = calloc(30, sizeof(char));
       AddFreePtr(temp_class_name);
-      snprintf("%s.!__start", 30, temp_class_name, name);
+      snprintf(temp_class_name, 30, "%s.!__start", name);
 
-      current_bytecode_file = temp_class_name;
+      const char* last_bytecode_file = current_bytecode_file;
 
-      struct Object* bytecode_file_object = calloc(1, sizeof(struct Object));
+      current_scope_name = current_bytecode_file = temp_class_name;
+
+      current_bytecode_file_table->object =
+          HandleBytecodeFile(name, bytecode_file, bytecode_size);
+
+      current_bytecode_file = last_bytecode_file;
+
+      /*struct Object* bytecode_file_object = calloc(1, sizeof(struct Object));
 
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
       bytecode_file_object->type = type_ptr;
@@ -6421,7 +6971,7 @@ void* AddBytecodeFile(char* file, size_t size) {
       class_object[1].data.uint64t_data = class_data->members_size;
       bytecode_file_object->data.object_data = class_object;
 
-      current_bytecode_file_table->object = bytecode_file_object;
+      current_bytecode_file_table->object = bytecode_file_object;*/
     }
 
     const char* scope = file;
@@ -6432,8 +6982,8 @@ void* AddBytecodeFile(char* file, size_t size) {
 
     struct Class* current_object = NULL;
 
-    const unsigned int current_class_hash = hash(current_bytecode_file);
-    struct ClassList* current_class_table = &class_table[class_hash];
+    unsigned int current_class_hash = hash(current_bytecode_file);
+    struct ClassList* current_class_table = &class_table[current_class_hash];
     while (current_class_table != NULL &&
            current_class_table->class.name != NULL) {
       if (strcmp(current_class_table->class.name, current_bytecode_file) == 0) {
@@ -6456,6 +7006,7 @@ void* AddBytecodeFile(char* file, size_t size) {
 
     bool is_var_find = false;
     const unsigned int member_hash = hash(var_name);
+    printf("BF: %s\n", var_name);
     struct ClassVarInfoList* current_var_table =
         &(current_object->var_info_table[member_hash]);
     while (current_var_table != NULL && current_var_table->name != NULL) {
@@ -6469,12 +7020,18 @@ void* AddBytecodeFile(char* file, size_t size) {
     if (!is_var_find)
       EXIT_VM("AddBytecodeFile(const char*,size_t)", "Class Var not found.");
 
-    struct Object* object_data =
-        current_object->members->data.object_data + offset;
+    // struct Object* object_data = current_object->members + offset;
 
+    struct Object* object_data =
+        current_running_object->data.object_data + offset;
+
+    object_data->type = calloc(1, sizeof(uint8_t));
+    AddFreePtr(object_data->type);
     object_data->type[0] = 0x09;
     object_data->const_type = true;
-    object_data->data.object_data = current_bytecode_file_table->object;
+    // object_data->data.object_data = current_bytecode_file_table->object;
+    object_data->data.object_data =
+        current_bytecode_file_table->object->data.object_data;
 
     struct BytecodeFileList* bytecode_file_list =
         &current_object->bytecode_file[hash(scope)];
@@ -6485,7 +7042,20 @@ void* AddBytecodeFile(char* file, size_t size) {
     bytecode_file_list->object = current_bytecode_file_table->object;
     bytecode_file_list->name = scope;
 
-    current_bytecode_file = NULL;
+    current_class_hash = hash(current_scope_name);
+    current_class_table = &class_table[current_class_hash];
+    while (current_class_table != NULL &&
+           current_class_table->class.name != NULL) {
+      if (strcmp(current_class_table->class.name, current_scope_name) == 0) {
+        current_object = &current_class_table->class;
+        break;
+      }
+      current_class_table = current_class_table->next;
+    }
+
+    /*current_object->memory->object_table[2].data.object_data =
+        object_data->data.object_data;*/
+    // current_bytecode_file = NULL;
   }
   return file;
 }
@@ -6548,11 +7118,25 @@ int main(int argc, char* argv[]) {
   object_table_size / 2);
   }*/
 
-  size_t bytecode_file_size = is_big_endian
-                                  ? *(uint64_t*)bytecode_file
-                                  : SwapUint64t(*(uint64_t*)bytecode_file);
+  size_t import_bytecode_file_size =
+      is_big_endian ? *(uint64_t*)bytecode_file
+                    : SwapUint64t(*(uint64_t*)bytecode_file);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-  bytecode_file = AddBytecodeFile(bytecode_file, bytecode_file_size);
+
+  void* import_bytecode_file = bytecode_file;
+
+  for (size_t i = 0; i < import_bytecode_file_size; i++) {
+    while (*(char*)bytecode_file != '\0') {
+      bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    }
+    bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    while (*(char*)bytecode_file != '\0') {
+      bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    }
+    bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+  }
+
+  // bytecode_file = AddBytecodeFile(bytecode_file, bytecode_file_size);
 
   const_object_table_size = is_big_endian
                                 ? *(uint64_t*)bytecode_file
@@ -6679,6 +7263,7 @@ int main(int argc, char* argv[]) {
     bytecode_file = AddClass(bytecode_file);
   }
 
+  current_bytecode_file = ".!__start";
   free_list = NULL;
 
   InitializeNameTable(name_table);
@@ -6689,14 +7274,18 @@ int main(int argc, char* argv[]) {
   object_table[2].data.string_data = ".!__start";
 
   struct Object temp;
-  temp=object_table[0];
+  temp = object_table[0];
   object_table[0].type[0] = 0x04;
   object_table[0].const_type = false;
   object_table[0].data.uint64t_data = 0;
-  NEW(2,0,2);
-  object_table[0]=temp;
+  NEW(2, 0, 2);
+  object_table[0] = temp;
+  current_running_object = object_table + 2;
 
-  InvokeCustomFunction(".!__start", 1, 1, NULL);
+  AddBytecodeFile(import_bytecode_file, import_bytecode_file_size);
+
+  // InvokeCustomFunction(".!__start", 1, 1, NULL);
+  InvokeClassFunction(2, "!__start", 1, 1, NULL);
 
   size_t* args = (size_t*)malloc(1 * sizeof(size_t));
   args[0] = 0;

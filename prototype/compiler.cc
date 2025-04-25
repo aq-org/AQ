@@ -3850,7 +3850,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           if (token[index].type != Token::Type::IDENTIFIER)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "Unexpected import behavior.");
-          std::string name(*token[index].value.identifier.location,
+          std::string name(token[index].value.identifier.location,
                            token[index].value.identifier.length);
           ImportNode* result = new ImportNode();
           result->SetImportNode(import_location, name);
@@ -6639,6 +6639,10 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
         "BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)",
         "stmt is nullptr.");
 
+  start_class_.SetName(".__start");
+  start_class_.GetMemory().Add("@name");
+  start_class_.GetMemory().Add("@size");
+
   PreProcessDecl(stmt);
 
   for (std::size_t i = 0; i < stmt->GetStmts().size(); i++) {
@@ -6709,9 +6713,9 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
                     global_memory_.GetCode().end());*/
   // start_code.insert(start_code.end(), global_code_.begin(),
   // global_code_.end());
-  std::vector<std::size_t> invoke_main_args = {main_func, 1, 1};
+  std::vector<std::size_t> invoke_main_args = {2,main_func, 1, 1};
   // start_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_main_args));
-  global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, invoke_main_args));
+  global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_main_args));
   // Function start_func("__start", args, start_code);
   Function start_func(".!__start", args, global_code_);
   func_list_.push_back(start_func);
@@ -6742,6 +6746,7 @@ void BytecodeGenerator::GenerateBytecodeFile(const char* output_file) {
                                     : SwapUint64t(import_list_.size()));
 
   for (std::size_t i = 0; i < import_list_.size(); i++) {
+    import_list_[i].first = import_list_[i].first+"bc";
     code_.insert(
         code_.end(),
         reinterpret_cast<const uint8_t*>(import_list_[i].first.c_str()),
@@ -9150,15 +9155,20 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
     std::vector<uint8_t> vm_type;
     vm_type.push_back(0x09);
     std::size_t class_array_index =
-    start_class_.GetMemory().AddWithType(current_scope_.back()+"."+name,vm_type);
+    start_class_.GetMemory().AddWithType(name,vm_type);
     std::size_t array_index = global_memory_.Add(1);
-    global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 0,
+    global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 2,
                             global_memory_.AddString(name)));
                             start_class_.GetVarDeclMap().emplace(
                               static_cast<std::string>(name),
                               std::pair<VarDeclNode*, std::size_t>(
-                                  NULL, class_array_index));
-  }
+                                nullptr, class_array_index));
+                                std::cout<<"Import Name: "<<current_scope_.back()+"#"+static_cast<std::string>(name)<<std::endl;
+                                  var_decl_map_.emplace(current_scope_.back()+"#"+static_cast<std::string>(name),
+                                    std::pair<VarDeclNode*, std::size_t>(
+                                        nullptr, array_index));
+  global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, array_index,global_memory_.AddString("!__start"),1,global_memory_.Add(1)));
+                                      }
 }
 
 void BytecodeGenerator::HandleFuncDecl(FuncDeclNode* func_decl) {
@@ -9765,10 +9775,10 @@ void BytecodeGenerator::HandleClassDecl(ClassDeclNode* class_decl) {
   if (class_decl_map_.find(class_name) != class_decl_map_.end())
     EXIT_COMPILER("BytecodeGenerator::HandleClassDecl(ClassDeclNode*)",
                   "Has same name class.");
-  class_decl_map_.emplace(class_name, current_class);
+  class_decl_map_.emplace(class_name, current_class);*/
 
   current_class->GetMemory().Add("@name");
-  current_class->GetMemory().Add("@size");*/
+  current_class->GetMemory().Add("@size");
 
   for (std::size_t i = 0; i < class_decl->GetClasses().size(); i++) {
     if (class_decl->GetClasses()[i]->GetType() ==
@@ -12204,6 +12214,7 @@ std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
                                   return_value_reference_index,
                                   return_value_index));
           std::vector<std::size_t> args;
+          args.push_back(2);
           args.push_back(global_memory_.AddString(full_name));
           args.push_back(
               dynamic_cast<FuncNode*>(exprs.back())->GetArgs().size() + 1);
@@ -12214,7 +12225,7 @@ std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
             args.push_back(HandleExpr(
                 dynamic_cast<FuncNode*>(exprs.back())->GetArgs()[i], code));
           }
-          code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, args));
+          code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, args));
           return return_value_index;
         }
       }
@@ -12939,6 +12950,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
 
   std::size_t func_name_index = global_memory_.AddString(func_name);
 
+  vm_args.push_back(2);
   vm_args.push_back(func_name_index);
   vm_args.push_back(args.size() + 1);
 
@@ -12955,7 +12967,7 @@ std::size_t BytecodeGenerator::HandleFuncInvoke(FuncNode* func,
     vm_args.push_back(HandleExpr(args[i], code));
   }
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, vm_args));
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, vm_args));
 
   return return_value_index;
 }
@@ -13077,6 +13089,7 @@ std::size_t BytecodeGenerator::HandleClassFuncInvoke(
 
   std::size_t func_name_index = global_memory_.AddString(func_name);
 
+  vm_args.push_back(2);
   vm_args.push_back(func_name_index);
   vm_args.push_back(args.size() + 1);
 
@@ -13093,7 +13106,7 @@ std::size_t BytecodeGenerator::HandleClassFuncInvoke(
     vm_args.push_back(HandleExpr(args[i], code));
   }
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE, vm_args));
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, vm_args));
 
   return return_value_index;
 }
@@ -13289,6 +13302,8 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
         auto iterator = var_decl_map_.find(
             current_scope_[i] + "#" +
             static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
+        std::cout<<current_scope_[i] + "#" +
+        static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr))<<std::endl;
         if (iterator != var_decl_map_.end()) {
           /*std::cout << "Identifier: "
           << (std::string) * dynamic_cast<IdentifierNode*>(expr)

@@ -1,6 +1,5 @@
-int print(...){
-  __builtin_vaprint(args);
-}
+
+import "F:/aq/prototype/aqstl.aq" stl
 /*double fabs(double num) {
   if (num < 0) {
     num = -num;
@@ -19,9 +18,11 @@ while (fabs(t) >= 0.00000001) {
   t = 1.0 * sign / i;
 }
 
-print("Pi: ");
-print(4 * pi);
-print("\n");*/
+stl.print("TEST");
+
+stl.print("Pi: ");
+stl.print(4 * pi);
+stl.print("\n");*/
 
 void test_func(int& abc){
   abc = 100;
@@ -29,21 +30,21 @@ void test_func(int& abc){
 
 //int doc = 0;
 /*do{
-  print(doc);
-  print("\n");
+  stl.print(doc);
+  stl.print("\n");
   doc++;
 }while(doc<10)
 
 int doc = 0;
 while(doc<10){
-  print(doc);
-  print("\n");
+  stl.print(doc);
+  stl.print("\n");
   doc++;
 }*/
 int i =0;
 while(i!=10){
-  print(i+1);
-  print("\n");
+  stl.print(i+1);
+  stl.print("\n");
   i++;
   if(i==10)break;
 }
@@ -56,13 +57,13 @@ static const int WED=3;
 
   int ab = 0;
 abc:
-  print(ENUM_TEST.MON);
+  stl.print(ENUM_TEST.MON);
 
 
 ab++;
 if(ab<10)
 goto abc;
-//for (int i = 0;i<10;i++)print(i);
+//for (int i = 0;i<10;i++)stl.print(i);
 
 auto main() {
 
