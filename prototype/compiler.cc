@@ -9167,7 +9167,7 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
                                   var_decl_map_.emplace(current_scope_.back()+"#"+static_cast<std::string>(name),
                                     std::pair<VarDeclNode*, std::size_t>(
                                         nullptr, array_index));
-  global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, array_index,global_memory_.AddString("!__start"),1,global_memory_.Add(1)));
+  // global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, array_index,global_memory_.AddString("!__start"),1,global_memory_.Add(1)));
                                       }
 }
 

@@ -193,6 +193,7 @@ struct ClassVarInfoList {
 struct BytecodeFileList {
   const char* name;
   struct Object* object;
+  int index;
   struct BytecodeFileList* next;
 };
 
@@ -214,6 +215,14 @@ struct ClassList {
   struct Class class;
   struct ClassList* next;
 };
+
+struct FileIndexList{
+  const char* name;
+  int index;
+  struct FileIndexList* next;
+};
+
+struct FileIndexList file_index_table[256];
 
 int current_file_count;
 
@@ -6836,6 +6845,8 @@ struct Object* HandleBytecodeFile(const char* name, void* bytecode_file,
   struct Object* last_running_object = current_running_object;
   current_running_object = object_table + 2;
 
+  InvokeClassFunction(2,"!__start", 1, 1, NULL);
+
   AddBytecodeFile(import_bytecode_file, import_bytecode_file_size);
 
   object_table = origin_memory.object_table;
@@ -6854,7 +6865,6 @@ struct Object* HandleBytecodeFile(const char* name, void* bytecode_file,
 void* AddBytecodeFile(char* file, size_t size) {
   TRACE_FUNCTION;
   for (size_t i = 0; i < size; i++) {
-    current_file_count++;
     const char* file_name = file;
     FILE* bytecode = fopen(file, "rb");
     if (bytecode == NULL) {
@@ -6887,7 +6897,10 @@ void* AddBytecodeFile(char* file, size_t size) {
       }
       current_bytecode_file_table = current_bytecode_file_table->next;
     }
+    is_exist = true;
+    
     if (!is_exist) {
+      current_file_count++;
       current_bytecode_file_table->next =
           malloc(sizeof(struct BytecodeFileList));
       // current_bytecode_file_table = current_bytecode_file_table->next;
@@ -6907,6 +6920,16 @@ void* AddBytecodeFile(char* file, size_t size) {
 
       current_bytecode_file = last_bytecode_file;
 
+      current_bytecode_file_table->index = current_file_count;
+
+      /*struct FileIndexList *current_bytecode_file_index_table = &file_index_table[hash(file)];
+      while (current_bytecode_file_index_table->next != NULL) {
+        current_bytecode_file_index_table = current_bytecode_file_index_table->next;
+      }
+      current_bytecode_file_index_table->name = file;
+      current_bytecode_file_index_table->index = current_file_count;
+      current_bytecode_file_index_table->next = calloc(1,sizeof(struct FileIndexList));
+      AddFreePtr(current_bytecode_file_index_table->next);*/
       /*struct Object* bytecode_file_object = calloc(1, sizeof(struct Object));
 
       uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
@@ -7051,6 +7074,26 @@ void* AddBytecodeFile(char* file, size_t size) {
     bytecode_file_list->next = calloc(1, sizeof(struct BytecodeFileList));
     bytecode_file_list->object = current_bytecode_file_table->object;
     bytecode_file_list->name = scope;
+
+
+    /*int temp_index = -1;
+    struct FileIndexList *current_bytecode_file_index_table = &file_index_table[hash(file)];
+    while (current_bytecode_file_index_table->next != NULL) {
+      if (strcmp(current_bytecode_file_index_table->name, file) == 0) {
+        temp_index = current_bytecode_file_index_table->index;
+        break;
+      }
+      current_bytecode_file_index_table = current_bytecode_file_index_table->next;
+    }
+
+    if(temp_index == -1)EXIT_VM("AddBytecodeFile(const char*,size_t)", "Not found file index.");*/
+
+    char* name = calloc(15, sizeof(char));
+    snprintf(name, 15, "~%d", current_bytecode_file_table->index);
+    char* temp_class_name = calloc(30, sizeof(char));
+    AddFreePtr(temp_class_name);
+    snprintf(temp_class_name, 30, "%s.!__start", name);
+    current_scope_name = temp_class_name;
 
     current_class_hash = hash(current_scope_name);
     current_class_table = &class_table[current_class_hash];

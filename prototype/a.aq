@@ -1,0 +1,4 @@
+
+import "F:/aq/prototype/aqstl.aq" stl
+
+auto main(){return stl.print("A.aq");}

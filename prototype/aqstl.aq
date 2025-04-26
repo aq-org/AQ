@@ -1,5 +1,7 @@
 
 
+//import "F:/aq/prototype/aqstl.aq" stl
+// import "F:/aq/prototype/a.aq" stla
 
 auto main(){return print("ABC");}
 
