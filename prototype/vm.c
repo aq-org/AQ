@@ -5031,6 +5031,8 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* object_data = class_data->data.object_data + offset;
 
+  printf("object_data: %p\n", object_data);
+
   // uint8_t* original_type = object_table[result].type;
   // bool original_const_type = object_table[result].const_type;
 
@@ -5149,7 +5151,7 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  printf("Name: %s\n", table->pair.second.name);
+  //printf("Name: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -5407,7 +5409,7 @@ void* AddClassMethodFromOutside(void* location, struct FuncList* methods) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  printf("Name: %s\n", table->pair.second.name);
+  //printf("Name: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -5652,7 +5654,7 @@ void* AddFunction(void* location);
 void* AddClass(void* location) {
   TRACE_FUNCTION;
 
-  printf("AddClass START.\n");
+  //printf("AddClass START.\n");
 
   struct ClassList* table = &class_table[hash(location)];
   if (table == NULL) EXIT_VM("AddClass(void*)", "table is NULL.");
@@ -5684,7 +5686,7 @@ void* AddClass(void* location) {
       var_info = var_info->next;
     }
     var_info->name = location;
-    printf("MEMBER: %s\n", var_info->name);
+    //printf("MEMBER: %s\n", var_info->name);
     var_info->index = i;
     var_info->next =
         (struct ClassVarInfoList*)calloc(1, sizeof(struct ClassVarInfoList));
@@ -6023,7 +6025,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
           EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
                   "Invalid name.");
         if (strcmp(table->pair.first, name) == 0) {
-          printf("FOUND BUT NOT MATCH.\n");
+          //printf("FOUND BUT NOT MATCH.\n");
           if (table->pair.second.args_size <= args_size) {
             // bool is_same = true;
             // for (size_t i = 0; i < args_size - 1; i++) {
@@ -6653,6 +6655,8 @@ struct Object* HandleBytecodeFile(const char* name, void* bytecode_file,
 
   void* bytecode_end = (void*)((uintptr_t)bytecode_file + size);
 
+  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+
   size_t import_bytecode_file_size =
       is_big_endian ? *(uint64_t*)bytecode_file
                     : SwapUint64t(*(uint64_t*)bytecode_file);
@@ -6673,13 +6677,13 @@ struct Object* HandleBytecodeFile(const char* name, void* bytecode_file,
 
   struct Memory* memory = calloc(1, sizeof(struct Memory));
 
-  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+  // bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
 
-  size_t bytecode_file_size = is_big_endian
+  /*size_t bytecode_file_size = is_big_endian
                                   ? *(uint64_t*)bytecode_file
                                   : SwapUint64t(*(uint64_t*)bytecode_file);
   bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-  bytecode_file = AddBytecodeFile(bytecode_file, bytecode_file_size);
+  bytecode_file = AddBytecodeFile(bytecode_file, bytecode_file_size);*/
 
   memory->const_object_table_size =
       is_big_endian ? *(uint64_t*)bytecode_file
@@ -6829,6 +6833,7 @@ struct Object* HandleBytecodeFile(const char* name, void* bytecode_file,
   object_table[0].data.uint64t_data = 0;
   NEW(2, 0, 2);
   object_table[0] = temp;
+  struct Object* last_running_object = current_running_object;
   current_running_object = object_table + 2;
 
   AddBytecodeFile(import_bytecode_file, import_bytecode_file_size);
@@ -6837,6 +6842,8 @@ struct Object* HandleBytecodeFile(const char* name, void* bytecode_file,
   object_table_size = origin_memory.object_table_size;
   const_object_table = origin_memory.const_object_table;
   const_object_table_size = origin_memory.const_object_table_size;
+
+  current_running_object = last_running_object;
 
   return memory->object_table + 2;
   // free_list = NULL;
@@ -7006,7 +7013,7 @@ void* AddBytecodeFile(char* file, size_t size) {
 
     bool is_var_find = false;
     const unsigned int member_hash = hash(var_name);
-    printf("BF: %s\n", var_name);
+    //printf("BF: %s\n", var_name);
     struct ClassVarInfoList* current_var_table =
         &(current_object->var_info_table[member_hash]);
     while (current_var_table != NULL && current_var_table->name != NULL) {
@@ -7025,13 +7032,16 @@ void* AddBytecodeFile(char* file, size_t size) {
     struct Object* object_data =
         current_running_object->data.object_data + offset;
 
-    object_data->type = calloc(1, sizeof(uint8_t));
+    printf("object_data: %p\n",object_data);
+
+    object_data->type = calloc(2, sizeof(uint8_t));
     AddFreePtr(object_data->type);
-    object_data->type[0] = 0x09;
+    object_data->type[0] = 0x07;
+    object_data->type[1] = 0x09;
     object_data->const_type = true;
     // object_data->data.object_data = current_bytecode_file_table->object;
-    object_data->data.object_data =
-        current_bytecode_file_table->object->data.object_data;
+    object_data->data.reference_data =
+        current_bytecode_file_table->object;
 
     struct BytecodeFileList* bytecode_file_list =
         &current_object->bytecode_file[hash(scope)];
