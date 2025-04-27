@@ -3071,12 +3071,51 @@ int NEW(size_t ptr, size_t size, size_t type) {
   struct Object* type_data = object_table + type;
   type_data = GetOriginData(type_data);
 
+  bool is_bytecode_file_main_program = false;
+  struct BytecodeFileList* current_bytecode_file_table = NULL;
   if (type_data->type[0] == 0x05 && type_data->data.string_data != NULL &&
       *type_data->data.string_data == '~') {
-    printf("NEW C: %s\n", type_data->data.string_data);
-    AddBytecodeFile(type_data->data.string_data);
-  }
+    const char* temp_bytecode_file = type_data->data.string_data + 1;
+    const char* filename_start = temp_bytecode_file;
+    while (*temp_bytecode_file != '~') {
+      temp_bytecode_file++;
+    }
+    char* file_name =
+        calloc(temp_bytecode_file - filename_start + 1, sizeof(char));
+    memcpy(file_name, filename_start, temp_bytecode_file - filename_start);
+    temp_bytecode_file++;
+    printf("YES %c.\n", *temp_bytecode_file);
+    const unsigned int class_hash = hash(file_name);
+    current_bytecode_file_table = &bytecode_file_table[class_hash];
+    while (current_bytecode_file_table->next != NULL) {
+      if (strcmp(current_bytecode_file_table->name, file_name) == 0) {
+        printf("YES 0.\n");
+        is_bytecode_file_main_program = true;
+        break;
+      }
+      current_bytecode_file_table = current_bytecode_file_table->next;
+    }
+    if (memcmp(temp_bytecode_file, ".!__start", 9) == 0 &&
+        strlen(temp_bytecode_file) == 9) {
+      if (current_bytecode_file_table->object != NULL) {
+        object_table[ptr] = *current_bytecode_file_table->object;
+        return 0;
+      }
 
+      printf("NEW C: %s\n", type_data->data.string_data);
+      AddBytecodeFile(type_data->data.string_data);
+
+      current_bytecode_file_table = &bytecode_file_table[class_hash];
+      while (current_bytecode_file_table->next != NULL) {
+        if (strcmp(current_bytecode_file_table->name, file_name) == 0) {
+          printf("YES 0.\n");
+          is_bytecode_file_main_program = true;
+          break;
+        }
+        current_bytecode_file_table = current_bytecode_file_table->next;
+      }
+    }
+  }
   size_t size_value = GetUint64tData(size);
 
   if ((type == 0 ||
@@ -3395,6 +3434,27 @@ int NEW(size_t ptr, size_t size, size_t type) {
       type_data->data.string_data != NULL) {
     // printf("TEST");
     SetObjectData(ptr, data->data.object_data);
+    if (is_bytecode_file_main_program) {
+      printf("YES 1.\n");
+      current_bytecode_file_table->object = data;
+      struct Class* class_data = NULL;
+      const char* class = GetStringData(type);
+      const unsigned int class_hash = hash(class);
+      struct ClassList* current_class_table = &class_table[class_hash];
+      while (current_class_table != NULL &&
+             current_class_table->class.name != NULL) {
+        if (strcmp(current_class_table->class.name, class) == 0) {
+          class_data = &current_class_table->class;
+          break;
+        }
+        current_class_table = current_class_table->next;
+      }
+
+      if (class_data == NULL) {
+        EXIT_VM("NEW(size_t, size_t)", "Class not found.");
+      }
+      class_data->memory->object_table[2] = *data;
+    }
   } else {
     // printf("TEST 1");
     SetPtrData(ptr, data);
@@ -5416,7 +5476,7 @@ void* AddClassMethodFromOutside(void* location, struct FuncList* methods) {
   // void* original_location = location;
   // printf("point 1\n");
 
-  if(*(char*)location == '.') location = (void*)((uintptr_t)location + 1);
+  if (*(char*)location == '.') location = (void*)((uintptr_t)location + 1);
   // location = (void*)((uintptr_t)location + 1);
 
   struct FuncList* table = &methods[hash(location)];
@@ -6074,7 +6134,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
     } else {
       current_class_table = current_class_table->next;
     }
-    printf("Class Func Name: %s\n",name);
+    printf("Class Func Name: %s\n", name);
     if (cost == -1)
       EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
               "Not found func.");
@@ -6925,7 +6985,7 @@ void AddBytecodeFile(const char* file) {
 
   if (!is_exist) {
     printf("Adding bytecode file: %s\n", file_name);
- 
+
     current_file_count++;
     current_bytecode_file_table->next = malloc(sizeof(struct BytecodeFileList));
     // current_bytecode_file_table = current_bytecode_file_table->next;
