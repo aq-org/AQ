@@ -6712,20 +6712,20 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   std::size_t start_func_name = global_memory_.Add(1);
   std::string name_str = ".!__start";
   global_memory_.GetConstTable().push_back(0x05);
-      EncodeUleb128(name_str.size() + 1, global_memory_.GetConstTable());
-      for (std::size_t i = 0; i < name_str.size(); i++) {
-        global_memory_.GetConstTable().push_back(name_str[i]);
-      }
-      global_memory_.GetConstTable().push_back(0x00);
-      global_memory_.GetConstTableSize()++;
-      std::size_t name_const_index = global_memory_.GetConstTableSize()-1;
-      start_code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, start_func_name,
-        name_const_index));
-      std::vector<std::size_t> invoke_start_args = {2, start_func_name, 1, 1};
+  EncodeUleb128(name_str.size() + 1, global_memory_.GetConstTable());
+  for (std::size_t i = 0; i < name_str.size(); i++) {
+    global_memory_.GetConstTable().push_back(name_str[i]);
+  }
+  global_memory_.GetConstTable().push_back(0x00);
+  global_memory_.GetConstTableSize()++;
+  std::size_t name_const_index = global_memory_.GetConstTableSize() - 1;
+  start_code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, start_func_name,
+                                name_const_index));
+  std::vector<std::size_t> invoke_start_args = {2, start_func_name, 1, 1};
   start_code.push_back(
-    Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_start_args));
-    Function constructor_func("@constructor", constructor_args, start_code);
-    func_list_.push_back(constructor_func);
+      Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_start_args));
+  Function constructor_func("@constructor", constructor_args, start_code);
+  func_list_.push_back(constructor_func);
 
   std::vector<std::size_t> args;
   args.push_back(1);
@@ -6749,7 +6749,6 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   // Function start_func("__start", args, start_code);
   Function start_func(".!__start", args, global_code_);
   func_list_.push_back(start_func);
-
 
   if (loop_break_index_.size() != 0)
     EXIT_COMPILER(
@@ -9140,6 +9139,11 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
 
     if (import_generator_map.find(import_location) ==
         import_generator_map.end()) {
+      // TODO(IMPORTANT): Unknown error, but can be fixed with this statement. Serious
+      // issue, awaiting repair.
+      std::cout << import_generator_map[import_location] << std::endl;
+
+      std::cout << "Import A NEW FILE." << import_location << std::endl;
       const char* filename = import_location.c_str();
       std::ifstream file;
       file.open(filename);
@@ -9180,7 +9184,8 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
       bytecode_generator->GenerateBytecode(ast, bytecode_file.c_str());
       import_generator_map.emplace(import_location, bytecode_generator);
 
-      // import_generator.push_back(std::pair<std::string, BytecodeGenerator*>(import_location, bytecode_generator));
+      // import_generator.push_back(std::pair<std::string,
+      // BytecodeGenerator*>(import_location, bytecode_generator));
     }
     if (import_generator_map_.find(name) != import_generator_map_.end())
       EXIT_COMPILER("BytecodeGenerator::HandleImport(ImportNode*)",
@@ -9188,22 +9193,23 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
     import_generator_map_.emplace(name, import_generator_map[import_location]);
 
     // uint8_t vm_type[] ={0x09};
-    std::vector<uint8_t> vm_type;
-    vm_type.push_back(0x09);
-    std::size_t class_array_index =
-        start_class_.GetMemory().AddWithType(name, vm_type);
+    // std::vector<uint8_t> vm_type;
+    // vm_type.push_back(0x09);
+    std::size_t class_array_index = start_class_.GetMemory().Add(name);
     std::size_t array_index = global_memory_.Add(1);
     global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
                                     2, global_memory_.AddString(name)));
-    global_code_.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-      global_memory_.AddUint64t(0), global_memory_.AddString("~"+import_location+"bc~.!__start")));
+    global_code_.push_back(Bytecode(
+        _AQVM_OPERATOR_NEW, 3, array_index, global_memory_.AddUint64t(0),
+        global_memory_.AddString("~" + import_location + "bc~.!__start")));
     global_code_.push_back(
         Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, array_index,
                  global_memory_.AddString("@constructor"), 1, array_index));
-      start_class_.GetVarDeclMap().emplace(
+    start_class_.GetVarDeclMap().emplace(
         static_cast<std::string>(name),
         std::pair<VarDeclNode*, std::size_t>(nullptr, class_array_index));
-    // std::cout << "Import Name: "<< current_scope_.back() + "#" + static_cast<std::string>(name)<< std::endl;
+    // std::cout << "Import Name: "<< current_scope_.back() + "#" +
+    // static_cast<std::string>(name)<< std::endl;
     var_decl_map_.emplace(
         current_scope_.back() + "#" + static_cast<std::string>(name),
         std::pair<VarDeclNode*, std::size_t>(nullptr, array_index));

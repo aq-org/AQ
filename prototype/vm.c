@@ -3098,7 +3098,12 @@ int NEW(size_t ptr, size_t size, size_t type) {
     if (memcmp(temp_bytecode_file, ".!__start", 9) == 0 &&
         strlen(temp_bytecode_file) == 9) {
       if (current_bytecode_file_table->object != NULL) {
-        object_table[ptr] = *current_bytecode_file_table->object;
+        object_table[ptr].type = calloc(1, sizeof(uint8_t));
+        AddFreePtr(object_table[ptr].type);
+        object_table[ptr].type[0] = 0x07;
+        object_table[ptr].const_type = false;
+        object_table[ptr].data.reference_data = current_bytecode_file_table
+            ->object;
         return 0;
       }
 
