@@ -4979,6 +4979,8 @@ int INVOKE_METHOD(size_t* args) {
   }
   InternalObject args_obj = {arg_count - 1, invoke_args};
 
+  printf("func: %s\n", GetStringData(func));
+
   func_ptr invoke_func = GetFunction(GetStringData(func));
   if (invoke_func != NULL) {
     invoke_func(args_obj, return_value);
@@ -5414,7 +5416,8 @@ void* AddClassMethodFromOutside(void* location, struct FuncList* methods) {
   // void* original_location = location;
   // printf("point 1\n");
 
-  location = (void*)((uintptr_t)location + 1);
+  if(*(char*)location == '.') location = (void*)((uintptr_t)location + 1);
+  // location = (void*)((uintptr_t)location + 1);
 
   struct FuncList* table = &methods[hash(location)];
   if (table == NULL)
@@ -6071,6 +6074,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
     } else {
       current_class_table = current_class_table->next;
     }
+    printf("Class Func Name: %s\n",name);
     if (cost == -1)
       EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
               "Not found func.");
@@ -6926,8 +6930,8 @@ void AddBytecodeFile(const char* file) {
     current_bytecode_file_table->next = malloc(sizeof(struct BytecodeFileList));
     // current_bytecode_file_table = current_bytecode_file_table->next;
     current_bytecode_file_table->name = file_name;
-    char* name = calloc(strlen(file_name) + 2, sizeof(char));
-    snprintf(name, strlen(file_name) + 2, "~%s~", file_name);
+    char* name = calloc(strlen(file_name) + 3, sizeof(char));
+    snprintf(name, strlen(file_name) + 3, "~%s~", file_name);
     // char* temp_class_name = calloc(30, sizeof(char));
     // AddFreePtr(temp_class_name);
     // snprintf(temp_class_name, 30, "%s.!__start", name);

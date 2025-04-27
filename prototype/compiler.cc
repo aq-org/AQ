@@ -6020,7 +6020,7 @@ class BytecodeGenerator {
       return const_table_;
     }
 
-    std::size_t GetConstTableSize() {
+    std::size_t& GetConstTableSize() {
       TRACE_FUNCTION;
       // std::cout << "Const Table Size: " << const_table_size_ << std::endl;
       return const_table_size_;
@@ -6707,10 +6707,21 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   current_func_index_ = 0;
 
   std::vector<std::size_t> constructor_args;
-  constructor_args.push_back(global_memory_.Add(1));
-  std::size_t start_func_name = global_memory_.AddString(".!__start");
-  std::vector<std::size_t> invoke_start_args = {2, start_func_name, 1, 1};
   std::vector<Bytecode> start_code;
+  constructor_args.push_back(global_memory_.Add(1));
+  std::size_t start_func_name = global_memory_.Add(1);
+  std::string name_str = ".!__start";
+  global_memory_.GetConstTable().push_back(0x05);
+      EncodeUleb128(name_str.size() + 1, global_memory_.GetConstTable());
+      for (std::size_t i = 0; i < name_str.size(); i++) {
+        global_memory_.GetConstTable().push_back(name_str[i]);
+      }
+      global_memory_.GetConstTable().push_back(0x00);
+      global_memory_.GetConstTableSize()++;
+      std::size_t name_const_index = global_memory_.GetConstTableSize()-1;
+      start_code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST, 2, start_func_name,
+        name_const_index));
+      std::vector<std::size_t> invoke_start_args = {2, start_func_name, 1, 1};
   start_code.push_back(
     Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_start_args));
     Function constructor_func("@constructor", constructor_args, start_code);
@@ -9186,7 +9197,10 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
                                     2, global_memory_.AddString(name)));
     global_code_.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
       global_memory_.AddUint64t(0), global_memory_.AddString("~"+import_location+"bc~.!__start")));
-    start_class_.GetVarDeclMap().emplace(
+    global_code_.push_back(
+        Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, array_index,
+                 global_memory_.AddString("@constructor"), 1, array_index));
+      start_class_.GetVarDeclMap().emplace(
         static_cast<std::string>(name),
         std::pair<VarDeclNode*, std::size_t>(nullptr, class_array_index));
     // std::cout << "Import Name: "<< current_scope_.back() + "#" + static_cast<std::string>(name)<< std::endl;
