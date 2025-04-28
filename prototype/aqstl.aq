@@ -1,9 +1,9 @@
 
 
-//import "F:/aq/prototype/aqstl.aq" stl
-// import "F:/aq/prototype/a.aq" stla
+import "F:/aq/prototype/aqstl.aq" stl
+import "F:/aq/prototype/a.aq" stla
 
-auto main(){return print("ABC");}
+auto main(){return print(stla.abc);}
 
 int print(...) { return __builtin_vaprint(args); }
 

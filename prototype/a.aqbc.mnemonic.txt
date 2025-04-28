@@ -1,0 +1,41 @@
+Memory Size: 21
+
+
+
+Function Name: .main, Size: 6
+REFER: 11 ,10
+INVOKE_METHOD: 4 ,12 ,2 ,11 ,13 ,
+EQUAL: 8 ,0
+EQUAL: 9 ,8
+GOTO: 14
+NOP
+
+
+
+Function Name: @constructor, Size: 2
+LOAD_CONST: 19 ,9
+INVOKE_METHOD: 2 ,19 ,1 ,1 ,
+
+
+
+Function Name: .!__start, Size: 17
+LOAD_CONST: 3 ,0
+EQUAL: 0 ,3
+REFER: 1 ,0
+LOAD_CONST: 6 ,1
+LOAD_MEMBER: 5 ,2 ,6
+LOAD_CONST: 7 ,2
+EQUAL: 5 ,7
+LOAD_CONST: 12 ,3
+LOAD_CONST: 13 ,4
+LOAD_CONST: 14 ,5
+LOAD_CONST: 15 ,6
+LOAD_MEMBER: 4 ,2 ,15
+LOAD_CONST: 16 ,7
+LOAD_CONST: 17 ,8
+NEW: 4 ,17 ,16
+LOAD_CONST: 20 ,10
+INVOKE_METHOD: 2 ,20 ,1 ,1 ,
+
+
+

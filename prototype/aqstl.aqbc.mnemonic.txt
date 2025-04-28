@@ -1,0 +1,127 @@
+Memory Size: 78
+
+
+
+Function Name: .main, Size: 7
+REFER: 10 ,9
+LOAD_MEMBER: 11 ,5 ,12
+INVOKE_METHOD: 2 ,8 ,2 ,10 ,11 ,
+EQUAL: 6 ,9
+EQUAL: 7 ,6
+GOTO: 13
+NOP
+
+
+
+Function Name: .print, Size: 6
+REFER: 19 ,18
+INVOKE_METHOD: 2 ,17 ,2 ,19 ,16 ,
+EQUAL: 14 ,18
+EQUAL: 15 ,14
+GOTO: 20
+NOP
+
+
+
+Function Name: .remove, Size: 6
+REFER: 27 ,26
+INVOKE_METHOD: 2 ,25 ,2 ,27 ,23 ,
+EQUAL: 21 ,26
+EQUAL: 22 ,21
+GOTO: 28
+NOP
+
+
+
+Function Name: .rename, Size: 6
+REFER: 37 ,36
+INVOKE_METHOD: 2 ,35 ,3 ,37 ,31 ,32 ,
+EQUAL: 29 ,36
+EQUAL: 30 ,29
+GOTO: 38
+NOP
+
+
+
+Function Name: .getchar, Size: 6
+REFER: 43 ,42
+INVOKE_METHOD: 2 ,41 ,1 ,43 ,
+EQUAL: 39 ,42
+EQUAL: 40 ,39
+GOTO: 44
+NOP
+
+
+
+Function Name: .putchar, Size: 6
+REFER: 51 ,50
+INVOKE_METHOD: 2 ,49 ,2 ,51 ,47 ,
+EQUAL: 45 ,50
+EQUAL: 46 ,45
+GOTO: 52
+NOP
+
+
+
+Function Name: .puts, Size: 6
+REFER: 59 ,58
+INVOKE_METHOD: 2 ,57 ,2 ,59 ,55 ,
+EQUAL: 53 ,58
+EQUAL: 54 ,53
+GOTO: 60
+NOP
+
+
+
+Function Name: .perror, Size: 6
+REFER: 67 ,66
+INVOKE_METHOD: 2 ,65 ,2 ,67 ,63 ,
+EQUAL: 61 ,66
+EQUAL: 62 ,61
+GOTO: 68
+NOP
+
+
+
+Function Name: @constructor, Size: 2
+LOAD_CONST: 76 ,24
+INVOKE_METHOD: 2 ,76 ,1 ,1 ,
+
+
+
+Function Name: .!__start, Size: 32
+LOAD_CONST: 3 ,0
+EQUAL: 0 ,3
+REFER: 1 ,0
+LOAD_CONST: 8 ,1
+LOAD_CONST: 12 ,2
+LOAD_CONST: 13 ,3
+LOAD_CONST: 17 ,4
+LOAD_CONST: 20 ,5
+LOAD_CONST: 25 ,6
+LOAD_CONST: 28 ,7
+LOAD_CONST: 35 ,8
+LOAD_CONST: 38 ,9
+LOAD_CONST: 41 ,10
+LOAD_CONST: 44 ,11
+LOAD_CONST: 49 ,12
+LOAD_CONST: 52 ,13
+LOAD_CONST: 57 ,14
+LOAD_CONST: 60 ,15
+LOAD_CONST: 65 ,16
+LOAD_CONST: 68 ,17
+LOAD_CONST: 69 ,18
+LOAD_MEMBER: 4 ,2 ,69
+LOAD_CONST: 70 ,19
+LOAD_CONST: 71 ,20
+NEW: 4 ,71 ,70
+LOAD_CONST: 72 ,21
+LOAD_MEMBER: 5 ,2 ,72
+LOAD_CONST: 73 ,22
+LOAD_CONST: 74 ,23
+NEW: 5 ,74 ,73
+LOAD_CONST: 77 ,25
+INVOKE_METHOD: 2 ,77 ,1 ,1 ,
+
+
+

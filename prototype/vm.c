@@ -3061,6 +3061,8 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
 
 void AddBytecodeFile(const char* file);
 
+int INVOKE_METHOD(size_t* args);
+
 int NEW(size_t ptr, size_t size, size_t type) {
   TRACE_FUNCTION;
   if (ptr >= object_table_size)
@@ -3102,8 +3104,8 @@ int NEW(size_t ptr, size_t size, size_t type) {
         AddFreePtr(object_table[ptr].type);
         object_table[ptr].type[0] = 0x07;
         object_table[ptr].const_type = false;
-        object_table[ptr].data.reference_data = current_bytecode_file_table
-            ->object;
+        object_table[ptr].data.reference_data =
+            current_bytecode_file_table->object;
         return 0;
       }
 
@@ -3459,6 +3461,29 @@ int NEW(size_t ptr, size_t size, size_t type) {
         EXIT_VM("NEW(size_t, size_t)", "Class not found.");
       }
       class_data->memory->object_table[2] = *data;
+
+      struct Memory origin_memory = {object_table, object_table_size,
+                                     const_object_table,
+                                     const_object_table_size};
+      object_table = class_data->memory->object_table;
+      object_table_size = class_data->memory->object_table_size;
+      const_object_table = class_data->memory->const_object_table;
+      const_object_table_size = class_data->memory->const_object_table_size;
+
+      printf("CONSTRUCTOR FILE: %s\n", type_data->data.string_data);
+      struct Object zero_object = *object_table;
+      uint8_t str_type = 0x05;
+      object_table[0].type = &str_type;
+      object_table[0].const_type = false;
+      object_table[0].data.string_data = "@constructor";
+      size_t args[] = {2, 0, 1, 0};
+      INVOKE_METHOD(args);
+      *object_table = zero_object;
+
+      object_table = origin_memory.object_table;
+      object_table_size = origin_memory.object_table_size;
+      const_object_table = origin_memory.const_object_table;
+      const_object_table_size = origin_memory.const_object_table_size;
     }
   } else {
     // printf("TEST 1");
@@ -5235,7 +5260,7 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  // printf("Name: %s\n", table->pair.second.name);
+  printf("ADD CLASS METHOD Name: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
