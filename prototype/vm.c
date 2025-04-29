@@ -2849,8 +2849,9 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
           if (final_type == 0x00) break;
 
           is_end = false;
-          uint8_t arg_final_type = 0x00;
-          for (size_t j = 0; !is_end; j++) {
+          uint8_t arg_final_type =
+              GetOriginData(object_table + args[i])->type[0];
+          /*for (size_t j = 0; !is_end; j++) {
             switch (object_table[args[i]].type[j]) {
               case 0x00:
               case 0x01:
@@ -2864,9 +2865,11 @@ int GetFuncOverloadCost(size_t* args, size_t args_size, size_t* func_args,
                 is_end = true;
                 break;
               default:
+                printf("TYPE: %i, \n",object_table[args[i]].type[j]);
                 break;
             }
           }
+          printf("TYPE: %i\n",arg_final_type);*/
           if (final_type != arg_final_type) return -1;
           if (final_type == 0x08) {
             struct Object* arg_object = GetObjectData(args[i]);
@@ -6296,7 +6299,20 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
             "Class memory not found.");
   }
 
+  struct Memory origin_memory = {object_table, object_table_size,
+                                 const_object_table, const_object_table_size};
+
+  object_table = class_memory->object_table;
+  object_table_size = class_memory->object_table_size;
+  const_object_table = class_memory->const_object_table;
+  const_object_table_size = class_memory->const_object_table_size;
+
   FuncInfo func_info = GetClassFunction(class_name, name, args, args_size);
+  object_table = origin_memory.object_table;
+  object_table_size = origin_memory.object_table_size;
+  const_object_table = origin_memory.const_object_table;
+  const_object_table_size = origin_memory.const_object_table_size;
+
   if (args_size < func_info.args_size) {
     // printf("args_size: %zu\n", args_size);
     // printf("func_info.args_size: %zu\n", func_info.args_size);
@@ -6327,9 +6343,6 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
           .data = object_table[args[func_info.args_size + i - 1]].data;
     }
   }
-
-  struct Memory origin_memory = {object_table, object_table_size,
-                                 const_object_table, const_object_table_size};
 
   func_info.args++;
   args_size--;

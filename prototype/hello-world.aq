@@ -1,54 +1,13 @@
 
 import "F:/aq/prototype/aqstl.aq" stl
 import "F:/aq/prototype/a.aq" stla
-/*double fabs(double num) {
-  if (num < 0) {
-    num = -num;
-  }
-  return num;
-}
-int i = 1;
-int sign = 1;
-double t = 1;
-double pi = 0;
 
-while (fabs(t) >= 0.00000001) {
-  pi = pi + t;
-  sign = -sign;
-  i = i + 2;
-  t = 1.0 * sign / i;
-}
-
-stl.print("TEST");
-
-stl.print("Pi: ");
-stl.print(4 * pi);
-stl.print("\n");*/
 
 void test_func(int& abc){
+  stl.print("ABCVALUE: ",abc,"\n");
   abc = 100;
 }
 
-//int doc = 0;
-/*do{
-  stl.print(doc);
-  stl.print("\n");
-  doc++;
-}while(doc<10)
-
-int doc = 0;
-while(doc<10){
-  stl.print(doc);
-  stl.print("\n");
-  doc++;
-}*/
-int i =0;
-while(i!=10){
-  stl.print(i+1);
-  stl.print("\n");
-  i++;
-  if(i==10)break;
-}
 
 class ENUM_TEST{
 static const int MON=1;
@@ -56,20 +15,12 @@ static const int TUE=2;
 static const int WED=3;
 }
 
-  int ab = 0;
-abc:
-  stl.print(ENUM_TEST.MON);
 
-
-ab++;
-if(ab<10)
-goto abc;
-//for (int i = 0;i<10;i++)stl.print(i);
+int ab = 100;
 
 auto main() {
 
-
   test_func(ab);
-  // string str = "中文 こんにちは Hello world\n";
-  return ab;
+  string str = "中文 こんにちは Hello world\n";
+  return str;
 }
