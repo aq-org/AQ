@@ -1,6 +1,8 @@
 
 import "F:/aq/prototype/aqstl.aq" stl
 
-int abc = 100;
+ int abc = 100;
+
+abc = 2;
 
 auto main(){return stl.print("A.aq");}

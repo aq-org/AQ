@@ -1334,6 +1334,35 @@ struct Object* GetOriginData(struct Object* object) {
   }
 }
 
+struct Object* GetOriginDataWithoutConst(struct Object* object) {
+  TRACE_FUNCTION;
+  while (true) {
+    if (object == NULL)
+      EXIT_VM("GetOriginDataWithoutConst(struct Object*)", "object is NULL.");
+    switch (object->type[0]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+      case 0x06:
+      case 0x09:
+      case 0x08:
+        return object;
+
+      case 0x07:
+        object = object->data.reference_data;
+        break;
+
+      default:
+        EXIT_VM("GetOriginDataWithoutConst(struct Object*)",
+                "Unsupported type.");
+        break;
+    }
+  }
+}
+
 /*void SetByteData(size_t, int8_t);
 void SetLongData(size_t, int64_t);
 void SetDoubleData(size_t, double);
@@ -1348,7 +1377,7 @@ void SetPtrData(size_t index, struct Object* ptr) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
-
+  if(data->type[0]==0x08)EXIT_VM("SetPtrData(size_t,struct Object*)", "Cannot change const type.");
   if (data->const_type && data->type[0] != 0x06)
     EXIT_VM("SetPtrData(size_t,struct Object*)", "Cannot change const type.");
 
@@ -1438,6 +1467,7 @@ void SetByteData(size_t index, int8_t value) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
+  if(data->type[0]==0x08)EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x01) {
     switch (data->type[0]) {
@@ -1510,6 +1540,8 @@ void SetLongData(size_t index, int64_t value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
+  if(data->type[0]==0x08)EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
+
   if (data->const_type && data->type[0] != 0x02) {
     switch (data->type[0]) {
       case 0x01:
@@ -1580,6 +1612,7 @@ void SetDoubleData(size_t index, double value) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
+  if(data->type[0]==0x08)EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x03) {
     switch (data->type[0]) {
@@ -1611,6 +1644,7 @@ void SetUint64tData(size_t index, uint64_t value) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
+  if(data->type[0]==0x08)EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x04) {
     switch (data->type[0]) {
@@ -1645,6 +1679,7 @@ void SetStringData(size_t index, const char* string) {
     data = data->data.reference_data;
     // printf("REF\n");
   }
+  if(data->type[0]==0x08)EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x05) {
     // printf("%zu,%i,%s", index, data->type[0], string);
@@ -1665,6 +1700,7 @@ void SetReferenceData(size_t index, struct Object* object) {
 
   struct Object* data = object_table + index;
   // while (data->type[0] == 0x07) data = data->data.reference_data;
+  if(data->type[0]==0x08)EXIT_VM("SetReferenceData(size_t,struct Object*)", "Cannot change const type.");
 
   if (object_table[index].const_type && object_table[index].type[0] != 0x07)
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
@@ -1756,6 +1792,9 @@ void SetConstData(size_t index, struct Object* object) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
+  //if(data->const_type &&data->type[0]==0x08)EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const type.");
+
+  object=GetOriginData(object);
 
   if (object_table[index].const_type && object_table[index].type[0] != 0x08)
     EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const type.");
@@ -1839,6 +1878,7 @@ void SetObjectData(size_t index, struct Object* object) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
+  if(data->type[0]==0x08)EXIT_VM("SetObjectData(size_t,struct Object*)", "Cannot change const type.");
 
   if (data->const_type && data->type != NULL && data->type[0] != 0x09)
     EXIT_VM("SetObjectData(size_t,struct Object*)",
@@ -1881,7 +1921,11 @@ void SetObjectData(size_t index, struct Object* object) {
 void SetPtrObjectData(struct Object* data, struct Object* ptr) {
   TRACE_FUNCTION;
 
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetPtrObjectData(struct Object*,struct Object*)",
+            "Cannot change const value.");
 
   if (data->const_type && data->type[0] != 0x06)
     EXIT_VM("SetPtrObjectData(struct Object*,struct Object*)",
@@ -1971,7 +2015,11 @@ void SetPtrObjectData(struct Object* data, struct Object* ptr) {
 void SetByteObjectData(struct Object* data, int8_t value) {
   TRACE_FUNCTION;
 
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetByteObjectData(struct Object*,int8_t)",
+            "Cannot change const value.");
 
   if (data->const_type && data->type[0] != 0x01) {
     switch (data->type[0]) {
@@ -2037,7 +2085,11 @@ void SetByteObjectData(struct Object* data, int8_t value) {
 
 void SetLongObjectData(struct Object* data, int64_t value) {
   TRACE_FUNCTION;
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetLongObjectData(struct Object*,int64_t)",
+            "Cannot change const value.");
 
   if (data->const_type && data->type[0] != 0x02) {
     switch (data->type[0]) {
@@ -2102,7 +2154,11 @@ void SetLongObjectData(struct Object* data, int64_t value) {
 
 void SetDoubleObjectData(struct Object* data, double value) {
   TRACE_FUNCTION;
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetDoubleObjectData(struct Object*,double)",
+            "Cannot change const value.");
 
   if (data->const_type && data->type[0] != 0x03) {
     switch (data->type[0]) {
@@ -2128,7 +2184,11 @@ void SetDoubleObjectData(struct Object* data, double value) {
 
 void SetUint64tObjectData(struct Object* data, uint64_t value) {
   TRACE_FUNCTION;
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetUint64tObjectData(struct Object*,uint64_t)",
+            "Cannot change const value.");
 
   if (data->const_type && data->type[0] != 0x04) {
     switch (data->type[0]) {
@@ -2154,7 +2214,11 @@ void SetUint64tObjectData(struct Object* data, uint64_t value) {
 
 void SetStringObjectData(struct Object* data, const char* string) {
   TRACE_FUNCTION;
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetStringObjectData(struct Object*,const char*)",
+            "Cannot change const value.");
 
   if (data->const_type && data->type[0] != 0x05) {
     // printf("%zu,%i,%s", index, data->type[0], string);
@@ -2168,7 +2232,11 @@ void SetStringObjectData(struct Object* data, const char* string) {
 
 void SetReferenceObjectData(struct Object* data, struct Object* object) {
   TRACE_FUNCTION;
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetReferenceObjectData(struct Object*,struct Object*)",
+            "Cannot change const value.");
 
   if (object == NULL) {
     EXIT_VM("SetReferenceObjectData(struct Object*,struct Object*)",
@@ -2253,7 +2321,11 @@ void SetReferenceObjectData(struct Object* data, struct Object* object) {
 
 void SetConstObjectData(struct Object* data, struct Object* object) {
   TRACE_FUNCTION;
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+  object=GetOriginData(object);
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetConstObjectData(struct Object*,struct Object*)",
+            "Cannot change const value.");
 
   if (object == NULL) {
     data->type[0] = 0x08;
@@ -2333,7 +2405,11 @@ void SetConstObjectData(struct Object* data, struct Object* object) {
 }
 void SetObjectObjectData(struct Object* data, struct Object* object) {
   TRACE_FUNCTION;
-  data = GetOriginData(data);
+  data = GetOriginDataWithoutConst(data);
+
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetObjectObjectData(struct Object*,struct Object*)",
+            "Cannot change const value.");
 
   if (data->const_type && data->type != NULL && data->type[0] != 0x09)
     EXIT_VM("SetObjectObjectData(struct Object*,struct Object*)",

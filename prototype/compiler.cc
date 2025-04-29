@@ -10404,8 +10404,8 @@ std::size_t BytecodeGenerator::HandleStaticVarDecl(
         Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
       std::size_t const_var_index = global_memory_.AddWithType(return_type);
-      std::vector<uint8_t> value_ptr = vm_type;
-      value_ptr.insert(value_ptr.begin(), 0x06);
+      // std::vector<uint8_t> value_ptr = vm_type;
+      // value_ptr.insert(value_ptr.begin(), 0x06);
       global_code_.push_back(
           Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
       var_decl_map_.emplace(
@@ -10777,7 +10777,7 @@ std::size_t BytecodeGenerator::HandleStartVarDecl(VarDeclNode* var_decl,
 
     if (var_decl->GetVarType()->GetType() == Type::TypeType::kConst) {
       std::size_t const_var_index = memory.AddWithType(
-          static_cast<std::string>(*var_decl->GetName()), return_type);
+          static_cast<std::string>(*var_decl->GetName()), vm_type);
       std::size_t const_var_reference_index = global_memory_.Add(1);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, const_var_reference_index, 2,
