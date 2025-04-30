@@ -1,7 +1,7 @@
 
 
-import "F:/aq/prototype/aqstl.aq" stl
-import "F:/aq/prototype/a.aq" stla
+import "./aqstl.aq" stl
+import "./a.aq" stla
 
 auto main(){return print("\n\n\nSTLA.ABC: ",stla.abc,"\n\n\n");}
 

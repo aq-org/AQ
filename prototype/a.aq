@@ -1,5 +1,5 @@
 
-import "F:/aq/prototype/aqstl.aq" stl
+import "./aqstl.aq" stl
 
  int abc = 100;
 

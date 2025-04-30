@@ -1377,7 +1377,8 @@ void SetPtrData(size_t index, struct Object* ptr) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
-  if(data->type[0]==0x08)EXIT_VM("SetPtrData(size_t,struct Object*)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetPtrData(size_t,struct Object*)", "Cannot change const type.");
   if (data->const_type && data->type[0] != 0x06)
     EXIT_VM("SetPtrData(size_t,struct Object*)", "Cannot change const type.");
 
@@ -1467,7 +1468,8 @@ void SetByteData(size_t index, int8_t value) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
-  if(data->type[0]==0x08)EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetByteData(size_t,int8_t)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x01) {
     switch (data->type[0]) {
@@ -1540,7 +1542,8 @@ void SetLongData(size_t index, int64_t value) {
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
 
-  if(data->type[0]==0x08)EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetLongData(size_t,long)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x02) {
     switch (data->type[0]) {
@@ -1612,7 +1615,8 @@ void SetDoubleData(size_t index, double value) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
-  if(data->type[0]==0x08)EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetDoubleData(size_t,double)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x03) {
     switch (data->type[0]) {
@@ -1644,7 +1648,8 @@ void SetUint64tData(size_t index, uint64_t value) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
-  if(data->type[0]==0x08)EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetUint64tData(size_t,uint64_t)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x04) {
     switch (data->type[0]) {
@@ -1679,7 +1684,8 @@ void SetStringData(size_t index, const char* string) {
     data = data->data.reference_data;
     // printf("REF\n");
   }
-  if(data->type[0]==0x08)EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetStringData(size_t,const char*)", "Cannot change const type.");
 
   if (data->const_type && data->type[0] != 0x05) {
     // printf("%zu,%i,%s", index, data->type[0], string);
@@ -1700,7 +1706,9 @@ void SetReferenceData(size_t index, struct Object* object) {
 
   struct Object* data = object_table + index;
   // while (data->type[0] == 0x07) data = data->data.reference_data;
-  if(data->type[0]==0x08)EXIT_VM("SetReferenceData(size_t,struct Object*)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetReferenceData(size_t,struct Object*)",
+            "Cannot change const type.");
 
   if (object_table[index].const_type && object_table[index].type[0] != 0x07)
     EXIT_VM("SetReferenceData(size_t,struct Object*)",
@@ -1792,9 +1800,11 @@ void SetConstData(size_t index, struct Object* object) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
-  //if(data->const_type &&data->type[0]==0x08)EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const type.");
+  // if(data->const_type
+  // &&data->type[0]==0x08)EXIT_VM("SetConstData(size_t,struct Object*)",
+  // "Cannot change const type.");
 
-  object=GetOriginData(object);
+  object = GetOriginData(object);
 
   if (object_table[index].const_type && object_table[index].type[0] != 0x08)
     EXIT_VM("SetConstData(size_t,struct Object*)", "Cannot change const type.");
@@ -1878,7 +1888,9 @@ void SetObjectData(size_t index, struct Object* object) {
 
   struct Object* data = object_table + index;
   while (data->type[0] == 0x07) data = data->data.reference_data;
-  if(data->type[0]==0x08)EXIT_VM("SetObjectData(size_t,struct Object*)", "Cannot change const type.");
+  if (data->type[0] == 0x08)
+    EXIT_VM("SetObjectData(size_t,struct Object*)",
+            "Cannot change const type.");
 
   if (data->const_type && data->type != NULL && data->type[0] != 0x09)
     EXIT_VM("SetObjectData(size_t,struct Object*)",
@@ -2322,7 +2334,7 @@ void SetReferenceObjectData(struct Object* data, struct Object* object) {
 void SetConstObjectData(struct Object* data, struct Object* object) {
   TRACE_FUNCTION;
   data = GetOriginDataWithoutConst(data);
-  object=GetOriginData(object);
+  object = GetOriginData(object);
   if (data->type[0] == 0x08)
     EXIT_VM("SetConstObjectData(struct Object*,struct Object*)",
             "Cannot change const value.");
@@ -3165,12 +3177,12 @@ int NEW(size_t ptr, size_t size, size_t type) {
         calloc(temp_bytecode_file - filename_start + 1, sizeof(char));
     memcpy(file_name, filename_start, temp_bytecode_file - filename_start);
     temp_bytecode_file++;
-    printf("YES %c.\n", *temp_bytecode_file);
+    // printf("YES %c.\n", *temp_bytecode_file);
     const unsigned int class_hash = hash(file_name);
     current_bytecode_file_table = &bytecode_file_table[class_hash];
     while (current_bytecode_file_table->next != NULL) {
       if (strcmp(current_bytecode_file_table->name, file_name) == 0) {
-        printf("YES 0.\n");
+        // printf("YES 0.\n");
         is_bytecode_file_main_program = true;
         break;
       }
@@ -3188,13 +3200,13 @@ int NEW(size_t ptr, size_t size, size_t type) {
         return 0;
       }
 
-      printf("NEW C: %s\n", type_data->data.string_data);
+      // printf("NEW C: %s\n", type_data->data.string_data);
       AddBytecodeFile(type_data->data.string_data);
 
       current_bytecode_file_table = &bytecode_file_table[class_hash];
       while (current_bytecode_file_table->next != NULL) {
         if (strcmp(current_bytecode_file_table->name, file_name) == 0) {
-          printf("YES 0.\n");
+          // printf("YES 0.\n");
           is_bytecode_file_main_program = true;
           break;
         }
@@ -3521,7 +3533,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
     // printf("TEST");
     SetObjectData(ptr, data->data.object_data);
     if (is_bytecode_file_main_program) {
-      printf("YES 1.\n");
+      // printf("YES 1.\n");
       current_bytecode_file_table->object = data;
       struct Class* class_data = NULL;
       const char* class = GetStringData(type);
@@ -3549,15 +3561,16 @@ int NEW(size_t ptr, size_t size, size_t type) {
       const_object_table = class_data->memory->const_object_table;
       const_object_table_size = class_data->memory->const_object_table_size;
 
-      printf("CONSTRUCTOR FILE: %s\n", type_data->data.string_data);
+      // printf("CONSTRUCTOR FILE: %s\n", type_data->data.string_data);
       struct Object zero_object = *object_table;
       uint8_t str_type = 0x05;
       object_table[0].type = &str_type;
       object_table[0].const_type = false;
-      object_table[0].data.string_data = "@constructor";
+      const char* str = "@constructor";
+      object_table[0].data.string_data = str;
       size_t args[] = {2, 0, 1, 0};
       INVOKE_METHOD(args);
-      *object_table = zero_object;
+      if (object_table[0].data.string_data == str) *object_table = zero_object;
 
       object_table = origin_memory.object_table;
       object_table_size = origin_memory.object_table_size;
@@ -5148,7 +5161,7 @@ int INVOKE_METHOD(size_t* args) {
   }
   InternalObject args_obj = {arg_count - 1, invoke_args};
 
-  printf("func: %s\n", GetStringData(func));
+  // printf("func: %s\n", GetStringData(func));
 
   func_ptr invoke_func = GetFunction(GetStringData(func));
   if (invoke_func != NULL) {
@@ -5219,7 +5232,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* object_data = class_data->data.object_data + offset;
 
-  printf("object_data: %p\n", object_data);
+  // printf("object_data: %p\n", object_data);
 
   // uint8_t* original_type = object_table[result].type;
   // bool original_const_type = object_table[result].const_type;
@@ -5339,7 +5352,7 @@ void* AddClassMethod(void* location, struct FuncList* methods) {
   table->pair.second.location = location;
   table->pair.first = location;
   table->pair.second.name = location;
-  printf("ADD CLASS METHOD Name: %s\n", table->pair.second.name);
+  // printf("ADD CLASS METHOD Name: %s\n", table->pair.second.name);
   while (*(char*)location != '\0') {
     location = (void*)((uintptr_t)location + 1);
   }
@@ -6243,7 +6256,7 @@ FuncInfo GetClassFunction(const char* class, const char* name, size_t* args,
     } else {
       current_class_table = current_class_table->next;
     }
-    printf("Class Func Name: %s\n", name);
+    // printf("Class Func Name: %s\n", name);
     if (cost == -1)
       EXIT_VM("GetClassFunction(const char*,const char*,size_t*,size_t)",
               "Not found func.");
@@ -6745,7 +6758,7 @@ void* AddBytecodeFileClass(const char* name, struct Memory* memory,
   snprintf(class_name, strlen(name) + strlen((char*)location) + 1, "%s%s", name,
            (char*)location);
 
-  printf("ABFC: %s\n", class_name);
+  // printf("ABFC: %s\n", class_name);
 
   struct ClassList* table = &class_table[hash(class_name)];
   if (table == NULL)
@@ -7058,7 +7071,7 @@ void AddBytecodeFile(const char* file) {
   TRACE_FUNCTION;
   // if (*file == '~') return;
   file++;
-  printf("AddBytecodeFile: ~%s\n", file);
+  // printf("AddBytecodeFile: ~%s\n", file);
   const char* filename_start = file;
   while (*file != '~') {
     file++;
@@ -7066,7 +7079,7 @@ void AddBytecodeFile(const char* file) {
   // file++;
   char* file_name = calloc(file - filename_start + 1, sizeof(char));
   memcpy(file_name, filename_start, file - filename_start);
-  printf("file_name: %s\n", file_name);
+  // printf("file_name: %s\n", file_name);
 
   // const char* file_name = file;
   FILE* bytecode = fopen(file_name, "rb");
@@ -7103,7 +7116,7 @@ void AddBytecodeFile(const char* file) {
   // is_exist = true;
 
   if (!is_exist) {
-    printf("Adding bytecode file: %s\n", file_name);
+    // printf("Adding bytecode file: %s\n", file_name);
 
     current_file_count++;
     current_bytecode_file_table->next = malloc(sizeof(struct BytecodeFileList));

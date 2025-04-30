@@ -9211,9 +9211,9 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
         import_generator_map.end()) {
       // TODO(IMPORTANT): Unknown error, but can be fixed with this statement.
       // Serious issue, awaiting repair.
-      std::cout << import_generator_map[import_location] << std::endl;
+    std::cout << import_generator_map[import_location] << std::endl;
 
-      std::cout << "Import A NEW FILE." << import_location << std::endl;
+    //std::cout << "Import A NEW FILE." << import_location << std::endl;
       const char* filename = import_location.c_str();
       std::ifstream file;
       file.open(filename);
@@ -12300,7 +12300,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
                                                 std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-  std::cout << "HandlePeriodExpr CALLED." << std::endl;
+//std::cout << "HandlePeriodExpr CALLED." << std::endl;
   if (expr->GetOperator() != BinaryNode::Operator::kMember)
     EXIT_COMPILER(
         "BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<Bytecode>&"
@@ -13436,10 +13436,10 @@ std::size_t BytecodeGenerator::GetIndex(ExprNode* expr,
         auto iterator = var_decl_map_.find(
             current_scope_[i] + "#" +
             static_cast<std::string>(*dynamic_cast<IdentifierNode*>(expr)));
-        std::cout << current_scope_[i] + "#" +
+        /*std::cout << current_scope_[i] + "#" +
                          static_cast<std::string>(
                              *dynamic_cast<IdentifierNode*>(expr))
-                  << std::endl;
+                  << std::endl;*/
         if (iterator != var_decl_map_.end()) {
           /*std::cout << "Identifier: "
           << (std::string) * dynamic_cast<IdentifierNode*>(expr)
