@@ -2,9 +2,11 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 /*typedef struct StackNode {
   char* function_name;
@@ -104,15 +106,34 @@ typedef struct {
 
 typedef void (*func_ptr)(InternalObject, size_t);
 
+struct Pair {
+  char* first;
+  func_ptr second;
+};
+
+struct LinkedList {
+  struct Pair pair;
+  struct LinkedList* next;
+};
+
+struct LinkedList name_table[256];
+
+void AddFreePtr(void* ptr);
+
 struct Object* GetOriginData(struct Object* object);
 struct Object* GetObjectData(size_t index);
+struct Object* GetObjectObjectData(struct Object* data);
 const char* GetStringData(size_t index);
+const char* GetStringObjectData(struct Object* object);
 uint64_t GetUint64tObjectData(struct Object* object);
 uint64_t GetUint64tData(size_t index);
+int64_t GetLongObjectData(struct Object* object);
+double GetDoubleObjectData(struct Object* object);
 double GetDoubleData(size_t index);
 int64_t GetLongData(size_t index);
 int8_t GetByteObjectData(struct Object* data);
 int8_t GetByteData(size_t index);
+struct Object* GetPtrObjectData(struct Object* object);
 struct Object* GetPtrData(size_t index);
 void SetByteData(size_t, int8_t);
 void SetLongData(size_t, int64_t);
@@ -122,7 +143,16 @@ void SetPtrData(size_t index, struct Object* ptr);
 void SetStringData(size_t index, const char* string);
 void SetReferenceData(size_t index, struct Object* object);
 void SetConstData(size_t index, struct Object* object);
-void SetObjectData(size_t index, struct Object* object);
+void SetObjectObjectData(struct Object* data, struct Object* object);
+void SetByteObjectData(struct Object* data, int8_t);
+void SetLongObjectData(struct Object* data, int64_t);
+void SetDoubleObjectData(struct Object* data, double);
+void SetUint64tObjectData(struct Object* data, uint64_t);
+void SetPtrObjectData(struct Object* data, struct Object* ptr);
+void SetStringObjectData(struct Object* data, const char* string);
+void SetReferenceObjectData(struct Object* data, struct Object* object);
+void SetConstObjectData(struct Object* data, struct Object* object);
+void SetObjectObjectData(struct Object* data, struct Object* object);
 
 void aqstl_print(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -158,6 +188,56 @@ void aqstl_print(InternalObject args, size_t return_value) {
     default:
       EXIT_VM("aqstl_print(InternalObject,size_t)", "Unsupported type.");
       break;
+  }
+}
+
+void aqstl_vaprint(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1)
+    EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid return value.");
+  struct Object* object = object_table + args.index[0];
+  object = GetOriginData(object);
+
+  if (object == NULL || object->type == NULL || object->type[0] != 0x06)
+    EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Invalid object.");
+
+  for (size_t i = 1; i < GetUint64tObjectData(object->data.ptr_data) + 1; i++) {
+    switch (GetOriginData(object->data.ptr_data + i)->type[0]) {
+      case 0x01:
+        SetLongData(return_value,
+                    printf("%d", GetByteObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x02:
+        SetLongData(
+            return_value,
+            printf("%lld", GetLongObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x03:
+        SetLongData(
+            return_value,
+            printf("%.15f", GetDoubleObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x04:
+        SetLongData(
+            return_value,
+            printf("%zu", GetUint64tObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x05:
+        SetLongData(
+            return_value,
+            printf("%s", GetStringObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x06:
+        SetLongData(return_value,
+                    printf("%p", GetPtrObjectData(object->data.ptr_data + i)));
+        break;
+      default:
+        // printf("Type: %u\n", (object->data.ptr_data+i)->type[0]);
+        EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Unsupported type.");
+        break;
+    }
   }
 }
 
@@ -309,3 +389,40 @@ errno_t tmpnam_s(char* s, rsize_t maxsize);
 // va_list arg);
 char* gets_s(char* s, rsize_t n);
 */
+
+unsigned int hash(const char* str) {
+  TRACE_FUNCTION;
+  unsigned long hash = 5381;
+  int c;
+  while ((c = *str++)) {
+    hash = ((hash << 5) + hash) + c;
+  }
+  return hash % 256;
+}
+
+void AddFuncToNameTable(char* name, func_ptr func) {
+  TRACE_FUNCTION;
+  unsigned int name_hash = hash(name);
+  struct LinkedList* table = &name_table[name_hash];
+  while (table->next != NULL) {
+    table = table->next;
+  }
+  table->pair.first = name;
+  table->pair.second = func;
+  table->next = (struct LinkedList*)malloc(sizeof(struct LinkedList));
+  AddFreePtr(table->next);
+  table->next->next = NULL;
+  table->next->pair.first = NULL;
+  table->next->pair.second = NULL;
+}
+
+void InitializeNameTable(struct LinkedList* list) {
+  AddFuncToNameTable("__builtin_print", aqstl_print);
+  AddFuncToNameTable("__builtin_vaprint", aqstl_vaprint);
+  AddFuncToNameTable("__builtin_remove", aqstl_remove);
+  AddFuncToNameTable("__builtin_rename", aqstl_rename);
+  AddFuncToNameTable("__builtin_getchar", aqstl_getchar);
+  AddFuncToNameTable("__builtin_putchar", aqstl_putchar);
+  AddFuncToNameTable("__builtin_puts", aqstl_puts);
+  AddFuncToNameTable("__builtin_perror", aqstl_perror);
+}

@@ -1,71 +1,7 @@
-int print(auto str);
-/*double fabs(double num) {
-  if (num < 0) {
-    num = -num;
-  }
-  return num;
-}
-int i = 1;
-int sign = 1;
-double t = 1;
-double pi = 0;
 
-while (fabs(t) >= 0.00000001) {
-  pi = pi + t;
-  sign = -sign;
-  i = i + 2;
-  t = 1.0 * sign / i;
-}
-
-print("Pi: ");
-print(4 * pi);
-print("\n");*/
-
-void test_func(int& abc){
-  abc = 100;
-}
-
-//int doc = 0;
-/*do{
-  print(doc);
-  print("\n");
-  doc++;
-}while(doc<10)
-
-int doc = 0;
-while(doc<10){
-  print(doc);
-  print("\n");
-  doc++;
-}*/
-int i =0;
-while(i!=10){
-  print(i+1);
-  print("\n");
-  i++;
-  if(i==10)break;
-}
-
-class ENUM_TEST{
-static const int MON=1;
-static const int TUE=2;
-static const int WED=3;
-}
-
-  int ab = 0;
-abc:
-  print(ENUM_TEST.MON);
-
-
-ab++;
-if(ab<10)
-goto abc;
-//for (int i = 0;i<10;i++)print(i);
+import "./aqstl.aq" stl
 
 auto main() {
-
-
-  test_func(ab);
-  // string str = "中文 こんにちは Hello world\n";
-  return ab;
+  stl.print("Hello World!\n");
+  return 0;
 }
