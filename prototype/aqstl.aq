@@ -1,9 +1,5 @@
 
-
-import "./aqstl.aq" stl
-import "./a.aq" stla
-
-auto main(){return print("\n\n\nSTLA.ABC: ",stla.abc,"\n\n\n");}
+auto main(){}
 
 int print(...) { return __builtin_vaprint(args); }
 

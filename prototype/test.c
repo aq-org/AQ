@@ -145,32 +145,37 @@ int main(int argc, char *argv[]) {
     printf("C program finished successfully.\n");
     return 0;
 }*/
-
 #include <Python.h>
+#include <stdio.h>
 
 int main(int argc, char *argv[]) {
-    Py_InitializeEx(0); // 初始化 Python 解释器 (0 表示不初始化信号处理)
+    Py_Initialize();  // 初始化解释器
 
-    const char* python_code = 
-        "import math\n"
-        "try:\n"
-        "    result = math.sqrt(16)\n"
-        "    print(f'The square root from C is: {result}')\n"
-        "except Exception as e:\n"
-        "    print(f'Python error: {e}')\n";
+    // 执行 Python 代码
+    PyRun_SimpleString("print('Hello from embedded Python!')");
 
-    // 执行 Python 代码字符串
-    int ret = PyRun_SimpleStringFlags(python_code, NULL);
-
-    if (ret != 0) {
-        fprintf(stderr, "Error executing Python code.\n");
-        if (PyErr_Occurred()) {
-            PyErr_Print(); // 打印 Python 异常信息
-        }
+    // 调用 Python 函数
+    PyObject* module = PyImport_ImportModule("math");
+    if (module == NULL) {
+        PyErr_Print();
+        fprintf(stderr, "Failed to import 'math' module\n");
+        Py_Finalize();
+        return 1;
     }
 
-    if (Py_FinalizeEx() < 0) { // 关闭 Python 解释器
-        exit(120);
+    PyObject* result = PyObject_CallMethod(module, "sqrt", "d", 4.0);
+    if (result == NULL) {
+        PyErr_Print();
+        fprintf(stderr, "Failed to call 'sqrt' method\n");
+        Py_DECREF(module);
+        Py_Finalize();
+        return 1;
     }
-    return ret;
+
+    printf("sqrt(4) = %f\n", PyFloat_AsDouble(result));
+
+    Py_DECREF(result);
+    Py_DECREF(module);
+    Py_Finalize();  // 清理
+    return 0;
 }

@@ -1,26 +1,7 @@
 
 import "./aqstl.aq" stl
-import "./a.aq" stla
-
-
-void test_func(int& abc){
-  stl.print("ABCVALUE: ",abc,"\n");
-  abc = 100;
-}
-
-
-class ENUM_TEST{
-static const int MON=1;
-static const int TUE=2;
-static const int WED=3;
-}
-
-
-int ab = 100;
 
 auto main() {
-
-  test_func(ab);
-  string str = "中文 こんにちは Hello world\n";
-  return str;
+  stl.print("Hello World!\n");
+  return 0;
 }
