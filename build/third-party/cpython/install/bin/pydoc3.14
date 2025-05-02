@@ -1,5 +1,0 @@
-#!/workspaces/AQ/build/third-party/cpython/install/bin/python3.14
-
-import pydoc
-if __name__ == '__main__':
-    pydoc.cli()

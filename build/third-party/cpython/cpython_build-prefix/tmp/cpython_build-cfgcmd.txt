@@ -1,1 +1,0 @@
-cmd='<SOURCE_DIR>/configure;--enable-static;--disable-shared;--prefix=/workspaces/AQ/build/third-party/cpython/install;--with-ensurepip=no;CFLAGS=-fPIC'

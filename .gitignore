@@ -1,4 +1,4 @@
-./.gitignore
-./.vscode
-./build
-./.cache
+/.gitignore
+/.vscode
+/build
+/.cache

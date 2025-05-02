@@ -1,1 +1,0 @@
-gcc    CMakeFiles/aq_vm.dir/prototype/vm.c.o  -o aq_vm  third-party/cpython/install/lib/libpython3.14.a 
