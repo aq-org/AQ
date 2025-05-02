@@ -74,7 +74,7 @@ else()
         INSTALL_DIR   ${INSTALL_DIR}
         
         CONFIGURE_COMMAND <SOURCE_DIR>/configure ${CPYTHON_STATIC_FLAGS}
-        BUILD_COMMAND     $(MAKE) -j
+        BUILD_COMMAND     $(MAKE) -j8 VERBOSE=1
         INSTALL_COMMAND   $(MAKE) install
         BUILD_BYPRODUCTS  ${INSTALL_DIR}/lib/${PYTHON_LIB_NAME}
     )
