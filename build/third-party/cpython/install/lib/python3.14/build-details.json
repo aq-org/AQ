@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "base_prefix": "/workspaces/AQ/build/third-party/cpython/install",
+  "base_interpreter": "/workspaces/AQ/build/third-party/cpython/install/bin/python3.14",
+  "platform": "linux-x86_64",
+  "language": {
+    "version": "3.14",
+    "version_info": {
+      "major": 3,
+      "minor": 14,
+      "micro": 0,
+      "releaselevel": "alpha",
+      "serial": 7
+    }
+  },
+  "implementation": {
+    "name": "cpython",
+    "cache_tag": "cpython-314",
+    "version": {
+      "major": 3,
+      "minor": 14,
+      "micro": 0,
+      "releaselevel": "alpha",
+      "serial": 7
+    },
+    "hexversion": 51249319,
+    "_multiarch": "x86_64-linux-gnu"
+  },
+  "abi": {
+    "flags": []
+  },
+  "suffixes": {
+    "source": [
+      ".py"
+    ],
+    "bytecode": [
+      ".pyc"
+    ],
+    "extensions": [
+      ".cpython-314-x86_64-linux-gnu.so",
+      ".abi3.so",
+      ".so"
+    ]
+  },
+  "libpython": {
+    "static": "/workspaces/AQ/build/third-party/cpython/install/lib/libpython3.14.a"
+  },
+  "c_api": {
+    "include": "/workspaces/AQ/build/third-party/cpython/install/include",
+    "pkgconfig_path": "/workspaces/AQ/build/third-party/cpython/install/lib/pkgconfig"
+  }
+}

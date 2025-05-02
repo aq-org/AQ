@@ -1,0 +1,13 @@
+# Target labels
+ cpython_build
+# Source files and their labels
+/workspaces/AQ/build/third-party/cpython/CMakeFiles/cpython_build
+/workspaces/AQ/build/third-party/cpython/CMakeFiles/cpython_build.rule
+/workspaces/AQ/build/third-party/cpython/CMakeFiles/cpython_build-complete.rule
+/workspaces/AQ/build/third-party/cpython/cpython_build-prefix/src/cpython_build-stamp/cpython_build-install.rule
+/workspaces/AQ/build/third-party/cpython/cpython_build-prefix/src/cpython_build-stamp/cpython_build-mkdir.rule
+/workspaces/AQ/build/third-party/cpython/cpython_build-prefix/src/cpython_build-stamp/cpython_build-download.rule
+/workspaces/AQ/build/third-party/cpython/cpython_build-prefix/src/cpython_build-stamp/cpython_build-update.rule
+/workspaces/AQ/build/third-party/cpython/cpython_build-prefix/src/cpython_build-stamp/cpython_build-patch.rule
+/workspaces/AQ/build/third-party/cpython/cpython_build-prefix/src/cpython_build-stamp/cpython_build-configure.rule
+/workspaces/AQ/build/third-party/cpython/cpython_build-prefix/src/cpython_build-stamp/cpython_build-build.rule

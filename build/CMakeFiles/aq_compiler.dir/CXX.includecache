@@ -1,0 +1,36 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/workspaces/AQ/prototype/compiler.cc
+cassert
+-
+chrono
+-
+cstdarg
+-
+cstddef
+-
+cstdint
+-
+cstdlib
+-
+cstring
+-
+fstream
+-
+iostream
+-
+stdexcept
+-
+string
+-
+unordered_map
+-
+vector
+-
+

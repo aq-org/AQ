@@ -1,0 +1,9 @@
+/workspaces/AQ/build/CMakeFiles/rebuild_cache.dir
+/workspaces/AQ/build/CMakeFiles/edit_cache.dir
+/workspaces/AQ/build/CMakeFiles/aq_vm.dir
+/workspaces/AQ/build/CMakeFiles/aq_compiler.dir
+/workspaces/AQ/build/third-party/CMakeFiles/rebuild_cache.dir
+/workspaces/AQ/build/third-party/CMakeFiles/edit_cache.dir
+/workspaces/AQ/build/third-party/cpython/CMakeFiles/rebuild_cache.dir
+/workspaces/AQ/build/third-party/cpython/CMakeFiles/edit_cache.dir
+/workspaces/AQ/build/third-party/cpython/CMakeFiles/cpython_build.dir
