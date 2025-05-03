@@ -61,8 +61,8 @@ else()
         --disable-shared
         --prefix=${INSTALL_DIR}
         --with-ensurepip=no
-        --enable-optimizations
-        --with-lto
+        # --enable-optimizations
+        # --with-lto
         CFLAGS=-fPIC
     )
 
@@ -72,7 +72,7 @@ else()
         INSTALL_DIR   ${INSTALL_DIR}
         
         CONFIGURE_COMMAND <SOURCE_DIR>/configure ${CPYTHON_STATIC_FLAGS}
-        BUILD_COMMAND     $(MAKE) -j VERBOSE=1
+        BUILD_COMMAND     $(MAKE) -j $(nproc) VERBOSE=1
         INSTALL_COMMAND   $(MAKE) install
         BUILD_BYPRODUCTS  ${INSTALL_DIR}/lib/${PYTHON_LIB_NAME}
     )
@@ -100,7 +100,7 @@ COMMAND ${CMAKE_COMMAND} -E copy_directory
 else()
     file(MAKE_DIRECTORY ${CPYTHON_INCLUDE_DIR})
     set_target_properties(libpython PROPERTIES
-        IMPORTED_LOCATION ${INSTALL_DIR}/lib/${PYTHON_LIB_NAME}
+        IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/install/lib/${PYTHON_LIB_NAME}
         INTERFACE_INCLUDE_DIRECTORIES ${CPYTHON_INCLUDE_DIR}
     )
 endif()

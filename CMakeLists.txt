@@ -85,9 +85,12 @@ add_subdirectory(third-party)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-include_directories(${PROJECT_SOURCE_DIR}/third-party/cpython/PCbuild/${PYTHON_PLATFORM})
-include_directories(${PROJECT_SOURCE_DIR}/third-party/cpython/Include)
-
+if(WIN32)
+    include_directories(${PROJECT_SOURCE_DIR}/third-party/cpython/PCbuild/${PYTHON_PLATFORM})
+    include_directories(${PROJECT_SOURCE_DIR}/third-party/cpython/Include)
+else()
+    include_directories(${CMAKE_BINARY_DIR}/third-party/cpython/install/include/python${PYTHON_VER})
+endif()
 
 set(COMPILER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/compiler.cc)
 set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
@@ -104,7 +107,7 @@ if(WIN32)
 else()
     target_link_libraries(aq_vm PRIVATE
         cpython::static
-        ${PYTHON_SYSTEM_LIBS}
+        m
     )
 
     target_include_directories(aq_vm PRIVATE ${PYTHON_INCLUDE_DIRS})
