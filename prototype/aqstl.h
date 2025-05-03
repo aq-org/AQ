@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <Python.h>
 
 /*typedef struct StackNode {
   char* function_name;
@@ -390,6 +391,70 @@ errno_t tmpnam_s(char* s, rsize_t maxsize);
 char* gets_s(char* s, rsize_t n);
 */
 
+void aqstl_python_test(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 3)
+    EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid return value.");
+  struct Object* object = object_table + args.index[0];
+  object = GetOriginData(object);
+
+  Py_Initialize();
+
+  if(object == NULL || object->type == NULL || object->type[0] != 0x05)
+    EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid module name.");
+  PyObject *pModule = PyImport_ImportModule(object->data.string_data);
+
+  object = object_table + args.index[1];
+  object = GetOriginData(object);
+  if(object == NULL || object->type == NULL || object->type[0] != 0x05)
+    EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid func name.");
+  PyObject *pFunc = PyObject_GetAttrString(pModule, object->data.string_data);
+
+  object = object_table + args.index[2];
+  object = GetOriginData(object);
+  if (object == NULL || object->type == NULL || object->type[0] != 0x06)
+    EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid args.");
+  PyObject *pList = PyList_New(GetUint64tObjectData(object));
+
+  for (size_t i = 1; i < GetUint64tObjectData(object->data.ptr_data) + 1; i++) {
+    switch (GetOriginData(object->data.ptr_data + i)->type[0]) {
+      case 0x01:
+      PyList_SetItem(pList, i-1,PyLong_FromLong(GetByteObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x02:
+      PyList_SetItem(pList, i-1,PyLong_FromLong(GetLongObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x03:
+      PyList_SetItem(pList, i-1,PyFloat_FromDouble(GetDoubleObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x04:
+      PyList_SetItem(pList, i-1,PyLong_FromLong(GetLongObjectData(object->data.ptr_data + i)));
+        break;
+      case 0x05:
+      PyList_SetItem(pList, i-1,PyUnicode_FromString(GetStringObjectData(object->data.ptr_data + i)));
+        break;
+      default:
+        EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Unsupported type.");
+        break;
+    }
+  }
+
+  PyObject *pResult = PyObject_CallFunction(pFunc, "O", pList);
+  if (pResult) {
+      printf("Result: %ld\n", PyLong_AsLong(pResult));
+      Py_DECREF(pResult);
+  } else {
+      PyErr_Print();
+  }
+
+  Py_DECREF(pList);
+  Py_DECREF(pFunc);
+  Py_DECREF(pModule);
+  Py_FinalizeEx();
+}
+
 unsigned int hash(const char* str) {
   TRACE_FUNCTION;
   unsigned long hash = 5381;
@@ -425,4 +490,5 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_putchar", aqstl_putchar);
   AddFuncToNameTable("__builtin_puts", aqstl_puts);
   AddFuncToNameTable("__builtin_perror", aqstl_perror);
+  AddFuncToNameTable("__builtin_python_test", aqstl_python_test);
 }
