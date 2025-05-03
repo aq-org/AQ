@@ -103,6 +103,12 @@ else()
         IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/install/lib/${PYTHON_LIB_NAME}
         INTERFACE_INCLUDE_DIRECTORIES ${CPYTHON_INCLUDE_DIR}
     )
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/pythonlib/lib/python${PYTHON_VER})
+add_custom_target(copy_pylib ALL
+COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_BINARY_DIR}/third-party/cpython/install/lib/python${PYTHON_VER}"
+    "${CMAKE_BINARY_DIR}/pythonlib/lib/python${PYTHON_VER}"
+)
 endif()
 
 add_library(cpython::static ALIAS libpython)
