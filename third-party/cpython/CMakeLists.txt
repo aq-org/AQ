@@ -8,29 +8,25 @@ include(ExternalProject)
 include(GNUInstallDirs)
 
 if(WIN32)
-    set(PYTHON_VER 314 GLOBAL)
     set(PYTHON_LIB_NAME python${PYTHON_VER}.lib)
     set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/install)
     if(CMAKE_GENERATOR_PLATFORM)
         string(TOLOWER "${CMAKE_GENERATOR_PLATFORM}" GEN_PLATFORM)
         if(GEN_PLATFORM MATCHES "^(amd64|x64)$")
-            set(PYTHON_PLATFORM "amd64" GLOBAL)
+            set(PYTHON_PLATFORM "amd64")
         elseif(GEN_PLATFORM STREQUAL "win32")
-            set(PYTHON_PLATFORM "win32" GLOBAL)
+            set(PYTHON_PLATFORM "win32")
         elseif(GEN_PLATFORM STREQUAL "arm")
-            set(PYTHON_PLATFORM "arm32" GLOBAL)
+            set(PYTHON_PLATFORM "arm32")
         elseif(GEN_PLATFORM STREQUAL "arm64")
-            set(PYTHON_PLATFORM "arm64" GLOBAL)
-        endif()
+            set(PYTHON_PLATFORM "arm64")
+        else()
+            message(FATAL_ERROR "Unsupported platform! "
+                "Detected system processor: ${CMAKE_SYSTEM_PROCESSOR}, "
+                "Generator platform: ${CMAKE_GENERATOR_PLATFORM}")
+            endif()
     endif()
-
-    #if(NOT DEFINED PYTHON_PLATFORM)
-    #message(FATAL_ERROR "Unsupported platform! "
-    #    "Detected system processor: ${CMAKE_SYSTEM_PROCESSOR}, "
-     #   "Generator platform: ${CMAKE_GENERATOR_PLATFORM}")
-
 else()
-    set(PYTHON_VER 3.14)
     set(PYTHON_LIB_NAME libpython${PYTHON_VER}.a)
     set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/install)
 endif()
@@ -55,20 +51,18 @@ if(WIN32)
     add_library(libpython SHARED IMPORTED GLOBAL)
     add_dependencies(libpython cpython_build)
 
-
     set_target_properties(libpython PROPERTIES
         IMPORTED_IMPLIB ${CPYTHON_BINARY_DIR}/${PYTHON_PLATFORM}/python${PYTHON_VER}.lib
         IMPORTED_LOCATION ${CPYTHON_BINARY_DIR}/${PYTHON_PLATFORM}/python${PYTHON_VER}.dll
         INTERFACE_INCLUDE_DIRECTORIES ${CPYTHON_SOURCE_DIR}/Include
     )
-
 else()
     set(CPYTHON_STATIC_FLAGS
         --enable-static
         --disable-shared
         --prefix=${INSTALL_DIR}
         --with-ensurepip=no
-        --pgo
+        --enable-optimizations
         CFLAGS=-fPIC
     )
 
@@ -78,7 +72,7 @@ else()
         INSTALL_DIR   ${INSTALL_DIR}
         
         CONFIGURE_COMMAND <SOURCE_DIR>/configure ${CPYTHON_STATIC_FLAGS}
-        BUILD_COMMAND     $(MAKE) -j8 VERBOSE=1
+        BUILD_COMMAND     $(MAKE) -j VERBOSE=1
         INSTALL_COMMAND   $(MAKE) install
         BUILD_BYPRODUCTS  ${INSTALL_DIR}/lib/${PYTHON_LIB_NAME}
     )
