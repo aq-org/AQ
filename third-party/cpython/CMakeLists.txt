@@ -8,9 +8,27 @@ include(ExternalProject)
 include(GNUInstallDirs)
 
 if(WIN32)
-    set(PYTHON_VER 314)
+    set(PYTHON_VER 314 GLOBAL)
     set(PYTHON_LIB_NAME python${PYTHON_VER}.lib)
     set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/install)
+    if(CMAKE_GENERATOR_PLATFORM)
+        string(TOLOWER "${CMAKE_GENERATOR_PLATFORM}" GEN_PLATFORM)
+        if(GEN_PLATFORM MATCHES "^(amd64|x64)$")
+            set(PYTHON_PLATFORM "amd64" GLOBAL)
+        elseif(GEN_PLATFORM STREQUAL "win32")
+            set(PYTHON_PLATFORM "win32" GLOBAL)
+        elseif(GEN_PLATFORM STREQUAL "arm")
+            set(PYTHON_PLATFORM "arm32" GLOBAL)
+        elseif(GEN_PLATFORM STREQUAL "arm64")
+            set(PYTHON_PLATFORM "arm64" GLOBAL)
+        endif()
+    endif()
+
+    #if(NOT DEFINED PYTHON_PLATFORM)
+    #message(FATAL_ERROR "Unsupported platform! "
+    #    "Detected system processor: ${CMAKE_SYSTEM_PROCESSOR}, "
+     #   "Generator platform: ${CMAKE_GENERATOR_PLATFORM}")
+
 else()
     set(PYTHON_VER 3.14)
     set(PYTHON_LIB_NAME libpython${PYTHON_VER}.a)
@@ -27,11 +45,11 @@ if(WIN32)
         CONFIGURE_COMMAND ""
         BUILD_COMMAND
             # COMMAND ${CMAKE_COMMAND} -E chdir ${CPYTHON_BUILD_DIR}
-            ${PROJECT_SOURCE_DIR}/third-party/cpython/PCbuild/build.bat -p x64 -c Release
+            ${PROJECT_SOURCE_DIR}/third-party/cpython/PCbuild/build.bat -p ${CMAKE_GENERATOR_PLATFORM} -c ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ""
         BUILD_BYPRODUCTS
-            ${CPYTHON_BUILD_DIR}/amd64/python${PYTHON_VER}.lib
-            ${CPYTHON_BUILD_DIR}/amd64/python${PYTHON_VER}.dll
+            ${CPYTHON_BUILD_DIR}/${PYTHON_PLATFORM}/python${PYTHON_VER}.lib
+            ${CPYTHON_BUILD_DIR}/${PYTHON_PLATFORM}/python${PYTHON_VER}.dll
     )
 
     add_library(libpython SHARED IMPORTED GLOBAL)
@@ -39,8 +57,8 @@ if(WIN32)
 
 
     set_target_properties(libpython PROPERTIES
-        IMPORTED_IMPLIB ${CPYTHON_BINARY_DIR}/python${PYTHON_VER}.lib
-        IMPORTED_LOCATION ${CPYTHON_BINARY_DIR}/python${PYTHON_VER}.dll
+        IMPORTED_IMPLIB ${CPYTHON_BINARY_DIR}/${PYTHON_PLATFORM}/python${PYTHON_VER}.lib
+        IMPORTED_LOCATION ${CPYTHON_BINARY_DIR}/${PYTHON_PLATFORM}/python${PYTHON_VER}.dll
         INTERFACE_INCLUDE_DIRECTORIES ${CPYTHON_SOURCE_DIR}/Include
     )
 
@@ -50,6 +68,7 @@ else()
         --disable-shared
         --prefix=${INSTALL_DIR}
         --with-ensurepip=no
+        --pgo
         CFLAGS=-fPIC
     )
 

@@ -23,7 +23,7 @@ add_executable(aq_vm ${VM_SOURCES})
 if(WIN32)
     add_custom_command(TARGET aq_vm POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-            ${CPYTHON_BINARY_DIR}/amd64/python${PYTHON_VER}.dll
+        ${PROJECT_SOURCE_DIR}/third-party/cpython/PCbuild/${PYTHON_PLATFORM}/python${PYTHON_VER}.dll
             $<TARGET_FILE_DIR:aq_vm>
     )
 else()
