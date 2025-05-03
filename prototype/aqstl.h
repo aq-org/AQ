@@ -393,14 +393,30 @@ char* gets_s(char* s, rsize_t n);
 
 void aqstl_python_test(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
-  if (args.size != 3)
+  if (args.size < 2)
     EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid return value.");
   struct Object* object = object_table + args.index[0];
   object = GetOriginData(object);
 
-  Py_Initialize();
+  PyStatus status;
+  PyConfig config;
+  PyConfig_InitPythonConfig(&config);
+  
+  status = PyConfig_SetString(&config, &config.home, L"pythonlib");
+  if (PyStatus_Exception(status)) {
+  PyConfig_Clear(&config);
+  EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid home path.");
+  }
+  
+  status = Py_InitializeFromConfig(&config);
+  if (PyStatus_Exception(status)) {
+  PyConfig_Clear(&config);
+  EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Failed to initialize Python.");
+  }
+  
+  PyConfig_Clear(&config);
 
   if(object == NULL || object->type == NULL || object->type[0] != 0x05)
     EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid module name.");
@@ -416,7 +432,7 @@ void aqstl_python_test(InternalObject args, size_t return_value) {
   object = GetOriginData(object);
   if (object == NULL || object->type == NULL || object->type[0] != 0x06)
     EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Invalid args.");
-  PyObject *pList = PyList_New(GetUint64tObjectData(object));
+  /*PyObject *pList = PyList_New(GetUint64tObjectData(object->data.ptr_data));
 
   for (size_t i = 1; i < GetUint64tObjectData(object->data.ptr_data) + 1; i++) {
     switch (GetOriginData(object->data.ptr_data + i)->type[0]) {
@@ -439,17 +455,17 @@ void aqstl_python_test(InternalObject args, size_t return_value) {
         EXIT_VM("aqstl_python_test(InternalObject,size_t)", "Unsupported type.");
         break;
     }
-  }
+  }*/
 
-  PyObject *pResult = PyObject_CallFunction(pFunc, "O", pList);
+  PyObject *pResult = PyObject_CallFunction(pFunc, "");
   if (pResult) {
-      printf("Result: %ld\n", PyLong_AsLong(pResult));
+      printf("Result: %lf\n", PyFloat_AsDouble(pResult));
       Py_DECREF(pResult);
   } else {
       PyErr_Print();
   }
 
-  Py_DECREF(pList);
+  //Py_DECREF(pList);
   Py_DECREF(pFunc);
   Py_DECREF(pModule);
   Py_FinalizeEx();
