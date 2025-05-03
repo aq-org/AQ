@@ -19,9 +19,18 @@ set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
 add_executable(aq_compiler ${COMPILER_SOURCES})
 add_executable(aq_vm ${VM_SOURCES})
 
-target_link_libraries(aq_vm PRIVATE
-    cpython::static
-    ${PYTHON_SYSTEM_LIBS}
-)
 
-target_include_directories(aq_vm PRIVATE ${PYTHON_INCLUDE_DIRS})
+if(WIN32)
+    add_custom_command(TARGET aq_vm POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CPYTHON_BINARY_DIR}/amd64/python${PYTHON_VER}.dll
+            $<TARGET_FILE_DIR:aq_vm>
+    )
+else()
+    target_link_libraries(aq_vm PRIVATE
+        cpython::static
+        ${PYTHON_SYSTEM_LIBS}
+    )
+
+    target_include_directories(aq_vm PRIVATE ${PYTHON_INCLUDE_DIRS})
+endif()

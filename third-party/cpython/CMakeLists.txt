@@ -21,44 +21,29 @@ set(CPYTHON_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CPYTHON_INCLUDE_DIR ${INSTALL_DIR}/include/python${PYTHON_VER})
 
 if(WIN32)
-    if(NOT DEFINED CMAKE_VS_MSBUILD_COMMAND)
-        get_filename_component(VS_DIR [HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\SxS\\VS7;Latest] ABSOLUTE)
-        
-        find_program(VSWHERE_EXE vswhere
-            PATHS "$ENV{ProgramFiles(x86)}/Microsoft Visual Studio/Installer"
-            NO_DEFAULT_PATH)
-        
-        if(VSWHERE_EXE)
-            execute_process(
-                COMMAND "${VSWHERE_EXE}" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-                OUTPUT_VARIABLE VS_DIR
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-            )
-        endif()
-        
-        set(MSBUILD_PATHS
-            "${VS_DIR}/MSBuild/Current/Bin"
-            "${VS_DIR}/MSBuild/15.0/Bin"
-            "$ENV{MSBUILD_DIR}/Bin"
-            "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Current/Bin"
-            "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin"
-        )
-    else()
-        set(MSBUILD_PATHS ${CMAKE_VS_MSBUILD_COMMAND})
-    endif()
-
-    find_program(MSBUILD_EXE
-        NAMES MSBuild.exe msbuild
-        PATHS ${MSBUILD_PATHS}
-        DOC "MSBuild executable path"
+    ExternalProject_Add(cpython_dynamic
+        SOURCE_DIR      ${CPYTHON_SOURCE_DIR}
+        BINARY_DIR      ${CPYTHON_BUILD_DIR}
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND
+            # COMMAND ${CMAKE_COMMAND} -E chdir ${CPYTHON_BUILD_DIR}
+            ${PROJECT_SOURCE_DIR}/third-party/cpython/PCbuild/build.bat -p x64 -c Release
+        INSTALL_COMMAND ""
+        BUILD_BYPRODUCTS
+            ${CPYTHON_BUILD_DIR}/amd64/python${PYTHON_VER}.lib
+            ${CPYTHON_BUILD_DIR}/amd64/python${PYTHON_VER}.dll
     )
 
-    if(NOT MSBUILD_EXE)
-        message(FATAL_ERROR "MSBuild not found. Solutions:\n"
-            "1. Install Visual Studio Build Tools\n"
-            "2. Set MSBUILD_DIR environment variable\n"
-            "3. Use Developer Command Prompt")
-    endif()
+    add_library(libpython SHARED IMPORTED GLOBAL)
+    add_dependencies(libpython cpython_build)
+
+
+    set_target_properties(libpython PROPERTIES
+        IMPORTED_IMPLIB ${CPYTHON_BINARY_DIR}/python${PYTHON_VER}.lib
+        IMPORTED_LOCATION ${CPYTHON_BINARY_DIR}/python${PYTHON_VER}.dll
+        INTERFACE_INCLUDE_DIRECTORIES ${CPYTHON_SOURCE_DIR}/Include
+    )
+
 else()
     set(CPYTHON_STATIC_FLAGS
         --enable-static
@@ -78,16 +63,11 @@ else()
         INSTALL_COMMAND   $(MAKE) install
         BUILD_BYPRODUCTS  ${INSTALL_DIR}/lib/${PYTHON_LIB_NAME}
     )
+    add_library(libpython STATIC IMPORTED GLOBAL)
+    add_dependencies(libpython cpython_build)
 endif()
 
-add_library(libpython STATIC IMPORTED GLOBAL)
-add_dependencies(libpython cpython_build)
-
 if(WIN32)
-    set_target_properties(libpython PROPERTIES
-        IMPORTED_LOCATION ${INSTALL_DIR}/lib/${PYTHON_LIB_NAME}
-        INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include/python${PYTHON_VER}
-    )
 else()
     file(MAKE_DIRECTORY ${CPYTHON_INCLUDE_DIR})
     set_target_properties(libpython PROPERTIES
