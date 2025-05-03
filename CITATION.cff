@@ -11,7 +11,7 @@ type: software
 authors:
   - given-names: Zicong
     family-names: Xie
-    email: ax-6@outlook.com
+    email: xie.zicong@axa6.com
     orcid: 'https://orcid.org/0009-0001-4704-6626'
   - name: AQ ORG
     email: admin@axa6.com
@@ -43,5 +43,5 @@ keywords:
   - simple
 license: AGPL-3.0
 commit: 'https://github.com/aq-org/AQ/releases/tag/Prototype'
-version: v0.1.0-alpha
-date-released: '2025-02-01'
+version: v0.1.2-alpha
+date-released: '2025-05-01'
