@@ -6427,7 +6427,6 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_putchar");
   AddBuiltInFuncDecl("__builtin_puts");
   AddBuiltInFuncDecl("__builtin_perror");
-  AddBuiltInFuncDecl("__builtin_python_test");
 }
 
 void BytecodeGenerator::PreProcessDecl(CompoundNode* stmt) {
