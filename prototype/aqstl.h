@@ -2,11 +2,14 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
+#include <math.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 /*typedef struct StackNode {
   char* function_name;
@@ -135,6 +138,7 @@ int8_t GetByteObjectData(struct Object* data);
 int8_t GetByteData(size_t index);
 struct Object* GetPtrObjectData(struct Object* object);
 struct Object* GetPtrData(size_t index);
+void SetObjectData(size_t index, struct Object* object);
 void SetByteData(size_t, int8_t);
 void SetLongData(size_t, int64_t);
 void SetDoubleData(size_t, double);
@@ -234,7 +238,7 @@ void aqstl_vaprint(InternalObject args, size_t return_value) {
                     printf("%p", GetPtrObjectData(object->data.ptr_data + i)));
         break;
       default:
-        // printf("Type: %u\n", (object->data.ptr_data+i)->type[0]);
+        printf("Type: %u\n", (object->data.ptr_data+i)->type[0]);
         EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Unsupported type.");
         break;
     }
@@ -390,6 +394,590 @@ errno_t tmpnam_s(char* s, rsize_t maxsize);
 char* gets_s(char* s, rsize_t n);
 */
 
+void aqstl_abs(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_abs", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_abs", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_abs", "Null object.");
+
+  switch (obj->type[0]) {
+    case 0x01:  // Byte
+      SetLongData(return_value, abs(GetByteObjectData(obj)));
+      break;
+    case 0x02:  // Long
+      SetLongData(return_value, llabs(GetLongObjectData(obj)));
+      break;
+    case 0x03:  // Double
+      SetDoubleData(return_value, fabs(GetDoubleObjectData(obj)));
+      break;
+    case 0x04:  // Uint64t
+      SetUint64tData(return_value, GetUint64tObjectData(obj));
+      break;
+    default:
+      EXIT_VM("aqstl_abs", "Unsupported type for absolute value.");
+  }
+}
+
+void aqstl_ascii(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_ascii", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_ascii", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_ascii", "Null object.");
+
+  char buffer[64];
+  switch (obj->type[0]) {
+    case 0x05:  // String
+      snprintf(buffer, sizeof(buffer), "%s", GetStringObjectData(obj));
+      break;
+    default:
+      snprintf(buffer, sizeof(buffer), "%p", GetPtrObjectData(obj));
+      break;
+  }
+  SetStringData(return_value, buffer);
+}
+
+void aqstl_bin(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_bin", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_bin", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_bin", "Null object.");
+
+  char buffer[64];
+  switch (obj->type[0]) {
+    case 0x02:  // Long
+      snprintf(buffer, sizeof(buffer), "0b%lld", GetLongObjectData(obj));
+      break;
+    default:
+      EXIT_VM("aqstl_bin", "Unsupported type for binary conversion.");
+  }
+  SetStringData(return_value, buffer);
+}
+
+void aqstl_bool(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_bool", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_bool", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_bool", "Null object.");
+
+  int value = 0;
+  switch (obj->type[0]) {
+    case 0x01:
+      value = !!GetByteObjectData(obj);
+      break;
+    case 0x02:
+      value = !!GetLongObjectData(obj);
+      break;
+    case 0x03:
+      value = !!GetDoubleObjectData(obj);
+      break;
+    default:
+      value = 1;
+      break;  // Non-null objects are truthy
+  }
+  SetByteData(return_value, value);
+}
+
+void aqstl_chr(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_chr", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_chr", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_chr", "Null object.");
+
+  char buffer[2];
+  switch (obj->type[0]) {
+    case 0x02:  // Long
+      snprintf(buffer, sizeof(buffer), "%c", (char)GetLongObjectData(obj));
+      break;
+    default:
+      EXIT_VM("aqstl_chr", "Unsupported type for character conversion.");
+  }
+  SetStringData(return_value, buffer);
+}
+
+void aqstl_float(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_float", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_float", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_float", "Null object.");
+
+  double value = 0.0;
+  switch (obj->type[0]) {
+    case 0x01:
+      value = GetByteObjectData(obj);
+      break;
+    case 0x02:
+      value = GetLongObjectData(obj);
+      break;
+    case 0x05:
+      value = atof(GetStringObjectData(obj));
+      break;
+    default:
+      EXIT_VM("aqstl_float", "Unsupported type for float conversion.");
+  }
+  SetDoubleData(return_value, value);
+}
+
+#define FNV_OFFSET_BASIS 0xCBF29CE484222325ULL
+#define FNV_PRIME 0x100000001B3ULL
+
+static uint64_t fnv_seed = 0;
+
+void fnv_srand() { fnv_seed = (uint64_t)time(NULL) ^ (uint64_t)rand(); }
+
+// FNV-1a 哈希计算（带随机种子）
+uint64_t fnv1a_hash(const void* data, size_t length) {
+  if (fnv_seed == 0) {
+    srand((unsigned int)time(NULL));
+    fnv_srand();
+  }
+  const uint8_t* bytes = (const uint8_t*)data;
+  uint64_t hash = FNV_OFFSET_BASIS ^ fnv_seed;
+
+  for (size_t i = 0; i < length; i++) {
+    hash ^= bytes[i];
+    hash *= FNV_PRIME;
+    // hash &= 0xFFFFFFFFFFFFFFFFULL;
+  }
+
+  return hash;
+}
+
+void aqstl_hash(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_hash", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_hash", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_hash", "Null object.");
+
+  uint64_t hash = 0;
+  switch (obj->type[0]) {
+    case 0x01:
+      hash = GetByteObjectData(obj);
+      break;
+    case 0x02:
+      hash = GetLongObjectData(obj);
+      break;
+    case 0x03:
+      hash = (uint64_t)GetDoubleObjectData(obj);
+      break;
+    case 0x04:
+      hash = GetUint64tObjectData(obj);
+      break;
+    case 0x05:
+      hash = fnv1a_hash(GetStringObjectData(obj),
+                        strlen(GetStringObjectData(obj)));
+      break;
+    default:
+      EXIT_VM("aqstl_hash", "Unsupported type for hashing.");
+  }
+
+  if (obj->type[0] != 0x05) hash = fnv1a_hash(&hash, sizeof(hash));
+  SetUint64tData(return_value, hash);
+}
+
+void aqstl_int(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_int", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_int", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_int", "Null object.");
+
+  long value = 0;
+  switch (obj->type[0]) {
+    case 0x01:
+      value = GetByteObjectData(obj);
+      break;
+    case 0x02:
+      value = GetLongObjectData(obj);
+      break;
+    case 0x03:
+      value = (long)GetDoubleObjectData(obj);
+      break;
+    case 0x05:
+      value = strtol(GetStringObjectData(obj), NULL, 10);
+      break;
+    default:
+      EXIT_VM("aqstl_int", "Unsupported type for integer conversion.");
+  }
+  SetLongData(return_value, value);
+}
+
+void aqstl_len(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_len", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_len", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_len", "Null object.");
+
+  size_t length = 0;
+  switch (obj->type[0]) {
+    case 0x05:
+      length = strlen(GetStringObjectData(obj));
+      break;
+    // case 0x06: length = GetUint64tObjectData(obj->data.ptr_data); break;
+    default:
+      EXIT_VM("aqstl_len", "Unsupported type for length.");
+  }
+  SetLongData(return_value, length);
+}
+
+void aqstl_max(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 1) EXIT_VM("aqstl_max", "Requires at least 1 argument.");
+
+  long current_max = LONG_MIN;
+  for (size_t i = 0; i < args.size; i++) {
+    struct Object* obj = object_table + args.index[i];
+    obj = GetOriginData(obj);
+    if (!obj) EXIT_VM("aqstl_max", "Null object in arguments.");
+
+    long value = 0;
+    switch (obj->type[0]) {
+      case 0x01:
+        value = GetByteObjectData(obj);
+        break;
+      case 0x02:
+        value = GetLongObjectData(obj);
+        break;
+      default:
+        EXIT_VM("aqstl_max", "Unsupported type for max.");
+    }
+    if (value > current_max) current_max = value;
+  }
+  SetLongData(return_value, current_max);
+}
+
+void aqstl_min(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 1) EXIT_VM("aqstl_min", "Requires at least 1 argument.");
+
+  long current_min = LONG_MAX;
+  for (size_t i = 0; i < args.size; i++) {
+    struct Object* obj = object_table + args.index[i];
+    obj = GetOriginData(obj);
+    if (!obj) EXIT_VM("aqstl_min", "Null object in arguments.");
+
+    long value = 0;
+    switch (obj->type[0]) {
+      case 0x01:
+        value = GetByteObjectData(obj);
+        break;
+      case 0x02:
+        value = GetLongObjectData(obj);
+        break;
+      default:
+        EXIT_VM("aqstl_min", "Unsupported type for min.");
+    }
+    if (value < current_min) current_min = value;
+  }
+  SetLongData(return_value, current_min);
+}
+
+void aqstl_oct(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_oct", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_oct", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_oct", "Null object.");
+
+  char buffer[64];
+  switch (obj->type[0]) {
+    case 0x02:  // Long
+      snprintf(buffer, sizeof(buffer), "0o%llo", GetLongObjectData(obj));
+      break;
+    default:
+      EXIT_VM("aqstl_oct", "Unsupported type for octal conversion.");
+  }
+  SetStringData(return_value, buffer);
+}
+
+void aqstl_ord(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_ord", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_ord", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_ord", "Null object.");
+
+  if (obj->type[0] != 0x05)  // String
+    EXIT_VM("aqstl_ord", "Expected string argument.");
+
+  const char* str = GetStringObjectData(obj);
+  if (strlen(str) != 1)
+    EXIT_VM("aqstl_ord", "String must have exactly one character.");
+
+  SetByteData(return_value, (unsigned char)str[0]);
+}
+
+void aqstl_pow(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 2) EXIT_VM("aqstl_pow", "Requires exactly 2 arguments.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_pow", "Invalid return value slot.");
+
+  struct Object* base_obj = object_table + args.index[0];
+  struct Object* exp_obj = object_table + args.index[1];
+  base_obj = GetOriginData(base_obj);
+  exp_obj = GetOriginData(exp_obj);
+  if (!base_obj || !exp_obj) EXIT_VM("aqstl_pow", "Null object in arguments.");
+
+  double result =
+      pow(GetDoubleObjectData(base_obj), GetDoubleObjectData(exp_obj));
+  SetDoubleData(return_value, result);
+}
+
+void aqstl_round(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_round", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_round", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_round", "Null object.");
+
+  double value = GetDoubleObjectData(obj);
+  long rounded = lround(value);
+  SetLongData(return_value, rounded);
+}
+
+void aqstl_str(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_str", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_str", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_str", "Null object.");
+
+  char* buffer = (char*)malloc(64 * sizeof(char));
+  switch (obj->type[0]) {
+    case 0x01:
+      snprintf(buffer, sizeof(buffer), "%d", GetByteObjectData(obj));
+      break;
+    case 0x02:
+      snprintf(buffer, sizeof(buffer), "%lld", GetLongObjectData(obj));
+      break;
+    case 0x03:
+      snprintf(buffer, sizeof(buffer), "%.15f", GetDoubleObjectData(obj));
+      break;
+    case 0x04:
+      snprintf(buffer, sizeof(buffer), "%zu", GetUint64tObjectData(obj));
+      break;
+    case 0x05:
+      free(buffer);
+      SetStringData(return_value, GetStringObjectData(obj));
+      return;
+    default:
+      snprintf(buffer, sizeof(buffer), "<Object %p>", obj);
+      break;
+  }
+  SetStringData(return_value, buffer);
+}
+
+void aqstl_sum(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 1) EXIT_VM("aqstl_sum", "Requires at least 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_sum", "Invalid return value slot.");
+
+  long total = 0;
+  for (size_t i = 0; i < args.size; i++) {
+    struct Object* obj = object_table + args.index[i];
+    obj = GetOriginData(obj);
+    if (!obj) EXIT_VM("aqstl_sum", "Null object in arguments.");
+
+    switch (obj->type[0]) {
+      case 0x01:
+        total += GetByteObjectData(obj);
+        break;
+      case 0x02:
+        total += GetLongObjectData(obj);
+        break;
+      default:
+        EXIT_VM("aqstl_sum", "Unsupported type for summation.");
+    }
+  }
+  SetLongData(return_value, total);
+}
+
+void aqstl_type(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_type", "Requires exactly 1 argument.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_type", "Invalid return value slot.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_type", "Null object.");
+
+  const char* type_names[] = {"BYTE", "LONG", "DOUBLE", "STRING", "POINTER"};
+  const char* type_name = "UNKNOWN";
+  if (obj->type[0] < 0x05) type_name = type_names[obj->type[0]];
+
+  SetStringData(return_value, type_name);
+}
+
+void aqstl_hex(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_hex", "Requires exactly 1 argument.");
+
+  struct Object* obj = object_table + args.index[0];
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_hex", "Null object.");
+
+  char buffer[64];
+  switch (obj->type[0]) {
+    case 0x02:  // Long
+      snprintf(buffer, sizeof(buffer), "%llx",
+               (unsigned long long)GetLongObjectData(obj));
+      break;
+    case 0x01:  // Byte
+      snprintf(buffer, sizeof(buffer), "%llx",
+               (unsigned long long)GetByteObjectData(obj));
+      break;
+    case 0x04:  // Uint64t
+      snprintf(buffer, sizeof(buffer), "%llx",
+               (unsigned long long)GetUint64tObjectData(obj));
+      break;
+    case 0x03:  // Double
+      snprintf(buffer, sizeof(buffer), "%llx",
+               (unsigned long long)GetDoubleObjectData(obj));
+      break;
+    default:
+      EXIT_VM("aqstl_hex", "Unsupported type for hex conversion.");
+  }
+  SetStringData(return_value, buffer);
+}
+
+void aqstl_id(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_id", "Requires exactly 1 argument.");
+
+  struct Object* obj = object_table + args.index[0];
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_id", "Null object.");
+
+  SetLongData(return_value, args.index[0]);
+}
+
+void aqstl_input(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size > 1)
+    EXIT_VM("aqstl_input", "Supports at most 1 prompt argument.");
+
+  const char* prompt = "";
+  if (args.size == 1) {
+    struct Object* prompt_obj = object_table + args.index[0];
+    prompt_obj = GetOriginData(prompt_obj);
+    if (!prompt_obj || prompt_obj->type[0] != 0x05)  // String
+      EXIT_VM("aqstl_input", "Prompt must be a string.");
+    prompt = GetStringObjectData(prompt_obj);
+  }
+
+  char* buffer = (char*)malloc(1024 * sizeof(char));
+  printf("%s", prompt);
+  fflush(stdout);
+  if (!fgets(buffer, sizeof(buffer), stdin)) {
+    EXIT_VM("aqstl_input", "Input read failed.");
+  }
+
+  size_t len = strlen(buffer);
+  if (len > 0 && buffer[len - 1] == '\n') buffer[len - 1] = '\0';
+
+  SetStringData(return_value, buffer);
+}
+
+void aqstl_open(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 1 || args.size > 3)
+    EXIT_VM("aqstl_open", "Requires 1-3 arguments (path, mode, buffering).");
+
+  struct Object* path_obj = object_table + args.index[0];
+  path_obj = GetOriginData(path_obj);
+  if (!path_obj || path_obj->type[0] != 0x05)  // String
+    EXIT_VM("aqstl_open", "Path must be a string.");
+
+  const char* path = GetStringObjectData(path_obj);
+  const char* mode = "r";
+  int buffering = -1;
+
+  if (args.size >= 2) {
+    struct Object* mode_obj = object_table + args.index[1];
+    mode_obj = GetOriginData(mode_obj);
+    if (!mode_obj || mode_obj->type[0] != 0x05)  // String
+      EXIT_VM("aqstl_open", "Mode must be a string.");
+    mode = GetStringObjectData(mode_obj);
+  }
+
+  if (args.size >= 3) {
+    struct Object* buf_obj = object_table + args.index[2];
+    buf_obj = GetOriginData(buf_obj);
+    if (!buf_obj || buf_obj->type[0] != 0x02)  // Long
+      EXIT_VM("aqstl_open", "Buffering must be an integer.");
+    buffering = (int)GetLongObjectData(buf_obj);
+  }
+
+  FILE* file = fopen(path, mode);
+  if (!file) EXIT_VM("aqstl_open", "Failed to open file.");
+
+  struct Object* file_obj = (struct Object*)calloc(3, sizeof(struct Object));
+
+  file_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+  file_obj->type[0] = 0x05;  // File type
+  file_obj->data.string_data = "!FILE!";
+  file_obj++;
+  file_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+  file_obj->type[0] = 0x06;  // File type
+  file_obj->data.ptr_data = (struct Object*)file;
+  file_obj++;
+  file_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+  file_obj->type[0] = 0x02;  // File type
+  file_obj->data.long_data = buffering;
+
+  // size_t file_index = CreateFileObject(file, buffering);
+  SetObjectData(return_value, file_obj - 2);
+}
+
 unsigned int hash(const char* str) {
   TRACE_FUNCTION;
   unsigned long hash = 5381;
@@ -425,4 +1013,29 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_putchar", aqstl_putchar);
   AddFuncToNameTable("__builtin_puts", aqstl_puts);
   AddFuncToNameTable("__builtin_perror", aqstl_perror);
+  // abs，ascii，bin，bool，chr，float，format，hash，hex，id，input，int，len，max，min，oct，open，ord，pow，print，round，str，sum，type
+  AddFuncToNameTable("__builtin_abs", aqstl_abs);
+  AddFuncToNameTable("__builtin_ascii", aqstl_ascii);
+  AddFuncToNameTable("__builtin_bin", aqstl_bin);
+  AddFuncToNameTable("__builtin_bool", aqstl_bool);
+  AddFuncToNameTable("__builtin_chr", aqstl_chr);
+  AddFuncToNameTable("__builtin_float", aqstl_float);
+  // AddFuncToNameTable("__builtin_format", aqstl_format);
+  AddFuncToNameTable("__builtin_hash", aqstl_hash);
+  AddFuncToNameTable("__builtin_hex", aqstl_hex);
+  AddFuncToNameTable("__builtin_id", aqstl_id);
+  AddFuncToNameTable("__builtin_input", aqstl_input);
+  AddFuncToNameTable("__builtin_int", aqstl_int);
+  AddFuncToNameTable("__builtin_len", aqstl_len);
+  AddFuncToNameTable("__builtin_max", aqstl_max);
+  AddFuncToNameTable("__builtin_min", aqstl_min);
+  AddFuncToNameTable("__builtin_oct", aqstl_oct);
+  AddFuncToNameTable("__builtin_open", aqstl_open);
+  AddFuncToNameTable("__builtin_ord", aqstl_ord);
+  AddFuncToNameTable("__builtin_pow", aqstl_pow);
+  AddFuncToNameTable("__builtin_print", aqstl_print);
+  AddFuncToNameTable("__builtin_round", aqstl_round);
+  AddFuncToNameTable("__builtin_str", aqstl_str);
+  AddFuncToNameTable("__builtin_sum", aqstl_sum);
+  AddFuncToNameTable("__builtin_type", aqstl_type);
 }

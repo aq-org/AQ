@@ -6410,7 +6410,7 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   }
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   // TODO(Class): Fixed this bug about return value.
-  // object_table[func_info.args[0]] = object_table[return_value];
+  class_memory->object_table[func_info.args[0]] = object_table[return_value];
 
   if (func_info.va_flag) {
     uint8_t* type = calloc(1, sizeof(uintptr_t));

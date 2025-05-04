@@ -6427,6 +6427,32 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_putchar");
   AddBuiltInFuncDecl("__builtin_puts");
   AddBuiltInFuncDecl("__builtin_perror");
+
+  // abs，ascii，bin，bool，chr，float，format，hash，hex，id，input，int，len，max，min，oct，open，ord，pow，print，round，str，sum，type
+  AddBuiltInFuncDecl("__builtin_abs");
+  AddBuiltInFuncDecl("__builtin_ascii");
+  AddBuiltInFuncDecl("__builtin_bin");
+  AddBuiltInFuncDecl("__builtin_bool");
+  AddBuiltInFuncDecl("__builtin_chr");
+  AddBuiltInFuncDecl("__builtin_float");
+  AddBuiltInFuncDecl("__builtin_format");
+  AddBuiltInFuncDecl("__builtin_hash");
+  AddBuiltInFuncDecl("__builtin_hex");
+  AddBuiltInFuncDecl("__builtin_id");
+  AddBuiltInFuncDecl("__builtin_input");
+  AddBuiltInFuncDecl("__builtin_int");
+  AddBuiltInFuncDecl("__builtin_len");
+  AddBuiltInFuncDecl("__builtin_max");
+  AddBuiltInFuncDecl("__builtin_min");
+  AddBuiltInFuncDecl("__builtin_oct");
+  AddBuiltInFuncDecl("__builtin_open");
+  AddBuiltInFuncDecl("__builtin_ord");
+  AddBuiltInFuncDecl("__builtin_pow");
+  AddBuiltInFuncDecl("__builtin_print");
+  AddBuiltInFuncDecl("__builtin_round");
+  AddBuiltInFuncDecl("__builtin_str");
+  AddBuiltInFuncDecl("__builtin_sum");
+  AddBuiltInFuncDecl("__builtin_type");
 }
 
 void BytecodeGenerator::PreProcessDecl(CompoundNode* stmt) {

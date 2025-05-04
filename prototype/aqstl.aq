@@ -1,5 +1,12 @@
 
-auto main(){}
+auto main(){
+print("TEST: ",(-1.999));
+return "A";
+}
+
+auto TEST(){
+  return 1;
+}
 
 int print(...) { return __builtin_vaprint(args); }
 
@@ -16,3 +23,25 @@ int putchar(int c) { return __builtin_putchar(c); }
 int puts(string s) { return __builtin_puts(s); }
 
 int perror(string s) { return __builtin_perror(s); }
+
+
+// abs，ascii，bin，bool，chr，float，format，hash，hex，id，input，int，len，max，min，oct，open，ord，pow，print，round，str，sum，type
+auto abs_(auto x) { return __builtin_abs(x); }
+auto ascii_(auto c) { return __builtin_ascii(c); } // __builtin_ascii
+auto bin_(auto x) { return __builtin_bin(x); }
+auto bool_(auto x) { return __builtin_bool(x); } // __builtin_expect(x, 1)
+auto chr_(auto code) { return __builtin_chr(code); } // __builtin_chr
+auto float_(auto x) { return __builtin_float(x); }
+auto hex_(auto x) { return __builtin_hex(x); }
+auto id_(auto p) { return __builtin_id(p); } // __builtin_id
+auto int_(auto x) { return __builtin_int(x); }
+auto len_(auto s) { return __builtin_len(s); }
+auto max_(auto a, auto b) { return __builtin_max(a, b); }
+auto min_(auto a, auto b) { return __builtin_min(a, b); }
+auto oct_(auto x) { return __builtin_oct(x); }
+auto ord_(char c) { return __builtin_ord(c); } // __builtin_ord
+auto pow_(auto a, auto b) { return __builtin_pow(a, b); }
+auto round_(auto x) { return __builtin_round(x); }
+auto str_(float x) { return __builtin_str(x); } // 假设存在 __builtin_str
+auto sum_(auto arr, auto n) { return __builtin_sum(arr, n); } // 假设存在 __builtin_sum
+auto type_(auto p) { return __builtin_type(p); } // 假设存在 __builtin_typeid
