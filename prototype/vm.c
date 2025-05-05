@@ -5176,9 +5176,9 @@ int INVOKE_METHOD(size_t* args) {
 int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   TRACE_FUNCTION;
   if (result >= object_table_size)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Result out of object_table_size.");
   if (class >= object_table_size)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Out of object_table_size.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class Out of object_table_size.");
 
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);

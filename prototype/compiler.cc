@@ -6662,8 +6662,7 @@ void BytecodeGenerator::PreProcessImport(ImportNode* stmt) {
     std::string name = stmt->GetName();
 
     std::size_t array_index = global_memory_.Add(1);
-    var_decl_map_.emplace(
-        current_scope_.back() + "#" + static_cast<std::string>(name),
+    var_decl_map_.emplace("#" + static_cast<std::string>(name),
         std::pair<VarDeclNode*, std::size_t>(nullptr, array_index));
   }
 }
@@ -9237,10 +9236,11 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
         import_generator_map.end()) {
       // TODO(IMPORTANT): Unknown error, but can be fixed with this statement.
       // Serious issue, awaiting repair.
-      import_generator_map[import_location] = import_generator_map[import_location];
-      //std::cout << import_generator_map[import_location] << std::endl;
+      // import_generator_map[import_location] =
+      // import_generator_map[import_location]; std::cout <<
+      // import_generator_map[import_location] << std::endl;
 
-    //std::cout << "Import A NEW FILE." << import_location << std::endl;
+      // std::cout << "Import A NEW FILE." << import_location << std::endl;
       const char* filename = import_location.c_str();
       std::ifstream file;
       file.open(filename);
@@ -9294,9 +9294,7 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
     // vm_type.push_back(0x09);
     std::size_t class_array_index = start_class_.GetMemory().Add(name);
     // std::size_t array_index = global_memory_.Add(1);
-    std::size_t array_index = var_decl_map_[current_scope_.back() + "#" +
-                                            static_cast<std::string>(name)]
-                                  .second;
+    std::size_t array_index = var_decl_map_["#" + static_cast<std::string>(name)].second;
     global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
                                     2, global_memory_.AddString(name)));
     global_code_.push_back(Bytecode(
@@ -12327,7 +12325,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
                                                 std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-//std::cout << "HandlePeriodExpr CALLED." << std::endl;
+  // std::cout << "HandlePeriodExpr CALLED." << std::endl;
   if (expr->GetOperator() != BinaryNode::Operator::kMember)
     EXIT_COMPILER(
         "BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<Bytecode>&"
