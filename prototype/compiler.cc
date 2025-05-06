@@ -6446,6 +6446,7 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_min");
   AddBuiltInFuncDecl("__builtin_oct");
   AddBuiltInFuncDecl("__builtin_open");
+  AddBuiltInFuncDecl("__builtin_close");
   AddBuiltInFuncDecl("__builtin_ord");
   AddBuiltInFuncDecl("__builtin_pow");
   AddBuiltInFuncDecl("__builtin_print");
@@ -6453,6 +6454,8 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_str");
   AddBuiltInFuncDecl("__builtin_sum");
   AddBuiltInFuncDecl("__builtin_type");
+  AddBuiltInFuncDecl("__builtin_read");
+  AddBuiltInFuncDecl("__builtin_write");
 }
 
 void BytecodeGenerator::PreProcessDecl(CompoundNode* stmt) {

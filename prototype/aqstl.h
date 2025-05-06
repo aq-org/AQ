@@ -238,7 +238,7 @@ void aqstl_vaprint(InternalObject args, size_t return_value) {
                     printf("%p", GetPtrObjectData(object->data.ptr_data + i)));
         break;
       default:
-        printf("Type: %u\n", (object->data.ptr_data+i)->type[0]);
+        printf("Type: %u\n", (object->data.ptr_data + i)->type[0]);
         EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Unsupported type.");
         break;
     }
@@ -978,6 +978,112 @@ void aqstl_open(InternalObject args, size_t return_value) {
   SetObjectData(return_value, file_obj - 2);
 }
 
+void aqstl_close(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_close", "Invalid arguments.");
+
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_close", "Invalid return value.");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_close", "Null object.");
+
+  if (obj->type[0] != 0x09) EXIT_VM("aqstl_close", "Object is not a file.");
+
+  obj = GetObjectObjectData(obj);
+  obj = GetOriginData(obj);
+
+  if (obj->type[0] != 0x05 ||
+      strcmp(obj->data.string_data, "!FILE!") != 0)  // File type
+    EXIT_VM("aqstl_close", "Object is not a file.");
+
+  obj++;
+
+  FILE* file = (FILE*)obj->data.ptr_data;
+  if (file) {
+    fclose(file);
+    SetPtrObjectData(obj, NULL);
+  } else {
+    EXIT_VM("aqstl_close", "Failed to close file.");
+  }
+}
+
+void aqstl_read(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 2)
+    EXIT_VM("aqstl_read", "Requires exactly 2 arguments (file, size).");
+
+  struct Object* file_obj = object_table + args.index[0];
+  file_obj = GetOriginData(file_obj);
+  if (!file_obj || file_obj->type[0] != 0x09)  // File type
+    EXIT_VM("aqstl_read", "First argument must be a file.");
+
+  struct Object* size_obj = object_table + args.index[1];
+  size_obj = GetOriginData(size_obj);
+  if (!size_obj || size_obj->type[0] != 0x02)  // Long
+    EXIT_VM("aqstl_read", "Second argument must be an integer.");
+
+  FILE* file = (FILE*)GetObjectObjectData(file_obj)->data.ptr_data;
+  size_t size = (size_t)GetLongObjectData(size_obj);
+
+  char* buffer = (char*)malloc(size * sizeof(char));
+  size_t read_size = fread(buffer, sizeof(char), size, file);
+  if (read_size != size) {
+    free(buffer);
+    EXIT_VM("aqstl_read", "Failed to read from file.");
+  }
+
+  struct Object* str_obj = (struct Object*)calloc(1, sizeof(struct Object));
+  str_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+  str_obj->type[0] = 0x05;  // String type
+  str_obj->data.string_data = buffer;
+
+  SetObjectData(return_value, str_obj);
+}
+
+void aqstl_write(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 3)
+    EXIT_VM("aqstl_write",
+            "Requires exactly 3 arguments (file, string, size).");
+
+  struct Object* file_obj = object_table + args.index[0];
+  file_obj = GetOriginData(file_obj);
+  if (!file_obj || file_obj->type[0] != 0x09)  // File type
+    EXIT_VM("aqstl_write", "First argument must be a file.");
+
+  struct Object* str_obj = object_table + args.index[1];
+  str_obj = GetOriginData(str_obj);
+
+  if (!str_obj || str_obj->type[0] != 0x05)  // String
+    EXIT_VM("aqstl_write", "Second argument must be a string.");
+
+  const char* str = GetStringObjectData(str_obj);
+  size_t str_len = strlen(str);
+  if (str_len == 0) EXIT_VM("aqstl_write", "String is empty.");
+
+  if (str_len > 1024) EXIT_VM("aqstl_write", "String is too long.");
+
+  struct Object* size_obj = object_table + args.index[2];
+
+  size_obj = GetOriginData(size_obj);
+
+  if (!size_obj || size_obj->type[0] != 0x02)  // Long
+    EXIT_VM("aqstl_write", "Third argument must be an integer.");
+
+  size_t size = (size_t)GetLongObjectData(size_obj);
+
+  FILE* file = (FILE*)GetObjectObjectData(file_obj)->data.ptr_data;
+
+  size_t write_size = fwrite(str, sizeof(char), size, file);
+  if (write_size != size) {
+    EXIT_VM("aqstl_write", "Failed to write to file.");
+  }
+
+  SetLongData(return_value, write_size);
+}
+
 unsigned int hash(const char* str) {
   TRACE_FUNCTION;
   unsigned long hash = 5381;
@@ -1031,6 +1137,7 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_min", aqstl_min);
   AddFuncToNameTable("__builtin_oct", aqstl_oct);
   AddFuncToNameTable("__builtin_open", aqstl_open);
+  AddFuncToNameTable("__builtin_close", aqstl_close);
   AddFuncToNameTable("__builtin_ord", aqstl_ord);
   AddFuncToNameTable("__builtin_pow", aqstl_pow);
   AddFuncToNameTable("__builtin_print", aqstl_print);
@@ -1038,4 +1145,6 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_str", aqstl_str);
   AddFuncToNameTable("__builtin_sum", aqstl_sum);
   AddFuncToNameTable("__builtin_type", aqstl_type);
+  AddFuncToNameTable("__builtin_read", aqstl_read);
+  AddFuncToNameTable("__builtin_write", aqstl_write);
 }
