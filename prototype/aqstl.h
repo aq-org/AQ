@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 /*typedef struct StackNode {
   char* function_name;
@@ -262,6 +263,431 @@ void aqstl_rename(InternalObject args, size_t return_value) {
   SetLongData(return_value, rename(GetStringData(*args.index),
                                    GetStringData(*(args.index + 1))));
 }
+// pprint module implementation
+
+// 定义PrettyPrinter结构体保存格式化参数
+struct PrettyPrinter {
+    int indent;
+    int width;
+    int depth;
+    bool compact;
+    bool sort_dicts;
+    bool underscore_numbers;
+    struct Memo* memo;
+};
+
+// 递归对象检测备忘录（复用深拷贝备忘录结构扩展）
+struct Memo {
+    struct Object* original;
+    struct Object* copy;
+    struct Memo* next;
+};
+
+// 辅助函数：生成递归对象表示字符串
+static const char* get_recursion_repr(struct Object* obj) {
+    static char buf[64];
+    snprintf(buf, sizeof(buf), "<Recursion on %s with id=%p>", obj->type ? "object" : "unknown", obj);
+    return buf;
+}
+
+// 辅助函数：处理数字千位分隔符
+static void format_underscore_numbers(char* num_str) {
+    if (num_str == NULL || *num_str == '\0') return;
+    size_t len = strlen(num_str);
+    if (len <= 3) return;  // 不足三位不需要分隔
+
+    // 处理符号位（如果有）
+    int sign = 0;
+    if (num_str[0] == '-' || num_str[0] == '+') {
+        sign = 1;
+        len--;
+        num_str++;
+    }
+
+    // 从右往左每三位插入下划线（忽略小数点后的部分）
+    char* decimal_point = strchr(num_str, '.');
+    size_t int_part_len = decimal_point ? (decimal_point - num_str) : len;
+    int count = 0;
+    for (int i = int_part_len - 1; i > 0; i--) {
+        if (isdigit(num_str[i])) {
+            count++;
+            if (count == 3) {
+                memmove(num_str + i + 1, num_str + i, len - i + 1);
+                num_str[i] = '_';
+                count = 0;
+                len++;
+                if (decimal_point) decimal_point++;  // 调整小数点位置
+            }
+        }
+    }
+    // 恢复符号位
+    if (sign) num_str--;
+}
+
+// 键值对结构体定义
+struct KeyValuePair {
+    struct Object key;
+    struct Object value;
+};
+
+// 对象比较函数（用于集合排序）
+static int compare_objects(const void* a, const void* b) {
+    struct Object* obj_a = (struct Object*)a;
+    struct Object* obj_b = (struct Object*)b;
+    // 先比较类型
+    if (obj_a->type[0] != obj_b->type[0]) {
+        return (int)(obj_a->type[0] - obj_b->type[0]);
+    }
+    // 同类型时比较值
+    switch (obj_a->type[0]) {
+        case 0x02: {  // 整数类型
+            int64_t val_a = GetLongObjectData(obj_a);
+            int64_t val_b = GetLongObjectData(obj_b);
+            return (val_a > val_b) ? 1 : (val_a < val_b) ? -1 : 0;
+        }
+        case 0x03: {  // 浮点数类型
+            double val_a = GetDoubleObjectData(obj_a);
+            double val_b = GetDoubleObjectData(obj_b);
+            return (val_a > val_b) ? 1 : (val_a < val_b) ? -1 : 0;
+        }
+        case 0x05: {  // 字符串类型
+            const char* str_a = GetStringObjectData(obj_a);
+            const char* str_b = GetStringObjectData(obj_b);
+            return strcmp(str_a, str_b);
+        }
+        default:  // 其他类型视为相等
+            return 0;
+    }
+}
+
+// 键值对比较函数（用于字典排序）
+static int compare_pairs(const void* a, const void* b) {
+    struct KeyValuePair* pair_a = (struct KeyValuePair*)a;
+    struct KeyValuePair* pair_b = (struct KeyValuePair*)b;
+    return compare_objects(&pair_a->key, &pair_b->key);
+}
+
+// 辅助函数：格式化对象核心逻辑
+static void pformat_object(struct Object* obj, struct PrettyPrinter* pp, char* buffer, size_t* buf_len) {
+    // 检测递归对象
+    struct Memo* current = pp->memo;
+    while (current) {
+        if (current->original == obj) {
+            const char* repr = get_recursion_repr(obj);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "%s", repr);
+            return;
+        }
+        current = current->next;
+    }
+
+    // 添加当前对象到备忘录
+    struct Memo* new_memo = (struct Memo*)malloc(sizeof(struct Memo));
+    new_memo->original = obj;
+    new_memo->next = pp->memo;
+    pp->memo = new_memo;
+
+    // 根据类型格式化
+    switch (obj->type[0]) {
+        case 0x05: {  // 字符串类型
+            const char* str = GetStringObjectData(obj);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "'%%s'", str);
+            break;
+        }
+        case 0x06: {  // 指针（动态数组）类型
+            if (pp->depth == 0) {
+                *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "[...]");
+                break;
+            }
+            pp->depth--;
+            size_t elem_count = GetUint64tObjectData(obj->data.ptr_data);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "[");
+            for (size_t i = 0; i < elem_count; i++) {
+                if (i > 0) {
+                    if (pp->compact) {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, ", ");
+                    } else {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "\n%%*s", pp->indent, "");
+                    }
+                }
+                pformat_object(obj->data.ptr_data + i + 1, pp, buffer, buf_len);
+            }
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "]");
+            pp->depth++;
+            break;
+        }
+        case 0x07: {  // 引用类型
+            if (pp->depth == 0) {
+                *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "(...)");
+                break;
+            }
+            pp->depth--;
+            size_t elem_count = GetUint64tObjectData(obj->data.ptr_data);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "(");
+            for (size_t i = 0; i < elem_count; i++) {
+                if (i > 0) {
+                    if (pp->compact) {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, ", ");
+                    } else {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "\n%%*s", pp->indent, "");
+                    }
+                }
+                pformat_object(obj->data.ptr_data + i + 1, pp, buffer, buf_len);
+            }
+            if (elem_count == 1) *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, ",");
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, ")");
+            pp->depth++;
+            break;
+        }
+        case 0x08: {  // 常量引用类型
+            if (pp->depth == 0) {
+                *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "{...}");
+                break;
+            }
+            pp->depth--;
+            size_t elem_count = GetUint64tObjectData(obj->data.ptr_data);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "{");
+            struct Object* elems = obj->data.ptr_data + 1;
+            if (pp->sort_dicts) qsort(elems, elem_count, sizeof(struct Object), compare_objects);
+            for (size_t i = 0; i < elem_count; i++) {
+                if (i > 0) {
+                    if (pp->compact) {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, ", ");
+                    } else {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "\n%%*s", pp->indent, "");
+                    }
+                }
+                pformat_object(&elems[i], pp, buffer, buf_len);
+            }
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "}");
+            pp->depth++;
+            break;
+        }
+        case 0x09: {  // 类类型
+            if (pp->depth == 0) {
+                *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "{...}");
+                break;
+            }
+            pp->depth--;
+            size_t pair_count = GetUint64tObjectData(obj->data.ptr_data);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "{");
+            struct KeyValuePair* pairs = (struct KeyValuePair*)(obj->data.ptr_data + 1);
+            if (pp->sort_dicts) qsort(pairs, pair_count, sizeof(struct KeyValuePair), compare_pairs);
+            for (size_t i = 0; i < pair_count; i++) {
+                if (i > 0) {
+                    if (pp->compact) {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, ", ");
+                    } else {
+                        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "\n%%*s", pp->indent, "");
+                    }
+                }
+                pformat_object(&pairs[i].key, pp, buffer, buf_len);
+                *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, ": ");
+                pformat_object(&pairs[i].value, pp, buffer, buf_len);
+            }
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "}");
+            pp->depth++;
+            break;
+        }
+        case 0x02: {  // 整数类型（长整型）
+            char num_buf[64];
+            snprintf(num_buf, sizeof(num_buf), "%%lld", GetLongObjectData(obj));
+            if (pp->underscore_numbers) format_underscore_numbers(num_buf);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "%%s", num_buf);
+            break;
+        }
+        case 0x03: {  // 浮点数类型
+            char num_buf[64];
+            snprintf(num_buf, sizeof(num_buf), "%%.15g", GetDoubleObjectData(obj));
+            if (pp->underscore_numbers) format_underscore_numbers(num_buf);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "%%s", num_buf);
+            break;
+        }
+        default:
+            EXIT_VM("pformat_object", "Unsupported object type for pretty printing");
+            break;
+    }
+
+    // 移除当前备忘录条目
+    pp->memo = new_memo->next;
+    free(new_memo);
+}
+
+// 新增：指针类型（复合对象）处理（原case 0x06逻辑迁移）
+static void pformat_compound_object(struct Object* obj, struct PrettyPrinter* pp, char* buffer, size_t* buf_len) {
+    if (pp->depth > 0) {
+        pp->depth--;
+        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "{");
+        pformat_object(obj->data.ptr_data, pp, buffer, buf_len);
+        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "}");
+        pp->depth++;
+    } else {
+        *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "...");
+    }
+}
+
+// 实现pp函数
+void aqstl_pp(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size < 1 || args.size > 7)
+        EXIT_VM("aqstl_pp", "Invalid args, requires 1-7 arguments (object, stream, indent, width, depth, compact, sort_dicts, underscore_numbers)");
+    if (return_value >= object_table_size)
+        EXIT_VM("aqstl_pp", "Invalid return value slot");
+
+    struct Object* obj = GetOriginData(object_table + args.index[0]);
+    struct PrettyPrinter pp = {
+        .indent = (int)(args.size >= 3 ? GetLongObjectData(object_table + args.index[2]) : 1),
+        .width = (int)(args.size >= 4 ? GetLongObjectData(object_table + args.index[3]) : 80),
+        .depth = (int)(args.size >= 5 ? GetLongObjectData(object_table + args.index[4]) : -1),
+        .compact = (bool)(args.size >= 6 ? GetLongObjectData(object_table + args.index[5]) : false),
+        .sort_dicts = (bool)(args.size >= 7 ? GetLongObjectData(object_table + args.index[6]) : true),
+        .underscore_numbers = (bool)(args.size >= 8 ? GetLongObjectData(object_table + args.index[7]) : false),
+        .memo = NULL
+    };
+
+    char buffer[1024] = {0};
+    size_t buf_len = 0;
+    pformat_object(obj, &pp, buffer, &buf_len);
+
+    // 输出到stream（示例使用stdout）
+    printf("%%s\n", buffer);
+    SetStringData(return_value, buffer);
+}
+
+// pprint是pp的别名（默认sort_dicts=true）
+#define aqstl_pprint aqstl_pp
+
+// 实现pformat函数
+void aqstl_pformat(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size < 1 || args.size > 6)
+        EXIT_VM("aqstl_pformat", "Invalid args, requires 1-6 arguments (object, indent, width, depth, compact, sort_dicts, underscore_numbers)");
+    if (return_value >= object_table_size)
+        EXIT_VM("aqstl_pformat", "Invalid return value slot");
+
+    struct Object* obj = GetOriginData(object_table + args.index[0]);
+    struct PrettyPrinter pp = {
+      .indent = (int)(args.size >= 3 ? GetLongObjectData(object_table + args.index[2]) : 1),
+      .width = (int)(args.size >= 4 ? GetLongObjectData(object_table + args.index[3]) : 80),
+      .depth = (int)(args.size >= 5 ? GetLongObjectData(object_table + args.index[4]) : -1),
+      .compact = (bool)(args.size >= 6 ? GetLongObjectData(object_table + args.index[5]) : false),
+      .sort_dicts = (bool)(args.size >= 7 ? GetLongObjectData(object_table + args.index[6]) : true),
+      .underscore_numbers = (bool)(args.size >= 8 ? GetLongObjectData(object_table + args.index[7]) : false),
+      .memo = NULL
+  };
+
+    char buffer[1024] = {0};
+    size_t buf_len = 0;
+    pformat_object(obj, &pp, buffer, &buf_len);
+    SetStringData(return_value, buffer);
+}
+
+// copy module implementation
+
+
+// 浅拷贝函数实现
+void aqstl_copy(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1)
+    EXIT_VM("aqstl_copy", "Invalid args, requires 1 argument");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_copy", "Invalid return value slot");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_copy", "Null object");
+
+  // 创建浅拷贝对象（直接复制引用）
+  struct Object* copy_obj = (struct Object*)malloc(sizeof(struct Object));
+  copy_obj->type = obj->type;
+  copy_obj->const_type = obj->const_type;
+  copy_obj->data = obj->data;
+  SetObjectData(return_value, copy_obj);
+}
+
+// 深拷贝辅助函数（带备忘录）
+static struct Object* deep_copy(struct Object* obj, struct Memo** memo) {
+  if (!obj) return NULL;
+
+  // 检查备忘录中是否已复制过该对象
+  struct Memo* current = *memo;
+  while (current) {
+    if (current->original == obj) return current->copy;
+    current = current->next;
+  }
+
+  // 创建新备忘录条目
+  struct Memo* new_memo = (struct Memo*)malloc(sizeof(struct Memo));
+  new_memo->original = obj;
+  new_memo->next = *memo;
+  *memo = new_memo;
+
+  // 根据对象类型递归复制
+  struct Object* copy_obj = (struct Object*)malloc(sizeof(struct Object));
+  copy_obj->type = obj->type;
+  copy_obj->const_type = obj->const_type;
+  switch (obj->type[0]) {
+    case 0x05:  // 字符串类型（不可变，浅拷贝即可）
+      copy_obj->data.string_data = obj->data.string_data;
+      break;
+    case 0x06:  // 指针类型（假设为复合对象）
+      copy_obj->data.ptr_data = deep_copy(obj->data.ptr_data, memo);
+      break;
+    default:
+      copy_obj->data = obj->data;
+      break;
+  }
+  new_memo->copy = copy_obj;
+  return copy_obj;
+}
+
+// 深拷贝函数实现
+void aqstl_deepcopy(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1)
+    EXIT_VM("aqstl_deepcopy", "Invalid args, requires 1 argument");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_deepcopy", "Invalid return value slot");
+
+  struct Object* obj = object_table + *args.index;
+  obj = GetOriginData(obj);
+  if (!obj) EXIT_VM("aqstl_deepcopy", "Null object");
+
+  struct Memo* memo = NULL;
+  struct Object* copy_obj = deep_copy(obj, &memo);
+  SetObjectData(return_value, copy_obj);
+
+  // 释放备忘录
+  struct Memo* current = memo;
+  while (current) {
+    struct Memo* temp = current;
+    current = current->next;
+    free(temp);
+  }
+}
+
+// 替换函数实现（简化版，假设处理类似namedtuple的对象）
+void aqstl_replace(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 2)
+    EXIT_VM("aqstl_replace", "Invalid args, requires 2 arguments (object, changes)");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_replace", "Invalid return value slot");
+
+  struct Object* obj = object_table + args.index[0];
+  struct Object* changes = object_table + args.index[1];
+  obj = GetOriginData(obj);
+  changes = GetOriginData(changes);
+
+  if (obj->type[0] != 0x07)  // 假设0x07为可替换对象类型
+    EXIT_VM("aqstl_replace", "Unsupported object type for replace");
+
+  // 简化实现：创建新对象并替换指定字段
+  struct Object* new_obj = (struct Object*)malloc(sizeof(struct Object));
+  memcpy(new_obj, obj, sizeof(struct Object));
+  // 实际应根据changes内容替换对应字段（需扩展changes解析逻辑）
+  SetObjectData(return_value, new_obj);
+}
+
 /*void aqstl_tmpnam(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
   if (args.size != 1)
@@ -392,6 +818,1045 @@ errno_t tmpnam_s(char* s, rsize_t maxsize);
 // arg); int vsscanf_s(const char* restrict s, const char* restrict format,
 // va_list arg);
 char* gets_s(char* s, rsize_t n);
+*/
+
+// String module constants
+static const char* string_ascii_letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static const char* string_ascii_lowercase = "abcdefghijklmnopqrstuvwxyz";
+static const char* string_ascii_uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static const char* string_digits = "0123456789";
+static const char* string_hexdigits = "0123456789abcdefABCDEF";
+static const char* string_octdigits = "01234567";
+static const char* string_punctuation = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+static const char* string_printable = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\f\v";
+static const char* string_whitespace = " \t\n\r\f\v";
+
+void aqstl_string_ascii_letters(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_ascii_letters", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_ascii_letters", "Invalid return value.");
+  SetStringData(return_value, string_ascii_letters);
+}
+
+void aqstl_string_ascii_lowercase(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_ascii_lowercase", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_ascii_lowercase", "Invalid return value.");
+  SetStringData(return_value, string_ascii_lowercase);
+}
+
+void aqstl_string_ascii_uppercase(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_ascii_uppercase", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_ascii_uppercase", "Invalid return value.");
+  SetStringData(return_value, string_ascii_uppercase);
+}
+
+void aqstl_string_digits(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_digits", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_digits", "Invalid return value.");
+  SetStringData(return_value, string_digits);
+}
+
+void aqstl_string_hexdigits(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_hexdigits", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_hexdigits", "Invalid return value.");
+  SetStringData(return_value, string_hexdigits);
+}
+
+void aqstl_isdigit(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1)
+    EXIT_VM("aqstl_isdigit", "Invalid args, requires 1 argument");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_isdigit", "Invalid return value slot");
+  
+  struct Object* object = GetOriginData(object_table + *args.index);
+  if (object == NULL || object->type[0] != 0x05)
+    EXIT_VM("aqstl_isdigit", "Argument must be a string");
+  
+  const char* str = GetStringObjectData(object);
+  for (size_t i = 0; str[i] != '\0'; i++) {
+    if (!isdigit((unsigned char)str[i])) {
+      SetLongData(return_value, 0);
+      return;
+    }
+  }
+  SetLongData(return_value, 1);
+}
+
+void aqstl_string_octdigits(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_octdigits", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_octdigits", "Invalid return value.");
+  SetStringData(return_value, string_octdigits);
+}
+
+void aqstl_string_punctuation(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_punctuation", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_punctuation", "Invalid return value.");
+  SetStringData(return_value, string_punctuation);
+}
+
+void aqstl_string_printable(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_printable", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_printable", "Invalid return value.");
+  SetStringData(return_value, string_printable);
+}
+
+void aqstl_string_whitespace(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0)
+    EXIT_VM("aqstl_string_whitespace", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_string_whitespace", "Invalid return value.");
+  SetStringData(return_value, string_whitespace);
+}
+
+
+
+/*// 包含PCRE2头文件
+#include <pcre2.h>
+
+// 正则表达式模式结构体
+struct Pattern {
+    const char* pattern;
+    int flags;
+    pcre2_code* compiled; // 使用PCRE2编译后的正则表达式对象
+    int error_code;       // 编译错误码
+    PCRE2_SIZE error_offset; // 错误位置
+};
+
+// 匹配对象结构体（存储匹配位置、分组等信息）
+struct Match {
+    pcre2_match_data* match_data; // PCRE2匹配数据
+    const char* subject;          // 被匹配的原始字符串
+    size_t start;                 // 匹配起始位置
+    size_t end;                   // 匹配结束位置
+};
+
+// 获取匹配的分组内容（对应Match.group()）
+void aqstl_match_group(InternalObject args, size_t return_value) {
+
+// 新增re.finditer函数实现
+void aqstl_re_finditer(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_finditer", "需要2个参数（pattern对象, 待搜索字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_finditer", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_finditer", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取待搜索字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_finditer", "待搜索内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+    PCRE2_SPTR8 subject = (PCRE2_SPTR8)target;
+    size_t subject_length = strlen(target);
+
+    // 创建迭代器结构体存储匹配状态
+    struct FindIter {
+        pcre2_code* compiled;
+        PCRE2_SPTR8 subject;
+        size_t subject_length;
+        pcre2_match_data* match_data;
+        size_t start;
+    };
+
+    struct FindIter* iter = (struct FindIter*)malloc(sizeof(struct FindIter));
+    iter->compiled = p->compiled;
+    iter->subject = subject;
+    iter->subject_length = subject_length;
+    iter->match_data = pcre2_match_data_create_from_pattern_8(p->compiled, NULL);
+    iter->start = 0;
+
+    // 构造返回的迭代器对象（假设迭代器类型标识为0x0A）
+    struct Object* result = object_table + return_value;
+    result->type = (uint8_t*)malloc(2);
+    result->type[0] = 0x0A;
+    result->type[1] = 0x00;
+    result->data.ptr_data = iter;
+    result->const_type = false;
+}
+
+// 迭代器next方法实现（对应FindIter.__next__）
+void aqstl_finditer_next(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_finditer_next", "需要1个参数（finditer迭代器对象）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_finditer_next", "无效的返回值位置");
+
+    // 获取迭代器对象
+    struct Object* iter_obj = object_table + args.index[0];
+    iter_obj = GetOriginData(iter_obj);
+    if (iter_obj->type[0] != 0x0A) EXIT_VM("aqstl_finditer_next", "参数必须是finditer迭代器对象");
+    struct FindIter* iter = (struct FindIter*)iter_obj->data.ptr_data;
+
+    // 执行下一次匹配
+    int rc = pcre2_match_8(
+        iter->compiled,
+        iter->subject,
+        iter->subject_length,
+        iter->start,
+        0,
+        iter->match_data,
+        NULL
+    );
+
+    if (rc >= 0) {
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(iter->match_data);
+        struct Match* match = (struct Match*)malloc(sizeof(struct Match));
+        match->match_data = iter->match_data;
+        match->subject = (const char*)iter->subject;
+        match->start = ovector[0];
+        match->end = ovector[1];
+
+        // 更新下一次匹配的起始位置
+        iter->start = ovector[1];
+
+        // 构造返回的Match对象
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(2);
+        result->type[0] = 0x09;
+        result->type[1] = 0x00;
+        result->data.ptr_data = match;
+        result->const_type = false;
+    } else {
+        // 无更多匹配，释放匹配数据并返回None（假设None类型标识为0x00）
+        pcre2_match_data_free_8(iter->match_data);
+        free(iter);
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(1);
+        result->type[0] = 0x00;
+        result->const_type = true;
+    }
+}
+
+// 新增re.escape函数实现
+void aqstl_re_escape(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_re_escape", "需要1个参数（待转义字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_escape", "无效的返回值位置");
+
+    // 获取待转义字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[0];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_escape", "输入必须是字符串类型");
+    const char* input = GetStringObjectData(string_obj);
+
+    // 预分配转义后字符串空间（假设最多每个字符转义一次）
+    size_t input_len = strlen(input);
+    char* escaped = (char*)malloc(input_len * 2 + 1);
+    size_t pos = 0;
+
+    // 定义需要转义的特殊字符集合
+    const char* special_chars = ".^$*+?()[{\\|}";
+
+    for (size_t i = 0; i < input_len; i++) {
+        if (strchr(special_chars, input[i]) != NULL) {
+            escaped[pos++] = '\\';
+        }
+        escaped[pos++] = input[i];
+    }
+    escaped[pos] = '\0';
+
+    SetStringData(return_value, escaped);
+    free(escaped);
+}
+
+// 获取匹配的分组内容（对应Match.group()）
+void aqstl_match_group(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_match_group", "需要2个参数（match对象, 组号）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_match_group", "无效的返回值位置");
+
+    // 获取match参数（Match类型）
+    struct Object* match_obj = object_table + args.index[0];
+    match_obj = GetOriginData(match_obj);
+    if (match_obj->type[0] != 0x09) EXIT_VM("aqstl_match_group", "参数必须是Match对象");
+    struct Match* m = (struct Match*)match_obj->data.ptr_data;
+
+    // 获取组号参数（整数类型）
+    struct Object* group_obj = object_table + args.index[1];
+    group_obj = GetOriginData(group_obj);
+    if (group_obj->type[0] != 0x02) EXIT_VM("aqstl_match_group", "组号必须是整数类型");
+    int group = (int)GetLongObjectData(group_obj);
+
+    // 获取匹配的分组位置
+    PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(m->match_data);
+    if (group < 0 || group >= (int)pcre2_get_ovector_count_8(m->match_data)) {
+        SetStringData(return_value, ""); // 无效组号返回空字符串
+        return;
+    }
+
+    // 提取分组内容
+    size_t start = ovector[2*group];
+    size_t end = ovector[2*group + 1];
+    size_t length = end - start;
+    char* group_str = strndup(m->subject + start, length);
+    SetStringData(return_value, group_str);
+    free(group_str);
+}
+
+// 获取匹配的起始位置（对应Match.start()）
+void aqstl_match_start(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_match_start", "需要1个参数（match对象）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_match_start", "无效的返回值位置");
+
+    struct Object* match_obj = object_table + args.index[0];
+    match_obj = GetOriginData(match_obj);
+    if (match_obj->type[0] != 0x09) EXIT_VM("aqstl_match_start", "参数必须是Match对象");
+    struct Match* m = (struct Match*)match_obj->data.ptr_data;
+
+    SetUint64tData(return_value, m->start);
+}
+
+// 获取匹配的结束位置（对应Match.end()）
+void aqstl_match_end(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_match_end", "需要1个参数（match对象）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_match_end", "无效的返回值位置");
+
+    struct Object* match_obj = object_table + args.index[0];
+    match_obj = GetOriginData(match_obj);
+    if (match_obj->type[0] != 0x09) EXIT_VM("aqstl_match_end", "参数必须是Match对象");
+    struct Match* m = (struct Match*)match_obj->data.ptr_data;
+
+    SetUint64tData(return_value, m->end);
+}
+
+// 正则完全匹配函数（对应re.fullmatch）
+void aqstl_re_fullmatch(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_fullmatch", "需要2个参数（pattern对象, 待匹配字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_fullmatch", "无效的返回值位置");
+
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_fullmatch", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_fullmatch", "待匹配内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+    PCRE2_SPTR8 subject = (PCRE2_SPTR8)target;
+    size_t subject_length = strlen(target);
+
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern_8(p->compiled, NULL);
+    if (match_data == NULL) EXIT_VM("aqstl_re_fullmatch", "无法创建匹配数据");
+
+    int rc = pcre2_match_8(
+        p->compiled,
+        subject,
+        subject_length,
+        0,
+        PCRE2_ANCHORED | PCRE2_ENDANCHORED,  // 强制匹配开头和结尾
+        match_data,
+        NULL
+    );
+
+    if (rc >= 0) {
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(match_data);
+        struct Match* match = (struct Match*)malloc(sizeof(struct Match));
+        match->match_data = match_data;
+        match->subject = target;
+        match->start = ovector[0];
+        match->end = ovector[1];
+
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(2);
+        result->type[0] = 0x09;
+        result->type[1] = 0x00;
+        result->data.ptr_data = match;
+        result->const_type = false;
+    } else {
+        pcre2_match_data_free_8(match_data);
+        SetLongData(return_value, 0);
+    }
+}
+
+// 转义特殊字符函数（对应re.escape）
+void aqstl_re_escape(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_re_escape", "需要1个参数（待转义字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_escape", "无效的返回值位置");
+
+    struct Object* string_obj = object_table + args.index[0];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_escape", "参数必须是字符串类型");
+    const char* input = GetStringObjectData(string_obj);
+
+    size_t input_len = strlen(input);
+    char* output = malloc(input_len * 2 + 1); // 最多每个字符转义一次
+    size_t output_len = 0;
+
+    const char* special_chars = ".\\+*?[^]$(){}=!<>|:";
+    for (size_t i = 0; i < input_len; i++) {
+        if (strchr(special_chars, input[i]) != NULL) {
+            output[output_len++] = '\\';
+        }
+        output[output_len++] = input[i];
+    }
+    output[output_len] = '\0';
+
+    SetStringData(return_value, output);
+    free(output);
+}
+
+// 编译正则表达式（对应re.compile）
+void aqstl_re_compile(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_compile", "需要2个参数（pattern字符串, flags整数）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_compile", "无效的返回值位置");
+
+    // 获取pattern参数（字符串类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x05) EXIT_VM("aqstl_re_compile", "pattern必须是字符串类型");
+    const char* pattern = GetStringObjectData(pattern_obj);
+
+    // 获取flags参数（整数类型）
+    struct Object* flags_obj = object_table + args.index[1];
+    flags_obj = GetOriginData(flags_obj);
+    if (flags_obj->type[0] != 0x02) EXIT_VM("aqstl_re_compile", "flags必须是整数类型");
+    int flags = (int)GetLongObjectData(flags_obj);
+
+    // 转换为PCRE2标志
+    uint32_t pcre2_flags = 0;
+    if (flags & 1) pcre2_flags |= PCRE2_CASELESS;    // re.IGNORECASE
+    if (flags & 2) pcre2_flags |= PCRE2_DOTALL;      // re.DOTALL
+    if (flags & 4) pcre2_flags |= PCRE2_MULTILINE;   // re.MULTILINE
+    if (flags & 8) pcre2_flags |= PCRE2_UTF;         // re.UNICODE
+    if (flags & 16) pcre2_flags |= PCRE2_VERBOSE;    // re.VERBOSE
+    if (flags & 32) pcre2_flags |= PCRE2_LOCALE;      // re.LOCALE
+    if (flags & 256) pcre2_flags |= PCRE2_ASCII;      // re.ASCII
+    if (flags & 128) pcre2_flags |= PCRE2_DEBUG;      // re.DEBUG
+
+    // 使用PCRE2编译正则表达式
+    PCRE2_SIZE error_offset;
+    int error_code;
+    pcre2_code* compiled = pcre2_compile_8(
+        (PCRE2_SPTR8)pattern,
+        PCRE2_ZERO_TERMINATED,
+        pcre2_flags,
+        &error_code,
+        &error_offset,
+        NULL
+    );
+
+    // 创建并初始化Pattern对象
+    struct Pattern* p = (struct Pattern*)malloc(sizeof(struct Pattern));
+    p->pattern = strdup(pattern);
+    p->flags = flags;
+    p->compiled = compiled;
+    p->error_code = error_code;
+    p->error_offset = error_offset;
+
+    // 检查编译错误
+    if (compiled == NULL) {
+        char error_buf[256];
+        pcre2_get_error_message_8(error_code, (PCRE2_UCHAR8*)error_buf, sizeof(error_buf));
+        EXIT_VM("aqstl_re_compile", "正则表达式编译失败: %s (位置: %zu)", error_buf, error_offset);
+    }
+
+    struct Object* result = object_table + return_value;
+    result->type = (uint8_t*)malloc(2);
+    result->type[0] = 0x08; // 自定义类型标识
+    result->type[1] = 0x00;
+    result->data.ptr_data = p;
+    result->const_type = false;
+}
+
+// 匹配对象结构体（存储匹配位置、分组等信息）
+struct Match {
+    pcre2_match_data* match_data; // PCRE2匹配数据
+    const char* subject;          // 被匹配的原始字符串
+    size_t start;                 // 匹配起始位置
+    size_t end;                   // 匹配结束位置
+};
+
+// 获取匹配的分组内容（对应Match.group()）
+void aqstl_match_group(InternalObject args, size_t return_value) {
+
+// 新增re.finditer函数实现
+void aqstl_re_finditer(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_finditer", "需要2个参数（pattern对象, 待搜索字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_finditer", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_finditer", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取待搜索字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_finditer", "待搜索内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+    PCRE2_SPTR8 subject = (PCRE2_SPTR8)target;
+    size_t subject_length = strlen(target);
+
+    // 创建迭代器结构体存储匹配状态
+    struct FindIter {
+        pcre2_code* compiled;
+        PCRE2_SPTR8 subject;
+        size_t subject_length;
+        pcre2_match_data* match_data;
+        size_t start;
+    };
+
+    struct FindIter* iter = (struct FindIter*)malloc(sizeof(struct FindIter));
+    iter->compiled = p->compiled;
+    iter->subject = subject;
+    iter->subject_length = subject_length;
+    iter->match_data = pcre2_match_data_create_from_pattern_8(p->compiled, NULL);
+    iter->start = 0;
+
+    // 构造返回的迭代器对象（假设迭代器类型标识为0x0A）
+    struct Object* result = object_table + return_value;
+    result->type = (uint8_t*)malloc(2);
+    result->type[0] = 0x0A;
+    result->type[1] = 0x00;
+    result->data.ptr_data = iter;
+    result->const_type = false;
+}
+
+// 迭代器next方法实现（对应FindIter.__next__）
+void aqstl_finditer_next(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_finditer_next", "需要1个参数（finditer迭代器对象）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_finditer_next", "无效的返回值位置");
+
+    // 获取迭代器对象
+    struct Object* iter_obj = object_table + args.index[0];
+    iter_obj = GetOriginData(iter_obj);
+    if (iter_obj->type[0] != 0x0A) EXIT_VM("aqstl_finditer_next", "参数必须是finditer迭代器对象");
+    struct FindIter* iter = (struct FindIter*)iter_obj->data.ptr_data;
+
+    // 执行下一次匹配
+    int rc = pcre2_match_8(
+        iter->compiled,
+        iter->subject,
+        iter->subject_length,
+        iter->start,
+        0,
+        iter->match_data,
+        NULL
+    );
+
+    if (rc >= 0) {
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(iter->match_data);
+        struct Match* match = (struct Match*)malloc(sizeof(struct Match));
+        match->match_data = iter->match_data;
+        match->subject = (const char*)iter->subject;
+        match->start = ovector[0];
+        match->end = ovector[1];
+
+        // 更新下一次匹配的起始位置
+        iter->start = ovector[1];
+
+        // 构造返回的Match对象
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(2);
+        result->type[0] = 0x09;
+        result->type[1] = 0x00;
+        result->data.ptr_data = match;
+        result->const_type = false;
+    } else {
+        // 无更多匹配，释放匹配数据并返回None（假设None类型标识为0x00）
+        pcre2_match_data_free_8(iter->match_data);
+        free(iter);
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(1);
+        result->type[0] = 0x00;
+        result->const_type = true;
+    }
+}
+
+// 新增re.escape函数实现
+void aqstl_re_escape(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_re_escape", "需要1个参数（待转义字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_escape", "无效的返回值位置");
+
+    // 获取待转义字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[0];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_escape", "输入必须是字符串类型");
+    const char* input = GetStringObjectData(string_obj);
+
+    // 预分配转义后字符串空间（假设最多每个字符转义一次）
+    size_t input_len = strlen(input);
+    char* escaped = (char*)malloc(input_len * 2 + 1);
+    size_t pos = 0;
+
+    // 定义需要转义的特殊字符集合
+    const char* special_chars = ".^$*+?()[{\\|}";
+
+    for (size_t i = 0; i < input_len; i++) {
+        if (strchr(special_chars, input[i]) != NULL) {
+            escaped[pos++] = '\\';
+        }
+        escaped[pos++] = input[i];
+    }
+    escaped[pos] = '\0';
+
+    SetStringData(return_value, escaped);
+    free(escaped);
+}
+
+// 获取匹配的分组内容（对应Match.group()）
+void aqstl_match_group(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_match_group", "需要2个参数（match对象, 组号）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_match_group", "无效的返回值位置");
+
+    // 获取match参数（Match类型）
+    struct Object* match_obj = object_table + args.index[0];
+    match_obj = GetOriginData(match_obj);
+    if (match_obj->type[0] != 0x09) EXIT_VM("aqstl_match_group", "参数必须是Match对象");
+    struct Match* m = (struct Match*)match_obj->data.ptr_data;
+
+    // 获取组号参数（整数类型）
+    struct Object* group_obj = object_table + args.index[1];
+    group_obj = GetOriginData(group_obj);
+    if (group_obj->type[0] != 0x02) EXIT_VM("aqstl_match_group", "组号必须是整数类型");
+    int group = (int)GetLongObjectData(group_obj);
+
+    // 获取匹配的分组位置
+    PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(m->match_data);
+    if (group < 0 || group >= (int)pcre2_get_ovector_count_8(m->match_data)) {
+        SetStringData(return_value, ""); // 无效组号返回空字符串
+        return;
+    }
+
+    // 提取分组内容
+    size_t start = ovector[2*group];
+    size_t end = ovector[2*group + 1];
+    size_t length = end - start;
+    char* group_str = strndup(m->subject + start, length);
+    SetStringData(return_value, group_str);
+    free(group_str);
+}
+
+// 获取匹配的起始位置（对应Match.start()）
+void aqstl_match_start(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_match_start", "需要1个参数（match对象）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_match_start", "无效的返回值位置");
+
+    struct Object* match_obj = object_table + args.index[0];
+    match_obj = GetOriginData(match_obj);
+    if (match_obj->type[0] != 0x09) EXIT_VM("aqstl_match_start", "参数必须是Match对象");
+    struct Match* m = (struct Match*)match_obj->data.ptr_data;
+
+    SetUint64tData(return_value, m->start);
+}
+
+// 获取匹配的结束位置（对应Match.end()）
+void aqstl_match_end(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_match_end", "需要1个参数（match对象）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_match_end", "无效的返回值位置");
+
+    struct Object* match_obj = object_table + args.index[0];
+    match_obj = GetOriginData(match_obj);
+    if (match_obj->type[0] != 0x09) EXIT_VM("aqstl_match_end", "参数必须是Match对象");
+    struct Match* m = (struct Match*)match_obj->data.ptr_data;
+
+    SetUint64tData(return_value, m->end);
+}
+
+// 正则完全匹配函数（对应re.fullmatch）
+void aqstl_re_fullmatch(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_fullmatch", "需要2个参数（pattern对象, 待匹配字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_fullmatch", "无效的返回值位置");
+
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_fullmatch", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_fullmatch", "待匹配内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+    PCRE2_SPTR8 subject = (PCRE2_SPTR8)target;
+    size_t subject_length = strlen(target);
+
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern_8(p->compiled, NULL);
+    if (match_data == NULL) EXIT_VM("aqstl_re_fullmatch", "无法创建匹配数据");
+
+    int rc = pcre2_match_8(
+        p->compiled,
+        subject,
+        subject_length,
+        0,
+        PCRE2_ANCHORED | PCRE2_ENDANCHORED,  // 强制匹配开头和结尾
+        match_data,
+        NULL
+    );
+
+    if (rc >= 0) {
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(match_data);
+        struct Match* match = (struct Match*)malloc(sizeof(struct Match));
+        match->match_data = match_data;
+        match->subject = target;
+        match->start = ovector[0];
+        match->end = ovector[1];
+
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(2);
+        result->type[0] = 0x09;
+        result->type[1] = 0x00;
+        result->data.ptr_data = match;
+        result->const_type = false;
+    } else {
+        pcre2_match_data_free_8(match_data);
+        SetLongData(return_value, 0);
+    }
+}
+
+// 转义特殊字符函数（对应re.escape）
+void aqstl_re_escape(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_re_escape", "需要1个参数（待转义字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_escape", "无效的返回值位置");
+
+    struct Object* string_obj = object_table + args.index[0];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_escape", "参数必须是字符串类型");
+    const char* input = GetStringObjectData(string_obj);
+
+    size_t input_len = strlen(input);
+    char* output = malloc(input_len * 2 + 1); // 最多每个字符转义一次
+    size_t output_len = 0;
+
+    const char* special_chars = ".\\+*?[^]$(){}=!<>|:";
+    for (size_t i = 0; i < input_len; i++) {
+        if (strchr(special_chars, input[i]) != NULL) {
+            output[output_len++] = '\\';
+        }
+        output[output_len++] = input[i];
+    }
+    output[output_len] = '\0';
+
+    SetStringData(return_value, output);
+    free(output);
+}
+
+// 正则匹配函数（对应re.match）
+void aqstl_re_match(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_match", "需要2个参数（pattern对象, 待匹配字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_match", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_match", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取待匹配字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_match", "待匹配内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+    PCRE2_SPTR8 subject = (PCRE2_SPTR8)target;
+    size_t subject_length = strlen(target);
+
+    // 创建PCRE2匹配数据
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern_8(p->compiled, NULL);
+    if (match_data == NULL) EXIT_VM("aqstl_re_match", "无法创建匹配数据");
+
+    // 执行匹配（仅匹配字符串开头）
+    int rc = pcre2_match_8(
+        p->compiled,
+        subject,
+        subject_length,
+        0,               // 起始位置
+        PCRE2_ANCHORED,  // 强制匹配开头
+        match_data,
+        NULL
+    );
+
+    // 构造返回的匹配对象
+    if (rc >= 0) {
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(match_data);
+        struct Match* match = (struct Match*)malloc(sizeof(struct Match));
+        match->match_data = match_data;
+        match->subject = target;
+        match->start = ovector[0];
+        match->end = ovector[1];
+
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(2);
+        result->type[0] = 0x09;
+        result->type[1] = 0x00;
+        result->data.ptr_data = match;
+        result->const_type = false;
+    } else {
+        pcre2_match_data_free_8(match_data);
+        SetLongData(return_value, 0); // 无匹配返回0
+    }
+}
+
+// 正则搜索函数（对应re.search）
+void aqstl_re_search(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_search", "需要2个参数（pattern对象, 待搜索字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_search", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_search", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取待搜索字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_search", "待搜索内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+    PCRE2_SPTR8 subject = (PCRE2_SPTR8)target;
+    size_t subject_length = strlen(target);
+
+    // 创建PCRE2匹配数据
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern_8(p->compiled, NULL);
+    if (match_data == NULL) EXIT_VM("aqstl_re_search", "无法创建匹配数据");
+
+    // 执行搜索（任意位置匹配）
+    int rc = pcre2_match_8(
+        p->compiled,
+        subject,
+        subject_length,
+        0,               // 起始位置
+        0,               // 无额外标志
+        match_data,
+        NULL
+    );
+
+    // 构造返回的匹配对象
+    if (rc >= 0) {
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer_8(match_data);
+        struct Match* match = (struct Match*)malloc(sizeof(struct Match));
+        match->match_data = match_data;
+        match->subject = target;
+        match->start = ovector[0];
+        match->end = ovector[1];
+
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(2);
+        result->type[0] = 0x09;
+        result->type[1] = 0x00;
+        result->data.ptr_data = match;
+        result->const_type = false;
+    } else {
+        pcre2_match_data_free_8(match_data);
+        SetLongData(return_value, 0); // 无匹配返回0
+    }
+}
+}
+
+// 正则搜索函数（对应re.search）
+void aqstl_re_search(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_search", "需要2个参数（pattern对象, 待搜索字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_search", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_search", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取待搜索字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_search", "待搜索内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+
+    // 示例：任意位置匹配逻辑（实际需调用正则引擎实现）
+    bool found = (strstr(target, p->pattern) != NULL); // 仅示例，实际应使用编译后的compiled数据搜索
+
+    // 构造返回的匹配对象（假设0x09为Match类型标识）
+    if (found) {
+        struct Object* result = object_table + return_value;
+        result->type = (uint8_t*)malloc(2);
+        result->type[0] = 0x09;
+        result->type[1] = 0x00;
+        result->data.ptr_data = NULL; // 实际应填充匹配位置、分组等信息
+        result->const_type = false;
+    } else {
+        SetLongData(return_value, 0); // 无匹配返回0（可根据需要调整返回类型）
+    }
+}
+
+// 正则替换函数（对应re.sub）
+void aqstl_re_sub(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 4) EXIT_VM("aqstl_re_sub", "需要4个参数（pattern对象, 替换字符串, 待替换字符串, 替换次数）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_sub", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_sub", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取替换字符串参数（字符串类型）
+    struct Object* repl_obj = object_table + args.index[1];
+    repl_obj = GetOriginData(repl_obj);
+    if (repl_obj->type[0] != 0x05) EXIT_VM("aqstl_re_sub", "替换内容必须是字符串类型");
+    const char* repl = GetStringObjectData(repl_obj);
+
+    // 获取待替换字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[2];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_sub", "待替换内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+
+    // 获取替换次数参数（整数类型）
+    struct Object* count_obj = object_table + args.index[3];
+    count_obj = GetOriginData(count_obj);
+    if (count_obj->type[0] != 0x02) EXIT_VM("aqstl_re_sub", "替换次数必须是整数类型");
+    int count = (int)GetLongObjectData(count_obj);
+
+    // 示例：简单替换逻辑（实际需调用正则引擎实现）
+    char* result_str = strdup(target); // 复制原始字符串
+    char* pos = strstr(result_str, p->pattern);
+    int replaced = 0;
+    while (pos && (count == 0 || replaced < count)) {
+        size_t pattern_len = strlen(p->pattern);
+        size_t repl_len = strlen(repl);
+        memmove(pos + repl_len, pos + pattern_len, strlen(pos + pattern_len) + 1);
+        memcpy(pos, repl, repl_len);
+        pos = strstr(pos + repl_len, p->pattern);
+        replaced++;
+    }
+
+    // 返回替换后的字符串
+    SetStringData(return_value, result_str);
+    free(result_str); // 避免内存泄漏
+}
+
+// 正则分割函数（对应re.split）
+void aqstl_re_split(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 3) EXIT_VM("aqstl_re_split", "需要3个参数（pattern对象, 待分割字符串, 最大分割次数）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_split", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_split", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取待分割字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_split", "待分割内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+
+    // 获取最大分割次数参数（整数类型）
+    struct Object* maxsplit_obj = object_table + args.index[2];
+    maxsplit_obj = GetOriginData(maxsplit_obj);
+    if (maxsplit_obj->type[0] != 0x02) EXIT_VM("aqstl_re_split", "最大分割次数必须是整数类型");
+    int maxsplit = (int)GetLongObjectData(maxsplit_obj);
+
+    // 示例：简单分割逻辑（实际需调用PCRE2实现）
+    char* str = strdup(target);
+    char* token = strtok(str, p->pattern);
+    int count = 0;
+    struct Object* result_list = object_table + return_value;
+    result_list->type = (uint8_t*)malloc(2);
+    result_list->type[0] = 0x0A; // 列表类型标识
+    result_list->type[1] = 0x00;
+    result_list->data.ptr_data = malloc(10 * sizeof(struct Object*)); // 初始分配10个元素空间
+    ((struct Object**)result_list->data.ptr_data)[count++] = CreateStringObject(token);
+
+    while (token != NULL && (maxsplit == 0 || count < maxsplit)) {
+        token = strtok(NULL, p->pattern);
+        if (token != NULL) {
+            if (count >= 10) {
+                result_list->data.ptr_data = realloc(result_list->data.ptr_data, (count + 10) * sizeof(struct Object*));
+            }
+            ((struct Object**)result_list->data.ptr_data)[count++] = CreateStringObject(token);
+        }
+    }
+    free(str);
+    SetUint64tData(return_value + 1, count); // 假设列表长度存储在return_value+1位置
+}
+
+// 正则查找所有匹配函数（对应re.findall）
+void aqstl_re_findall(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_re_findall", "需要2个参数（pattern对象, 待查找字符串）");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_re_findall", "无效的返回值位置");
+
+    // 获取pattern参数（Pattern类型）
+    struct Object* pattern_obj = object_table + args.index[0];
+    pattern_obj = GetOriginData(pattern_obj);
+    if (pattern_obj->type[0] != 0x08) EXIT_VM("aqstl_re_findall", "pattern必须是编译后的Pattern对象");
+    struct Pattern* p = (struct Pattern*)pattern_obj->data.ptr_data;
+
+    // 获取待查找字符串参数（字符串类型）
+    struct Object* string_obj = object_table + args.index[1];
+    string_obj = GetOriginData(string_obj);
+    if (string_obj->type[0] != 0x05) EXIT_VM("aqstl_re_findall", "待查找内容必须是字符串类型");
+    const char* target = GetStringObjectData(string_obj);
+
+    // 示例：简单查找逻辑（实际需调用PCRE2实现）
+    char* str = strdup(target);
+    char* pos = strstr(str, p->pattern);
+    int count = 0;
+    struct Object* result_list = object_table + return_value;
+    result_list->type = (uint8_t*)malloc(2);
+    result_list->type[0] = 0x0A; // 列表类型标识
+    result_list->type[1] = 0x00;
+    result_list->data.ptr_data = malloc(10 * sizeof(struct Object*)); // 初始分配10个元素空间
+
+    while (pos != NULL) {
+        size_t match_len = strlen(p->pattern);
+        char* match = strndup(pos, match_len);
+        if (count >= 10) {
+            result_list->data.ptr_data = realloc(result_list->data.ptr_data, (count + 10) * sizeof(struct Object*));
+        }
+        ((struct Object**)result_list->data.ptr_data)[count++] = CreateStringObject(match);
+        free(match);
+        pos = strstr(pos + match_len, p->pattern);
+    }
+    free(str);
+    SetUint64tData(return_value + 1, count); // 假设列表长度存储在return_value+1位置
+}
 */
 
 void aqstl_abs(InternalObject args, size_t return_value) {
