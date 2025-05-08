@@ -11,6 +11,12 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 /*typedef struct StackNode {
   char* function_name;
@@ -263,6 +269,8 @@ void aqstl_rename(InternalObject args, size_t return_value) {
   SetLongData(return_value, rename(GetStringData(*args.index),
                                    GetStringData(*(args.index + 1))));
 }
+
+void aqstl_pp(InternalObject args, size_t return_value);
 // pprint module implementation
 
 // 定义PrettyPrinter结构体保存格式化参数
@@ -390,7 +398,7 @@ static void pformat_object(struct Object* obj, struct PrettyPrinter* pp, char* b
     switch (obj->type[0]) {
         case 0x05: {  // 字符串类型
             const char* str = GetStringObjectData(obj);
-            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "'%%s'", str);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "'%s'", str);
             break;
         }
         case 0x06: {  // 指针（动态数组）类型
@@ -490,16 +498,16 @@ static void pformat_object(struct Object* obj, struct PrettyPrinter* pp, char* b
         }
         case 0x02: {  // 整数类型（长整型）
             char num_buf[64];
-            snprintf(num_buf, sizeof(num_buf), "%%lld", GetLongObjectData(obj));
+            snprintf(num_buf, sizeof(num_buf), "%lld", GetLongObjectData(obj));
             if (pp->underscore_numbers) format_underscore_numbers(num_buf);
-            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "%%s", num_buf);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "%s", num_buf);
             break;
         }
         case 0x03: {  // 浮点数类型
             char num_buf[64];
-            snprintf(num_buf, sizeof(num_buf), "%%.15g", GetDoubleObjectData(obj));
+            snprintf(num_buf, sizeof(num_buf), "%.15g", GetDoubleObjectData(obj));
             if (pp->underscore_numbers) format_underscore_numbers(num_buf);
-            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "%%s", num_buf);
+            *buf_len += snprintf(buffer + *buf_len, sizeof(buffer) - *buf_len, "%s", num_buf);
             break;
         }
         default:
@@ -528,7 +536,7 @@ static void pformat_compound_object(struct Object* obj, struct PrettyPrinter* pp
 // 实现pp函数
 void aqstl_pp(InternalObject args, size_t return_value) {
     TRACE_FUNCTION;
-    if (args.size < 1 || args.size > 7)
+    if (args.size < 1 || args.size > 8)
         EXIT_VM("aqstl_pp", "Invalid args, requires 1-7 arguments (object, stream, indent, width, depth, compact, sort_dicts, underscore_numbers)");
     if (return_value >= object_table_size)
         EXIT_VM("aqstl_pp", "Invalid return value slot");
@@ -549,17 +557,112 @@ void aqstl_pp(InternalObject args, size_t return_value) {
     pformat_object(obj, &pp, buffer, &buf_len);
 
     // 输出到stream（示例使用stdout）
-    printf("%%s\n", buffer);
+    printf("%s\n", buffer);
     SetStringData(return_value, buffer);
 }
 
 // pprint是pp的别名（默认sort_dicts=true）
 #define aqstl_pprint aqstl_pp
 
+// 实现os.path.dirname函数
+/*void aqstl_path_dirname(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_dirname", "需要一个路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* path;
+    if (path_obj->type[0] == 0x05) {
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_dirname", "参数必须是字符串或路径对象");
+    }
+
+    // 查找最后一个路径分隔符（跨平台）
+    const char* last_sep = NULL;
+#ifdef _WIN32
+    last_sep = strpbrk(path, "\\");
+    while (last_sep) {
+        const char* next = strpbrk(last_sep + 1, "\\");
+        if (!next) break;
+        last_sep = next;
+    }
+#else
+    last_sep = strrchr(path, '/');
+#endif
+    const char* dirname = (last_sep && last_sep > path) ? path : "";
+    if (last_sep) {
+        // 截断到最后一个分隔符前
+        size_t dir_len = last_sep - path;
+        char* dir_buf = (char*)malloc(dir_len + 1);
+        strncpy(dir_buf, path, dir_len);
+        dir_buf[dir_len] = '\0';
+        dirname = dir_buf;
+    }
+
+    // 创建返回字符串对象
+    SetStringData(return_value, dirname);
+    if (last_sep) free((void*)dirname);
+}*/
+
+// 实现os.path.expanduser函数
+void aqstl_path_expanduser(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_expanduser", "需要一个路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* path;
+    if (path_obj->type[0] == 0x05) {
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_expanduser", "参数必须是字符串或路径对象");
+    }
+
+    char expanded_path[1024];
+#ifdef _WIN32
+    // Windows家目录获取逻辑
+    char* home = getenv("USERPROFILE");
+    if (!home) {
+        char drive[3] = {0};
+        char path[256] = {0};
+        GetEnvironmentVariableA("HOMEDRIVE", drive, sizeof(drive));
+        GetEnvironmentVariableA("HOMEPATH", path, sizeof(path));
+        snprintf(expanded_path, sizeof(expanded_path), "%s%s", drive, path);
+    } else {
+        strncpy(expanded_path, home, sizeof(expanded_path)-1);
+    }
+#else
+    // Unix家目录获取逻辑
+    char* home = getenv("HOME");
+    if (!home) {
+        struct passwd *pw = getpwuid(getuid());
+        home = pw ? pw->pw_dir : "/";
+    }
+    strncpy(expanded_path, home, sizeof(expanded_path)-1);
+#endif
+
+    // 替换路径中的~符号
+    if (strstr(path, "~/") == path) {
+        strcat(expanded_path, path + 1);
+    } else {
+        strncpy(expanded_path, path, sizeof(expanded_path)-1);
+    }
+    expanded_path[sizeof(expanded_path)-1] = '\0';
+
+    // 创建返回字符串对象
+    SetStringData(return_value, expanded_path);
+}
+
+
 // 实现pformat函数
 void aqstl_pformat(InternalObject args, size_t return_value) {
     TRACE_FUNCTION;
-    if (args.size < 1 || args.size > 6)
+    if (args.size < 1 || args.size > 8)
         EXIT_VM("aqstl_pformat", "Invalid args, requires 1-6 arguments (object, indent, width, depth, compact, sort_dicts, underscore_numbers)");
     if (return_value >= object_table_size)
         EXIT_VM("aqstl_pformat", "Invalid return value slot");
@@ -1212,7 +1315,7 @@ void aqstl_re_escape(InternalObject args, size_t return_value) {
     const char* input = GetStringObjectData(string_obj);
 
     size_t input_len = strlen(input);
-    char* output = malloc(input_len * 2 + 1); // 最多每个字符转义一次
+    char* output = (char*)malloc(input_len * 2 + 1); // 最多每个字符转义一次
     size_t output_len = 0;
 
     const char* special_chars = ".\\+*?[^]$(){}=!<>|:";
@@ -1557,7 +1660,7 @@ void aqstl_re_escape(InternalObject args, size_t return_value) {
     const char* input = GetStringObjectData(string_obj);
 
     size_t input_len = strlen(input);
-    char* output = malloc(input_len * 2 + 1); // 最多每个字符转义一次
+    char* output = (char*)malloc(input_len * 2 + 1); // 最多每个字符转义一次
     size_t output_len = 0;
 
     const char* special_chars = ".\\+*?[^]$(){}=!<>|:";
@@ -2279,6 +2382,53 @@ void aqstl_str(InternalObject args, size_t return_value) {
   SetStringData(return_value, buffer);
 }
 
+void aqstl_math_factorial(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_factorial", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_factorial", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x02) EXIT_VM("aqstl_math_factorial", "Argument must be integer.");
+  int64_t n = GetLongObjectData(obj);
+  if (n < 0) EXIT_VM("aqstl_math_factorial", "Factorial of negative number is undefined.");
+
+  int64_t result = 1;
+  for (int64_t i = 2; i <= n; i++) result *= i;
+  SetLongData(return_value, result);
+}
+int64_t compute_gcd(int64_t a, int64_t b) {
+  while (b != 0) {
+    int64_t temp = b;
+    b = a % b;
+    a = temp;
+  }
+  return a;
+}
+
+void aqstl_math_gcd(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 2) EXIT_VM("aqstl_math_gcd", "Requires at least 2 arguments.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_gcd", "Invalid return value slot.");
+
+
+
+  int64_t gcd_val = 0;
+  for (size_t i = 0; i < args.size; i++) {
+    struct Object* obj = GetOriginData(object_table + args.index[i]);
+    if (obj->type[0] != 0x02 && obj->type[0] != 0x04) {
+      EXIT_VM("aqstl_math_gcd", "All arguments must be integers (type 0x02 or 0x04).");
+    }
+    int64_t num;
+    if (obj->type[0] == 0x02) {
+      num = llabs(GetLongObjectData(obj));
+    } else { // 0x04 (uint64_t)
+      num = llabs((int64_t)GetUint64tObjectData(obj));
+    }
+    gcd_val = (gcd_val == 0) ? num : compute_gcd(gcd_val, num);
+  }
+  SetLongData(return_value, gcd_val);
+}
+
 void aqstl_sum(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
   if (args.size < 1) EXIT_VM("aqstl_sum", "Requires at least 1 argument.");
@@ -2303,6 +2453,1022 @@ void aqstl_sum(InternalObject args, size_t return_value) {
     }
   }
   SetLongData(return_value, total);
+}
+
+// 文件比较缓存结构体
+typedef struct {
+  const char* path;
+  time_t mtime;
+  size_t size;
+} FileCacheEntry;
+
+static FileCacheEntry* file_cache = NULL;
+static size_t file_cache_size = 0;
+
+// 清除文件比较缓存（对应Python filecmp.clear_cache）
+void aqstl_filecmp_clear_cache(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 0) EXIT_VM("aqstl_filecmp_clear_cache", "不需要参数");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_filecmp_clear_cache", "无效的返回值槽位");
+
+  free(file_cache);
+  file_cache = NULL;
+  file_cache_size = 0;
+  SetLongData(return_value, 0);
+}
+
+// 文件比较核心函数（对应Python filecmp.cmp）
+void aqstl_filecmp_cmp(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 2 || args.size > 3) EXIT_VM("aqstl_filecmp_cmp", "需要2-3个参数（f1, f2, shallow=True）");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_filecmp_cmp", "无效的返回值槽位");
+
+  // 参数校验：确保f1和f2是字符串类型
+  struct Object* f1_obj = GetOriginData(object_table + args.index[0]);
+  struct Object* f2_obj = GetOriginData(object_table + args.index[1]);
+  if (f1_obj->type[0] != 0x05 || f2_obj->type[0] != 0x05) {
+    EXIT_VM("aqstl_filecmp_cmp", "文件路径参数必须为字符串类型");
+  }
+  const char* f1 = GetStringObjectData(f1_obj);
+  const char* f2 = GetStringObjectData(f2_obj);
+  bool shallow = (args.size >= 3) ? (bool)GetLongObjectData(object_table + args.index[2]) : true;
+
+  int64_t result = 0;
+
+  // 检查缓存（shallow模式有效）
+  if (shallow) {
+    for (size_t i = 0; i < file_cache_size; i++) {
+      if (strcmp(file_cache[i].path, f1) == 0) {
+        time_t f1_mtime = file_cache[i].mtime;
+        size_t f1_size = file_cache[i].size;
+        for (size_t j = 0; j < file_cache_size; j++) {
+          if (strcmp(file_cache[j].path, f2) == 0) {
+            result = (f1_mtime == file_cache[j].mtime) && (f1_size == file_cache[j].size);
+            SetLongData(return_value, result);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // 获取文件元数据（跨平台实现）
+  #ifdef _WIN32
+    WIN32_FILE_ATTRIBUTE_DATA f1_attr, f2_attr;
+    if (!GetFileAttributesExA(f1, GetFileExInfoStandard, &f1_attr) || !GetFileAttributesExA(f2, GetFileExInfoStandard, &f2_attr)) {
+      EXIT_VM("aqstl_filecmp_cmp", "无法获取文件属性");
+    }
+    time_t f1_mtime = FileTimeToUnixTime(&f1_attr.ftLastWriteTime);
+    time_t f2_mtime = FileTimeToUnixTime(&f2_attr.ftLastWriteTime);
+    size_t f1_size = (f1_attr.nFileSizeHigh << 32) | f1_attr.nFileSizeLow;
+    size_t f2_size = (f2_attr.nFileSizeHigh << 32) | f2_attr.nFileSizeLow;
+  #else
+    struct stat f1_stat, f2_stat;
+    if (stat(f1, &f1_stat) != 0 || stat(f2, &f2_stat) != 0) {
+      EXIT_VM("aqstl_filecmp_cmp", "无法获取文件状态");
+    }
+    time_t f1_mtime = f1_stat.st_mtime;
+    time_t f2_mtime = f2_stat.st_mtime;
+    size_t f1_size = f1_stat.st_size;
+    size_t f2_size = f2_stat.st_size;
+  #endif
+
+  // shallow模式比较元数据
+  if (shallow) {
+    result = (f1_mtime == f2_mtime) && (f1_size == f2_size);
+    // 更新缓存
+    FileCacheEntry* new_cache = (FileCacheEntry*)realloc(file_cache, (file_cache_size + 2) * sizeof(FileCacheEntry));
+    if (new_cache) {
+      file_cache = new_cache;
+      file_cache[file_cache_size++] = (FileCacheEntry){f1, f1_mtime, f1_size};
+      file_cache[file_cache_size++] = (FileCacheEntry){f2, f2_mtime, f2_size};
+    }
+  } else {
+    // 内容比较逻辑（逐块读取比较）
+    FILE* f1_fp = fopen(f1, "rb");
+    FILE* f2_fp = fopen(f2, "rb");
+    if (!f1_fp || !f2_fp) {
+      if (f1_fp) fclose(f1_fp);
+      if (f2_fp) fclose(f2_fp);
+      EXIT_VM("aqstl_filecmp_cmp", "无法打开文件进行内容比较");
+    }
+
+    char buffer1[4096], buffer2[4096];
+    size_t bytes_read1, bytes_read2;
+    result = true;
+    do {
+      bytes_read1 = fread(buffer1, 1, sizeof(buffer1), f1_fp);
+      bytes_read2 = fread(buffer2, 1, sizeof(buffer2), f2_fp);
+      if (bytes_read1 != bytes_read2 || memcmp(buffer1, buffer2, bytes_read1) != 0) {
+        result = false;
+        break;
+      }
+    } while (bytes_read1 == sizeof(buffer1) && bytes_read2 == sizeof(buffer2));
+
+    fclose(f1_fp);
+    fclose(f2_fp);
+  }
+  SetLongData(return_value, (int64_t)result);
+}
+
+// 多文件比较函数（对应Python filecmp.cmpfiles）
+void aqstl_filecmp_cmpfiles(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 3 || args.size > 4) EXIT_VM("aqstl_filecmp_cmpfiles", "需要3-4个参数（dir1, dir2, common, shallow=True）");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_filecmp_cmpfiles", "无效的返回值槽位");
+
+  // 参数校验：确保dir1、dir2是字符串类型，common是数组类型
+  struct Object* dir1_obj = GetOriginData(object_table + args.index[0]);
+  struct Object* dir2_obj = GetOriginData(object_table + args.index[1]);
+  struct Object* common_obj = GetOriginData(object_table + args.index[2]);
+  if (dir1_obj->type[0] != 0x05 || dir2_obj->type[0] != 0x05 || common_obj->type[0] != 0x0A) {
+    EXIT_VM("aqstl_filecmp_cmpfiles", "参数类型错误（dir1/dir2应为字符串，common应为数组）");
+  }
+  const char* dir1 = GetStringObjectData(dir1_obj);
+  const char* dir2 = GetStringObjectData(dir2_obj);
+  bool shallow = (args.size >= 4) ? (bool)GetLongObjectData(object_table + args.index[3]) : true;
+
+  // 实际比较逻辑：遍历common列表比较文件
+  size_t common_count = GetArraySize(common_obj);
+  for (size_t i = 0; i < common_count; i++) {
+    struct Object* file_obj = GetArrayElement(common_obj, i);
+    if (file_obj->type[0] != 0x05) EXIT_VM("aqstl_filecmp_cmpfiles", "common数组元素应为字符串");
+    const char* file = GetStringObjectData(file_obj);
+
+    // 构造完整路径
+    char f1_path[MAX_PATH], f2_path[MAX_PATH];
+    snprintf(f1_path, sizeof(f1_path), "%s/%s", dir1, file);
+    snprintf(f2_path, sizeof(f2_path), "%s/%s", dir2, file);
+
+    // 调用文件比较函数
+    InternalObject cmp_args = {.size = 3, .index = malloc(3 * sizeof(size_t))};
+    cmp_args.index[0] = CreateStringObject(f1_path);
+    cmp_args.index[1] = CreateStringObject(f2_path);
+    cmp_args.index[2] = CreateLongObject((int64_t)shallow);
+    size_t cmp_result_slot = AllocateObjectSlot();
+    aqstl_filecmp_cmp(cmp_args, cmp_result_slot);
+    bool is_equal = (bool)GetLongObjectData(object_table + cmp_result_slot);
+
+    // TODO: 收集比较结果到返回值（需要定义结果结构）
+    free(cmp_args.index);
+  }
+  SetLongData(return_value, 0);
+}
+
+// 目录比较类结构体（对应Python dircmp）
+typedef struct {
+  const char* left;
+  const char* right;
+  char** common;
+  char** left_only;
+  char** right_only;
+  char** common_dirs;
+  char** common_files;
+  char** common_funny;
+} DirCmp;
+
+// 初始化目录比较对象（内部函数）
+static DirCmp* dircmp_init(const char* left, const char* right) {
+  DirCmp* dc = (DirCmp*)malloc(sizeof(DirCmp));
+  dc->left = strdup(left);
+  dc->right = strdup(right);
+
+  // TODO: 实现目录内容收集逻辑（跨平台获取文件/目录列表）
+  // 示例：使用POSIX opendir/readdir（Windows需要用FindFirstFile/FindNextFile）
+  #ifdef _WIN32
+    // Windows目录遍历实现
+  #else
+    DIR* dir = opendir(left);
+    if (!dir) EXIT_VM("dircmp_init", "无法打开左目录");
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+      // 过滤.和..
+      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+      // 分类文件/目录
+    }
+    closedir(dir);
+  #endif
+
+  return dc;
+}
+
+// 目录比较类接口函数（对应Python dircmp）
+void aqstl_filecmp_dircmp(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 2 || args.size > 3) EXIT_VM("aqstl_filecmp_dircmp", "需要2-3个参数（a, b, ignore=None）");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_filecmp_dircmp", "无效的返回值槽位");
+
+  // 参数校验
+  struct Object* a_obj = GetOriginData(object_table + args.index[0]);
+  struct Object* b_obj = GetOriginData(object_table + args.index[1]);
+  if (a_obj->type[0] != 0x05 || b_obj->type[0] != 0x05) EXIT_VM("aqstl_filecmp_dircmp", "目录路径参数必须为字符串类型");
+  const char* a = GetStringObjectData(a_obj);
+  const char* b = GetStringObjectData(b_obj);
+
+  // 初始化目录比较对象
+  DirCmp* dc = dircmp_init(a, b);
+  // TODO: 实现差异比较逻辑并返回结果对象
+  SetLongData(return_value, 0);
+}
+
+// 示例三角函数实现
+void aqstl_math_sin(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_sin", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_sin", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_sin", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, sin(x));
+}
+
+// 示例浮点运算实现
+void aqstl_math_ceil(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_ceil", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_ceil", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_ceil", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, ceil(x));
+}
+
+// 组合数计算
+void aqstl_math_comb(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 2) EXIT_VM("aqstl_math_comb", "Requires 2 arguments (n, k).");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_comb", "Invalid return value slot.");
+
+  struct Object* n_obj = GetOriginData(object_table + args.index[0]);
+  struct Object* k_obj = GetOriginData(object_table + args.index[1]);
+  if (n_obj->type[0] != 0x02 || k_obj->type[0] != 0x02) EXIT_VM("aqstl_math_comb", "Arguments must be integers.");
+  int64_t n = GetLongObjectData(n_obj);
+  int64_t k = GetLongObjectData(k_obj);
+  if (n < 0 || k < 0 || k > n) EXIT_VM("aqstl_math_comb", "Invalid combination parameters.");
+
+  if (k > n - k) k = n - k;
+  int64_t result = 1;
+  for (int64_t i = 1; i <= k; i++) {
+    result *= n - k + i;
+    result /= i;
+  }
+  SetLongData(return_value, result);
+}
+
+// 最小公倍数计算
+void aqstl_math_lcm(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 2) EXIT_VM("aqstl_math_lcm", "Requires at least 2 arguments.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_lcm", "Invalid return value slot.");
+
+  int64_t lcm_val = 1;
+  for (size_t i = 0; i < args.size; i++) {
+    struct Object* obj = GetOriginData(object_table + args.index[i]);
+    if (obj->type[0] != 0x02) EXIT_VM("aqstl_math_lcm", "All arguments must be integers.");
+    int64_t num = llabs(GetLongObjectData(obj));
+    if (num == 0) {
+      SetLongData(return_value, 0);
+      return;
+    }
+    lcm_val = (lcm_val / compute_gcd(lcm_val, num)) * num;
+  }
+  SetLongData(return_value, lcm_val);
+}
+
+// 平方根计算
+void aqstl_math_sqrt(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_sqrt", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_sqrt", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_sqrt", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  if (x < 0) EXIT_VM("aqstl_math_sqrt", "Square root of negative number is undefined.");
+  SetDoubleData(return_value, sqrt(x));
+}
+
+// 排列数计算
+// Mersenne Twister 状态结构体
+
+// 路径类型标识（新增）
+#define PATH_TYPE 0x0B
+
+// 路径对象结构体（新增）
+struct PathObject {
+    const char* path_str;  // 路径字符串
+    bool is_absolute;      // 是否为绝对路径
+};
+
+// 路径拼接函数（新增）
+void aqstl_path_join(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size < 2) EXIT_VM("aqstl_path_join", "需要至少两个路径参数");
+
+    // 参数校验
+    struct Object* base_obj = GetOriginData(object_table + args.index[0]);
+    if (!base_obj || base_obj->type[0] != 0x05) EXIT_VM("aqstl_path_join", "基础路径必须为字符串类型");
+    const char* base_path = GetStringObjectData(base_obj);
+
+    // 构建拼接后的路径（简化示例，实际需处理Windows路径分隔符）
+    char joined_path[1024] = {0};
+    snprintf(joined_path, sizeof(joined_path), "%s\\%s", base_path, GetStringObjectData(GetOriginData(object_table + args.index[1])));
+
+    // 创建路径对象并设置返回值
+    struct Object* path_obj = (struct Object*)calloc(1, sizeof(struct Object));
+    path_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+    path_obj->type[0] = PATH_TYPE;
+    path_obj->data.ptr_data = (struct Object*)malloc(strlen(joined_path) + 1);
+    strcpy((char*)path_obj->data.ptr_data, joined_path);
+    SetObjectData(return_value, path_obj);
+}
+
+// 路径存在性检查函数（新增）
+void aqstl_path_exists(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_exists", "需要一个路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* path;
+    if (path_obj->type[0] == 0x05) {  // 字符串类型
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {  // 自定义路径类型
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_exists", "参数必须是字符串或路径对象");
+    }
+
+    // 检查路径是否存在（Windows API）
+    DWORD attr = GetFileAttributesA(path);
+    bool exists = (attr != INVALID_FILE_ATTRIBUTES);
+
+    // 设置返回值（长整型，1存在/0不存在）
+    SetLongData(return_value, exists ? 1 : 0);
+}
+
+// 路径是否为目录检查函数（新增）
+void aqstl_path_is_dir(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_is_dir", "需要一个路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* path;
+    if (path_obj->type[0] == 0x05) {  // 字符串类型
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {  // 自定义路径类型
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_is_dir", "参数必须是字符串或路径对象");
+    }
+
+    // 检查是否为目录（跨平台实现）
+#ifdef _WIN32
+    DWORD attr = GetFileAttributesA(path);
+    bool is_dir = (attr != INVALID_FILE_ATTRIBUTES) && (attr & FILE_ATTRIBUTE_DIRECTORY);
+#else
+    struct stat st;
+    bool is_dir = (stat(path, &st) == 0) && S_ISDIR(st.st_mode);
+#endif
+
+    // 设置返回值（长整型，1是目录/0不是）
+    SetLongData(return_value, is_dir ? 1 : 0);
+}
+
+void aqstl_path_abspath(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_abspath", "需要一个路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* rel_path;
+    if (path_obj->type[0] == 0x05) {
+        rel_path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {
+        rel_path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_abspath", "参数必须是字符串或路径对象");
+    }
+
+    // 获取绝对路径（跨平台实现）
+    char abs_path[1024];
+#ifdef _WIN32
+    GetFullPathNameA(rel_path, sizeof(abs_path), abs_path, NULL);
+    // 统一为反斜杠
+    for (char* p = abs_path; *p; p++) if (*p == '/') *p = '\\';
+#else
+    realpath(rel_path, abs_path);
+#endif
+
+    // 创建返回字符串对象
+    SetStringData(return_value, abs_path);
+}
+
+void aqstl_path_basename(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_basename", "需要一个路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* path;
+    if (path_obj->type[0] == 0x05) {
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_basename", "参数必须是字符串或路径对象");
+    }
+
+    // 查找最后一个路径分隔符（跨平台）
+    const char* last_sep = NULL;
+#ifdef _WIN32
+    last_sep = strpbrk(path, "/\\");
+    while (last_sep) {
+        const char* next = strpbrk(last_sep + 1, "/\\");
+        if (!next) break;
+        last_sep = next;
+    }
+#else
+    last_sep = strrchr(path, '/');
+#endif
+    const char* basename = (last_sep && last_sep[1]) ? last_sep + 1 : path;
+    if (last_sep && !last_sep[1]) basename = (last_sep > path) ? last_sep - 1 : path;
+
+    // 创建返回字符串对象
+    SetStringData(return_value, basename);
+}
+
+void aqstl_path_dirname(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_dirname", "需要一个路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* path;
+    if (path_obj->type[0] == 0x05) {
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_dirname", "参数必须是字符串或路径对象");
+    }
+
+    // 查找最后一个路径分隔符（跨平台）
+    const char* last_sep = NULL;
+#ifdef _WIN32
+    last_sep = strpbrk(path, "/\\");
+    while (last_sep) {
+        const char* next = strpbrk(last_sep + 1, "/\\");
+        if (!next) break;
+        last_sep = next;
+    }
+#else
+    last_sep = strrchr(path, '/');
+#endif
+    char dirname[1024];
+    if (last_sep) {
+        strncpy(dirname, path, last_sep - path);
+        dirname[last_sep - path] = '\0';
+    } else {
+        strcpy(dirname, ".");
+    }
+
+    // 创建返回字符串对象
+    SetStringData(return_value, dirname);
+}
+
+// 目录遍历函数（新增）
+void aqstl_path_iterdir(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_path_iterdir", "需要一个目录路径参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    const char* path;
+    if (path_obj->type[0] == 0x05) {  // 字符串类型
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {  // 自定义路径类型
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_iterdir", "参数必须是字符串或路径对象");
+    }
+
+#ifdef _WIN32
+    // Windows系统实现
+    DWORD attr = GetFileAttributesA(path);
+    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        EXIT_VM("aqstl_path_iterdir", "路径不存在或不是目录");
+    }
+
+    // 拼接搜索路径（添加通配符）
+    char search_path[1024];
+    snprintf(search_path, sizeof(search_path), "%s\\*", path);
+
+    WIN32_FIND_DATAA find_data;
+    HANDLE hFind = FindFirstFileA(search_path, &find_data);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        EXIT_VM("aqstl_path_iterdir", "无法遍历目录");
+    }
+
+    // 创建结果列表
+    struct Object* list_obj = (struct Object*)calloc(1, sizeof(struct Object));
+    list_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+    list_obj->type[0] = 0x0A;  // 列表类型
+    list_obj->data.ptr_data = NULL;
+    size_t list_size = 0;
+#else
+    // POSIX系统实现
+    struct stat st;
+    if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
+        EXIT_VM("aqstl_path_iterdir", "路径不存在或不是目录");
+    }
+
+    // 打开目录
+    DIR* dir = opendir(path);
+    if (dir == NULL) {
+        EXIT_VM("aqstl_path_iterdir", "无法打开目录");
+    }
+
+    // 创建结果列表
+    struct Object* list_obj = (struct Object*)calloc(1, sizeof(struct Object));
+    list_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+    list_obj->type[0] = 0x0A;  // 列表类型
+    list_obj->data.ptr_data = NULL;
+    size_t list_size = 0;
+
+    // 遍历目录项
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        // 创建路径字符串对象
+        struct Object* item_obj = (struct Object*)calloc(1, sizeof(struct Object));
+        item_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+        item_obj->type[0] = 0x05;  // 字符串类型
+        item_obj->data.string_data = strdup(entry->d_name);
+
+        // 添加到列表
+        list_size++;
+        list_obj->data.ptr_data = realloc(list_obj->data.ptr_data, list_size * sizeof(struct Object*));
+        ((struct Object**)list_obj->data.ptr_data)[list_size - 1] = item_obj;
+    }
+    closedir(dir);
+#endif
+
+    // 设置列表长度（公共部分）
+    struct Object* size_obj = (struct Object*)calloc(1, sizeof(struct Object));
+    size_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+    size_obj->type[0] = 0x02;  // 长整型
+    size_obj->data.long_data = list_size;
+
+    // 返回列表对象（假设列表结构为[size, items...]）
+    struct Object* result_obj = (struct Object*)calloc(2, sizeof(struct Object));
+    result_obj[0] = *size_obj;
+    result_obj[1] = *list_obj;
+    SetObjectData(return_value, result_obj);
+}
+
+// 路径模式匹配函数（新增）
+void aqstl_path_glob(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 2) EXIT_VM("aqstl_path_glob", "需要目录路径和模式两个参数");
+
+    // 参数校验
+    struct Object* path_obj = GetOriginData(object_table + args.index[0]);
+    struct Object* pattern_obj = GetOriginData(object_table + args.index[1]);
+    const char* path;
+    const char* pattern;
+
+    // 校验路径类型
+    if (path_obj->type[0] == 0x05) {
+        path = GetStringObjectData(path_obj);
+    } else if (path_obj->type[0] == 0x0B) {
+        path = (const char*)path_obj->data.ptr_data;
+    } else {
+        EXIT_VM("aqstl_path_glob", "路径参数必须是字符串或路径对象");
+    }
+
+    // 校验模式类型
+    if (pattern_obj->type[0] != 0x05) {
+        EXIT_VM("aqstl_path_glob", "模式参数必须是字符串");
+    }
+    pattern = GetStringObjectData(pattern_obj);
+
+    // 拼接搜索路径
+    char search_path[1024];
+    snprintf(search_path, sizeof(search_path), "%s\\%s", path, pattern);
+
+    WIN32_FIND_DATAA find_data;
+    HANDLE hFind = FindFirstFileA(search_path, &find_data);
+    if (hFind == INVALID_HANDLE_VALUE) {
+        EXIT_VM("aqstl_path_glob", "无匹配文件或路径无效");
+    }
+
+    // 创建结果列表
+    struct Object* list_obj = (struct Object*)calloc(1, sizeof(struct Object));
+    list_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+    list_obj->type[0] = 0x0A;  // 列表类型
+    list_obj->data.ptr_data = NULL;
+    size_t list_size = 0;
+
+    // 收集匹配项
+    do {
+        if (strcmp(find_data.cFileName, ".") == 0 || strcmp(find_data.cFileName, "..") == 0) {
+            continue;
+        }
+
+        // 创建路径字符串对象
+        struct Object* item_obj = (struct Object*)calloc(1, sizeof(struct Object));
+        item_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+        item_obj->type[0] = 0x05;  // 字符串类型
+        item_obj->data.string_data = strdup(find_data.cFileName);
+
+        // 添加到列表
+        list_size++;
+        list_obj->data.ptr_data = (struct Object*)realloc(list_obj->data.ptr_data, list_size * sizeof(struct Object*));
+        ((struct Object**)list_obj->data.ptr_data)[list_size - 1] = item_obj;
+    } while (FindNextFileA(hFind, &find_data));
+
+    FindClose(hFind);
+
+    // 设置列表长度
+    struct Object* size_obj = (struct Object*)calloc(1, sizeof(struct Object));
+    size_obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+    size_obj->type[0] = 0x02;  // 长整型
+    size_obj->data.long_data = list_size;
+
+    // 返回列表对象（结构：[size, items...]）
+    struct Object* result_obj = (struct Object*)calloc(2, sizeof(struct Object));
+    result_obj[0] = *size_obj;
+    result_obj[1] = *list_obj;
+    SetObjectData(return_value, result_obj);
+}
+
+// 实现os.path.commonpath函数
+void aqstl_path_commonpath(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size < 2) EXIT_VM("aqstl_path_commonpath", "需要至少两个路径参数");
+
+    // 收集路径列表
+    const char* paths[args.size];
+    for (size_t i = 0; i < args.size; i++) {
+        struct Object* path_obj = GetOriginData(object_table + args.index[i]);
+        if (path_obj->type[0] != 0x05 && path_obj->type[0] != 0x0B) {
+            EXIT_VM("aqstl_path_commonpath", "参数必须是字符串或路径对象");
+        }
+        paths[i] = (path_obj->type[0] == 0x05) ? GetStringObjectData(path_obj) : (const char*)path_obj->data.ptr_data;
+    }
+
+    // 计算最长公共子路径（跨平台）
+    char common[1024] = {0};
+#ifdef _WIN32
+    // Windows路径处理（统一为反斜杠）
+    char normalized_paths[args.size][1024];
+    for (size_t i = 0; i < args.size; i++) {
+        strncpy(normalized_paths[i], paths[i], sizeof(normalized_paths[i])-1);
+        for (char* p = normalized_paths[i]; *p; p++) if (*p == '/') *p = '\\';
+    }
+    // 取第一个路径的前缀逐步匹配
+    strncpy(common, normalized_paths[0], sizeof(common)-1);
+    for (size_t i = 1; i < args.size; i++) {
+        size_t min_len = strlen(common) < strlen(normalized_paths[i]) ? strlen(common) : strlen(normalized_paths[i]);
+        for (size_t j = 0; j < min_len; j++) {
+            if (common[j] != normalized_paths[i][j]) {
+                common[j] = '\0';
+                break;
+            }
+        }
+    }
+#else
+    // Unix路径处理（统一为正斜杠）
+    char normalized_paths[args.size][1024];
+    for (size_t i = 0; i < args.size; i++) {
+        strncpy(normalized_paths[i], paths[i], sizeof(normalized_paths[i])-1);
+        for (char* p = normalized_paths[i]; *p; p++) if (*p == '\\') *p = '/';
+    }
+    // 取第一个路径的前缀逐步匹配
+    strncpy(common, normalized_paths[0], sizeof(common)-1);
+    for (size_t i = 1; i < args.size; i++) {
+        size_t min_len = strlen(common) < strlen(normalized_paths[i]) ? strlen(common) : strlen(normalized_paths[i]);
+        for (size_t j = 0; j < min_len; j++) {
+            if (common[j] != normalized_paths[i][j]) {
+                common[j] = '\0';
+                break;
+            }
+        }
+    }
+#endif
+
+    // 创建返回字符串对象
+    SetStringData(return_value, common);
+}
+
+// 实现os.path.commonprefix函数
+void aqstl_path_commonprefix(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size < 2) EXIT_VM("aqstl_path_commonprefix", "需要至少两个路径参数");
+
+    // 收集路径列表
+    const char* paths[args.size];
+    for (size_t i = 0; i < args.size; i++) {
+        struct Object* path_obj = GetOriginData(object_table + args.index[i]);
+        if (path_obj->type[0] != 0x05 && path_obj->type[0] != 0x0B) {
+            EXIT_VM("aqstl_path_commonprefix", "参数必须是字符串或路径对象");
+        }
+        paths[i] = (path_obj->type[0] == 0x05) ? GetStringObjectData(path_obj) : (const char*)path_obj->data.ptr_data;
+    }
+
+    // 计算最长公共前缀（逐字符比较）
+    size_t min_len = strlen(paths[0]);
+    for (size_t i = 1; i < args.size; i++) {
+        size_t len = strlen(paths[i]);
+        if (len < min_len) min_len = len;
+    }
+
+    char prefix[1024] = {0};
+    for (size_t i = 0; i < min_len; i++) {
+        char c = paths[0][i];
+        for (size_t j = 1; j < args.size; j++) {
+            if (paths[j][i] != c) {
+                prefix[i] = '\0';
+                goto end;
+            }
+        }
+        prefix[i] = c;
+    }
+end:
+
+    // 创建返回字符串对象
+    SetStringData(return_value, prefix);
+}
+
+typedef struct {
+    uint32_t state[624];
+    int index;
+} MTRandomState;
+
+static MTRandomState mt_state;
+
+// 初始化Mersenne Twister生成器
+static void mt_init(uint32_t seed) {
+    mt_state.index = 624;
+    mt_state.state[0] = seed;
+    for (int i = 1; i < 624; i++) {
+        mt_state.state[i] = 0x6c078965 * (mt_state.state[i-1] ^ (mt_state.state[i-1] >> 30)) + i;
+    }
+}
+
+// 生成下一个32位随机数
+static uint32_t mt_next(void) {
+    if (mt_state.index >= 624) {
+        for (int i = 0; i < 624; i++) {
+            uint32_t y = (mt_state.state[i] & 0x80000000) | (mt_state.state[(i+1)%624] & 0x7fffffff);
+            mt_state.state[i] = mt_state.state[(i+397)%624] ^ (y >> 1);
+            if (y & 0x00000001) {
+                mt_state.state[i] ^= 0x9908b0df;
+            }
+        }
+        mt_state.index = 0;
+    }
+    uint32_t y = mt_state.state[mt_state.index++];
+    y ^= (y >> 11);
+    y ^= (y << 7) & 0x9d2c5680;
+    y ^= (y << 15) & 0xefc60000;
+    y ^= (y >> 18);
+    return y;
+}
+
+// 实现random.seed函数
+void aqstl_random_seed(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size < 1 || args.size > 1) EXIT_VM("aqstl_random_seed", "Requires 1 argument (seed).");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_random_seed", "Invalid return value slot.");
+
+    struct Object* seed_obj = GetOriginData(object_table + args.index[0]);
+    uint32_t seed;
+    switch (seed_obj->type[0]) {
+        case 0x02: // 整数类型
+            seed = (uint32_t)GetLongObjectData(seed_obj);
+            break;
+        case 0x05: { // 字符串类型
+            const char* str = GetStringObjectData(seed_obj);
+            seed = 0;
+            for (size_t i = 0; str[i] != '\0'; i++) {
+                seed = seed * 131 + str[i];
+            }
+            break;
+        }
+        default:
+            EXIT_VM("aqstl_random_seed", "Unsupported seed type.");
+    }
+    mt_init(seed);
+    SetLongData(return_value, 0); // 无返回值，返回0表示成功
+}
+
+// 实现random.randrange函数
+void aqstl_random_randrange(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size < 1 || args.size > 3) EXIT_VM("aqstl_random_randrange", "Requires 1-3 arguments (stop) or (start, stop[, step]).");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_random_randrange", "Invalid return value slot.");
+
+    int64_t start = 0, stop, step = 1;
+    if (args.size == 1) {
+        stop = GetLongObjectData(GetOriginData(object_table + args.index[0]));
+    } else if (args.size >= 2) {
+        start = GetLongObjectData(GetOriginData(object_table + args.index[0]));
+        stop = GetLongObjectData(GetOriginData(object_table + args.index[1]));
+        if (args.size == 3) step = GetLongObjectData(GetOriginData(object_table + args.index[2]));
+    }
+
+    if (step == 0) EXIT_VM("aqstl_random_randrange", "step cannot be zero");
+    if ((stop - start) * step <= 0) EXIT_VM("aqstl_random_randrange", "empty range");
+
+    int64_t count = (stop - start + step - (step > 0 ? 1 : -1)) / step;
+    int64_t rand_idx = mt_next() % count;
+    int64_t result = start + rand_idx * step;
+    SetLongData(return_value, result);
+}
+
+// 实现random.choice函数
+void aqstl_random_choice(InternalObject args, size_t return_value) {
+    TRACE_FUNCTION;
+    if (args.size != 1) EXIT_VM("aqstl_random_choice", "Requires 1 argument (sequence).");
+    if (return_value >= object_table_size) EXIT_VM("aqstl_random_choice", "Invalid return value slot.");
+
+    struct Object* seq_obj = GetOriginData(object_table + args.index[0]);
+    if (seq_obj->type[0] != 0x06) EXIT_VM("aqstl_random_choice", "sequence must be a list");
+
+    size_t length = GetUint64tObjectData(seq_obj);
+    if (length == 0) EXIT_VM("aqstl_random_choice", "cannot choose from an empty sequence");
+
+    size_t idx = mt_next() % length;
+    struct Object* elem = GetPtrObjectData(seq_obj) + idx + 1;
+    SetObjectData(return_value, elem);
+}
+
+void aqstl_math_perm(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size < 1 || args.size > 2) EXIT_VM("aqstl_math_perm", "Requires 1-2 arguments (n, k).");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_perm", "Invalid return value slot.");
+
+  struct Object* n_obj = GetOriginData(object_table + args.index[0]);
+  if (n_obj->type[0] != 0x02) EXIT_VM("aqstl_math_perm", "n must be integer.");
+  int64_t n = GetLongObjectData(n_obj);
+  int64_t k = (args.size == 2) ? GetLongObjectData(GetOriginData(object_table + args.index[1])) : n;
+  if (n < 0 || k < 0 || k > n) EXIT_VM("aqstl_math_perm", "Invalid permutation parameters.");
+
+  int64_t result = 1;
+  for (int64_t i = 0; i < k; i++) result *= (n - i);
+  SetLongData(return_value, result);
+}
+
+// 整数平方根计算
+void aqstl_math_isqrt(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_isqrt", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_isqrt", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x02) EXIT_VM("aqstl_math_isqrt", "Argument must be integer.");
+  int64_t n = GetLongObjectData(obj);
+  if (n < 0) EXIT_VM("aqstl_math_isqrt", "Integer square root of negative number is undefined.");
+
+  int64_t x = n;
+  int64_t y = (x + 1) / 2;
+  while (y < x) {
+    x = y;
+    y = (x + n / x) / 2;
+  }
+  SetLongData(return_value, x);
+}
+
+// 指数函数计算
+void aqstl_math_exp(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_exp", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_exp", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_exp", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, exp(x));
+}
+
+// 余弦函数计算
+void aqstl_math_cos(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_cos", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_cos", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_cos", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, cos(x));
+}
+
+// 正切函数计算
+void aqstl_math_tan(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_tan", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_tan", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_tan", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  if (fmod(x + M_PI/2, M_PI) == 0) EXIT_VM("aqstl_math_tan", "Tangent undefined at odd multiples of π/2.");
+  SetDoubleData(return_value, tan(x));
+}
+
+// 自然对数计算
+void aqstl_math_log(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_log", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_log", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_log", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  if (x <= 0) EXIT_VM("aqstl_math_log", "Logarithm of non-positive number is undefined.");
+  SetDoubleData(return_value, log(x));
+}
+
+// 向下取整计算
+void aqstl_math_floor(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_floor", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_floor", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_floor", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, floor(x));
+}
+
+// 反余弦函数计算
+void aqstl_math_acos(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_acos", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_acos", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_acos", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  if (x < -1 || x > 1) EXIT_VM("aqstl_math_acos", "Argument must be in [-1, 1].");
+  SetDoubleData(return_value, acos(x));
+}
+
+// 反正弦函数计算
+void aqstl_math_asin(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_asin", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_asin", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_asin", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  if (x < -1 || x > 1) EXIT_VM("aqstl_math_asin", "Argument must be in [-1, 1].");
+  SetDoubleData(return_value, asin(x));
+}
+
+// 反正切函数计算
+void aqstl_math_atan(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_atan", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_atan", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_atan", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, atan(x));
+}
+
+// 双曲正弦函数计算
+void aqstl_math_sinh(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_sinh", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_sinh", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_sinh", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, sinh(x));
+}
+
+// 双曲余弦函数计算
+void aqstl_math_cosh(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1) EXIT_VM("aqstl_math_cosh", "Requires 1 argument.");
+  if (return_value >= object_table_size) EXIT_VM("aqstl_math_cosh", "Invalid return value slot.");
+
+  struct Object* obj = GetOriginData(object_table + args.index[0]);
+  if (obj->type[0] != 0x03) EXIT_VM("aqstl_math_cosh", "Argument must be float.");
+  double x = GetDoubleObjectData(obj);
+  SetDoubleData(return_value, cosh(x));
 }
 
 void aqstl_type(InternalObject args, size_t return_value) {
