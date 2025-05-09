@@ -271,6 +271,11 @@ void aqstl_rename(InternalObject args, size_t return_value) {
 }
 
 void aqstl_pp(InternalObject args, size_t return_value);
+uint64_t FileTimeToUnixTime(FILETIME ft);
+size_t GetArraySize(struct Object* array);
+struct Object* GetArrayElement(struct Object* array, size_t index);
+struct Object* CreateStringObject(const char* str);
+size_t AllocateObjectSlot();
 // pprint module implementation
 
 // 定义PrettyPrinter结构体保存格式化参数
@@ -559,6 +564,38 @@ void aqstl_pp(InternalObject args, size_t return_value) {
     // 输出到stream（示例使用stdout）
     printf("%s\n", buffer);
     SetStringData(return_value, buffer);
+
+#ifdef _WIN32
+uint64_t FileTimeToUnixTime(FILETIME ft) {
+    ULARGE_INTEGER ul;
+    ul.LowPart = ft.dwLowDateTime;
+    ul.HighPart = ft.dwHighDateTime;
+    return (ul.QuadPart - 116444736000000000ULL) / 10000000;
+}
+#endif
+
+size_t GetArraySize(struct Object* array) {
+    if (array->type[0] != 0x0A) EXIT_VM("GetArraySize", "Object is not an array");
+    return GetUint64tObjectData(array);
+}
+
+struct Object* GetArrayElement(struct Object* array, size_t index) {
+    if (index >= GetArraySize(array)) EXIT_VM("GetArrayElement", "Index out of bounds");
+    return (struct Object*)(array->data.ptr_data + index + 1);
+}
+
+struct Object* CreateStringObject(const char* str) {
+    struct Object* obj = (struct Object*)calloc(1, sizeof(struct Object));
+    obj->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+    obj->type[0] = 0x05;
+    obj->data.string_data = strdup(str);
+    return obj;
+}
+
+size_t AllocateObjectSlot() {
+    if (object_table_size >= MAX_OBJECT_TABLE_SIZE) EXIT_VM("AllocateObjectSlot", "Object table full");
+    return object_table_size++;
+}
 }
 
 // pprint是pp的别名（默认sort_dicts=true）
@@ -2601,7 +2638,7 @@ void aqstl_filecmp_cmpfiles(InternalObject args, size_t return_value) {
     snprintf(f2_path, sizeof(f2_path), "%s/%s", dir2, file);
 
     // 调用文件比较函数
-    InternalObject cmp_args = {.size = 3, .index = malloc(3 * sizeof(size_t))};
+    InternalObject cmp_args = {.size = 3, .index = (size_t*)malloc(3 * sizeof(size_t))};
     cmp_args.index[0] = CreateStringObject(f1_path);
     cmp_args.index[1] = CreateStringObject(f2_path);
     cmp_args.index[2] = CreateLongObject((int64_t)shallow);
