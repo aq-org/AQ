@@ -1,3 +1,4 @@
+import "./aqstl.aq" stltest
 
 auto main(){
 auto file = open("./test.file");
