@@ -294,13 +294,16 @@ struct Object* aqstl_CursesWindowNew(WINDOW* win) {
   struct Object* wo;
 
   wo = calloc(1, sizeof(struct Object));
-  if (wo == NULL) EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
+  if (wo == NULL)
+    EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
   wo->type = calloc(1, sizeof(uint8_t));
-  if (wo->type == NULL) EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
+  if (wo->type == NULL)
+    EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
   *(wo->type) = 0x0A;
 
   wo->data.origin_data = calloc(2, sizeof(WINDOW*));
-  if (wo->data.origin_data == NULL) EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
+  if (wo->data.origin_data == NULL)
+    EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
   *(WINDOW**)(wo->data.origin_data) = win;
   *(((WINDOW**)(wo->data.origin_data)) + 1) = NULL;
   return wo;
@@ -608,12 +611,14 @@ void aqstl_CursesWindowAttrSet(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowStandEnd(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowStandEnd", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowStandEnd", "Unsupported argument count.");
   wstandend(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowStandOut(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowStandOut", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowStandOut", "Unsupported argument count.");
   wstandout(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
@@ -688,12 +693,14 @@ void aqstl_CursesWindowVline(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowErase(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowErase", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowErase", "Unsupported argument count.");
   werase(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowDeleteLine(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowDeleteLine", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowDeleteLine", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -702,7 +709,8 @@ void aqstl_CursesWindowDeleteLine(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowInsertLine(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowInsertLine", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowInsertLine", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -712,7 +720,8 @@ void aqstl_CursesWindowInsertLine(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetYX(InternalObject args, size_t return_value) {
   int x, y;
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowGetYX", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowGetYX", "Unsupported argument count.");
   getyx(*(WINDOW**)object_table[args.index[0]].data.origin_data, y, x);
 
   struct Object* return_array = calloc(1, sizeof(struct Object));
@@ -742,7 +751,8 @@ void aqstl_CursesWindowGetYX(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
   int x, y;
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowGetYX", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowGetYX", "Unsupported argument count.");
   getbegyx(*(WINDOW**)object_table[args.index[0]].data.origin_data, y, x);
 
   struct Object* return_array = calloc(1, sizeof(struct Object));
@@ -772,7 +782,8 @@ void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
   int x, y;
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowGetMaxYX", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowGetMaxYX", "Unsupported argument count.");
   getmaxyx(*(WINDOW**)object_table[args.index[0]].data.origin_data, y, x);
 
   struct Object* return_array = calloc(1, sizeof(struct Object));
@@ -801,22 +812,26 @@ void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowClear(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowClear", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowClear", "Unsupported argument count.");
   wclear(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowClearToBottom(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowClearToBottom", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowClearToBottom", "Unsupported argument count.");
   wclrtobot(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowClearToEOL(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowClearToEOL", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowClearToEOL", "Unsupported argument count.");
   wclrtoeol(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowScroll(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowScroll", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowScroll", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -825,7 +840,8 @@ void aqstl_CursesWindowScroll(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowTouchWin(InternalObject args, size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesWindowTouchWin", "Unsupported argument count.");
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesWindowTouchWin", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -900,8 +916,8 @@ void aqstl_CursesWindowInCh(InternalObject args, size_t return_value) {
     case 2:
       y = GetLongData(args.index[1]);
       x = GetLongData(args.index[2]);
-      rtn =
-          mvinch(*((WINDOW**)object_table[args.index[0]].data.origin_data), y, x);
+      rtn = mvinch(*((WINDOW**)object_table[args.index[0]].data.origin_data), y,
+                   x);
       break;
     default:
       EXIT_VM("aqstl_CursesWindowInCh", "inch requires 0 or 2 arguments");
@@ -976,16 +992,15 @@ void aqstl_CursesInitScr(InternalObject args, size_t return_value) {
   SetReferenceData(return_value, aqstl_CursesWindowNew(win));
 }
 
-void aqstl_CursesEndWin(InternalObject args,
-                                      size_t return_value) {
+void aqstl_CursesEndWin(InternalObject args, size_t return_value) {
   if (args.size != 1 || !aqstl_CursesInitialised())
     EXIT_VM("aqstl_CursesEndWin", "endwin requires 1 argument");
   SetLongData(return_value, aqstl_CursesCheckERR(endwin(), "endwin"));
 }
 
-void aqstl_CursesIsEndWin(InternalObject args,
-                                        size_t return_value) {
-  if (args.size != 1) EXIT_VM("aqstl_CursesIsEndWin", "isendwin requires 1 argument");
+void aqstl_CursesIsEndWin(InternalObject args, size_t return_value) {
+  if (args.size != 1)
+    EXIT_VM("aqstl_CursesIsEndWin", "isendwin requires 1 argument");
   if (isendwin() == false) {
     SetByteData(return_value, 0);
   }
@@ -1002,7 +1017,8 @@ void aqstl_CursesNewWindow(InternalObject args, size_t return_value) {
   WINDOW* win;
   int nlines, ncols, begin_y, begin_x;
 
-  if (!aqstl_CursesInitialised()) EXIT_VM("aqstl_CursesNewWindow", "newwin requires initialisation");
+  if (!aqstl_CursesInitialised())
+    EXIT_VM("aqstl_CursesNewWindow", "newwin requires initialisation");
   nlines = ncols = 0;
   switch (args.size) {
     case 2:
@@ -1118,6 +1134,128 @@ void aqstl_CursesKeyName(InternalObject args, size_t return_value) {
 
 #endif
 
+void aqstl_acos(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_acos", "acos requires 1 argument");
+  SetDoubleData(return_value, acos(GetDoubleData(args.index[1])));
+}
+
+void aqstl_asin(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_asin", "asin requires 1 argument");
+  SetDoubleData(return_value, asin(GetDoubleData(args.index[1])));
+}
+
+void aqstl_atan(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_atan", "atan requires 1 argument");
+  SetDoubleData(return_value, atan(GetDoubleData(args.index[1])));
+}
+
+void aqstl_atan2(InternalObject args, size_t return_value) {
+  if (args.size != 2) EXIT_VM("aqstl_atan2", "atan2 requires 2 arguments");
+  SetDoubleData(return_value, atan2(GetDoubleData(args.index[1]),
+                                    GetDoubleData(args.index[2])));
+}
+
+void aqstl_ceil(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_ceil", "ceil requires 1 argument");
+  SetDoubleData(return_value, ceil(GetDoubleData(args.index[1])));
+}
+
+void aqstl_cos(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_cos", "cos requires 1 argument");
+  SetDoubleData(return_value, cos(GetDoubleData(args.index[1])));
+}
+
+void aqstl_cosh(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_cosh", "cosh requires 1 argument");
+  SetDoubleData(return_value, cosh(GetDoubleData(args.index[1])));
+}
+
+void aqstl_exp(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_exp", "exp requires 1 argument");
+  SetDoubleData(return_value, exp(GetDoubleData(args.index[1])));
+}
+
+void aqstl_fabs(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_fabs", "fabs requires 1 argument");
+  SetDoubleData(return_value, fabs(GetDoubleData(args.index[1])));
+}
+
+void aqstl_floor(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_floor", "floor requires 1 argument");
+  SetDoubleData(return_value, floor(GetDoubleData(args.index[1])));
+}
+
+void aqstl_fmod(InternalObject args, size_t return_value) {
+  if (args.size != 2) EXIT_VM("aqstl_fmod", "fmod requires 2 arguments");
+  SetDoubleData(return_value, fmod(GetDoubleData(args.index[1]),
+                                   GetDoubleData(args.index[2])));
+}
+
+void aqstl_frexp(InternalObject args, size_t return_value) {
+  double x;
+  int exp;
+  if (args.size != 2) EXIT_VM("aqstl_frexp", "frexp requires 2 arguments");
+}
+
+void aqstl_hypot(InternalObject args, size_t return_value) {
+  if (args.size != 2) EXIT_VM("aqstl_hypot", "hypot requires 2 arguments");
+  SetDoubleData(return_value, hypot(GetDoubleData(args.index[1]),
+                                    GetDoubleData(args.index[2])));
+}
+
+void aqstl_ldexp(InternalObject args, size_t return_value) {
+  if (args.size != 2) EXIT_VM("aqstl_ldexp", "ldexp requires 2 arguments");
+  SetDoubleData(return_value, ldexp(GetDoubleData(args.index[1]),
+                                    GetDoubleData(args.index[2])));
+}
+
+void aqstl_log(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_log", "log requires 1 argument");
+  SetDoubleData(return_value, log(GetDoubleData(args.index[1])));
+}
+
+void aqstl_log10(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_log10", "log10 requires 1 argument");
+  SetDoubleData(return_value, log10(GetDoubleData(args.index[1])));
+}
+
+void aqstl_modf(InternalObject args, size_t return_value) {
+  double x;
+  if (args.size != 2) EXIT_VM("aqstl_modf", "modf requires 2 arguments");
+  SetDoubleData(return_value, modf(GetDoubleData(args.index[1]), &x));
+}
+
+void aqstl_pow(InternalObject args, size_t return_value) {
+  if (args.size != 2) EXIT_VM("aqstl_pow", "pow requires 2 arguments");
+  SetDoubleData(return_value, pow(GetDoubleData(args.index[1]),
+                                  GetDoubleData(args.index[2])));
+}
+
+void aqstl_sin(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_sin", "sin requires 1 argument");
+  SetDoubleData(return_value, sin(GetDoubleData(args.index[1])));
+}
+
+void aqstl_sinh(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_sinh", "sinh requires 1 argument");
+  SetDoubleData(return_value, sinh(GetDoubleData(args.index[1])));
+}
+
+void aqstl_sqrt(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_sqrt", "sqrt requires 1 argument");
+  SetDoubleData(return_value, sqrt(GetDoubleData(args.index[1])));
+}
+
+void aqstl_tan(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_tan", "tan requires 1 argument");
+  SetDoubleData(return_value, tan(GetDoubleData(args.index[1])));
+}
+
+void aqstl_tanh(InternalObject args, size_t return_value) {
+  if (args.size != 1) EXIT_VM("aqstl_tanh", "tanh requires 1 argument");
+  SetDoubleData(return_value, tanh(GetDoubleData(args.index[1])));
+}
+
 unsigned int hash(const char* str) {
   TRACE_FUNCTION;
   unsigned long hash = 5381;
@@ -1215,4 +1353,28 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_curses_meta", aqstl_CursesMeta);
   AddFuncToNameTable("__builtin_curses_keyname", aqstl_CursesKeyName);
 #endif
+
+  AddFuncToNameTable("__builtin_math_acos", aqstl_acos);
+  AddFuncToNameTable("__builtin_math_asin", aqstl_asin);
+  AddFuncToNameTable("__builtin_math_atan", aqstl_atan);
+  AddFuncToNameTable("__builtin_math_atan2", aqstl_atan2);
+  AddFuncToNameTable("__builtin_math_ceil", aqstl_ceil);
+  AddFuncToNameTable("__builtin_math_cos", aqstl_cos);
+  AddFuncToNameTable("__builtin_math_cosh", aqstl_cosh);
+  AddFuncToNameTable("__builtin_math_exp", aqstl_exp);
+  AddFuncToNameTable("__builtin_math_fabs", aqstl_fabs);
+  AddFuncToNameTable("__builtin_math_floor", aqstl_floor);
+  AddFuncToNameTable("__builtin_math_fmod", aqstl_fmod);
+  AddFuncToNameTable("__builtin_math_frexp", aqstl_frexp);
+  AddFuncToNameTable("__builtin_math_hypot", aqstl_hypot);
+  AddFuncToNameTable("__builtin_math_ldexp", aqstl_ldexp);
+  AddFuncToNameTable("__builtin_math_log", aqstl_log);
+  AddFuncToNameTable("__builtin_math_log10", aqstl_log10);
+  AddFuncToNameTable("__builtin_math_modf", aqstl_modf);
+  AddFuncToNameTable("__builtin_math_pow", aqstl_pow);
+  AddFuncToNameTable("__builtin_math_sin", aqstl_sin);
+  AddFuncToNameTable("__builtin_math_sinh", aqstl_sinh);
+  AddFuncToNameTable("__builtin_math_sqrt", aqstl_sqrt);
+  AddFuncToNameTable("__builtin_math_tan", aqstl_tan);
+  AddFuncToNameTable("__builtin_math_tanh", aqstl_tanh);
 }
