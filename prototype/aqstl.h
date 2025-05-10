@@ -746,7 +746,7 @@ void aqstl_CursesWindowGetYX(InternalObject args, size_t return_value) {
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
   (return_array->data.ptr_data + 1)->data.long_data = x;
-  SetReferenceDta(return_value, return_array);
+  SetReferenceData(return_value, return_array);
 }
 
 void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
@@ -916,7 +916,7 @@ void aqstl_CursesWindowInCh(InternalObject args, size_t return_value) {
     case 2:
       y = GetLongData(args.index[1]);
       x = GetLongData(args.index[2]);
-      rtn = mvinch(*((WINDOW**)object_table[args.index[0]].data.origin_data), y,
+      rtn = mvwinch(*((WINDOW**)object_table[args.index[0]].data.origin_data), y,
                    x);
       break;
     default:
@@ -1126,7 +1126,7 @@ void aqstl_CursesMeta(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesKeyName(InternalObject args, size_t return_value) {
-  char* knp;
+  const char* knp;
   int ch = GetLongData(args.index[1]);
   knp = keyname(ch);
   SetStringData(return_value, (knp == NULL) ? "" : knp);
