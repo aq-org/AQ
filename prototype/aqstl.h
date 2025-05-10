@@ -119,7 +119,7 @@ typedef struct {
 typedef void (*func_ptr)(InternalObject, size_t);
 
 struct Pair {
-  char* first;
+  const char* first;
   func_ptr second;
 };
 
@@ -250,6 +250,37 @@ void aqstl_vaprint(InternalObject args, size_t return_value) {
         EXIT_VM("aqstl_vaprint(InternalObject,size_t)", "Unsupported type.");
         break;
     }
+  }
+}
+
+void aqstl_abs(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size!= 1)
+    EXIT_VM("aqstl_abs(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_abs(InternalObject,size_t)", "Invalid return value.");
+
+  struct Object* object = object_table + *args.index;
+  object = GetOriginData(object);
+
+  if (object == NULL)
+    EXIT_VM("aqstl_abs(InternalObject,size_t)", "Invalid object.");
+
+  switch (object->type[0]) {
+    case 0x01:
+      SetByteData(return_value, abs(GetByteData(*args.index)));
+      break;
+    case 0x02:
+      SetLongData(return_value, llabs(GetLongData(*args.index)));
+      break;
+    case 0x03:
+      SetDoubleData(return_value, fabs(GetDoubleData(*args.index)));
+      break;
+    case 0x04:
+      SetUint64tData(return_value, GetUint64tData(*args.index));
+      break;
+    default:
+      EXIT_VM("aqstl_abs(InternalObject,size_t)", "Unsupported type.");
   }
 }
 
@@ -1266,7 +1297,7 @@ unsigned int hash(const char* str) {
   return hash % 256;
 }
 
-void AddFuncToNameTable(char* name, func_ptr func) {
+void AddFuncToNameTable(const char* name, func_ptr func) {
   TRACE_FUNCTION;
   unsigned int name_hash = hash(name);
   struct LinkedList* table = &name_table[name_hash];
@@ -1285,6 +1316,7 @@ void AddFuncToNameTable(char* name, func_ptr func) {
 void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_print", aqstl_print);
   AddFuncToNameTable("__builtin_vaprint", aqstl_vaprint);
+  AddFuncToNameTable("__builtin_abs", aqstl_abs);
 
 #ifdef __unix__
   AddFuncToNameTable("__builtin_curses_refresh", aqstl_CursesWindowRefresh);
