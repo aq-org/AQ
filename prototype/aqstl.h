@@ -290,7 +290,7 @@ int aqstl_CursesInitialised() {
   }
 }
 
-void aqstl_CursesWindowNew(WINDOW* win) {
+struct Object* aqstl_CursesWindowNew(WINDOW* win) {
   struct Object* wo;
 
   wo = calloc(1, sizeof(struct Object));
@@ -302,7 +302,8 @@ void aqstl_CursesWindowNew(WINDOW* win) {
   wo->data.origin_data = calloc(2, sizeof(WINDOW*));
   if (wo->data.origin_data == NULL) EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
   *(WINDOW**)(wo->data.origin_data) = win;
-  *(wo->data.origin_data + 1) = NULL;
+  *(((WINDOW**)(wo->data.origin_data)) + 1) = NULL;
+  return wo;
 }
 
 void aqstl_CursesWindowDealloc(struct Object* wo) {
@@ -386,7 +387,7 @@ void aqstl_CursesWindowSubWin(InternalObject args, size_t return_value) {
   rtn_win = aqstl_CursesWindowNew(win);
   *(((WINDOW**)rtn_win->data.origin_data) + 1) =
       *(WINDOW**)object_table[args.index[0]].data.origin_data;
-  SetReferenceDta(return_value, rtn_win);
+  SetReferenceData(return_value, rtn_win);
 }
 
 void aqstl_CursesWindowAddCh(InternalObject args, size_t return_value) {
@@ -515,7 +516,7 @@ void aqstl_CursesWindowEchoChar(InternalObject args, size_t return_value) {
 
   switch (args.size) {
     case 1:
-      i = GetLongData(args.index[1]);
+      ch = GetLongData(args.index[1]);
       rtn = wechochar(*(WINDOW**)object_table[args.index[0]].data.origin_data,
                       ch);
       break;
@@ -542,7 +543,7 @@ void aqstl_CursesWindowEchoChar(InternalObject args, size_t return_value) {
 void aqstl_CursesWindowAddStr(InternalObject args, size_t return_value) {
   int rtn;
   int x, y;
-  char* str;
+  const char* str;
   int attr, attr_old;
   int use_xy = false, use_attr = false;
 
@@ -729,13 +730,13 @@ void aqstl_CursesWindowGetYX(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_CursesWindowGetYX", "calloc failed");
   *(return_array->data.ptr_data->type) = 0x02;
   return_array->data.ptr_data->const_type = false;
-  return_array->data.ptr_data->data.int_data = y;
+  return_array->data.ptr_data->data.long_data = y;
   (return_array->data.ptr_data + 1)->type = calloc(1, sizeof(uint8_t));
   if ((return_array->data.ptr_data + 1)->type == NULL)
     EXIT_VM("aqstl_CursesWindowGetYX", "calloc failed");
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
-  (return_array->data.ptr_data + 1)->data.int_data = x;
+  (return_array->data.ptr_data + 1)->data.long_data = x;
   SetReferenceDta(return_value, return_array);
 }
 
@@ -759,13 +760,13 @@ void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_CursesWindowGetBegYX", "calloc failed");
   *(return_array->data.ptr_data->type) = 0x02;
   return_array->data.ptr_data->const_type = false;
-  return_array->data.ptr_data->data.int_data = y;
+  return_array->data.ptr_data->data.long_data = y;
   (return_array->data.ptr_data + 1)->type = calloc(1, sizeof(uint8_t));
   if ((return_array->data.ptr_data + 1)->type == NULL)
     EXIT_VM("aqstl_CursesWindowGetBegYX", "calloc failed");
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
-  (return_array->data.ptr_data + 1)->data.int_data = x;
+  (return_array->data.ptr_data + 1)->data.long_data = x;
   SetReferenceDta(return_value, return_array);
 }
 
@@ -789,13 +790,13 @@ void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_CursesWindowGetMaxYX", "calloc failed");
   *(return_array->data.ptr_data->type) = 0x02;
   return_array->data.ptr_data->const_type = false;
-  return_array->data.ptr_data->data.int_data = y;
+  return_array->data.ptr_data->data.long_data = y;
   (return_array->data.ptr_data + 1)->type = calloc(1, sizeof(uint8_t));
   if ((return_array->data.ptr_data + 1)->type == NULL)
     EXIT_VM("aqstl_CursesWindowGetMaxYX", "calloc failed");
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
-  (return_array->data.ptr_data + 1)->data.int_data = x;
+  (return_array->data.ptr_data + 1)->data.long_data = x;
   SetReferenceDta(return_value, return_array);
 }
 
@@ -867,7 +868,7 @@ void aqstl_CursesWindowGetCh(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetStr(InternalObject args, size_t return_value) {
   int x, y;
-  char* rtn = (CHAR*)calloc(1024, sizeof(char));
+  char* rtn = (char*)calloc(1024, sizeof(char));
   int rtn2;
 
   switch (args.size) {
@@ -900,7 +901,7 @@ void aqstl_CursesWindowInCh(InternalObject args, size_t return_value) {
       y = GetLongData(args.index[1]);
       x = GetLongData(args.index[2]);
       rtn =
-          mvinch(*(WINDOW**)object_table[args.index[0]].data.origin_data, y, x);
+          mvinch(*((WINDOW**)object_table[args.index[0]].data.origin_data), y, x);
       break;
     default:
       EXIT_VM("aqstl_CursesWindowInCh", "inch requires 0 or 2 arguments");
@@ -975,14 +976,14 @@ void aqstl_CursesInitScr(InternalObject args, size_t return_value) {
   SetReferenceData(return_value, aqstl_CursesWindowNew(win));
 }
 
-void aqstl_CursesEndWinInternalObject(InternalObject args,
+void aqstl_CursesEndWin(InternalObject args,
                                       size_t return_value) {
   if (args.size != 1 || !aqstl_CursesInitialised())
     EXIT_VM("aqstl_CursesEndWin", "endwin requires 1 argument");
   SetLongData(return_value, aqstl_CursesCheckERR(endwin(), "endwin"));
 }
 
-void aqstl_CursesIsEndWinInternalObject(InternalObject args,
+void aqstl_CursesIsEndWin(InternalObject args,
                                         size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_CursesIsEndWin", "isendwin requires 1 argument");
   if (isendwin() == false) {
@@ -1020,7 +1021,7 @@ void aqstl_CursesNewWindow(InternalObject args, size_t return_value) {
 
   win = newwin(nlines, ncols, begin_y, begin_x);
   if (win == NULL) {
-    EXIT_VM("aqstl_CursesNewWindow", "curses function returned NULL")
+    EXIT_VM("aqstl_CursesNewWindow", "curses function returned NULL");
   }
 
   SetReferenceData(return_value, aqstl_CursesWindowNew(win));
@@ -1069,7 +1070,7 @@ void aqstl_CursesEcho(InternalObject args, size_t return_value) {
 
 void aqstl_CursesNoEcho(InternalObject args, size_t return_value) {
   if (args.size != 1 || !aqstl_CursesInitialised())
-    EXIT_VM("aqstl_CursesNoEcho", "noecho requires 1 argument")
+    EXIT_VM("aqstl_CursesNoEcho", "noecho requires 1 argument");
   SetLongData(return_value, aqstl_CursesCheckERR(noecho(), "noecho"));
 }
 
