@@ -101,6 +101,7 @@ union Data {
   struct Object* reference_data;
   struct Object* const_data;
   struct Object* object_data;
+  void* origin_data;
 };
 
 struct Object {
