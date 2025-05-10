@@ -294,16 +294,15 @@ void aqstl_CursesWindowNew(WINDOW* win) {
   struct Object* wo;
 
   wo = calloc(1, sizeof(struct Object));
-  if (wo == NULL) return NULL;
+  if (wo == NULL) EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
   wo->type = calloc(1, sizeof(uint8_t));
-  if (wo->type == NULL) return NULL;
+  if (wo->type == NULL) EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
   *(wo->type) = 0x0A;
 
-  wo->data.origin_data = calloc(2, sizeof(WINDOWS*));
-  if (wo->data.origin_data == NULL) return NULL;
-  *(WINDOWS**)(wo->data.origin_data) = win;
+  wo->data.origin_data = calloc(2, sizeof(WINDOW*));
+  if (wo->data.origin_data == NULL) EXIT_VM("aqstl_CursesWindowNew", "Failed to allocate memory.");
+  *(WINDOW**)(wo->data.origin_data) = win;
   *(wo->data.origin_data + 1) = NULL;
-  return wo;
 }
 
 void aqstl_CursesWindowDealloc(struct Object* wo) {
@@ -385,7 +384,7 @@ void aqstl_CursesWindowSubWin(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_CursesWindowSubWin", "curses function returned NULL");
   }
   rtn_win = aqstl_CursesWindowNew(win);
-  *(((WINDOWS**)rtn_win->data.origin_data) + 1) =
+  *(((WINDOW**)rtn_win->data.origin_data) + 1) =
       *(WINDOW**)object_table[args.index[0]].data.origin_data;
   SetReferenceDta(return_value, rtn_win);
 }
@@ -608,12 +607,12 @@ void aqstl_CursesWindowAttrSet(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowStandEnd(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowStandEnd", "Unsupported argument count.");
   wstandend(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowStandOut(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowStandOut", "Unsupported argument count.");
   wstandout(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
@@ -688,12 +687,12 @@ void aqstl_CursesWindowVline(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowErase(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowErase", "Unsupported argument count.");
   werase(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowDeleteLine(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowDeleteLine", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -702,7 +701,7 @@ void aqstl_CursesWindowDeleteLine(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowInsertLine(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowInsertLine", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -712,7 +711,7 @@ void aqstl_CursesWindowInsertLine(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetYX(InternalObject args, size_t return_value) {
   int x, y;
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowGetYX", "Unsupported argument count.");
   getyx(*(WINDOW**)object_table[args.index[0]].data.origin_data, y, x);
 
   struct Object* return_array = calloc(1, sizeof(struct Object));
@@ -742,7 +741,7 @@ void aqstl_CursesWindowGetYX(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
   int x, y;
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowGetYX", "Unsupported argument count.");
   getbegyx(*(WINDOW**)object_table[args.index[0]].data.origin_data, y, x);
 
   struct Object* return_array = calloc(1, sizeof(struct Object));
@@ -772,7 +771,7 @@ void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
   int x, y;
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowGetMaxYX", "Unsupported argument count.");
   getmaxyx(*(WINDOW**)object_table[args.index[0]].data.origin_data, y, x);
 
   struct Object* return_array = calloc(1, sizeof(struct Object));
@@ -801,22 +800,22 @@ void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowClear(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowClear", "Unsupported argument count.");
   wclear(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowClearToBottom(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowClearToBottom", "Unsupported argument count.");
   wclrtobot(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowClearToEOL(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowClearToEOL", "Unsupported argument count.");
   wclrtoeol(*(WINDOW**)object_table[args.index[0]].data.origin_data);
 }
 
 void aqstl_CursesWindowScroll(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowScroll", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -825,7 +824,7 @@ void aqstl_CursesWindowScroll(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowTouchWin(InternalObject args, size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesWindowTouchWin", "Unsupported argument count.");
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -868,7 +867,7 @@ void aqstl_CursesWindowGetCh(InternalObject args, size_t return_value) {
 
 void aqstl_CursesWindowGetStr(InternalObject args, size_t return_value) {
   int x, y;
-  char rtn = calloc(1024, sizeof(char));
+  char* rtn = (CHAR*)calloc(1024, sizeof(char));
   int rtn2;
 
   switch (args.size) {
@@ -985,7 +984,7 @@ void aqstl_CursesEndWinInternalObject(InternalObject args,
 
 void aqstl_CursesIsEndWinInternalObject(InternalObject args,
                                         size_t return_value) {
-  if (args.size != 1) return NULL;
+  if (args.size != 1) EXIT_VM("aqstl_CursesIsEndWin", "isendwin requires 1 argument");
   if (isendwin() == false) {
     SetByteData(return_value, 0);
   }
@@ -1002,7 +1001,7 @@ void aqstl_CursesNewWindow(InternalObject args, size_t return_value) {
   WINDOW* win;
   int nlines, ncols, begin_y, begin_x;
 
-  if (!aqstl_CursesInitialised()) return NULL;
+  if (!aqstl_CursesInitialised()) EXIT_VM("aqstl_CursesNewWindow", "newwin requires initialisation");
   nlines = ncols = 0;
   switch (args.size) {
     case 2:
