@@ -9204,9 +9204,8 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
         import_generator_map.end()) {
       // TODO(IMPORTANT): Unknown error, but can be fixed with this statement.
       // Serious issue, awaiting repair.
-      // import_generator_map[import_location] =
-      // import_generator_map[import_location]; std::cout <<
-      // import_generator_map[import_location] << std::endl;
+      import_generator_map[import_location] = import_generator_map[import_location];
+      // std::cout << import_generator_map[import_location] << std::endl;
 
       // std::cout << "Import A NEW FILE." << import_location << std::endl;
       const char* filename = import_location.c_str();
