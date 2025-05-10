@@ -1,4 +1,4 @@
-
+#ifdef __unix__
 #ifdef HAVE_NCURSES_H
 #include <ncurses.h>
 #else
@@ -978,3 +978,4 @@ static PyMethodDef PyCurses_methods[] = {
     {"keyname", (PyCFunction)PyCurses_KeyName},
     {NULL, NULL}
 };
+#endif
