@@ -6423,7 +6423,6 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_vaprint");
   AddBuiltInFuncDecl("__builtin_abs");
 
-  #ifdef __unix__
   AddBuiltInFuncDecl("__builtin_curses_refresh");
   AddBuiltInFuncDecl("__builtin_curses_nooutrefresh");
   AddBuiltInFuncDecl("__builtin_curses_mvwin");
@@ -6486,7 +6485,6 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_curses_intrflush");
   AddBuiltInFuncDecl("__builtin_curses_meta");
   AddBuiltInFuncDecl("__builtin_curses_keyname");
-#endif
 
   AddBuiltInFuncDecl("__builtin_math_acos");
   AddBuiltInFuncDecl("__builtin_math_asin");
