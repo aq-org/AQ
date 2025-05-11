@@ -6424,6 +6424,8 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_abs");
   AddBuiltInFuncDecl("__builtin_open");
   AddBuiltInFuncDecl("__builtin_close");
+  AddBuiltInFuncDecl("__builtin_read");
+  AddBuiltInFuncDecl("__builtin_write");
 
   AddBuiltInFuncDecl("__builtin_curses_refresh");
   AddBuiltInFuncDecl("__builtin_curses_nooutrefresh");

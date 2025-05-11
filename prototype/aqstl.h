@@ -390,6 +390,76 @@ void aqstl_open(InternalObject args, size_t return_value) {
   SetOriginData(return_value, return_object);
 }
 
+void aqstl_write(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 2)
+    EXIT_VM("aqstl_write(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_write(InternalObject,size_t)", "Invalid return value.");
+
+  struct Object* object = object_table + *args.index;
+  object = GetOriginData(object);
+
+  if (object == NULL)
+    EXIT_VM("aqstl_write(InternalObject,size_t)", "Invalid object.");
+
+  if (object->type[0] != 0x0A) {
+    EXIT_VM("aqstl_write(InternalObject,size_t)", "Invalid object.");
+  }
+
+  struct Object* data_object = object_table + args.index[1];
+  data_object = GetOriginData(data_object);
+
+  if (data_object == NULL)
+    EXIT_VM("aqstl_write(InternalObject,size_t)", "Invalid data object.");
+
+  if (data_object->type[0] != 0x05) {
+    EXIT_VM("aqstl_write(InternalObject,size_t)", "Invalid data object.");
+  }
+
+  size_t size = strlen(GetStringData(args.index[1]));
+  size_t written = fwrite(GetStringData(args.index[1]), 1, size,
+                          (FILE*)object->data.origin_data);
+  if (written != size) {
+    EXIT_VM("aqstl_write(InternalObject,size_t)", "Failed to write to file.");
+  }
+
+  SetLongData(return_value, written);
+}
+
+void aqstl_read(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 2)
+    EXIT_VM("aqstl_read(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_read(InternalObject,size_t)", "Invalid return value.");
+
+  struct Object* object = object_table + *args.index;
+  object = GetOriginData(object);
+
+  if (object == NULL)
+    EXIT_VM("aqstl_read(InternalObject,size_t)", "Invalid object.");
+
+  if (object->type[0] != 0x0A) {
+    EXIT_VM("aqstl_read(InternalObject,size_t)", "Invalid object.");
+  }
+
+  struct Object* data_object = object_table + args.index[1];
+  data_object = GetOriginData(data_object);
+
+  if (data_object == NULL)
+    EXIT_VM("aqstl_read(InternalObject,size_t)", "Invalid data object.");
+
+  size_t size = GetUint64tData(args.index[1]);
+  void* data = calloc(size + 1, sizeof(char));
+  size_t read = fread(data, 1, size, (FILE*)object->data.origin_data);
+  if (read != size) {
+    //EXIT_VM("aqstl_read(InternalObject,size_t)", "Failed to read from file.");
+  }
+
+  SetStringData(return_value, (const char*)data);
+}
+
 void aqstl_close(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
   if (args.size != 1)
@@ -404,7 +474,7 @@ void aqstl_close(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_close(InternalObject,size_t)", "Invalid object.");
 
   if (object->type[0] != 0x0A) {
-    //printf("Type: %u\n", object->type[0]);
+    // printf("Type: %u\n", object->type[0]);
     EXIT_VM("aqstl_close(InternalObject,size_t)", "Invalid object.");
   }
 
@@ -1443,6 +1513,8 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_abs", aqstl_abs);
   AddFuncToNameTable("__builtin_open", aqstl_open);
   AddFuncToNameTable("__builtin_close", aqstl_close);
+  AddFuncToNameTable("__builtin_write", aqstl_write);
+  AddFuncToNameTable("__builtin_read", aqstl_read);
 
 #ifdef __unix__
   AddFuncToNameTable("__builtin_curses_refresh", aqstl_CursesWindowRefresh);
