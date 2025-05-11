@@ -816,7 +816,7 @@ void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
   (return_array->data.ptr_data + 1)->data.long_data = x;
-  SetReferenceDta(return_value, return_array);
+  SetReferenceData(return_value, return_array);
 }
 
 void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
@@ -847,7 +847,7 @@ void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
   (return_array->data.ptr_data + 1)->data.long_data = x;
-  SetReferenceDta(return_value, return_array);
+  SetReferenceData(return_value, return_array);
 }
 
 void aqstl_CursesWindowClear(InternalObject args, size_t return_value) {
