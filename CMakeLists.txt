@@ -17,4 +17,8 @@ set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
 add_executable(aq_compiler ${COMPILER_SOURCES})
 add_executable(aq_vm ${VM_SOURCES})
 
+TARGET_LINK_LIBRARIES(aq_vm m)
+
+if(UNIX)
 TARGET_LINK_LIBRARIES(aq_vm ncurses)
+endif()
