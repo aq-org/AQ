@@ -16,3 +16,7 @@ set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
 
 add_executable(aq_compiler ${COMPILER_SOURCES})
 add_executable(aq_vm ${VM_SOURCES})
+
+FIND_PACKAGE(ncurses REQUIRED)
+INCLUDE_DIRECTORIES(${ncurses_INCLUDE_DIRS})
+TARGET_LINK_LIBRARIES(aq_vm ${ncurses_LIBS})

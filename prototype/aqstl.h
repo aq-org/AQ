@@ -284,12 +284,24 @@ void aqstl_abs(InternalObject args, size_t return_value) {
   }
 }
 
+void aqstl_open(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size!= 1)
+    EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid return value.");
+  struct Object* object = object_table + *args.index;
+  object = GetOriginData(object);
+
+  if (object == NULL)
+    EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid object.");
+
+  if (object->type[0]!= 0x05)
+    EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid object.");
+}
+
 #ifdef __unix__
-#ifdef HAVE_NCURSES_H
 #include <ncurses.h>
-#else
-#include <curses.h>
-#endif
 
 struct Object* curses_error;
 
@@ -369,9 +381,8 @@ void aqstl_CursesWindowNoOutRefresh(InternalObject args, size_t return_value) {
 void aqstl_CursesWindowMoveWin(InternalObject args, size_t return_value) {
   if (args.size != 3)
     EXIT_VM("aqstl_CursesWindowMoveWin", "Unsupported argument count.");
-  int x, y;
-  x = GetLongData(args.index[1]);
-  y = GetLongData(args.index[2]);
+  int x = GetLongData(args.index[1]);
+  int y = GetLongData(args.index[2]);
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -382,9 +393,8 @@ void aqstl_CursesWindowMoveWin(InternalObject args, size_t return_value) {
 void aqstl_CursesWindowMove(InternalObject args, size_t return_value) {
   if (args.size != 3)
     EXIT_VM("aqstl_CursesWindowMove", "Unsupported argument count.");
-  int x, y;
-  x = GetLongData(args.index[1]);
-  y = GetLongData(args.index[2]);
+  int x = GetLongData(args.index[1]);
+  int y = GetLongData(args.index[2]);
   SetLongData(
       return_value,
       aqstl_CursesCheckERR(
@@ -654,23 +664,21 @@ void aqstl_CursesWindowStandOut(InternalObject args, size_t return_value) {
 }
 
 void aqstl_CursesWindowBorder(InternalObject args, size_t return_value) {
-  int ls, rs, ts, bs, tl, tr, bl, br;
-  ls = rs = ts = bs = tl = tr = bl = br = 0;
-  ls = GetLongData(args.index[1]);
-  rs = GetLongData(args.index[2]);
-  ts = GetLongData(args.index[3]);
-  bs = GetLongData(args.index[4]);
-  tl = GetLongData(args.index[5]);
-  tr = GetLongData(args.index[6]);
-  bl = GetLongData(args.index[7]);
-  br = GetLongData(args.index[8]);
+  int ls = GetLongData(args.index[1]);
+  int rs = GetLongData(args.index[2]);
+  int ts = GetLongData(args.index[3]);
+  int bs = GetLongData(args.index[4]);
+  int tl = GetLongData(args.index[5]);
+  int tr = GetLongData(args.index[6]);
+  int bl = GetLongData(args.index[7]);
+  int br = GetLongData(args.index[8]);
   wborder(*(WINDOW**)object_table[args.index[0]].data.origin_data, ls, rs, ts,
           bs, tl, tr, bl, br);
 }
 
 void aqstl_CursesWindowBox(InternalObject args, size_t return_value) {
   int ch1 = 0, ch2 = 0;
-  if (args.size != 1) {
+  if (args.size != 3) {
     ch1 = GetLongData(args.index[1]);
     ch2 = GetLongData(args.index[2]);
   }
@@ -1167,124 +1175,125 @@ void aqstl_CursesKeyName(InternalObject args, size_t return_value) {
 
 void aqstl_acos(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_acos", "acos requires 1 argument");
-  SetDoubleData(return_value, acos(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, acos(GetDoubleData(args.index[0])));
 }
 
 void aqstl_asin(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_asin", "asin requires 1 argument");
-  SetDoubleData(return_value, asin(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, asin(GetDoubleData(args.index[0])));
 }
 
 void aqstl_atan(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_atan", "atan requires 1 argument");
-  SetDoubleData(return_value, atan(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, atan(GetDoubleData(args.index[0])));
 }
 
 void aqstl_atan2(InternalObject args, size_t return_value) {
   if (args.size != 2) EXIT_VM("aqstl_atan2", "atan2 requires 2 arguments");
-  SetDoubleData(return_value, atan2(GetDoubleData(args.index[1]),
+  SetDoubleData(return_value, atan2(GetDoubleData(args.index[0]),
                                     GetDoubleData(args.index[2])));
 }
 
 void aqstl_ceil(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_ceil", "ceil requires 1 argument");
-  SetDoubleData(return_value, ceil(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, ceil(GetDoubleData(args.index[0])));
 }
 
 void aqstl_cos(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_cos", "cos requires 1 argument");
-  SetDoubleData(return_value, cos(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, cos(GetDoubleData(args.index[0])));
 }
 
 void aqstl_cosh(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_cosh", "cosh requires 1 argument");
-  SetDoubleData(return_value, cosh(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, cosh(GetDoubleData(args.index[0])));
 }
 
 void aqstl_exp(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_exp", "exp requires 1 argument");
-  SetDoubleData(return_value, exp(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, exp(GetDoubleData(args.index[0])));
 }
 
 void aqstl_fabs(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_fabs", "fabs requires 1 argument");
-  SetDoubleData(return_value, fabs(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, fabs(GetDoubleData(args.index[0])));
 }
 
 void aqstl_floor(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_floor", "floor requires 1 argument");
-  SetDoubleData(return_value, floor(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, floor(GetDoubleData(args.index[0])));
 }
 
 void aqstl_fmod(InternalObject args, size_t return_value) {
   if (args.size != 2) EXIT_VM("aqstl_fmod", "fmod requires 2 arguments");
-  SetDoubleData(return_value, fmod(GetDoubleData(args.index[1]),
+  SetDoubleData(return_value, fmod(GetDoubleData(args.index[0]),
                                    GetDoubleData(args.index[2])));
 }
 
 void aqstl_frexp(InternalObject args, size_t return_value) {
-  double x;
   int exp;
   if (args.size != 2) EXIT_VM("aqstl_frexp", "frexp requires 2 arguments");
+  SetDoubleData(return_value, frexp(GetDoubleData(args.index[0]), &exp));
+  SetLongData(args.index[1], exp);
 }
 
 void aqstl_hypot(InternalObject args, size_t return_value) {
   if (args.size != 2) EXIT_VM("aqstl_hypot", "hypot requires 2 arguments");
-  SetDoubleData(return_value, hypot(GetDoubleData(args.index[1]),
-                                    GetDoubleData(args.index[2])));
+  SetDoubleData(return_value, hypot(GetDoubleData(args.index[0]),
+                                    GetDoubleData(args.index[1])));
 }
 
 void aqstl_ldexp(InternalObject args, size_t return_value) {
   if (args.size != 2) EXIT_VM("aqstl_ldexp", "ldexp requires 2 arguments");
-  SetDoubleData(return_value, ldexp(GetDoubleData(args.index[1]),
-                                    GetDoubleData(args.index[2])));
+  SetDoubleData(return_value, ldexp(GetDoubleData(args.index[0]),
+                                    GetDoubleData(args.index[1])));
 }
 
 void aqstl_log(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_log", "log requires 1 argument");
-  SetDoubleData(return_value, log(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, log(GetDoubleData(args.index[0])));
 }
 
 void aqstl_log10(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_log10", "log10 requires 1 argument");
-  SetDoubleData(return_value, log10(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, log10(GetDoubleData(args.index[0])));
 }
 
 void aqstl_modf(InternalObject args, size_t return_value) {
   double x;
   if (args.size != 2) EXIT_VM("aqstl_modf", "modf requires 2 arguments");
-  SetDoubleData(return_value, modf(GetDoubleData(args.index[1]), &x));
+  SetDoubleData(return_value, modf(GetDoubleData(args.index[0]), &x));
 }
 
 void aqstl_pow(InternalObject args, size_t return_value) {
   if (args.size != 2) EXIT_VM("aqstl_pow", "pow requires 2 arguments");
-  SetDoubleData(return_value, pow(GetDoubleData(args.index[1]),
-                                  GetDoubleData(args.index[2])));
+  SetDoubleData(return_value, pow(GetDoubleData(args.index[0]),
+                                  GetDoubleData(args.index[1])));
 }
 
 void aqstl_sin(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_sin", "sin requires 1 argument");
-  SetDoubleData(return_value, sin(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, sin(GetDoubleData(args.index[0])));
 }
 
 void aqstl_sinh(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_sinh", "sinh requires 1 argument");
-  SetDoubleData(return_value, sinh(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, sinh(GetDoubleData(args.index[0])));
 }
 
 void aqstl_sqrt(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_sqrt", "sqrt requires 1 argument");
-  SetDoubleData(return_value, sqrt(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, sqrt(GetDoubleData(args.index[0])));
 }
 
 void aqstl_tan(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_tan", "tan requires 1 argument");
-  SetDoubleData(return_value, tan(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, tan(GetDoubleData(args.index[0])));
 }
 
 void aqstl_tanh(InternalObject args, size_t return_value) {
   if (args.size != 1) EXIT_VM("aqstl_tanh", "tanh requires 1 argument");
-  SetDoubleData(return_value, tanh(GetDoubleData(args.index[1])));
+  SetDoubleData(return_value, tanh(GetDoubleData(args.index[0])));
 }
 
 unsigned int hash(const char* str) {
