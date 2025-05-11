@@ -1,9 +1,6 @@
-import "./aqstl.aq" stltest
-
 auto main(){
-auto file = open("./test.file");
-__builtin_write(file,"ABC TEST.\n",10);
-close(file);
+auto file = __builtin_open("./aqstl.aq");
+__builtin_close(file);
 return "A";
 }
 
@@ -13,43 +10,14 @@ auto TEST(){
 
 int print(...) { return __builtin_vaprint(args); }
 
-int remove(string filename) { return __builtin_remove(filename); }
-
-int rename(string oldname, string newname) {
-  return __builtin_rename(oldname, newname);
+auto open(string file_name, string mode){
+  return __builtin_open(file_name, mode);
 }
 
-int getchar() { return __builtin_getchar(); }
+auto open(string file_name){
+  return __builtin_open(file_name);
+}
 
-int putchar(int c) { return __builtin_putchar(c); }
-
-int puts(string s) { return __builtin_puts(s); }
-
-int perror(string s) { return __builtin_perror(s); }
-
-
-// abs，ascii，bin，bool，chr，float，format，hash，hex，id，input，int，len，max，min，oct，open，ord，pow，print，round，str，sum，type
-auto abs(auto x) { return __builtin_abs(x); }
-auto ascii(auto c) { return __builtin_ascii(c); } // __builtin_ascii
-auto bin(auto x) { return __builtin_bin(x); }
-auto bool_(auto x) { return __builtin_bool(x); } // __builtin_expect(x, 1)
-auto chr(auto code) { return __builtin_chr(code); } // __builtin_chr
-auto float_(auto x) { return __builtin_float(x); }
-auto hex(auto x) { return __builtin_hex(x); }
-auto id(auto p) { return __builtin_id(p); } // __builtin_id
-auto int_(auto x) { return __builtin_int(x); }
-auto len(auto s) { return __builtin_len(s); }
-auto max(auto a, auto b) { return __builtin_max(a, b); }
-auto min(auto a, auto b) { return __builtin_min(a, b); }
-auto oct(auto x) { return __builtin_oct(x); }
-auto ord(char c) { return __builtin_ord(c); } // __builtin_ord
-auto pow(auto a, auto b) { return __builtin_pow(a, b); }
-auto round(auto x) { return __builtin_round(x); }
-auto str_(float x) { return __builtin_str(x); } // 假设存在 __builtin_str
-auto sum(auto arr, auto n) { return __builtin_sum(arr, n); } // 假设存在 __builtin_sum
-auto type(auto p) { return __builtin_type(p); } // 假设存在 __builtin_typeid
-auto open(auto name){return __builtin_open(name);}
-auto close(auto name){return __builtin_close(name);}
-auto input(auto name){return __builtin_input(name);}
-auto read(auto name){return __builtin_read(name);}
-auto write(auto a,auto b,auto c){return __builtin_write(a,b,c);}
+auto close(auto file){
+  return __builtin_close(file);
+}

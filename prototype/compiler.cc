@@ -6422,6 +6422,8 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_print");
   AddBuiltInFuncDecl("__builtin_vaprint");
   AddBuiltInFuncDecl("__builtin_abs");
+  AddBuiltInFuncDecl("__builtin_open");
+  AddBuiltInFuncDecl("__builtin_close");
 
   AddBuiltInFuncDecl("__builtin_curses_refresh");
   AddBuiltInFuncDecl("__builtin_curses_nooutrefresh");
@@ -6718,7 +6720,8 @@ void BytecodeGenerator::PreProcessImport(ImportNode* stmt) {
     std::string name = stmt->GetName();
 
     std::size_t array_index = global_memory_.Add(1);
-    var_decl_map_.emplace("#" + static_cast<std::string>(name),
+    var_decl_map_.emplace(
+        "#" + static_cast<std::string>(name),
         std::pair<VarDeclNode*, std::size_t>(nullptr, array_index));
   }
 }
@@ -9292,7 +9295,8 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
         import_generator_map.end()) {
       // TODO(IMPORTANT): Unknown error, but can be fixed with this statement.
       // Serious issue, awaiting repair.
-      import_generator_map[import_location] = import_generator_map[import_location];
+      import_generator_map[import_location] =
+          import_generator_map[import_location];
       // std::cout << import_generator_map[import_location] << std::endl;
 
       // std::cout << "Import A NEW FILE." << import_location << std::endl;
@@ -9349,7 +9353,8 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
     // vm_type.push_back(0x09);
     std::size_t class_array_index = start_class_.GetMemory().Add(name);
     // std::size_t array_index = global_memory_.Add(1);
-    std::size_t array_index = var_decl_map_["#" + static_cast<std::string>(name)].second;
+    std::size_t array_index =
+        var_decl_map_["#" + static_cast<std::string>(name)].second;
     global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
                                     2, global_memory_.AddString(name)));
     global_code_.push_back(Bytecode(

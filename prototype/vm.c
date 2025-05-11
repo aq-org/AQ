@@ -1317,6 +1317,7 @@ struct Object* GetOriginData(struct Object* object) {
       case 0x05:
       case 0x06:
       case 0x09:
+      case 0x0A:
         return object;
 
       case 0x07:
@@ -1349,6 +1350,7 @@ struct Object* GetOriginDataWithoutConst(struct Object* object) {
       case 0x06:
       case 0x09:
       case 0x08:
+      case 0x0A:
         return object;
 
       case 0x07:
@@ -4995,6 +4997,9 @@ int EQUAL(size_t result, size_t value) {
       // CopyObjectData(result, GetObjectData(value));
       SetObjectData(result, GetObjectData(value));
       break;
+    case 0x0A:
+      SetOriginData(result, GetOriginData(object_table + value));
+      break;
     default:
       // printf("value type: %d\n", value_data->type[0]);
       EXIT_VM("EQUAL(size_t,size_t)", "Unsupported type.");
@@ -5051,6 +5056,10 @@ int CrossMemoryEqual(struct Memory* result_memory, size_t result,
       SetObjectObjectData(
           result_memory->object_table + result,
           GetObjectObjectData(value_memory->object_table + value));
+      break;
+    case 0x0A:
+      SetOriginObjectData(result_memory->object_table + result,
+                          GetOriginData(value_memory->object_table + value));
       break;
     default:
       // printf("value type: %d\n", value_data->type[0]);
@@ -5176,9 +5185,11 @@ int INVOKE_METHOD(size_t* args) {
 int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
   TRACE_FUNCTION;
   if (result >= object_table_size)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Result out of object_table_size.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)",
+            "Result out of object_table_size.");
   if (class >= object_table_size)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class Out of object_table_size.");
+    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)",
+            "Class Out of object_table_size.");
 
   struct Object* class_data = object_table + class;
   class_data = GetOriginData(class_data);

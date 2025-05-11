@@ -166,6 +166,66 @@ void SetStringObjectData(struct Object* data, const char* string);
 void SetReferenceObjectData(struct Object* data, struct Object* object);
 void SetConstObjectData(struct Object* data, struct Object* object);
 void SetObjectObjectData(struct Object* data, struct Object* object);
+void SetOriginData(size_t index, struct Object* object) {
+  TRACE_FUNCTION;
+  if (index >= object_table_size)
+    EXIT_VM("SetOriginData(size_t,void*)", "Invalid index.");
+  if (object == NULL) EXIT_VM("SetOriginData(size_t,void*)", "Invalid object.");
+
+  struct Object* origin_object = object_table + index;
+  if (origin_object->type[0] != 0x07) {
+    if (origin_object->const_type)
+      EXIT_VM("SetOriginData(size_t,void*)", "Invalid object.");
+    origin_object->type[0] = 0x07;
+    origin_object->data.origin_data = object;
+    return;
+  }
+  while (origin_object->data.reference_data != NULL &&
+         origin_object->type[0] == 0x07) {
+    origin_object = origin_object->data.reference_data;
+  }
+
+  if (origin_object->type[0] != 0x07) {
+    if (origin_object->const_type)
+      EXIT_VM("SetOriginData(size_t,void*)", "Invalid object.");
+    origin_object->type[0] = 0x07;
+    origin_object->data.origin_data = object;
+    return;
+  }
+
+  origin_object->data.origin_data = object;
+}
+
+void SetOriginObjectData(struct Object* data, struct Object* object) {
+  TRACE_FUNCTION;
+  if (data == NULL)
+    EXIT_VM("SetOriginObjectData(void*,void*)", "Invalid data.");
+  if (object == NULL)
+    EXIT_VM("SetOriginObjectData(void*,void*)", "Invalid object.");
+
+  struct Object* origin_object = data;
+  if (origin_object->type[0] != 0x07) {
+    if (origin_object->const_type)
+      EXIT_VM("SetOriginObjectData(void*,void*)", "Invalid object.");
+    origin_object->type[0] = 0x07;
+    origin_object->data.origin_data = object;
+    return;
+  }
+  while (origin_object->data.reference_data != NULL &&
+         origin_object->type[0] == 0x07) {
+    origin_object = origin_object->data.reference_data;
+  }
+
+  if (origin_object->type[0] != 0x07) {
+    if (origin_object->const_type)
+      EXIT_VM("SetOriginObjectData(void*,void*)", "Invalid object.");
+    origin_object->type[0] = 0x07;
+    origin_object->data.origin_data = object;
+    return;
+  }
+
+  origin_object->data.origin_data = object;
+}
 
 void aqstl_print(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
@@ -255,7 +315,7 @@ void aqstl_vaprint(InternalObject args, size_t return_value) {
 
 void aqstl_abs(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
-  if (args.size!= 1)
+  if (args.size != 1)
     EXIT_VM("aqstl_abs(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_abs(InternalObject,size_t)", "Invalid return value.");
@@ -286,7 +346,7 @@ void aqstl_abs(InternalObject args, size_t return_value) {
 
 void aqstl_open(InternalObject args, size_t return_value) {
   TRACE_FUNCTION;
-  if (args.size!= 1)
+  if (args.size < 1 || args.size > 2)
     EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid args.");
   if (return_value >= object_table_size)
     EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid return value.");
@@ -296,8 +356,63 @@ void aqstl_open(InternalObject args, size_t return_value) {
   if (object == NULL)
     EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid object.");
 
-  if (object->type[0]!= 0x05)
+  if (object->type[0] != 0x05)
     EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid object.");
+  const char* mode = "r";
+  if (args.size == 2) {
+    struct Object* mode_object = object_table + args.index[1];
+    mode_object = GetOriginData(mode_object);
+    if (mode_object == NULL)
+      EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid mode object.");
+    if (mode_object->type[0] != 0x05)
+      EXIT_VM("aqstl_open(InternalObject,size_t)", "Invalid mode object.");
+    mode = GetStringData(args.index[1]);
+  }
+  FILE* file = fopen(GetStringObjectData(object), mode);
+  if (file == NULL) {
+    // perror("[ERROR] aqstl_open(InternalObject,size_t)");
+    EXIT_VM("aqstl_open(InternalObject,size_t)", "Failed to open file.");
+  }
+
+  struct Object* return_object =
+      (struct Object*)calloc(1, sizeof(struct Object));
+  if (return_object == NULL) {
+    EXIT_VM("aqstl_open(InternalObject,size_t)", "Failed to allocate memory.");
+  }
+  return_object->const_type = false;
+  return_object->type = (uint8_t*)calloc(1, sizeof(uint8_t));
+  if (return_object->type == NULL) {
+    EXIT_VM("aqstl_open(InternalObject,size_t)", "Failed to allocate memory.");
+  }
+  *(return_object->type) = 0x0A;
+  return_object->data.origin_data = file;
+
+  SetOriginData(return_value, return_object);
+}
+
+void aqstl_close(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size != 1)
+    EXIT_VM("aqstl_close(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_close(InternalObject,size_t)", "Invalid return value.");
+
+  struct Object* object = object_table + *args.index;
+  object = GetOriginData(object);
+
+  if (object == NULL)
+    EXIT_VM("aqstl_close(InternalObject,size_t)", "Invalid object.");
+
+  if (object->type[0] != 0x0A) {
+    //printf("Type: %u\n", object->type[0]);
+    EXIT_VM("aqstl_close(InternalObject,size_t)", "Invalid object.");
+  }
+
+  if (fclose((FILE*)object->data.origin_data) != 0) {
+    EXIT_VM("aqstl_close(InternalObject,size_t)", "Failed to close file.");
+  }
+
+  SetLongData(return_value, 0);
 }
 
 #ifdef __unix__
@@ -431,7 +546,7 @@ void aqstl_CursesWindowSubWin(InternalObject args, size_t return_value) {
   rtn_win = aqstl_CursesWindowNew(win);
   *(((WINDOW**)rtn_win->data.origin_data) + 1) =
       *(WINDOW**)object_table[args.index[0]].data.origin_data;
-  SetReferenceData(return_value, rtn_win);
+  SetOriginData(return_value, rtn_win);
 }
 
 void aqstl_CursesWindowAddCh(InternalObject args, size_t return_value) {
@@ -785,7 +900,7 @@ void aqstl_CursesWindowGetYX(InternalObject args, size_t return_value) {
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
   (return_array->data.ptr_data + 1)->data.long_data = x;
-  SetReferenceData(return_value, return_array);
+  SetPtrData(return_value, return_array);
 }
 
 void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
@@ -816,7 +931,7 @@ void aqstl_CursesWindowGetBegYX(InternalObject args, size_t return_value) {
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
   (return_array->data.ptr_data + 1)->data.long_data = x;
-  SetReferenceData(return_value, return_array);
+  SetPtrData(return_value, return_array);
 }
 
 void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
@@ -847,7 +962,7 @@ void aqstl_CursesWindowGetMaxYX(InternalObject args, size_t return_value) {
   *((return_array->data.ptr_data + 1)->type) = 0x02;
   (return_array->data.ptr_data + 1)->const_type = false;
   (return_array->data.ptr_data + 1)->data.long_data = x;
-  SetReferenceData(return_value, return_array);
+  SetPtrData(return_value, return_array);
 }
 
 void aqstl_CursesWindowClear(InternalObject args, size_t return_value) {
@@ -955,8 +1070,8 @@ void aqstl_CursesWindowInCh(InternalObject args, size_t return_value) {
     case 2:
       y = GetLongData(args.index[1]);
       x = GetLongData(args.index[2]);
-      rtn = mvwinch(*((WINDOW**)object_table[args.index[0]].data.origin_data), y,
-                   x);
+      rtn = mvwinch(*((WINDOW**)object_table[args.index[0]].data.origin_data),
+                    y, x);
       break;
     default:
       EXIT_VM("aqstl_CursesWindowInCh", "inch requires 0 or 2 arguments");
@@ -1018,7 +1133,7 @@ void aqstl_CursesInitScr(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_CursesInitScr", "initscr requires 1 argument");
   if (curses_initialised == true) {
     wrefresh(stdscr);
-    SetReferenceData(return_value, aqstl_CursesWindowNew(stdscr));
+    SetOriginData(return_value, aqstl_CursesWindowNew(stdscr));
   }
 
   win = initscr();
@@ -1028,7 +1143,7 @@ void aqstl_CursesInitScr(InternalObject args, size_t return_value) {
 
   curses_initialised = true;
 
-  SetReferenceData(return_value, aqstl_CursesWindowNew(win));
+  SetOriginData(return_value, aqstl_CursesWindowNew(win));
 }
 
 void aqstl_CursesEndWin(InternalObject args, size_t return_value) {
@@ -1079,7 +1194,7 @@ void aqstl_CursesNewWindow(InternalObject args, size_t return_value) {
     EXIT_VM("aqstl_CursesNewWindow", "curses function returned NULL");
   }
 
-  SetReferenceData(return_value, aqstl_CursesWindowNew(win));
+  SetOriginData(return_value, aqstl_CursesWindowNew(win));
 }
 
 void aqstl_CursesBeep(InternalObject args, size_t return_value) {
@@ -1326,6 +1441,8 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_print", aqstl_print);
   AddFuncToNameTable("__builtin_vaprint", aqstl_vaprint);
   AddFuncToNameTable("__builtin_abs", aqstl_abs);
+  AddFuncToNameTable("__builtin_open", aqstl_open);
+  AddFuncToNameTable("__builtin_close", aqstl_close);
 
 #ifdef __unix__
   AddFuncToNameTable("__builtin_curses_refresh", aqstl_CursesWindowRefresh);
