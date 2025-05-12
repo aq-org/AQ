@@ -1,6 +1,7 @@
 auto main(){
 auto file = __builtin_open("./test.file","w");
-auto read_file_content = __builtin_write(file,"ABC TEST\nABC TEST 2.");
+auto read_file_content = __builtin_input("Input:");
+
 __builtin_close(file);
 print(read_file_content);
 return "A";

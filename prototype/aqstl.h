@@ -485,6 +485,51 @@ void aqstl_close(InternalObject args, size_t return_value) {
   SetLongData(return_value, 0);
 }
 
+void aqstl_input(InternalObject args, size_t return_value) {
+  TRACE_FUNCTION;
+  if (args.size!= 1)
+    EXIT_VM("aqstl_input(InternalObject,size_t)", "Invalid args.");
+  if (return_value >= object_table_size)
+    EXIT_VM("aqstl_input(InternalObject,size_t)", "Invalid return value.");
+  
+  struct Object* object = object_table + *args.index;
+  object = GetOriginData(object);
+
+  if (object == NULL)
+    EXIT_VM("aqstl_input(InternalObject,size_t)", "Invalid object.");
+  if (object->type[0]!= 0x05) {
+    EXIT_VM("aqstl_input(InternalObject,size_t)", "Invalid object.");    
+  }
+
+  printf("%s", GetStringObjectData(object));
+
+  size_t size = 0;
+  size_t buffer_size = 128;
+  char* buffer = (char*)malloc(buffer_size * sizeof(char));
+  if (!buffer) {
+    EXIT_VM("aqstl_input(InternalObject,size_t)", "Memory allocation failed."); 
+  }
+
+  int c;
+  size_t length = 0;
+  while ((c = fgetc(stdin)) != EOF && c != '\n') {
+      if (length >= buffer_size - 1) {
+          buffer_size += 128;
+          char* new_buffer = (char*)realloc(buffer, buffer_size * sizeof(char));
+          if (!new_buffer) {
+              free(buffer);
+              EXIT_VM("aqstl_input(InternalObject,size_t)", "Memory reallocation failed.");
+          }
+          buffer = new_buffer;
+      }
+      buffer[length++] = (char)c;
+  }
+  buffer[length] = '\0';
+
+  AddFreePtr(buffer);
+  SetStringData(return_value, buffer);
+}
+
 #ifdef __unix__
 #include <ncurses.h>
 
@@ -1515,6 +1560,7 @@ void InitializeNameTable(struct LinkedList* list) {
   AddFuncToNameTable("__builtin_close", aqstl_close);
   AddFuncToNameTable("__builtin_write", aqstl_write);
   AddFuncToNameTable("__builtin_read", aqstl_read);
+  AddFuncToNameTable("__builtin_input", aqstl_input);
 
 #ifdef __unix__
   AddFuncToNameTable("__builtin_curses_refresh", aqstl_CursesWindowRefresh);
