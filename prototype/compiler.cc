@@ -6421,12 +6421,99 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   TRACE_FUNCTION;
   AddBuiltInFuncDecl("__builtin_print");
   AddBuiltInFuncDecl("__builtin_vaprint");
-  AddBuiltInFuncDecl("__builtin_remove");
-  AddBuiltInFuncDecl("__builtin_rename");
-  AddBuiltInFuncDecl("__builtin_getchar");
-  AddBuiltInFuncDecl("__builtin_putchar");
-  AddBuiltInFuncDecl("__builtin_puts");
-  AddBuiltInFuncDecl("__builtin_perror");
+  AddBuiltInFuncDecl("__builtin_abs");
+  AddBuiltInFuncDecl("__builtin_open");
+  AddBuiltInFuncDecl("__builtin_close");
+  AddBuiltInFuncDecl("__builtin_read");
+  AddBuiltInFuncDecl("__builtin_write");
+  AddBuiltInFuncDecl("__builtin_input");
+
+  AddBuiltInFuncDecl("__builtin_curses_refresh");
+  AddBuiltInFuncDecl("__builtin_curses_nooutrefresh");
+  AddBuiltInFuncDecl("__builtin_curses_mvwin");
+  AddBuiltInFuncDecl("__builtin_curses_move");
+  AddBuiltInFuncDecl("__builtin_curses_subwin");
+  AddBuiltInFuncDecl("__builtin_curses_addch");
+  AddBuiltInFuncDecl("__builtin_curses_insch");
+  AddBuiltInFuncDecl("__builtin_curses_delch");
+  AddBuiltInFuncDecl("__builtin_curses_echochar");
+  AddBuiltInFuncDecl("__builtin_curses_addstr");
+  AddBuiltInFuncDecl("__builtin_curses_attron");
+  AddBuiltInFuncDecl("__builtin_curses_attroff");
+  AddBuiltInFuncDecl("__builtin_curses_attrset");
+  AddBuiltInFuncDecl("__builtin_curses_standend");
+  AddBuiltInFuncDecl("__builtin_curses_standout");
+  AddBuiltInFuncDecl("__builtin_curses_border");
+  AddBuiltInFuncDecl("__builtin_curses_box");
+  AddBuiltInFuncDecl("__builtin_curses_hline");
+  AddBuiltInFuncDecl("__builtin_curses_vline");
+  AddBuiltInFuncDecl("__builtin_curses_erase");
+  AddBuiltInFuncDecl("__builtin_curses_deleteln");
+  AddBuiltInFuncDecl("__builtin_curses_insertln");
+  AddBuiltInFuncDecl("__builtin_curses_getyx");
+  AddBuiltInFuncDecl("__builtin_curses_getbegyx");
+  AddBuiltInFuncDecl("__builtin_curses_getmaxyx");
+  AddBuiltInFuncDecl("__builtin_curses_clear");
+  AddBuiltInFuncDecl("__builtin_curses_clrtobot");
+  AddBuiltInFuncDecl("__builtin_curses_clrtoeol");
+  AddBuiltInFuncDecl("__builtin_curses_scroll");
+  AddBuiltInFuncDecl("__builtin_curses_touchwin");
+  AddBuiltInFuncDecl("__builtin_curses_touchline");
+  AddBuiltInFuncDecl("__builtin_curses_getch");
+  AddBuiltInFuncDecl("__builtin_curses_getstr");
+  AddBuiltInFuncDecl("__builtin_curses_inch");
+  AddBuiltInFuncDecl("__builtin_curses_clearok");
+  AddBuiltInFuncDecl("__builtin_curses_idlok");
+  AddBuiltInFuncDecl("__builtin_curses_leaveok");
+  AddBuiltInFuncDecl("__builtin_curses_scrollok");
+  AddBuiltInFuncDecl("__builtin_curses_setscrreg");
+  AddBuiltInFuncDecl("__builtin_curses_keypad");
+  AddBuiltInFuncDecl("__builtin_curses_nodelay");
+  AddBuiltInFuncDecl("__builtin_curses_notimeout");
+  AddBuiltInFuncDecl("__builtin_curses_initscr");
+  AddBuiltInFuncDecl("__builtin_curses_endwin");
+  AddBuiltInFuncDecl("__builtin_curses_isendwin");
+  AddBuiltInFuncDecl("__builtin_curses_doupdate");
+  AddBuiltInFuncDecl("__builtin_curses_newwin");
+  AddBuiltInFuncDecl("__builtin_curses_beep");
+  AddBuiltInFuncDecl("__builtin_curses_flash");
+  AddBuiltInFuncDecl("__builtin_curses_ungetch");
+  AddBuiltInFuncDecl("__builtin_curses_flushinp");
+  AddBuiltInFuncDecl("__builtin_curses_cbreak");
+  AddBuiltInFuncDecl("__builtin_curses_nocbreak");
+  AddBuiltInFuncDecl("__builtin_curses_echo");
+  AddBuiltInFuncDecl("__builtin_curses_noecho");
+  AddBuiltInFuncDecl("__builtin_curses_nl");
+  AddBuiltInFuncDecl("__builtin_curses_nonl");
+  AddBuiltInFuncDecl("__builtin_curses_raw");
+  AddBuiltInFuncDecl("__builtin_curses_noraw");
+  AddBuiltInFuncDecl("__builtin_curses_intrflush");
+  AddBuiltInFuncDecl("__builtin_curses_meta");
+  AddBuiltInFuncDecl("__builtin_curses_keyname");
+
+  AddBuiltInFuncDecl("__builtin_math_acos");
+  AddBuiltInFuncDecl("__builtin_math_asin");
+  AddBuiltInFuncDecl("__builtin_math_atan");
+  AddBuiltInFuncDecl("__builtin_math_atan2");
+  AddBuiltInFuncDecl("__builtin_math_ceil");
+  AddBuiltInFuncDecl("__builtin_math_cos");
+  AddBuiltInFuncDecl("__builtin_math_cosh");
+  AddBuiltInFuncDecl("__builtin_math_exp");
+  AddBuiltInFuncDecl("__builtin_math_fabs");
+  AddBuiltInFuncDecl("__builtin_math_floor");
+  AddBuiltInFuncDecl("__builtin_math_fmod");
+  AddBuiltInFuncDecl("__builtin_math_frexp");
+  AddBuiltInFuncDecl("__builtin_math_hypot");
+  AddBuiltInFuncDecl("__builtin_math_ldexp");
+  AddBuiltInFuncDecl("__builtin_math_log");
+  AddBuiltInFuncDecl("__builtin_math_log10");
+  AddBuiltInFuncDecl("__builtin_math_modf");
+  AddBuiltInFuncDecl("__builtin_math_pow");
+  AddBuiltInFuncDecl("__builtin_math_sin");
+  AddBuiltInFuncDecl("__builtin_math_sinh");
+  AddBuiltInFuncDecl("__builtin_math_sqrt");
+  AddBuiltInFuncDecl("__builtin_math_tan");
+  AddBuiltInFuncDecl("__builtin_math_tanh");
 }
 
 void BytecodeGenerator::PreProcessDecl(CompoundNode* stmt) {
@@ -6637,7 +6724,7 @@ void BytecodeGenerator::PreProcessImport(ImportNode* stmt) {
 
     std::size_t array_index = global_memory_.Add(1);
     var_decl_map_.emplace(
-        current_scope_.back() + "#" + static_cast<std::string>(name),
+        "#" + static_cast<std::string>(name),
         std::pair<VarDeclNode*, std::size_t>(nullptr, array_index));
   }
 }
@@ -9211,10 +9298,11 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
         import_generator_map.end()) {
       // TODO(IMPORTANT): Unknown error, but can be fixed with this statement.
       // Serious issue, awaiting repair.
-      import_generator_map[import_location] = import_generator_map[import_location];
-      //std::cout << import_generator_map[import_location] << std::endl;
+      import_generator_map[import_location] =
+          import_generator_map[import_location];
+      // std::cout << import_generator_map[import_location] << std::endl;
 
-    //std::cout << "Import A NEW FILE." << import_location << std::endl;
+      // std::cout << "Import A NEW FILE." << import_location << std::endl;
       const char* filename = import_location.c_str();
       std::ifstream file;
       file.open(filename);
@@ -9268,9 +9356,8 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
     // vm_type.push_back(0x09);
     std::size_t class_array_index = start_class_.GetMemory().Add(name);
     // std::size_t array_index = global_memory_.Add(1);
-    std::size_t array_index = var_decl_map_[current_scope_.back() + "#" +
-                                            static_cast<std::string>(name)]
-                                  .second;
+    std::size_t array_index =
+        var_decl_map_["#" + static_cast<std::string>(name)].second;
     global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
                                     2, global_memory_.AddString(name)));
     global_code_.push_back(Bytecode(
@@ -12301,7 +12388,7 @@ std::size_t BytecodeGenerator::HandleBinaryExpr(BinaryNode* expr,
 std::size_t BytecodeGenerator::HandlePeriodExpr(BinaryNode* expr,
                                                 std::vector<Bytecode>& code) {
   TRACE_FUNCTION;
-//std::cout << "HandlePeriodExpr CALLED." << std::endl;
+  // std::cout << "HandlePeriodExpr CALLED." << std::endl;
   if (expr->GetOperator() != BinaryNode::Operator::kMember)
     EXIT_COMPILER(
         "BytecodeGenerator::HandlePeriodExpr(BinaryNode*,std::vector<Bytecode>&"

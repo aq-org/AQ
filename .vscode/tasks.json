@@ -1,0 +1,26 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "C/C++: gcc.exe build active file",  // 编译任务的名称，跟上面preLaunchTask的值对应
+            "command": "F:/mingw64/bin/gcc.exe",  // 编译器的路径，须跟你自己的电脑相符
+            "args": [  // 编译器执行时的参数，跟手动编译时输入的内容基本一致，主要是多了-g参数，以加入调试信息
+                "-g",
+                "${file}",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+            ],
+            "options": {
+                "cwd": "F:/mingw64/bin"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ],
+    "version": "2.0.0"
+}

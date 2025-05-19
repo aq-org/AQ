@@ -1,18 +1,26 @@
+auto main(){
+auto file = __builtin_open("./test.file","w");
+auto read_file_content = __builtin_input("Input:");
 
-auto main(){}
+__builtin_close(file);
+print(read_file_content);
+return "A";
+}
+
+auto TEST(){
+  return 1;
+}
 
 int print(...) { return __builtin_vaprint(args); }
 
-int remove(string filename) { return __builtin_remove(filename); }
-
-int rename(string oldname, string newname) {
-  return __builtin_rename(oldname, newname);
+auto open(string file_name, string mode){
+  return __builtin_open(file_name, mode);
 }
 
-int getchar() { return __builtin_getchar(); }
+auto open(string file_name){
+  return __builtin_open(file_name);
+}
 
-int putchar(int c) { return __builtin_putchar(c); }
-
-int puts(string s) { return __builtin_puts(s); }
-
-int perror(string s) { return __builtin_perror(s); }
+auto close(auto file){
+  return __builtin_close(file);
+}

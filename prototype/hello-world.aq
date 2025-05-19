@@ -2,6 +2,9 @@
 import "./aqstl.aq" stl
 
 auto main() {
+  string test_str;
+  //__builtin_input(test_str);
+  stl.print("Input: ",test_str,"\n");
   stl.print("Hello World!\n");
   return 0;
 }
