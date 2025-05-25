@@ -14,6 +14,7 @@
 <a href="https://sourceforge.net/projects/aq-lang/files/latest/download"><img alt="Download AQ" src="https://a.fsdn.com/con/app/sf-download-button" width=276 height=48 srcset="https://a.fsdn.com/con/app/sf-download-button?button_size=2x 2x"></a>
 <a href="https://www.uneed.best/tool/aq">
     <img src="https://www.uneed.best/EMBED3.png" alt="Uneed Embed Badge" height=48 />
+  <a href="https://scoutforge.net/reviews/aq-programming-language/" title="Trusted and reviewed by Scout Forge"><img src="https://scoutforge.net/wp-content/themes/wp-theme/assets/img/badges/badge-light.webp" style="max-width: 300px" alt="Trusted and Reviewed by Scout Forge" height=48></a>
     </a>
 
 </p>
