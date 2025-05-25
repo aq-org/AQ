@@ -1,0 +1,45 @@
+Memory Size: 25
+
+
+
+Function Name: .CLASSTEST, Size: 2
+NEW: 3 ,5 ,4
+INVOKE_CLASS: 3 ,6 ,1 ,7 ,
+
+
+
+Function Name: .main, Size: 5
+REFER: 19 ,18
+INVOKE: 17 ,1 ,19 ,
+EQUAL: 20 ,18
+EQUAL: 20 ,18
+NOP
+
+
+
+Function Name: __start, Size: 22
+LOAD_CONST: 2 ,0
+EQUAL: 0 ,2
+REFER: 1 ,0
+LOAD_CONST: 4 ,1
+LOAD_CONST: 5 ,2
+LOAD_CONST: 6 ,3
+LOAD_CONST: 8 ,4
+REFER: 10 ,9
+INVOKE: 8 ,1 ,10 ,
+REFER: 12 ,11
+LOAD_CONST: 13 ,5
+LOAD_CONST: 14 ,6
+NEW: 12 ,14 ,13
+EQUAL: 11 ,9
+EQUAL: 11 ,9
+LOAD_CONST: 17 ,7
+REFER: 21 ,20
+LOAD_CONST: 22 ,8
+LOAD_CONST: 23 ,9
+NEW: 21 ,23 ,22
+LOAD_CONST: 24 ,10
+INVOKE: 24 ,1 ,1 ,
+
+
+

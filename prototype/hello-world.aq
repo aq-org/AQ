@@ -1,10 +1,18 @@
 
 import "./aqstl.aq" stl
 
+class TEST{
+  void TEST(){}
+}
+
+auto TESTGET(){
+  return TEST();
+}
+
 auto main() {
-  string test_str;
-  //__builtin_input(test_str);
-  stl.print("Input: ",test_str,"\n");
+  string test_str = "TEST";
+  auto input_s = __builtin_input(test_str);
+  stl.print("Input: ",input_s,"\n");
   stl.print("Hello World!\n");
   return 0;
 }

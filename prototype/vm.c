@@ -6374,6 +6374,7 @@ int WIDE();
 int InvokeClassFunction(size_t class, const char* name, size_t args_size,
                         size_t return_value, size_t* args) {
   TRACE_FUNCTION;
+  struct Object* cc = object_table+class;
   struct Object* class_name_object = GetOriginData(object_table + class);
   // struct Object* class_object = GetOriginData(object_table + class);
   class_name_object = class_name_object->data.object_data;
@@ -6422,6 +6423,12 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   // TODO(Class): Fixed this bug about return value.
   class_memory->object_table[func_info.args[0]] = object_table[return_value];
+  //class_memory->object_table[func_info.args[0]].type = calloc(1,sizeof(uint8_t));
+  //class_memory->object_table[func_info.args[0]].type[0] = 0x07;
+  //class_memory->object_table[func_info.args[0]].const_type = false;
+  //class_memory->object_table[func_info.args[0]].data.reference_data = object_table+return_value;
+  
+
 
   if (func_info.va_flag) {
     uint8_t* type = calloc(1, sizeof(uintptr_t));
