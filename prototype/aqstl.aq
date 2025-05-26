@@ -6,11 +6,12 @@ class CLASSTEST{
     int a = 0;
 }
 
-auto test_cla = testhwi.TESTGET();
-
     CLASSTEST test = CLASSTEST();
 test.a = 10;
 int main(){
+    
+auto test_cla = testhwi.TEST();
+
     //CLASSTEST test = CLASSTEST();
     return __builtin_print(test.a);
 //print("AQ TEST.");

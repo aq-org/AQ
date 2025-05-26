@@ -6370,6 +6370,8 @@ class BytecodeGenerator {
 
   bool is_big_endian_ = false;
   Class start_class_;
+
+  std::vector<Bytecode> init_code_;
   // std::vector<std::pair<std::string, std::string>> import_list_;
   std::unordered_map<std::string, BytecodeGenerator*> import_generator_map_;
   std::vector<std::string> from_list_;
@@ -6734,9 +6736,9 @@ void BytecodeGenerator::PreProcessImport(ImportNode* stmt) {
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
                                          const char* output_file) {
   TRACE_FUNCTION;
-  std::vector<Bytecode> memory_init_code;
+  ;
 
-  global_memory_.SetCode(&memory_init_code);
+  global_memory_.SetCode(&init_code_);
 
   // Main program return value.
   global_memory_.Add(1);
@@ -6929,7 +6931,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
 
   std::vector<std::size_t> memory_init_args;
   memory_init_args.push_back(global_memory_.Add(1));
-  Function memory_init_func(".!__init", memory_init_args, memory_init_code);
+  Function memory_init_func(".!__init", memory_init_args, init_code_);
   func_list_.push_back(memory_init_func);
 
 
@@ -9378,9 +9380,9 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
     // std::size_t array_index = global_memory_.Add(1);
     std::size_t array_index =
         var_decl_map_["#" + static_cast<std::string>(name)].second;
-    global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
+    init_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
                                     2, global_memory_.AddString(name)));
-    global_code_.push_back(Bytecode(
+    init_code_.push_back(Bytecode(
         _AQVM_OPERATOR_NEW, 3, array_index, global_memory_.AddUint64t(0),
         global_memory_.AddString("~" + import_location + "bc~.!__start")));
     /*global_code_.push_back(
