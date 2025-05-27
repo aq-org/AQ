@@ -208,7 +208,6 @@ struct Class {
   size_t members_size;
   struct FuncList methods[256];
   struct BytecodeFileList bytecode_file[256];
-  struct ClassList* class_table;
   struct Memory* memory;
 };
 
@@ -259,7 +258,7 @@ struct Memory* global_memory;
 
 struct FuncList func_table[256];
 
-struct ClassList* class_table;
+struct ClassList class_table[256];
 
 struct FreeList* free_list;
 
@@ -3284,6 +3283,14 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
         struct Class* class_data = NULL;
         const char* class = GetStringData(type);
+
+        if(memcmp(current_bytecode_file,"",1)!=0&&*class!='~'){
+          char* class_buffer = calloc(strlen(current_bytecode_file)+strlen(class)+3, sizeof(char));
+          snprintf(class_buffer, strlen(current_bytecode_file)+strlen(class)+2, "~%s~%s", current_bytecode_file, class);
+          class = class_buffer;
+        }
+
+
         const unsigned int class_hash = hash(class);
         struct ClassList* current_class_table = &class_table[class_hash];
         while (current_class_table != NULL &&
@@ -5882,8 +5889,6 @@ void* AddClass(void* location) {
   }
   location = (void*)((uintptr_t)location + 1);
 
-  table->class.class_table = class_table;
-
   size_t object_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
@@ -6386,15 +6391,27 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
             "Invalid class name object.");
   const char* class_name = class_name_object->data.string_data;
 
-struct ClassList* current_class_table_ptr = NULL;
+  const char* origin_current_bytecode_file = current_bytecode_file;
+char* current_class_name = NULL;
+  if (*class_name == '~') {
+    const char* class_name_buffer = class_name;
+    class_name_buffer++;
+    while (*class_name_buffer != '~') class_name_buffer++;
+    class_name_buffer++;
+    current_class_name =
+        calloc(class_name_buffer - class_name - 1, sizeof(char));
+    memcpy(current_class_name, class_name + 1,
+           class_name_buffer - class_name - 2);
+    current_bytecode_file = current_class_name;
+  } else {
+    current_bytecode_file = "";
+  }
 
   struct Memory* class_memory = NULL;
   struct ClassList* current_class_table = &class_table[hash(class_name)];
   while (current_class_table != NULL &&
          current_class_table->class.name != NULL) {
     if (strcmp(current_class_table->class.name, class_name) == 0) {
-      current_class_table_ptr = current_class_table->class.class_table; 
-
       class_memory = current_class_table->class.memory;
       break;
     }
@@ -6429,12 +6446,12 @@ struct ClassList* current_class_table_ptr = NULL;
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   // TODO(Class): Fixed this bug about return value.
   class_memory->object_table[func_info.args[0]] = object_table[return_value];
-  //class_memory->object_table[func_info.args[0]].type = calloc(1,sizeof(uint8_t));
-  //class_memory->object_table[func_info.args[0]].type[0] = 0x07;
-  //class_memory->object_table[func_info.args[0]].const_type = false;
-  //class_memory->object_table[func_info.args[0]].data.reference_data = object_table+return_value;
-  
-
+  // class_memory->object_table[func_info.args[0]].type =
+  // calloc(1,sizeof(uint8_t));
+  // class_memory->object_table[func_info.args[0]].type[0] = 0x07;
+  // class_memory->object_table[func_info.args[0]].const_type = false;
+  // class_memory->object_table[func_info.args[0]].data.reference_data =
+  // object_table+return_value;
 
   if (func_info.va_flag) {
     uint8_t* type = calloc(1, sizeof(uintptr_t));
@@ -6486,12 +6503,6 @@ struct ClassList* current_class_table_ptr = NULL;
   object_table_size = class_memory->object_table_size;
   const_object_table = class_memory->const_object_table;
   const_object_table_size = class_memory->const_object_table_size;
-
-
-  
-
-  struct ClassList* origin_class_list = class_table;
-  class_table=current_class_table_ptr;
 
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
@@ -6604,7 +6615,9 @@ struct ClassList* current_class_table_ptr = NULL;
   const_object_table = origin_memory.const_object_table;
   const_object_table_size = origin_memory.const_object_table_size;
 
-  class_table = origin_class_list;
+if (*class_name == '~')
+free(current_class_name);
+current_bytecode_file = origin_current_bytecode_file;
 
   return 0;
 }
@@ -6778,16 +6791,14 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   return 0;
 }
 
-void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, struct Memory* memory,
+void* AddBytecodeFileClass(const char* name, struct Memory* memory,
                            void* location) {
   TRACE_FUNCTION;
 
   // printf("ABFC. location: %s\n",location);
 
-  char* origin_class_name = (char*)location;
-
-  char* class_name = 
-    calloc(strlen(name) + strlen((char*)location) + 1, sizeof(char));
+  char* class_name =
+      calloc(strlen(name) + strlen((char*)location) + 1, sizeof(char));
   AddFreePtr(class_name);
   snprintf(class_name, strlen(name) + strlen((char*)location) + 1, "%s%s", name,
            (char*)location);
@@ -6796,7 +6807,7 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
 
   struct ClassList* table = &class_table[hash(class_name)];
   if (table == NULL)
-    EXIT_VM("AddBytecodeFileClass(struct ClassList* file_class_table,const char*,struct Memory*,void*)",
+    EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
             "table is NULL.");
   while (table->next != NULL) {
     table = table->next;
@@ -6807,8 +6818,6 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
   }
   location = (void*)((uintptr_t)location + 1);
 
-  table->class.class_table = file_class_table;
-
   size_t object_size =
       is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
   location = (void*)((uintptr_t)location + 8);
@@ -6816,7 +6825,7 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
   table->class.members =
       (struct Object*)calloc(object_size, sizeof(struct Object));
   if (table->class.members == NULL)
-    EXIT_VM("AddBytecodeFileClass(struct ClassList* file_class_table,const char*,struct Memory*,void*)",
+    EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
             "calloc failed.");
   AddFreePtr(table->class.members);
 
@@ -6824,7 +6833,7 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
     struct ClassVarInfoList* var_info =
         &table->class.var_info_table[hash(location)];
     if (var_info == NULL)
-      EXIT_VM("AddBytecodeFileClass(struct ClassList* file_class_table,const char*,struct Memory*,void*)",
+      EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
               "var info table is NULL.");
     while (var_info->next != NULL) {
       var_info = var_info->next;
@@ -6860,7 +6869,7 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
           break;
 
         default:
-          EXIT_VM("AddBytecodeFileClass(struct ClassList* file_class_table,const char*,struct Memory*,void*)",
+          EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
                   "Unsupported type.");
           break;
       }
@@ -6884,17 +6893,6 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
   AddFreePtr(table->next);
 
   table->class.memory = memory;
-
-  struct ClassList* current_table = &file_class_table[hash(origin_class_name)];
-  if (current_table == NULL)
-    EXIT_VM("AddBytecodeFileClass(struct ClassList* class_table,const char*,struct Memory*,void*)",
-            "table is NULL.");
-  while (current_table->next != NULL) {
-    current_table = current_table->next;
-  }
-
-  current_table->class = table->class;
-  current_table->class.name = origin_class_name;
 
   return location;
 }
@@ -7065,10 +7063,8 @@ void HandleBytecodeFile(const char* name, void* bytecode_file, size_t size) {
     bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
   }
 
-  struct ClassList* file_class_table = calloc(256,sizeof(struct ClassList));
-
   while (bytecode_file < bytecode_end) {
-    bytecode_file = AddBytecodeFileClass(file_class_table,name, memory, bytecode_file);
+    bytecode_file = AddBytecodeFileClass(name, memory, bytecode_file);
 
     // printf("%p , %p",bytecode_file,(void*)((uintptr_t)bytecode_file + size));
   }
@@ -7574,9 +7570,6 @@ int main(int argc, char* argv[]) {
   global_memory->object_table_size = object_table_size;
   global_memory->const_object_table_size = const_object_table_size;
 
-  struct ClassList* class_main_table = calloc(256,sizeof(struct ClassList));
-  class_table = class_main_table;
-
   while (bytecode_file < bytecode_end) {
     // printf("bytecode_file: %p\n", bytecode_file);
     // printf("bytecode_end: %p\n", bytecode_end);
@@ -7585,7 +7578,7 @@ int main(int argc, char* argv[]) {
     bytecode_file = AddClass(bytecode_file);
   }
 
-  current_bytecode_file = ".!__start";
+  current_bytecode_file = "";
   free_list = NULL;
 
   InitializeNameTable(name_table);
@@ -7622,7 +7615,6 @@ int main(int argc, char* argv[]) {
   free(bytecode_begin);
   free(object_table);
   free(const_object_table);
-  free(class_main_table);
 
   time_t end_time = clock();
 
