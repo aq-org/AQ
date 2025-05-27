@@ -6386,14 +6386,14 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
             "Invalid class name object.");
   const char* class_name = class_name_object->data.string_data;
 
-  struct ClassList* origin_class_list = class_table;
+struct ClassList* current_class_table_ptr = NULL;
 
   struct Memory* class_memory = NULL;
   struct ClassList* current_class_table = &class_table[hash(class_name)];
   while (current_class_table != NULL &&
          current_class_table->class.name != NULL) {
     if (strcmp(current_class_table->class.name, class_name) == 0) {
-      *(&class_table) = current_class_table->class.class_table; 
+      current_class_table_ptr = current_class_table->class.class_table; 
 
       class_memory = current_class_table->class.memory;
       break;
@@ -6488,6 +6488,10 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   const_object_table_size = class_memory->const_object_table_size;
 
 
+  
+
+  struct ClassList* origin_class_list = class_table;
+  class_table=current_class_table_ptr;
 
   struct Bytecode* run_code = func_info.commands;
   for (size_t i = 0; i < func_info.commands_size; i++) {
@@ -6780,6 +6784,8 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
 
   // printf("ABFC. location: %s\n",location);
 
+  char* origin_class_name = (char*)location;
+
   char* class_name = 
     calloc(strlen(name) + strlen((char*)location) + 1, sizeof(char));
   AddFreePtr(class_name);
@@ -6879,7 +6885,7 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
 
   table->class.memory = memory;
 
-  struct ClassList* current_table = &file_class_table[hash(name)];
+  struct ClassList* current_table = &file_class_table[hash(origin_class_name)];
   if (current_table == NULL)
     EXIT_VM("AddBytecodeFileClass(struct ClassList* class_table,const char*,struct Memory*,void*)",
             "table is NULL.");
@@ -6888,7 +6894,7 @@ void* AddBytecodeFileClass(struct ClassList* file_class_table,const char* name, 
   }
 
   current_table->class = table->class;
-  current_table->class.name = name;
+  current_table->class.name = origin_class_name;
 
   return location;
 }
