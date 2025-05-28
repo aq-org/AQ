@@ -1,27 +1,12 @@
-import "./hello-world.aq" testhwi
-class CLASSTEST{
-    void CLASSTEST(){
-        //__builtin_print("A");
-    }
-    int abc = 0x06;
+class TESTCLASS{
+	void TESTCLASS(){ __builtin_print("Hello From Class!\n");
+}
+int data = 100;
 }
 
-//    CLASSTEST test = CLASSTEST();
-//test.a = 10;
-int main(){
-    //testhwi.stl.CLASSTEST();
-
-CLASSTEST test_cla = CLASSTEST();
-print(test_cla.abc);
-
-    //CLASSTEST test = CLASSTEST();
-    //return __builtin_print(test.a);
-//print("AQ TEST.");
-//__builtin_GUI_CreateWindow("Tencent Yuanbao","腾讯元宝",900,600,"https://yuanbao.tencent.com");
-//__builtin_GUI_CreateWindow("TEST GH","TEST GH",900,600,"https://github.com/aq-org/AQ");
-//__builtin_GUI_CreateWindow("TEST 1GH","TEST 1GH",900,600,"https://baidu.com");
-}
-
-auto print(...){
-    return __builtin_vaprint(args);
+auto main() {
+TESTCLASS tc;  
+__builtin_print(tc.data,"\n");
+__builtin_print("Hello World!\n");
+  return 0;
 }
