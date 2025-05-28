@@ -3,16 +3,17 @@ import "./aqstl.aq" stl
 
 class TEST{
   void TEST(){}
+  //string abc = "SUCCESS";
 }
 
-auto TESTGET(){
+/*auto TESTGET(){
   return TEST();
-}
+}*/
 
 auto main() {
-  string test_str = "TEST";
+  /*string test_str = "TEST";
   auto input_s = __builtin_input(test_str);
   stl.print("Input: ",input_s,"\n");
   stl.print("Hello World!\n");
-  return 0;
+  return 0;*/
 }

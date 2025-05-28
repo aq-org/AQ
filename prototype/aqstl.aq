@@ -1,19 +1,21 @@
 import "./hello-world.aq" testhwi
 class CLASSTEST{
     void CLASSTEST(){
-        __builtin_print("A");
+        //__builtin_print("A");
     }
-    int a = 0;
+    int abc = 0x06;
 }
 
-    CLASSTEST test = CLASSTEST();
-test.a = 10;
+//    CLASSTEST test = CLASSTEST();
+//test.a = 10;
 int main(){
-    
-auto test_cla = testhwi.TEST();
+    //testhwi.stl.CLASSTEST();
+
+CLASSTEST test_cla = CLASSTEST();
+print(test_cla.abc);
 
     //CLASSTEST test = CLASSTEST();
-    return __builtin_print(test.a);
+    //return __builtin_print(test.a);
 //print("AQ TEST.");
 //__builtin_GUI_CreateWindow("Tencent Yuanbao","腾讯元宝",900,600,"https://yuanbao.tencent.com");
 //__builtin_GUI_CreateWindow("TEST GH","TEST GH",900,600,"https://github.com/aq-org/AQ");

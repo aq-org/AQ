@@ -3286,6 +3286,7 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
         if(memcmp(current_bytecode_file,"",1)!=0&&*class!='~'){
           char* class_buffer = calloc(strlen(current_bytecode_file)+strlen(class)+3, sizeof(char));
+          AddFreePtr(class_buffer);
           snprintf(class_buffer, strlen(current_bytecode_file)+strlen(class)+2, "~%s~%s", current_bytecode_file, class);
           class = class_buffer;
         }

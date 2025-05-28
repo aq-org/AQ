@@ -9833,7 +9833,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
   var_decl_map_.emplace(scope_name + "#!return_reference",
                         std::pair<VarDeclNode*, std::size_t>(
                             nullptr, return_value_reference_index));*/
-  args_index.push_back(global_memory_.Add(1));
+  args_index.push_back(return_value_index);
 
   std::size_t va_array_index = 0;
 

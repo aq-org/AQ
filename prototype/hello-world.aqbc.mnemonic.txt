@@ -1,77 +1,45 @@
-Memory Size: 45
+Memory Size: 21
 
 
 
-Function Name: .TESTGET, Size: 6
-REFER: 11 ,10
-INVOKE_METHOD: 2 ,9 ,1 ,11 ,
-EQUAL: 7 ,10
-EQUAL: 8 ,7
-GOTO: 12
-NOP
-
-
-
-Function Name: .main, Size: 12
-EQUAL: 16 ,15
-REFER: 19 ,18
-INVOKE_METHOD: 2 ,17 ,2 ,19 ,16 ,
-EQUAL: 20 ,18
-REFER: 22 ,21
-INVOKE_METHOD: 6 ,23 ,4 ,22 ,24 ,20 ,25 ,
-REFER: 27 ,26
-INVOKE_METHOD: 6 ,28 ,2 ,27 ,29 ,
-EQUAL: 13 ,30
-EQUAL: 14 ,13
-GOTO: 31
+Function Name: .main, Size: 1
 NOP
 
 
 
 Function Name: .TEST, Size: 2
-NEW: 35 ,38 ,37
-INVOKE_METHOD: 35 ,39 ,1 ,40 ,
+NEW: 12 ,14 ,13
+INVOKE_METHOD: 12 ,15 ,1 ,16 ,
 
 
 
 Function Name: @constructor, Size: 2
-LOAD_CONST: 42 ,19
-INVOKE_METHOD: 2 ,42 ,1 ,1 ,
+LOAD_CONST: 18 ,8
+INVOKE_METHOD: 2 ,18 ,1 ,1 ,
 
 
 
-Function Name: .!__start, Size: 7
+Function Name: .!__start, Size: 5
 EQUAL: 0 ,3
 REFER: 1 ,0
 LOAD_CONST: 4 ,1
 INVOKE_METHOD: 2 ,4 ,1 ,5 ,
-LOAD_MEMBER: 6 ,2 ,32
-NEW: 6 ,34 ,33
-INVOKE_METHOD: 2 ,43 ,1 ,1 ,
+INVOKE_METHOD: 2 ,19 ,1 ,1 ,
 
 
 
-Function Name: .!__init, Size: 20
+Function Name: .!__init, Size: 11
 LOAD_CONST: 3 ,0
 LOAD_CONST: 4 ,1
 LOAD_CONST: 9 ,2
-LOAD_CONST: 12 ,3
-LOAD_CONST: 15 ,4
-LOAD_CONST: 17 ,5
-LOAD_CONST: 23 ,6
-LOAD_CONST: 24 ,7
-LOAD_CONST: 25 ,8
-LOAD_CONST: 28 ,9
-LOAD_CONST: 29 ,10
-LOAD_CONST: 30 ,11
-LOAD_CONST: 31 ,12
-LOAD_CONST: 32 ,13
-LOAD_CONST: 33 ,14
-LOAD_CONST: 34 ,15
-LOAD_CONST: 37 ,16
-LOAD_CONST: 38 ,17
-LOAD_CONST: 39 ,18
-LOAD_CONST: 43 ,20
+LOAD_MEMBER: 6 ,2 ,9
+LOAD_CONST: 10 ,3
+LOAD_CONST: 11 ,4
+NEW: 6 ,11 ,10
+LOAD_CONST: 13 ,5
+LOAD_CONST: 14 ,6
+LOAD_CONST: 15 ,7
+LOAD_CONST: 19 ,9
 
 
 
