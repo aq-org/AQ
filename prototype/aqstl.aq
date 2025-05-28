@@ -1,26 +1,12 @@
-auto main(){
-auto file = __builtin_open("./test.file","w");
-auto read_file_content = __builtin_input("Input:");
-
-__builtin_close(file);
-print(read_file_content);
-return "A";
+class TESTCLASS{
+	void TESTCLASS(){ __builtin_print("Hello From Class!\n");
+}
+int data = 100;
 }
 
-auto TEST(){
-  return 1;
-}
-
-int print(...) { return __builtin_vaprint(args); }
-
-auto open(string file_name, string mode){
-  return __builtin_open(file_name, mode);
-}
-
-auto open(string file_name){
-  return __builtin_open(file_name);
-}
-
-auto close(auto file){
-  return __builtin_close(file);
+auto main() {
+TESTCLASS tc;  
+__builtin_print(tc.data,"\n");
+__builtin_print("Hello World!\n");
+  return 0;
 }

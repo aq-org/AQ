@@ -3283,6 +3283,15 @@ int NEW(size_t ptr, size_t size, size_t type) {
 
         struct Class* class_data = NULL;
         const char* class = GetStringData(type);
+
+        if(memcmp(current_bytecode_file,"",1)!=0&&*class!='~'){
+          char* class_buffer = calloc(strlen(current_bytecode_file)+strlen(class)+3, sizeof(char));
+          AddFreePtr(class_buffer);
+          snprintf(class_buffer, strlen(current_bytecode_file)+strlen(class)+2, "~%s~%s", current_bytecode_file, class);
+          class = class_buffer;
+        }
+
+
         const unsigned int class_hash = hash(class);
         struct ClassList* current_class_table = &class_table[class_hash];
         while (current_class_table != NULL &&
@@ -6383,6 +6392,22 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
             "Invalid class name object.");
   const char* class_name = class_name_object->data.string_data;
 
+  const char* origin_current_bytecode_file = current_bytecode_file;
+char* current_class_name = NULL;
+  if (*class_name == '~') {
+    const char* class_name_buffer = class_name;
+    class_name_buffer++;
+    while (*class_name_buffer != '~') class_name_buffer++;
+    class_name_buffer++;
+    current_class_name =
+        calloc(class_name_buffer - class_name - 1, sizeof(char));
+    memcpy(current_class_name, class_name + 1,
+           class_name_buffer - class_name - 2);
+    current_bytecode_file = current_class_name;
+  } else {
+    current_bytecode_file = "";
+  }
+
   struct Memory* class_memory = NULL;
   struct ClassList* current_class_table = &class_table[hash(class_name)];
   while (current_class_table != NULL &&
@@ -6422,6 +6447,12 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   // printf("object: %zu , %zu", func_info.args[0], return_value);
   // TODO(Class): Fixed this bug about return value.
   class_memory->object_table[func_info.args[0]] = object_table[return_value];
+  // class_memory->object_table[func_info.args[0]].type =
+  // calloc(1,sizeof(uint8_t));
+  // class_memory->object_table[func_info.args[0]].type[0] = 0x07;
+  // class_memory->object_table[func_info.args[0]].const_type = false;
+  // class_memory->object_table[func_info.args[0]].data.reference_data =
+  // object_table+return_value;
 
   if (func_info.va_flag) {
     uint8_t* type = calloc(1, sizeof(uintptr_t));
@@ -6584,6 +6615,10 @@ int InvokeClassFunction(size_t class, const char* name, size_t args_size,
   object_table_size = origin_memory.object_table_size;
   const_object_table = origin_memory.const_object_table;
   const_object_table_size = origin_memory.const_object_table_size;
+
+if (*class_name == '~')
+free(current_class_name);
+current_bytecode_file = origin_current_bytecode_file;
 
   return 0;
 }
@@ -7544,7 +7579,7 @@ int main(int argc, char* argv[]) {
     bytecode_file = AddClass(bytecode_file);
   }
 
-  current_bytecode_file = ".!__start";
+  current_bytecode_file = "";
   free_list = NULL;
 
   InitializeNameTable(name_table);

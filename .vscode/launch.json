@@ -10,6 +10,7 @@
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
             "args": [
+                //"${fileDirname}\\aqstl.aq",
                 "${fileDirname}\\aqstl.aqbc"
             ],
             "stopAtEntry": false,  // 这一项控制是否在入口处暂停，默认false不暂停，改为true暂停

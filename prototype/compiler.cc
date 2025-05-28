@@ -6370,6 +6370,8 @@ class BytecodeGenerator {
 
   bool is_big_endian_ = false;
   Class start_class_;
+
+  std::vector<Bytecode> init_code_;
   // std::vector<std::pair<std::string, std::string>> import_list_;
   std::unordered_map<std::string, BytecodeGenerator*> import_generator_map_;
   std::vector<std::string> from_list_;
@@ -6490,6 +6492,8 @@ void BytecodeGenerator::InitBuiltInFuncDecl() {
   AddBuiltInFuncDecl("__builtin_curses_intrflush");
   AddBuiltInFuncDecl("__builtin_curses_meta");
   AddBuiltInFuncDecl("__builtin_curses_keyname");
+
+  AddBuiltInFuncDecl("__builtin_GUI_CreateWindow");
 
   AddBuiltInFuncDecl("__builtin_math_acos");
   AddBuiltInFuncDecl("__builtin_math_asin");
@@ -6732,7 +6736,9 @@ void BytecodeGenerator::PreProcessImport(ImportNode* stmt) {
 void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
                                          const char* output_file) {
   TRACE_FUNCTION;
-  global_memory_.SetCode(&global_code_);
+  ;
+
+  global_memory_.SetCode(&init_code_);
 
   // Main program return value.
   global_memory_.Add(1);
@@ -6757,6 +6763,14 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
     EXIT_COMPILER(
         "BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)",
         "stmt is nullptr.");
+
+  std::size_t memory_init_name = global_memory_.GetMemorySize();
+  std::size_t memory_init_name_const = global_memory_.GetConstTableSize();
+
+  global_memory_.AddString(".!__init");
+
+  global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_CONST,2,memory_init_name,memory_init_name_const));
+  global_code_.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD,4,2,memory_init_name,1,global_memory_.Add(1)));
 
   start_class_.SetName(".__start");
   start_class_.GetMemory().Add("@name");
@@ -6864,6 +6878,7 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
   // single_scope_.pop_back();
   current_func_index_ = 0;
 
+
   std::vector<std::size_t> constructor_args;
   std::vector<Bytecode> start_code;
   constructor_args.push_back(global_memory_.Add(1));
@@ -6912,6 +6927,13 @@ void BytecodeGenerator::GenerateBytecode(CompoundNode* stmt,
     EXIT_COMPILER(
         "BytecodeGenerator::GenerateBytecode(CompoundNode*,const char*)",
         "Break cannot be used outside of loops and switches.");
+
+
+  std::vector<std::size_t> memory_init_args;
+  memory_init_args.push_back(global_memory_.Add(1));
+  Function memory_init_func(".!__init", memory_init_args, init_code_);
+  func_list_.push_back(memory_init_func);
+
 
   GenerateBytecodeFile(output_file);
 }
@@ -9358,9 +9380,9 @@ void BytecodeGenerator::HandleImport(ImportNode* import_stmt) {
     // std::size_t array_index = global_memory_.Add(1);
     std::size_t array_index =
         var_decl_map_["#" + static_cast<std::string>(name)].second;
-    global_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
+    init_code_.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index,
                                     2, global_memory_.AddString(name)));
-    global_code_.push_back(Bytecode(
+    init_code_.push_back(Bytecode(
         _AQVM_OPERATOR_NEW, 3, array_index, global_memory_.AddUint64t(0),
         global_memory_.AddString("~" + import_location + "bc~.!__start")));
     /*global_code_.push_back(
@@ -9746,8 +9768,7 @@ void BytecodeGenerator::HandleClassConstructor(FuncDeclNode* func_decl) {
 
   std::vector<Bytecode> code;
   std::string class_name = current_class_->GetName();
-  std::string scope_name;
-  scope_name += current_scope_.back();
+  std::string scope_name = current_scope_.back();
   // scope_name += ".";
   // scope_name += *func_decl->GetStat()->GetName();
 
