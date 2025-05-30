@@ -8,9 +8,10 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <cstddef>
 
-#include "compiler/token/tokenmap.h"
-
+namespace Aq {
+namespace Compiler {
 struct Token {
   enum class Type {
     NONE,
@@ -178,5 +179,7 @@ struct Token {
 
   friend std::ostream& operator<<(std::ostream& os, Token& token);
 };
+}  // namespace Compiler
+}  // namespace Aq
 
 #endif

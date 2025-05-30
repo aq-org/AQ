@@ -26,8 +26,8 @@ class TokenMap {
   TokenMap& operator=(TokenMap&&) noexcept = default;
 
  private:
-  std::unordered_map<Token::KeywordType> keyword_map;
-  std::unordered_map<Token::OperatorType> operator_map;
+  std::unordered_map<std::string, Token::KeywordType> keyword_map;
+  std::unordered_map<std::string, Token::OperatorType> operator_map;
 };
 }  // namespace Compiler
 }  // namespace Aq
