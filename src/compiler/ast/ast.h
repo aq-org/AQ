@@ -171,14 +171,11 @@ class Unary : public Expression {
     kPostDec,     // --
     kPreInc,      // ++
     kPreDec,      // --
-    kAddrOf,      // &
-    kDeref,       // *
     kPlus,        // +
     kMinus,       // -
     kNot,         // !
     kBitwiseNot,  // ~
     ARRAY,        // []
-    CONVERT       // ()
   };
 
   Unary() { statement_type_ = StatementType::kUnary; }
@@ -482,13 +479,13 @@ class Class : public Declaration {
   Class(Identifier name, std::vector<Static*> static_members,
         std::vector<Variable*> members,
         std::vector<FunctionDeclaration*> methods,
-        std::vector<Class*> sub_class) {
+        std::vector<Class*> sub_classes) {
     statement_type_ = StatementType::kClass;
     name_ = name;
     static_members_ = static_members;
     members_ = members;
     methods_ = methods;
-    sub_class_ = sub_class;
+    sub_classes_ = sub_classes;
   }
   ~Class() = default;
 
@@ -496,7 +493,7 @@ class Class : public Declaration {
   std::vector<Static*> GetStaticMembers() { return static_members_; }
   std::vector<Variable*> GetMembers() { return members_; }
   std::vector<FunctionDeclaration*> GetMethods() { return methods_; }
-  std::vector<Class*> GetSubClasses() { return sub_class_; }
+  std::vector<Class*> GetSubClasses() { return sub_classes_; }
 
   Class(const Class&) = default;
   Class& operator=(const Class&) = default;
@@ -506,7 +503,7 @@ class Class : public Declaration {
   std::vector<Static*> static_members_;
   std::vector<Variable*> members_;
   std::vector<FunctionDeclaration*> methods_;
-  std::vector<Class*> sub_class_;
+  std::vector<Class*> sub_classes_;
 };
 
 class If : public Statement {

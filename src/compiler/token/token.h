@@ -5,10 +5,10 @@
 #ifndef AQ_COMPILER_TOKEN_TOKEN_H_
 #define AQ_COMPILER_TOKEN_TOKEN_H_
 
+#include <cstddef>
 #include <cstring>
 #include <iostream>
 #include <string>
-#include <cstddef>
 
 namespace Aq {
 namespace Compiler {
@@ -171,13 +171,28 @@ struct Token {
   Token& operator=(const Token& other) = default;
   Token& operator=(Token&& other) noexcept = default;
 
-  std::string TokenTypeToString(Token::Type type);
+  static std::string GetTokenTypeString(Token::Type type);
 
-  std::string KeywordTypeToString(Token::KeywordType keyword);
+  static std::string GetKeywordTypeString(Token::KeywordType keyword);
 
-  std::string OperatorTypeToString(Token::OperatorType op);
+  static std::string GetOperatorTypeString(Token::OperatorType op);
 
   friend std::ostream& operator<<(std::ostream& os, Token& token);
+
+  // Returns true if the token is an operator and the token's value equals to
+  // |oper|.
+  bool operator==(const OperatorType& oper) const {
+    return type == Type::OPERATOR && value._operator == oper;
+  }
+
+  // Returns true if the token is a keyword and the token's value equals to
+  // |keyword|.
+  bool operator==(const KeywordType& keyword) const {
+    return type == Type::KEYWORD && value.keyword == keyword;
+  }
+
+  // Returns true if the token's type equals to |type|.
+  bool operator==(const Type& ty) const { return type == ty; }
 };
 }  // namespace Compiler
 }  // namespace Aq

@@ -9,14 +9,13 @@
 #include "compiler/parser/parser.h"
 #include "compiler/token/token.h"
 
-
 namespace Aq {
 namespace Compiler {
 namespace Ast {
 
 Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
-  if (token == nullptr) Logging::ERROR(__FUNCTION__, "token is nullptr.");
-  if (index >= length) Logging::ERROR(__FUNCTION__, "index is out of range.");
+  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
+  if (index >= length) LOGGING_ERROR("index is out of range.");
 
   Type* type = nullptr;
 
@@ -39,12 +38,11 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
         return type;
       }
     }
-    if (type == nullptr) Logging::ERROR(__FUNCTION__, "Type is nullptr.");
+    if (type == nullptr) LOGGING_ERROR("Type is nullptr.");
     index++;
   }
 
-  Logging::ERROR(__FUNCTION__,
-                 "Index is out of range and the type isn't reach the end.");
+  LOGGING_ERROR("Index is out of range and the type isn't reach the end.");
   return nullptr;
 }
 
@@ -58,7 +56,7 @@ std::vector<uint8_t> Type::GetVmType() {
   Type* type = this;
   std::vector<uint8_t> vm_type;
   if (type->GetTypeCategory() == Type::TypeCategory::NONE)
-    Logging::ERROR(__FUNCTION__, "Unexpected code.");
+    LOGGING_ERROR("Unexpected code.");
 
   bool is_end = false;
   while (!is_end) {
@@ -95,7 +93,7 @@ std::vector<uint8_t> Type::GetVmType() {
 
         case Type::BaseType::kFunction:
         default:
-          Logging::ERROR(__FUNCTION__, "This type is not currently supported.");
+          LOGGING_ERROR("This type is not currently supported.");
           break;
       }
     } else if (type->GetTypeCategory() == Type::TypeCategory::kArray) {
@@ -186,20 +184,16 @@ Type* Type::CreateDerivedType(Type* sub_type, Token* token, std::size_t length,
 
 Type* Type::CreateConstDerivedType(Type* sub_type, Token* token,
                                    std::size_t length, std::size_t& index) {
-  if (token->type != Token::Type::KEYWORD ||
-      token->value.keyword != Token::KeywordType::Const)
-    Logging::ERROR(
-        __FUNCTION__,
-        "Unexpected token type or keyword. Expected 'const' keyword.");
+  if (!(*token == Token::KeywordType::Const))
+    LOGGING_ERROR("Unexpected keyword. Expected 'const' keyword.");
 
   // If it is not a post const type, it is a pre const type.
   if (sub_type == nullptr) sub_type = CreateType(token, length, ++index);
 
   ConstType* const_type = new ConstType();
-  if (const_type == nullptr)
-    Logging::ERROR(__FUNCTION__, "const_type is nullptr.");
+  if (const_type == nullptr) LOGGING_ERROR("const_type is nullptr.");
 
-  if (sub_type == nullptr) Logging::ERROR(__FUNCTION__, "type is nullptr.");
+  if (sub_type == nullptr) LOGGING_ERROR("type is nullptr.");
 
   const_type->SetSubType(sub_type);
   return const_type;
@@ -207,7 +201,7 @@ Type* Type::CreateConstDerivedType(Type* sub_type, Token* token,
 
 Type* Type::CreateOperatorDerivedType(Type* sub_type, Token* token,
                                       std::size_t length, std::size_t& index) {
-  if (sub_type == nullptr) Logging::ERROR(__FUNCTION__, "type is nullptr.");
+  if (sub_type == nullptr) LOGGING_ERROR("type is nullptr.");
   Type* type = sub_type;
   switch (token[index].value._operator) {
     case Token::OperatorType::amp: {
@@ -238,7 +232,7 @@ Type* Type::CreateClassDerivedType(Token* token, std::size_t length,
          token[index + 1].value._operator == Token::OperatorType::period) {
     index += 2;
     if (token[index].type != Token::Type::IDENTIFIER)
-      Logging::ERROR(__FUNCTION__, "Unexpected scope name.");
+      LOGGING_ERROR("Unexpected scope name.");
 
     std::string next_scope_name(token[index].value.identifier.location,
                                 token[index].value.identifier.length);
@@ -253,9 +247,9 @@ Type* Type::CreateArrayDerivedType(Type* sub_type, Token* token,
                                    std::size_t length, std::size_t& index) {
   Type* type = sub_type;
   std::size_t index_temp = index;
-  Expression* temp_expr = Parser::ParsePrimaryExpr(token, length, index_temp);
-  if (temp_expr == nullptr)
-    Logging::ERROR(__FUNCTION__, "ParsePrimaryExpr return nullptr.");
+  Expression* temp_expr =
+      Parser::ParsePrimaryExpression(token, length, index_temp);
+  if (temp_expr == nullptr) LOGGING_ERROR("ParsePrimaryExpr return nullptr.");
 
   // If the expression is an array, return the array type.
   if (temp_expr->GetStatementType() == Statement::StatementType::kArray) {

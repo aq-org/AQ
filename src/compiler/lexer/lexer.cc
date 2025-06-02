@@ -27,7 +27,7 @@ int Lexer::LexToken(Token last_token, Token& return_token) {
 
 LexStart:
   if (current_location > code_end_) {
-    Logging::ERROR(__FUNCTION__,
+    LOGGING_ERROR(
                    "Memory out of bounds during lexical analysis.");
     return -1;
   }
@@ -228,6 +228,7 @@ bool Lexer::LexCharacter(Token& token) {
   }
   return false;
 }
+
 bool Lexer::LexEscapeCharacter(Token& token, char*& current_location) {
   if (token.type == Token::Type::START) {
     token.type = Token::Type::OPERATOR;
@@ -255,6 +256,7 @@ bool Lexer::LexEscapeCharacter(Token& token, char*& current_location) {
   }
   return false;
 }
+
 bool Lexer::IsHexEscapeCharacter(char* current_location) {
   bool has_hex_flag = *current_location == 'x';
   if (has_hex_flag) {
@@ -262,13 +264,14 @@ bool Lexer::IsHexEscapeCharacter(char* current_location) {
         isxdigit(*(current_location + 1))) {
       return true;
     } else {
-      Logging::ERROR(__FUNCTION__,
+      LOGGING_ERROR(
                      "Invalid hex escape character: 'x' must be followed by a "
                      "hexadecimal digit.");
     }
   }
   return false;
 }
+
 std::size_t Lexer::GetHexEscapeCharacterLength(char* current_location) {
   std::size_t length = 0;
   while (current_location <= code_end_ && isxdigit(*current_location)) {
@@ -370,7 +373,7 @@ void Lexer::LexGeneralEscapeCharacter(Token& token, char*& current_location) {
       break;
     default:
       const char current_escape_str[3] = {'\\', *current_location, '\0'};
-      Logging::ERROR(__FUNCTION__, "Unknown escape character '\\" +
+      LOGGING_ERROR( "Unknown escape character '\\" +
                                        std::string(current_escape_str) + "'.");
       break;
   }
@@ -553,6 +556,7 @@ bool Lexer::LexSeparator(Token& token, char*& current_location) {
   }
   return false;
 }
+
 bool Lexer::LexDefault(Token& token) {
   if (token.type == Token::Type::START) {
     token.type = Token::Type::IDENTIFIER;
@@ -612,7 +616,7 @@ void Lexer::HandleFinalToken(Token& token, char*& current_location) {
       break;
 
     default:
-      Logging::ERROR(__FUNCTION__,
+      LOGGING_ERROR(
                      "Unknown token type: " +
                          std::to_string(static_cast<int>(token.type)));
       return;

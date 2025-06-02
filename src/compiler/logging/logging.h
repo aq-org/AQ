@@ -10,6 +10,10 @@
 namespace Aq {
 namespace Compiler {
 namespace Logging {
+#define LOGGING_ERROR(message) Logging::ERROR(__FUNCTION__, message)
+#define LOGGING_WARNING(message) Logging::WARNING(__FUNCTION__, message)
+#define LOGGING_INFO(message) Logging::INFO(__FUNCTION__, message)
+
 // Reports an error and exits the program.
 void ERROR(std::string func_name, std::string message);
 

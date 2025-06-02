@@ -11,14 +11,15 @@
 
 #include "compiler/lexer/lexer.h"
 #include "compiler/logging/logging.h"
+#include "compiler/parser/parser.h"
 #include "compiler/token/token.h"
+
 
 int main(int argc, char* argv[]) {
   // TODO(command-line arguments): Add more command-line arguments and
   // related-functions for the compiler.
   if (argc < 3) {
-    Aq::Compiler::Logging::ERROR(
-        __FUNCTION__, "Usage: " + std::string(argv[0]) + " <code> <output>");
+    Aq::Compiler::LOGGING_ERROR("Usage: " + std::string(argv[0]) + " <code> <output>");
     return -1;
   }
 
@@ -28,14 +29,13 @@ int main(int argc, char* argv[]) {
   std::vector<Aq::Compiler::Token> token;
   Aq::Compiler::LexCode(code, token);
 
-  Aq::Compiler::CompoundNode* ast = Aq::Compiler::Parser::Parse(token);
-  if (ast == nullptr)
-    Aq::Compiler::Logging::ERROR(__FUNCTION__, "ast is nullptr.");
+  Aq::Compiler::Ast::Compound* ast = Aq::Compiler::Parser::Parse(token);
+  if (ast == nullptr) Aq::Compiler::LOGGING_ERROR("ast is nullptr.");
 
   Aq::Compiler::BytecodeGenerator bytecode_generator;
   bytecode_generator.GenerateBytecode(ast, argv[2]);
 
-  Aq::Compiler::Logging::INFO(__FUNCTION__, "Generate Bytecode SUCCESS!");
+  Aq::Compiler::LOGGING_INFO("Generate Bytecode SUCCESS!");
 
   return 0;
 }
@@ -45,8 +45,7 @@ namespace Compiler {
 void ReadCodeFromFile(const char* filename, std::vector<char>& code) {
   std::ifstream ifs(filename, std::ios::in | std::ios::binary | std::ios::ate);
   if (!ifs.is_open()) {
-    Logging::ERROR(__FUNCTION__,
-                   "Error: Could not open file " + std::string(filename));
+    LOGGING_ERROR("Error: Could not open file " + std::string(filename));
   }
 
   std::streampos size = ifs.tellg();

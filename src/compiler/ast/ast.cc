@@ -19,8 +19,7 @@ int8_t Value::GetByteValue() {
     } else if (value_.value.keyword == Token::KeywordType::False) {
       return false;
     } else {
-      Logging::ERROR(
-          __FUNCTION__,
+      LOGGING_ERROR(
           "Unexpected keyword type: " +
               std::to_string(static_cast<int>(value_.value.keyword)));
     }
@@ -49,8 +48,7 @@ std::size_t Value::GetVmType() {
         value_.value.keyword == Token::KeywordType::False) {
       return 0x01;
     } else {
-      Logging::ERROR(
-          __FUNCTION__,
+      LOGGING_ERROR(
           "Unexpected keyword type: " +
               std::to_string(static_cast<int>(value_.value.keyword)));
     }
@@ -91,15 +89,14 @@ std::size_t Value::GetVmType() {
   } catch (...) {
   }
 
-  Logging::ERROR(__FUNCTION__, "Unexpected value type.");
+  LOGGING_ERROR( "Unexpected value type.");
   return 0x00;
 }
 Expression::operator std::string() {
   // TODO: Implement a proper conversion for Expression.
   if (statement_type_ == StatementType::kIdentifier)
     return *dynamic_cast<Identifier*>(this);
-  Logging::WARNING(
-      __FUNCTION__,
+  LOGGING_WARNING(
       "Expression does not have a valid string representation. Returning empty "
       "string.");
   return std::string();

@@ -137,7 +137,7 @@ Token::KeywordType TokenMap::GetKeywordValue(std::string keyword) {
   if (it != keyword_map.end()) {
     return it->second;
   } else {
-    Logging::ERROR(__FUNCTION__, "Unknown keyword: " + keyword);
+    LOGGING_ERROR( "Unknown keyword: " + keyword);
     return Token::KeywordType::NONE;
   }
 }
@@ -146,7 +146,7 @@ Token::OperatorType TokenMap::GetOperatorValue(std::string oper) {
   if (it != operator_map.end()) {
     return it->second;
   } else {
-    Logging::ERROR(__FUNCTION__, "Unknown operator: " + oper);
+    LOGGING_ERROR( "Unknown operator: " + oper);
     return Token::OperatorType::NONE;
   }
 }

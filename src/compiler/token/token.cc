@@ -12,7 +12,7 @@
 namespace Aq {
 namespace Compiler {
 
-std::string Token::TokenTypeToString(Token::Type type) {
+std::string Token::GetTokenTypeString(Token::Type type) {
   switch (type) {
     case Token::Type::NONE:
       return "NONE";
@@ -33,14 +33,13 @@ std::string Token::TokenTypeToString(Token::Type type) {
     case Token::Type::COMMENT:
       return "COMMENT";
     default:
-      Logging::WARNING(
-          __FUNCTION__,
-          "Unknown token type: " + std::to_string(static_cast<int>(type)));
+      LOGGING_WARNING("Unknown token type: " +
+                      std::to_string(static_cast<int>(type)));
       return "UNKNOWN";
   }
 }
 
-std::string Token::KeywordTypeToString(Token::KeywordType keyword) {
+std::string Token::GetKeywordTypeString(Token::KeywordType keyword) {
   switch (keyword) {
     case Token::KeywordType::Auto:
       return "Auto";
@@ -171,14 +170,13 @@ std::string Token::KeywordTypeToString(Token::KeywordType keyword) {
     case Token::KeywordType::Xor:
       return "Xor";
     default:
-      Logging::WARNING(
-          __FUNCTION__,
-          "Unknown keyword type: " + std::to_string(static_cast<int>(keyword)));
+      LOGGING_WARNING("Unknown keyword type: " +
+                      std::to_string(static_cast<int>(keyword)));
       return "UNKNOWN_KEYWORD";
   }
 }
 
-std::string Token::OperatorTypeToString(Token::OperatorType op) {
+std::string Token::GetOperatorTypeString(Token::OperatorType op) {
   switch (op) {
     case Token::OperatorType::NONE:
       return "NONE";
@@ -281,24 +279,24 @@ std::string Token::OperatorTypeToString(Token::OperatorType op) {
     case Token::OperatorType::caretcaret:
       return "^^";
     default:
-      Logging::WARNING(__FUNCTION__, "Unknown operator type: " +
-                                         std::to_string(static_cast<int>(op)));
+      LOGGING_WARNING("Unknown operator type: " +
+                      std::to_string(static_cast<int>(op)));
       return "UNKNOWN_OPERATOR";
   }
 }
 
 std::ostream& Token::operator<<(std::ostream& os, Token& token) {
-  os << "Type: " << token.TokenTypeToString(token.type) << ", Value: ";
+  os << "Type: " << token.GetTokenTypeString(token.type) << ", Value: ";
   switch (token.type) {
     case Token::Type::KEYWORD:
-      os << token.KeywordTypeToString(token.value.keyword);
+      os << token.GetKeywordTypeString(token.value.keyword);
       break;
     case Token::Type::IDENTIFIER:
       os << std::string(token.value.identifier.location,
                         token.value.identifier.length);
       break;
     case Token::Type::OPERATOR:
-      os << token.OperatorTypeToString(token.value._operator);
+      os << token.GetOperatorTypeString(token.value._operator);
       break;
     case Token::Type::NUMBER:
       os << std::string(token.value.number.location, token.value.number.length);
@@ -310,9 +308,8 @@ std::ostream& Token::operator<<(std::ostream& os, Token& token) {
       os << token.value.string;
       break;
     default:
-      Logging::WARNING(__FUNCTION__,
-                       "Unknown token type: " +
-                           std::to_string(static_cast<int>(token.type)));
+      LOGGING_WARNING("Unknown token type: " +
+                      std::to_string(static_cast<int>(token.type)));
       os << "N/A";
       break;
   }
