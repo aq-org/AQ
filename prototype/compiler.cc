@@ -499,7 +499,7 @@ struct Token {
         value.identifier = other.value.identifier;
         break;
       case Type::OPERATOR:
-        value._operator = other.value._operator;
+        value.oper = other.value.oper;
         break;
       case Type::CHARACTER:
         value.character = other.value.character;
@@ -525,7 +525,7 @@ struct Token {
         value.identifier = other.value.identifier;
         break;
       case Type::OPERATOR:
-        value._operator = other.value._operator;
+        value.oper = other.value.oper;
         break;
       case Type::CHARACTER:
         value.character = other.value.character;
@@ -552,7 +552,7 @@ struct Token {
         value.identifier = other.value.identifier;
         break;
       case Type::OPERATOR:
-        value._operator = other.value._operator;
+        value.oper = other.value.oper;
         break;
       case Type::CHARACTER:
         value.character = other.value.character;
@@ -579,7 +579,7 @@ struct Token {
         value.identifier = other.value.identifier;
         break;
       case Type::OPERATOR:
-        value._operator = other.value._operator;
+        value.oper = other.value.oper;
         break;
       case Type::CHARACTER:
         value.character = other.value.character;
@@ -888,7 +888,7 @@ struct Token {
                           token.value.identifier.length);
         break;
       case Token::Type::OPERATOR:
-        os << token.OperatorTypeToString(token.value._operator);
+        os << token.OperatorTypeToString(token.value.oper);
         break;
       case Token::Type::NUMBER:
         os << std::string(token.value.number.location,
@@ -1532,13 +1532,13 @@ LexEnd:
         break;
 
       case Token::Type::OPERATOR:
-        return_token.value._operator =
+        return_token.value.oper =
             token_map_.GetOperatorValue(std::string(location, length));
-        while (return_token.value._operator == Token::OperatorType::NONE &&
+        while (return_token.value.oper == Token::OperatorType::NONE &&
                length > 1) {
           length--;
           buffer_ptr_--;
-          return_token.value._operator =
+          return_token.value.oper =
               token_map_.GetOperatorValue(std::string(location, length));
         }
         break;
@@ -3029,7 +3029,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
 
             while (index + 1 < length &&
                    token[index + 1].type == Token::Type::OPERATOR &&
-                   token[index + 1].value._operator ==
+                   token[index + 1].value.oper ==
                        Token::OperatorType::period) {
               index++;
               if (token[index].type == Token::Type::IDENTIFIER)
@@ -3138,7 +3138,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
         EXIT_COMPILER("Type::CreateType(Token*,std::size_t,std::size_t&)",
                       "type is nullptr.");
 
-      switch (token[index].value._operator) {
+      switch (token[index].value.oper) {
         case Token::OperatorType::star: {
           PointerType* pointer_type = new PointerType();
           pointer_type->SetSubType(type);
@@ -3165,7 +3165,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
                         token[index].value.identifier.length));
         while (index + 1 < length &&
                token[index + 1].type == Token::Type::OPERATOR &&
-               token[index + 1].value._operator ==
+               token[index + 1].value.oper ==
                    Token::OperatorType::period) {
           index += 2;
           if (token[index].type != Token::Type::IDENTIFIER)
@@ -3314,7 +3314,7 @@ CompoundNode* Parser::Parse(std::vector<Token> token) {
         stmts.push_back(
             dynamic_cast<DeclNode*>(ParseVarDecl(token_ptr, length, index)));
         if (token_ptr[index].type != Token::Type::OPERATOR ||
-            token_ptr[index].value._operator != Token::OperatorType::semi) {
+            token_ptr[index].value.oper != Token::OperatorType::semi) {
           EXIT_COMPILER("Parser::Parse(std::vector<Token>)", "not found semi.");
           return nullptr;
         }
@@ -3377,9 +3377,9 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
               token[index + 1].type == Token::Type::IDENTIFIER) ||
              (token[index].type == Token::Type::IDENTIFIER &&
               token[index + 1].type == Token::Type::OPERATOR &&
-              (token[index + 1].value._operator == Token::OperatorType::star ||
-               token[index + 1].value._operator == Token::OperatorType::amp ||
-               token[index + 1].value._operator ==
+              (token[index + 1].value.oper == Token::OperatorType::star ||
+               token[index + 1].value.oper == Token::OperatorType::amp ||
+               token[index + 1].value.oper ==
                    Token::OperatorType::ampamp) &&
               token[index + 2].type == Token::Type::IDENTIFIER)) {
     // TODO: Change the processing logic of custom types and add support of
@@ -3389,7 +3389,7 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
     while (index < length) {
       if (token[index].type == Token::Type::IDENTIFIER &&
           token[index + 1].type == Token::Type::OPERATOR &&
-          token[index + 1].value._operator == Token::OperatorType::period) {
+          token[index + 1].value.oper == Token::OperatorType::period) {
         index += 2;
       } else {
         break;
@@ -3399,9 +3399,9 @@ bool Parser::IsDecl(Token* token, std::size_t length, std::size_t index) {
          token[index + 1].type == Token::Type::IDENTIFIER) ||
         (token[index].type == Token::Type::IDENTIFIER &&
          token[index + 1].type == Token::Type::OPERATOR &&
-         (token[index + 1].value._operator == Token::OperatorType::star ||
-          token[index + 1].value._operator == Token::OperatorType::amp ||
-          token[index + 1].value._operator == Token::OperatorType::ampamp) &&
+         (token[index + 1].value.oper == Token::OperatorType::star ||
+          token[index + 1].value.oper == Token::OperatorType::amp ||
+          token[index + 1].value.oper == Token::OperatorType::ampamp) &&
          token[index + 2].type == Token::Type::IDENTIFIER)) {
       // TODO: Change the processing logic of custom types and add support of
       // custom types.
@@ -3424,17 +3424,17 @@ bool Parser::IsFuncDecl(Token* token, std::size_t length, std::size_t index) {
   for (std::size_t i = index; i < length; i++) {
     if (token[i].type == Token::Type::IDENTIFIER &&
         token[i + 1].type == Token::Type::OPERATOR &&
-        token[i + 1].value._operator == Token::OperatorType::l_paren) {
+        token[i + 1].value.oper == Token::OperatorType::l_paren) {
       return true;
     }
     /*if (token[i].type == Token::Type::OPERATOR &&
-        token[i].value._operator != Token::OperatorType::coloncolon &&
-        token[i].value._operator != Token::OperatorType::period &&
-        token[i].value._operator != Token::OperatorType::arrow) {
+        token[i].value.oper != Token::OperatorType::coloncolon &&
+        token[i].value.oper != Token::OperatorType::period &&
+        token[i].value.oper != Token::OperatorType::arrow) {
       return false;
     }*/
     if (token[i].type == Token::Type::OPERATOR &&
-        token[i].value._operator != Token::OperatorType::period) {
+        token[i].value.oper != Token::OperatorType::period) {
       return false;
     }
   }
@@ -3476,7 +3476,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
     } else {
       VarDeclNode* result = ParseVarDecl(token, length, index);
       if (token[index].type != Token::Type::OPERATOR ||
-          token[index].value._operator != Token::OperatorType::semi)
+          token[index].value.oper != Token::OperatorType::semi)
         EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                       "semi not found.");
 
@@ -3487,7 +3487,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
 
   switch (token[index].type) {
     case Token::Type::OPERATOR:
-      switch (token[index].value._operator) {
+      switch (token[index].value.oper) {
         case Token::OperatorType::semi:
           index++;
           return new StmtNode();
@@ -3497,7 +3497,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           CompoundNode* result = new CompoundNode();
           std::vector<StmtNode*> stmts;
 
-          while (token[index].value._operator != Token::OperatorType::r_brace &&
+          while (token[index].value.oper != Token::OperatorType::r_brace &&
                  index < length) {
             StmtNode* stmt = ParseStmt(token, length, index);
             if (stmt == nullptr)
@@ -3508,7 +3508,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           }
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::r_brace)
+              token[index].value.oper != Token::OperatorType::r_brace)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "r_brace not found.");
 
@@ -3521,14 +3521,14 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
         case Token::OperatorType::r_paren:
         case Token::OperatorType::r_brace:
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::r_brace)
+              token[index].value.oper != Token::OperatorType::r_brace)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "Unexpected r_brace.");
 
         default:
           StmtNode* stmt_node = ParseExpr(token, length, index);
           if (token[index].type == Token::Type::OPERATOR ||
-              token[index].value._operator == Token::OperatorType::semi)
+              token[index].value.oper == Token::OperatorType::semi)
             index++;
           return stmt_node;
       }
@@ -3540,12 +3540,12 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           IfNode* result = new IfNode();
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::l_paren)
+              token[index].value.oper != Token::OperatorType::l_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "l_paren not found.");
           ExprNode* condition = ParseExpr(token, length, ++index);
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::r_paren)
+              token[index].value.oper != Token::OperatorType::r_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "r_paren not found.");
 
@@ -3565,12 +3565,12 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           WhileNode* result = new WhileNode();
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::l_paren)
+              token[index].value.oper != Token::OperatorType::l_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "While condition l_paren not found.");
           ExprNode* condition = ParseExpr(token, length, ++index);
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::r_paren)
+              token[index].value.oper != Token::OperatorType::r_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "While condition r_paren not found.");
 
@@ -3589,12 +3589,12 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
                           "Do-while while keyword not found.");
           index++;
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::l_paren)
+              token[index].value.oper != Token::OperatorType::l_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "Do-while condition l_paren not found.");
           ExprNode* condition = ParseExpr(token, length, ++index);
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::r_paren)
+              token[index].value.oper != Token::OperatorType::r_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "Do-while condition r_paren not found.");
 
@@ -3608,34 +3608,34 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           ForNode* result = new ForNode();
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::l_paren)
+              token[index].value.oper != Token::OperatorType::l_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "For start l_paren not found.");
           ExprNode* start = nullptr;
           if (token[index + 1].type != Token::Type::OPERATOR ||
-              token[index + 1].value._operator != Token::OperatorType::semi)
+              token[index + 1].value.oper != Token::OperatorType::semi)
             start = ParseExpr(token, length, ++index);
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::semi)
+              token[index].value.oper != Token::OperatorType::semi)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "For start semi not found.");
           ExprNode* condition = nullptr;
           if (token[index + 1].type != Token::Type::OPERATOR ||
-              token[index + 1].value._operator != Token::OperatorType::semi)
+              token[index + 1].value.oper != Token::OperatorType::semi)
             condition = ParseExpr(token, length, ++index);
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::semi)
+              token[index].value.oper != Token::OperatorType::semi)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "For condition semi not found.");
           ExprNode* end = nullptr;
           if (token[index + 1].type != Token::Type::OPERATOR ||
-              token[index + 1].value._operator != Token::OperatorType::semi)
+              token[index + 1].value.oper != Token::OperatorType::semi)
             end = ParseExpr(token, length, ++index);
 
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::r_paren)
+              token[index].value.oper != Token::OperatorType::r_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "For end r_paren not found.");
 
@@ -3661,17 +3661,17 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
         case Token::KeywordType::Switch: {
           index++;
           if (token[index].type == Token::Type::OPERATOR &&
-              token[index].value._operator == Token::OperatorType::l_paren)
+              token[index].value.oper == Token::OperatorType::l_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "switch l_paren not found.");
           ExprNode* expr = ParseExpr(token, length, ++index);
           if (token[index].type == Token::Type::OPERATOR &&
-              token[index].value._operator == Token::OperatorType::r_paren)
+              token[index].value.oper == Token::OperatorType::r_paren)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "switch r_paren not found.");
           index++;
           if (token[index].type == Token::Type::OPERATOR &&
-              token[index].value._operator == Token::OperatorType::l_brace)
+              token[index].value.oper == Token::OperatorType::l_brace)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "switch l_brace not found.");
           index++;
@@ -3691,7 +3691,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "case expr is nullptr.");
           if (token[temp_index].type == Token::Type::OPERATOR &&
-              token[temp_index].value._operator == Token::OperatorType::colon)
+              token[temp_index].value.oper == Token::OperatorType::colon)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "case colon not found.");
           temp_index++;
@@ -3699,7 +3699,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           std::vector<StmtNode*> stmts;
           do {
             if (token[temp_index].type == Token::Type::OPERATOR &&
-                token[temp_index].value._operator ==
+                token[temp_index].value.oper ==
                     Token::OperatorType::r_brace) {
               is_end = true;
               break;
@@ -3729,7 +3729,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           index++;
           CaseNode* result = new CaseNode();
           if (token[index].type == Token::Type::OPERATOR &&
-              token[index].value._operator == Token::OperatorType::colon)
+              token[index].value.oper == Token::OperatorType::colon)
             EXIT_COMPILER("Parser::ParseStmt(Token*,std::size_t,std::size_t&)",
                           "default colon not found.");
           index++;
@@ -3750,7 +3750,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
         case Token::KeywordType::Break:
           index++;
           if (token[index].type == Token::Type::OPERATOR &&
-              token[index].value._operator == Token::OperatorType::semi)
+              token[index].value.oper == Token::OperatorType::semi)
             index++;
           return new BreakNode();
 
@@ -3759,7 +3759,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
           ReturnNode* result = new ReturnNode();
 
           if (token[index].type == Token::Type::OPERATOR ||
-              token[index].value._operator == Token::OperatorType::semi) {
+              token[index].value.oper == Token::OperatorType::semi) {
             result->SetReturnNode(nullptr);
             index++;
             return result;
@@ -3795,7 +3795,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
                           token[index].value.identifier.length));
           index++;
           while (token[index].type == Token::Type::OPERATOR &&
-                 token[index].value._operator == Token::OperatorType::comma) {
+                 token[index].value.oper == Token::OperatorType::comma) {
             index++;
             if (token[index].type != Token::Type::IDENTIFIER)
               EXIT_COMPILER(
@@ -3821,7 +3821,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
                             token[index].value.identifier.length));
             index++;
             while (token[index].type == Token::Type::OPERATOR &&
-                   token[index].value._operator == Token::OperatorType::comma) {
+                   token[index].value.oper == Token::OperatorType::comma) {
               index++;
               if (token[index].type != Token::Type::IDENTIFIER)
                 EXIT_COMPILER(
@@ -3869,7 +3869,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
     default:
       if (token[index].type == Token::Type::IDENTIFIER &&
           token[index + 1].type == Token::Type::OPERATOR &&
-          token[index + 1].value._operator == Token::OperatorType::colon) {
+          token[index + 1].value.oper == Token::OperatorType::colon) {
         // std::cout << "Label Parse" << std::endl;
         LabelNode* result = new LabelNode();
         IdentifierNode identifier_node;
@@ -3880,7 +3880,7 @@ StmtNode* Parser::ParseStmt(Token* token, std::size_t length,
       }
       StmtNode* stmt_node = ParseExpr(token, length, index);
       if (token[index].type == Token::Type::OPERATOR ||
-          token[index].value._operator == Token::OperatorType::semi)
+          token[index].value.oper == Token::OperatorType::semi)
         index++;
       return stmt_node;
   }
@@ -3905,7 +3905,7 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, std::size_t length,
                   "stat is nullptr or not a function.");
 
   if (token[index].type == Token::Type::OPERATOR &&
-      token[index].value._operator == Token::OperatorType::semi) {
+      token[index].value.oper == Token::OperatorType::semi) {
     func_decl = new FuncDeclNode();
     func_decl->SetFuncDeclNode(type, dynamic_cast<FuncNode*>(stat), nullptr);
     index++;
@@ -3913,7 +3913,7 @@ FuncDeclNode* Parser::ParseFuncDecl(Token* token, std::size_t length,
   }
 
   if (token[index].type != Token::Type::OPERATOR ||
-      token[index].value._operator != Token::OperatorType::l_brace)
+      token[index].value.oper != Token::OperatorType::l_brace)
     EXIT_COMPILER("Parser::ParseFuncDecl(Token*,std::size_t,std::size_t&)",
                   "l_brace not found.");
 
@@ -3953,7 +3953,7 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
                   "name is not an identifier.");
 
   if (token[index].type != Token::Type::OPERATOR ||
-      token[index].value._operator != Token::OperatorType::l_brace)
+      token[index].value.oper != Token::OperatorType::l_brace)
     EXIT_COMPILER("Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
                   "l_brace not found.");
 
@@ -3966,7 +3966,7 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
 
   while (index < length &&
          (token[index].type != Token::Type::OPERATOR ||
-          token[index].value._operator != Token::OperatorType::r_brace)) {
+          token[index].value.oper != Token::OperatorType::r_brace)) {
     if (IsDecl(token, length, index)) {
       if (IsFuncDecl(token, length, index)) {
         func_decls.push_back(ParseFuncDecl(token, length, index));
@@ -3975,7 +3975,7 @@ ClassDeclNode* Parser::ParseClassDecl(Token* token, std::size_t length,
       } else {
         var_decls.push_back(
             dynamic_cast<VarDeclNode*>(ParseVarDecl(token, length, index)));
-        if (token[index].value._operator != Token::OperatorType::semi)
+        if (token[index].value.oper != Token::OperatorType::semi)
           EXIT_COMPILER(
               "Parser::ParseClassDecl(Token*,std::size_t,std::size_t&)",
               "semi not found.");
@@ -4016,17 +4016,17 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
     EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
                   "name is nullptr.");
 
-  /*switch (token[index].value._operator) {
+  /*switch (token[index].value.oper) {
     case Token::OperatorType::l_square: {
       ExprNode* size = ParseExpr(token, length, ++index);
       if (token[index].type != Token::Type::OPERATOR ||
-          token[index].value._operator != Token::OperatorType::r_square)
+          token[index].value.oper != Token::OperatorType::r_square)
         EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
                       "r_square not found.");
       if (token[index].type == Token::Type::OPERATOR &&
-          token[index].value._operator == Token::OperatorType::equal) {
+          token[index].value.oper == Token::OperatorType::equal) {
         if (token[index].type != Token::Type::OPERATOR ||
-            token[index].value._operator != Token::OperatorType::l_brace)
+            token[index].value.oper != Token::OperatorType::l_brace)
           EXIT_COMPILER("Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
                         "l_brace not found.");
 
@@ -4034,10 +4034,10 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
         while (true) {
           values.push_back(ParseExpr(token, length, ++index));
           if (token[index].type == Token::Type::OPERATOR &&
-              token[index].value._operator == Token::OperatorType::r_brace)
+              token[index].value.oper == Token::OperatorType::r_brace)
             break;
           if (token[index].type != Token::Type::OPERATOR ||
-              token[index].value._operator != Token::OperatorType::comma)
+              token[index].value.oper != Token::OperatorType::comma)
             EXIT_COMPILER(
                 "Parser::ParseVarDecl(Token*,std::size_t,std::size_t&)",
                 "comma not found.");
@@ -4073,16 +4073,16 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
 
     ArrayNode* array = dynamic_cast<ArrayNode*>(name);
     array_decl->SetArrayDeclNode(type, array->GetExpr(), array->GetIndex());
-    if (token[index].value._operator == Token::OperatorType::equal) {
+    if (token[index].value.oper == Token::OperatorType::equal) {
       index++;
       if (token[index].type == Token::Type::OPERATOR &&
-          token[index].value._operator == Token::OperatorType::l_brace) {
+          token[index].value.oper == Token::OperatorType::l_brace) {
         std::vector<ExprNode*> values;
         while (true) {
           // Skip the l_brace or comma.
           values.push_back(ParseExprWithoutComma(token, length, ++index));
           if (token[index].type == Token::Type::OPERATOR &&
-              token[index].value._operator == Token::OperatorType::r_brace) {
+              token[index].value.oper == Token::OperatorType::r_brace) {
             index++;
             break;
           }
@@ -4103,7 +4103,7 @@ VarDeclNode* Parser::ParseVarDecl(Token* token, std::size_t length,
                     "var_decl is nullptr.");
 
     var_decl->SetVarDeclNode(type, name);
-    if (token[index].value._operator == Token::OperatorType::equal) {
+    if (token[index].value.oper == Token::OperatorType::equal) {
       index++;
       ExprNode* value = ParseExprWithoutComma(token, length, index);
       var_decl->SetVarDeclNode(type, name, value);
@@ -4145,7 +4145,7 @@ StaticNode* Parser::ParseStatic(Token* token, std::size_t length,
       static_node->SetDecl(
           dynamic_cast<DeclNode*>(ParseVarDecl(token, length, index)));
       if (token[index].type != Token::Type::OPERATOR ||
-          token[index].value._operator != Token::OperatorType::semi) {
+          token[index].value.oper != Token::OperatorType::semi) {
         EXIT_COMPILER("Parser::ParseStatic(Token*,std::size_t,std::size_t&)",
                       "not found semi.");
         return nullptr;
@@ -4177,7 +4177,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
 
   while (state != State::kEnd && index < length) {
     if (token[index].type == Token::Type::OPERATOR) {
-      switch (token[index].value._operator) {
+      switch (token[index].value.oper) {
         case Token::OperatorType::amp:  // &
           if (state == State::kPreOper) {
             UnaryNode* amp_node = new UnaryNode();
@@ -4327,7 +4327,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           break;
         case Token::OperatorType::r_square:  // ]
           if (token[index + 1].type == Token::Type::OPERATOR &&
-              token[index + 1].value._operator == Token::OperatorType::period) {
+              token[index + 1].value.oper == Token::OperatorType::period) {
             // continue
             index++;
           } else {
@@ -4385,13 +4385,13 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
             std::vector<ExprNode*> args;
             index++;
             bool va_flag = false;
-            while (index < length && token[index].value._operator !=
+            while (index < length && token[index].value.oper !=
                                          Token::OperatorType::r_paren) {
               if (token[index].type == Token::Type::OPERATOR &&
-                  token[index].value._operator ==
+                  token[index].value.oper ==
                       Token::OperatorType::ellipsis &&
                   token[index + 1].type == Token::Type::OPERATOR &&
-                  token[index + 1].value._operator ==
+                  token[index + 1].value.oper ==
                       Token::OperatorType::r_paren) {
                 va_flag = true;
                 index++;
@@ -4399,10 +4399,10 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               }
               args.push_back(ParseExprWithoutComma(token, length, index));
               if (token[index].type == Token::Type::OPERATOR &&
-                  token[index].value._operator == Token::OperatorType::comma) {
+                  token[index].value.oper == Token::OperatorType::comma) {
                 index++;
               } else if (token[index].type == Token::Type::OPERATOR &&
-                         token[index].value._operator ==
+                         token[index].value.oper ==
                              Token::OperatorType::r_paren) {
                 break;
               } else {
@@ -4509,13 +4509,13 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               name_token.value.identifier.length +=
                   token[index].value.identifier.length + 2;
               if (token[index + 1].type != Token::Type::OPERATOR ||
-                  (token[index + 1].value._operator !=
+                  (token[index + 1].value.oper !=
                        Token::OperatorType::coloncolon &&
-                   token[index + 1].value._operator !=
+                   token[index + 1].value.oper !=
                        Token::OperatorType::arrow &&
-                   token[index + 1].value._operator !=
+                   token[index + 1].value.oper !=
                        Token::OperatorType::periodstar &&
-                   token[index + 1].value._operator !=
+                   token[index + 1].value.oper !=
                        Token::OperatorType::arrowstar))
                 state = State::kPostOper;
               index++;
@@ -4557,7 +4557,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
           }
           if (token[index].type != Token::Type::OPERATOR ||
 
-              token[index].value._operator != Token::OperatorType::period)
+              token[index].value.oper != Token::OperatorType::period)
             state = State::kPostOper;
           /*} else {
             EXIT_COMPILER(
@@ -4572,7 +4572,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
                 "ellipsis isn't pre_oper node.");
           if(main_expr==NULL||main_expr->GetType()!=StmtNode::StmtType::kFunc)EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
                 "main expr isn't func node.");
-          if(token[index+1].type!=Token::Type::OPERATOR||token[index+1].value._operator!=Token::OperatorType::r_paren)EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
+          if(token[index+1].type!=Token::Type::OPERATOR||token[index+1].value.oper!=Token::OperatorType::r_paren)EXIT_COMPILER("Parser::ParsePrimaryExpr(Token*,std::size_t,std::size_t&)",
                 "Next token isn't r_paren.");
           dynamic_cast<FuncNode*>(main_expr)->EnableVaFlag();
           index++;*/
@@ -4602,15 +4602,15 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
               }
             }
             if (token[index + 1].type != Token::Type::OPERATOR ||
-                (token[index + 1].value._operator !=
+                (token[index + 1].value.oper !=
                      Token::OperatorType::coloncolon &&
-                 token[index + 1].value._operator !=
+                 token[index + 1].value.oper !=
                      Token::OperatorType::arrow &&
-                 token[index + 1].value._operator !=
+                 token[index + 1].value.oper !=
                      Token::OperatorType::periodstar &&
-                 token[index + 1].value._operator !=
+                 token[index + 1].value.oper !=
                      Token::OperatorType::arrowstar &&
-                 token[index + 1].value._operator !=
+                 token[index + 1].value.oper !=
                      Token::OperatorType::period))
               state = State::kPostOper;
           } else {
@@ -4651,7 +4651,7 @@ ExprNode* Parser::ParsePrimaryExpr(Token* token, std::size_t length,
         main_expr = identifier_node;
       }
       if (token[index + 1].type != Token::Type::OPERATOR ||
-          (token[index + 1].value._operator != Token::OperatorType::period))
+          (token[index + 1].value.oper != Token::OperatorType::period))
         state = State::kPostOper;
       index++;
     } else if (token[index].type == Token::Type::NUMBER ||
@@ -4770,7 +4770,7 @@ ExprNode* Parser::ParseBinaryExpr(Token* token, std::size_t length,
           "Parser::ParseBinaryExpr(Token*,std::size_t,std::size_t&,ExprNode*,"
           "unsigned int)",
           "Unexpected code.");
-    switch (token[index].value._operator) {
+    switch (token[index].value.oper) {
         /*case Token::OperatorType::period: {
           BinaryNode* period_node = new BinaryNode();
           index++;
@@ -5155,7 +5155,7 @@ ExprNode* Parser::ParseBinaryExprWithoutComma(Token* token, std::size_t length,
           "Parser::ParseBinaryExprWithoutComma(Token*,std::size_t,std::size_t&,"
           "ExprNode*,unsigned int)",
           "Unexpected code.");
-    switch (token[index].value._operator) {
+    switch (token[index].value.oper) {
         /*case Token::OperatorType::periodstar: {
           BinaryNode* periodstar_node = new BinaryNode();
           index++;
@@ -5504,7 +5504,7 @@ ExprNode* Parser::ParseBinaryExprWithoutComma(Token* token, std::size_t length,
 unsigned int Parser::GetPriority(Token token) {
   TRACE_FUNCTION;
   if (token.type == Token::Type::OPERATOR) {
-    switch (token.value._operator) {
+    switch (token.value.oper) {
       /*case Token::OperatorType::periodstar:
       case Token::OperatorType::arrowstar:
         return 14;*/

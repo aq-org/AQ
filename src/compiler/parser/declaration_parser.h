@@ -48,12 +48,15 @@ class Parser::DeclarationParser {
                                   std::size_t& index);
 
  private:
+  // Returns true if the statement is a variable declaration.
   static bool HasTypeBeforeExpression(Token* token, std::size_t length,
                                       std::size_t index);
 
+  // Returns true if the statement is a custom type variable declaration.
   static bool HasCustomTypeBeforeExpression(Token* token, std::size_t length,
                                             std::size_t index);
 
+  // Parses the array declaration. Returns the array declaration.
   static Ast::ArrayDeclaration* ParseArrayDeclaration(Ast::Type* type,
                                                       Ast::Expression* name,
                                                       Token* token,

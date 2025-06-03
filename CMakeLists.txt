@@ -4,14 +4,14 @@
 
 cmake_minimum_required(VERSION 3.10)
 project(AQ C CXX)
-# enable_testing()
 
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_C_COMPILER "gcc")
 
 include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/src)
 
-set(COMPILER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/compiler.cc)
+set(COMPILER_SOURCES ${PROJECT_SOURCE_DIR}/src/compiler/compiler.cc ${PROJECT_SOURCE_DIR}/src/compiler/ast/ast.cc ${PROJECT_SOURCE_DIR}/src/compiler/ast/type.cc ${PROJECT_SOURCE_DIR}/src/compiler/lexer/lexer.cc ${PROJECT_SOURCE_DIR}/src/compiler/logging/logging.cc ${PROJECT_SOURCE_DIR}/src/compiler/parser/parser.cc ${PROJECT_SOURCE_DIR}/src/compiler/parser/declaration_parser.cc ${PROJECT_SOURCE_DIR}/src/compiler/parser/expression_parser.cc ${PROJECT_SOURCE_DIR}/src/compiler/token/token.cc ${PROJECT_SOURCE_DIR}/src/compiler/token/tokenmap.cc)
 set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
 
 add_executable(aq_compiler ${COMPILER_SOURCES})

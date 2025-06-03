@@ -154,7 +154,7 @@ struct Token {
     ValueStr number;
     KeywordType keyword;
     ValueStr identifier;
-    OperatorType _operator;
+    OperatorType oper;
     char character;
     std::string* string;
   };
@@ -177,12 +177,10 @@ struct Token {
 
   static std::string GetOperatorTypeString(Token::OperatorType op);
 
-  friend std::ostream& operator<<(std::ostream& os, Token& token);
-
   // Returns true if the token is an operator and the token's value equals to
   // |oper|.
   bool operator==(const OperatorType& oper) const {
-    return type == Type::OPERATOR && value._operator == oper;
+    return type == Type::OPERATOR && value.oper == oper;
   }
 
   // Returns true if the token is a keyword and the token's value equals to

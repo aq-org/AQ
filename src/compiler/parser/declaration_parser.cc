@@ -121,7 +121,7 @@ Ast::Class* Parser::DeclarationParser::ParseClassDeclaration(
         sub_classes.push_back(ParseClassDeclaration(token, length, index));
       } else {
         members.push_back(ParseVariableDeclaration(token, length, index));
-        if (token[index].value._operator != Token::OperatorType::semi) {
+        if (token[index].value.oper != Token::OperatorType::semi) {
           LOGGING_WARNING("Expected ';', but not found.");
         } else {
           index++;
@@ -155,7 +155,7 @@ Ast::Variable* Parser::DeclarationParser::ParseVariableDeclaration(
   if (name->GetStatementType() == Ast::Statement::StatementType::kArray) {
     return ParseArrayDeclaration(type, name, token, length, index);
   } else {
-    if (token[index].value._operator == Token::OperatorType::equal) {
+    if (token[index].value.oper == Token::OperatorType::equal) {
       return new Ast::Variable(type, name,
                                ExpressionParser::ParseExpressionWithoutComma(
                                    token, length, ++index));
@@ -275,10 +275,10 @@ Ast::ArrayDeclaration* Parser::DeclarationParser::ParseArrayDeclaration(
   Ast::Array* array = dynamic_cast<Ast::Array*>(name);
   if (array == nullptr) LOGGING_ERROR("name is not an array.");
 
-  if (token[index].value._operator == Token::OperatorType::equal) {
+  if (token[index].value.oper == Token::OperatorType::equal) {
     index++;
     if (token[index].type == Token::Type::OPERATOR &&
-        token[index].value._operator == Token::OperatorType::l_brace) {
+        token[index].value.oper == Token::OperatorType::l_brace) {
       std::vector<Ast::Expression*> values;
       while (true) {
         // Skip the l_brace or comma.

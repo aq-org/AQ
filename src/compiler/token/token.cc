@@ -285,35 +285,5 @@ std::string Token::GetOperatorTypeString(Token::OperatorType op) {
   }
 }
 
-std::ostream& Token::operator<<(std::ostream& os, Token& token) {
-  os << "Type: " << token.GetTokenTypeString(token.type) << ", Value: ";
-  switch (token.type) {
-    case Token::Type::KEYWORD:
-      os << token.GetKeywordTypeString(token.value.keyword);
-      break;
-    case Token::Type::IDENTIFIER:
-      os << std::string(token.value.identifier.location,
-                        token.value.identifier.length);
-      break;
-    case Token::Type::OPERATOR:
-      os << token.GetOperatorTypeString(token.value._operator);
-      break;
-    case Token::Type::NUMBER:
-      os << std::string(token.value.number.location, token.value.number.length);
-      break;
-    case Token::Type::CHARACTER:
-      os << token.value.character;
-      break;
-    case Token::Type::STRING:
-      os << token.value.string;
-      break;
-    default:
-      LOGGING_WARNING("Unknown token type: " +
-                      std::to_string(static_cast<int>(token.type)));
-      os << "N/A";
-      break;
-  }
-  return os;
-}
 }  // namespace Compiler
 }  // namespace Aq

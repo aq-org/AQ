@@ -259,7 +259,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
                             token[index].value.identifier.length));
             index++;
             while (token[index].type == Token::Type::OPERATOR &&
-                   token[index].value._operator == Token::OperatorType::comma) {
+                   token[index].value.oper == Token::OperatorType::comma) {
               index++;
               if (token[index].type != Token::Type::IDENTIFIER)
                 LOGGING_ERROR("Unexpected import identifier.");
@@ -281,7 +281,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
                               token[index].value.identifier.length));
               index++;
               while (token[index].type == Token::Type::OPERATOR &&
-                     token[index].value._operator == Token::OperatorType::comma)
+                     token[index].value.oper == Token::OperatorType::comma)
           { index++; if (token[index].type != Token::Type::IDENTIFIER)
                   LOGGING_ERROR("Unexpected import alias.");
                 alias_list.push_back(
@@ -323,7 +323,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
     default:
       if (token[index].type == Token::Type::IDENTIFIER &&
           token[index + 1].type == Token::Type::OPERATOR &&
-          token[index + 1].value._operator == Token::OperatorType::colon) {
+          token[index + 1].value.oper == Token::OperatorType::colon) {
         Ast::Identifier identifier_node(token[index]);
         Ast::Label* result = new Ast::Label(identifier_node);
         if (!(token[index] == Token::OperatorType::semi)) {
@@ -368,7 +368,7 @@ Ast::Declaration* Parser::ParseDeclaration(Token* token, std::size_t length,
 Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
                                                    std::size_t length,
                                                    std::size_t& index) {
-  switch (token[index].value._operator) {
+  switch (token[index].value.oper) {
     // Null statement.
     case Token::OperatorType::semi:
       index++;

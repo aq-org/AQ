@@ -58,7 +58,7 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpression(
   while (index < length && GetPriority(token[index]) > priority) {
     if (!(token[index] == Token::Type::OPERATOR))
       LOGGING_ERROR( "Unexpected code.");
-    switch (token[index].value._operator) {
+    switch (token[index].value.oper) {
       case Token::OperatorType::comma: {
         index++;
         expr = new Ast::Binary(
@@ -89,7 +89,7 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpressionWithoutComma(
   while (index < length && GetPriority(token[index]) > priority) {
     if (!(token[index] == Token::Type::OPERATOR))
       LOGGING_ERROR( "Unexpected code.");
-    switch (token[index].value._operator) {
+    switch (token[index].value.oper) {
       case Token::OperatorType::star: {
         index++;
         expr = new Ast::Binary(
@@ -372,7 +372,7 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpressionWithoutComma(
 
 unsigned int Parser::ExpressionParser::GetPriority(Token token) {
   if (token == Token::Type::OPERATOR) {
-    switch (token.value._operator) {
+    switch (token.value.oper) {
       case Token::OperatorType::star:
       case Token::OperatorType::slash:
       case Token::OperatorType::percent:
@@ -438,7 +438,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
 
   while (state != State::kEnd && index < length) {
     if (token[index] == Token::Type::OPERATOR) {
-      switch (token[index].value._operator) {
+      switch (token[index].value.oper) {
         case Token::OperatorType::plus:  // +
           if (state == State::kPreOper) {
             // The plus expression has no effect, skip it.
@@ -684,7 +684,7 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
 
   // Parses the arguments of the function call.
   while (index < length &&
-         token[index].value._operator != Token::OperatorType::r_paren) {
+         token[index].value.oper != Token::OperatorType::r_paren) {
     // Handles variable parameters.
     if (token[index] == Token::OperatorType::ellipsis) {
       is_variadic = true;

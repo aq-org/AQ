@@ -203,7 +203,7 @@ Type* Type::CreateOperatorDerivedType(Type* sub_type, Token* token,
                                       std::size_t length, std::size_t& index) {
   if (sub_type == nullptr) LOGGING_ERROR("type is nullptr.");
   Type* type = sub_type;
-  switch (token[index].value._operator) {
+  switch (token[index].value.oper) {
     case Token::OperatorType::amp: {
       ReferenceType* reference_type = new ReferenceType();
       reference_type->SetSubType(sub_type);
@@ -229,7 +229,7 @@ Type* Type::CreateClassDerivedType(Token* token, std::size_t length,
   // If the next token is a period, it means that the class is in a
   // namespace or a scope.
   while (index + 1 < length && token[index + 1].type == Token::Type::OPERATOR &&
-         token[index + 1].value._operator == Token::OperatorType::period) {
+         token[index + 1].value.oper == Token::OperatorType::period) {
     index += 2;
     if (token[index].type != Token::Type::IDENTIFIER)
       LOGGING_ERROR("Unexpected scope name.");

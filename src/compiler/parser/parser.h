@@ -32,9 +32,11 @@ class Parser {
   static Ast::Statement* ParseStatement(Token* token, std::size_t length,
                                         std::size_t& index);
 
+  // Parses the declaration and returns the declaration.
   static Ast::Declaration* ParseDeclaration(Token* token, std::size_t length,
                                             std::size_t& index);
 
+  // Parses the statement with operator. Returns the statement.
   static Ast::Statement* ParseStatementWithOperator(Token* token,
                                                     std::size_t length,
                                                     std::size_t& index);

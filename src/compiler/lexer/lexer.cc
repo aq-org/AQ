@@ -601,12 +601,12 @@ void Lexer::HandleFinalToken(Token& token, char*& current_location) {
       break;
 
     case Token::Type::OPERATOR:
-      token.value._operator =
+      token.value.oper =
           token_map_.GetOperatorValue(std::string(location, length));
-      while (token.value._operator == Token::OperatorType::NONE && length > 1) {
+      while (token.value.oper == Token::OperatorType::NONE && length > 1) {
         length--;
         code_ptr_--;
-        token.value._operator =
+        token.value.oper =
             token_map_.GetOperatorValue(std::string(location, length));
       }
       break;
