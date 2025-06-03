@@ -4,7 +4,6 @@
 
 #include "compiler/token/token.h"
 
-#include <iostream>
 #include <string>
 
 #include "compiler/logging/logging.h"
