@@ -17,8 +17,8 @@ namespace Compiler {
 
 bool Parser::DeclarationParser::IsDeclaration(Token* token, std::size_t length,
                                               std::size_t index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   return HasTypeBeforeExpression(token, length, index) ||
          HasCustomTypeBeforeExpression(token, length, index);
@@ -27,8 +27,8 @@ bool Parser::DeclarationParser::IsDeclaration(Token* token, std::size_t length,
 bool Parser::DeclarationParser::IsFunctionDeclaration(Token* token,
                                                       std::size_t length,
                                                       std::size_t index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   for (std::size_t i = index; i < length; i++) {
     if (token[i].type == Token::Type::IDENTIFIER) {
@@ -50,8 +50,8 @@ bool Parser::DeclarationParser::IsFunctionDeclaration(Token* token,
 bool Parser::DeclarationParser::IsClassDeclaration(Token* token,
                                                    std::size_t length,
                                                    std::size_t index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   if (token[index] == Token::KeywordType::Class ||
       token[index] == Token::KeywordType::Struct)
@@ -62,20 +62,21 @@ bool Parser::DeclarationParser::IsClassDeclaration(Token* token,
 
 Ast::FunctionDeclaration* Parser::DeclarationParser::ParseFunctionDeclaration(
     Token* token, std::size_t length, std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   Ast::Type* return_type = Ast::Type::CreateType(token, length, index);
   Ast::Function* statement = dynamic_cast<Ast::Function*>(
       Parser::ExpressionParser::ParsePrimaryExpression(token, length, index));
 
-  if (statement == nullptr) LOGGING_ERROR("Statement isn't a function.");
+  if (statement == nullptr) INTERNAL_ERROR("Statement isn't a function.");
 
   // DEPRECATED: Keep this implementation for adaptation to previous versions.
   // In principle, it will no longer be used.
   if (token[index] == Token::OperatorType::semi) {
     index++;
-    LOGGING_WARNING("The function declaration has been deprecated.");
+    LOGGING_WARNING(
+        "The function statement without function body has been deprecated.");
     return new Ast::FunctionDeclaration(return_type, statement, nullptr);
   }
 
@@ -84,24 +85,24 @@ Ast::FunctionDeclaration* Parser::DeclarationParser::ParseFunctionDeclaration(
 
   Ast::Compound* body =
       dynamic_cast<Ast::Compound*>(ParseStatement(token, length, index));
-  if (body == nullptr) LOGGING_ERROR("The function body has error.");
+  if (body == nullptr) INTERNAL_ERROR("The function body has error.");
 
   return new Ast::FunctionDeclaration(return_type, statement, body);
 }
 
 Ast::Class* Parser::DeclarationParser::ParseClassDeclaration(
     Token* token, std::size_t length, std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
   if ((!(token[index] == Token::KeywordType::Class) &&
        !(token[index] == Token::KeywordType::Struct)))
-    LOGGING_ERROR("Class or Struct not found.");
+    INTERNAL_ERROR("Class or Struct not found.");
 
   index++;
 
   Ast::Identifier* name = dynamic_cast<Ast::Identifier*>(
       Parser::ExpressionParser::ParsePrimaryExpression(token, length, index));
-  if (name == nullptr) LOGGING_ERROR("name is not an identifier.");
+  if (name == nullptr) INTERNAL_ERROR("name is not an identifier.");
 
   if (!(token[index] == Token::OperatorType::l_brace))
     LOGGING_ERROR("Expected '{', but not found. (Class body start).");
@@ -138,21 +139,20 @@ Ast::Class* Parser::DeclarationParser::ParseClassDeclaration(
   index++;
 
   return new Ast::Class(*name, static_members, members, methods, sub_classes);
-  ;
 }
 
 Ast::Variable* Parser::DeclarationParser::ParseVariableDeclaration(
     Token* token, std::size_t length, std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   Ast::Type* type = Ast::Type::CreateType(token, length, index);
-  if (type == nullptr) LOGGING_ERROR("type is nullptr.");
+  if (type == nullptr) INTERNAL_ERROR("type is nullptr.");
   Ast::Expression* name =
       ExpressionParser::ParsePrimaryExpression(token, length, index);
-  if (name == nullptr) LOGGING_ERROR("name is nullptr.");
+  if (name == nullptr) INTERNAL_ERROR("name is nullptr.");
 
-  if (name->GetStatementType() == Ast::Statement::StatementType::kArray) {
+  if (*name == Ast::Statement::StatementType::kArray) {
     return ParseArrayDeclaration(type, name, token, length, index);
   } else {
     if (token[index].value.oper == Token::OperatorType::equal) {
@@ -169,14 +169,14 @@ Ast::Variable* Parser::DeclarationParser::ParseVariableDeclaration(
 Ast::Static* Parser::DeclarationParser::ParseStatic(Token* token,
                                                     std::size_t length,
                                                     std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   if (token[index].type == Token::Type::KEYWORD &&
       token[index] == Token::KeywordType::Static) {
     index++;
   } else {
-    LOGGING_ERROR("Unexpected keyword.");
+    INTERNAL_ERROR("Unexpected keyword.");
   }
 
   if (IsDeclaration(token, length, index)) {
@@ -198,15 +198,15 @@ Ast::Static* Parser::DeclarationParser::ParseStatic(Token* token,
     }
   }
 
-  LOGGING_ERROR("Unexpected code.");
+  INTERNAL_ERROR("Unexpected code.");
   return nullptr;
 }
 
 bool Parser::DeclarationParser::HasTypeBeforeExpression(Token* token,
                                                         std::size_t length,
                                                         std::size_t index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   if (token[index] == Token::KeywordType::Auto ||
       token[index] == Token::KeywordType::Bool ||
@@ -243,8 +243,8 @@ bool Parser::DeclarationParser::HasTypeBeforeExpression(Token* token,
 
 bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
     Token* token, std::size_t length, std::size_t index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   // Skips the scopes if has.
   while (index < length) {
@@ -270,10 +270,10 @@ bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
 Ast::ArrayDeclaration* Parser::DeclarationParser::ParseArrayDeclaration(
     Ast::Type* type, Ast::Expression* name, Token* token, std::size_t length,
     std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
   Ast::Array* array = dynamic_cast<Ast::Array*>(name);
-  if (array == nullptr) LOGGING_ERROR("name is not an array.");
+  if (array == nullptr) INTERNAL_ERROR("name is not an array.");
 
   if (token[index].value.oper == Token::OperatorType::equal) {
     index++;

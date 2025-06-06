@@ -7,9 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "compiler/logging/logging.h"
 #include "compiler/token/token.h"
-
 
 namespace Aq {
 namespace Compiler {
@@ -136,19 +134,15 @@ Token::KeywordType TokenMap::GetKeywordValue(std::string keyword) {
   auto it = keyword_map.find(keyword);
   if (it != keyword_map.end()) {
     return it->second;
-  } else {
-    LOGGING_ERROR( "Unknown keyword: " + keyword);
-    return Token::KeywordType::NONE;
   }
+  return Token::KeywordType::NONE;
 }
 Token::OperatorType TokenMap::GetOperatorValue(std::string oper) {
   auto it = operator_map.find(oper);
   if (it != operator_map.end()) {
     return it->second;
-  } else {
-    LOGGING_ERROR( "Unknown operator: " + oper);
-    return Token::OperatorType::NONE;
   }
+  return Token::OperatorType::NONE;
 }
 
 }  // namespace Compiler

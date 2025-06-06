@@ -14,8 +14,8 @@ namespace Compiler {
 namespace Ast {
 
 Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   Type* type = nullptr;
 
@@ -38,7 +38,7 @@ Type* Type::CreateType(Token* token, std::size_t length, std::size_t& index) {
         return type;
       }
     }
-    if (type == nullptr) LOGGING_ERROR("Type is nullptr.");
+    if (type == nullptr) INTERNAL_ERROR("Type is nullptr.");
     index++;
   }
 
@@ -56,7 +56,7 @@ std::vector<uint8_t> Type::GetVmType() {
   Type* type = this;
   std::vector<uint8_t> vm_type;
   if (type->GetTypeCategory() == Type::TypeCategory::NONE)
-    LOGGING_ERROR("Unexpected code.");
+    INTERNAL_ERROR("Unexpected code.");
 
   bool is_end = false;
   while (!is_end) {
@@ -93,7 +93,7 @@ std::vector<uint8_t> Type::GetVmType() {
 
         case Type::BaseType::kFunction:
         default:
-          LOGGING_ERROR("This type is not currently supported.");
+          INTERNAL_ERROR("This type is not currently supported.");
           break;
       }
     } else if (type->GetTypeCategory() == Type::TypeCategory::kArray) {
@@ -185,15 +185,15 @@ Type* Type::CreateDerivedType(Type* sub_type, Token* token, std::size_t length,
 Type* Type::CreateConstDerivedType(Type* sub_type, Token* token,
                                    std::size_t length, std::size_t& index) {
   if (!(*token == Token::KeywordType::Const))
-    LOGGING_ERROR("Unexpected keyword. Expected 'const' keyword.");
+    INTERNAL_ERROR("Unexpected keyword. Expected 'const' keyword.");
 
   // If it is not a post const type, it is a pre const type.
   if (sub_type == nullptr) sub_type = CreateType(token, length, ++index);
 
   ConstType* const_type = new ConstType();
-  if (const_type == nullptr) LOGGING_ERROR("const_type is nullptr.");
+  if (const_type == nullptr) INTERNAL_ERROR("const_type is nullptr.");
 
-  if (sub_type == nullptr) LOGGING_ERROR("type is nullptr.");
+  if (sub_type == nullptr) INTERNAL_ERROR("type is nullptr.");
 
   const_type->SetSubType(sub_type);
   return const_type;
@@ -201,7 +201,7 @@ Type* Type::CreateConstDerivedType(Type* sub_type, Token* token,
 
 Type* Type::CreateOperatorDerivedType(Type* sub_type, Token* token,
                                       std::size_t length, std::size_t& index) {
-  if (sub_type == nullptr) LOGGING_ERROR("type is nullptr.");
+  if (sub_type == nullptr) INTERNAL_ERROR("type is nullptr.");
   Type* type = sub_type;
   switch (token[index].value.oper) {
     case Token::OperatorType::amp: {
@@ -249,10 +249,10 @@ Type* Type::CreateArrayDerivedType(Type* sub_type, Token* token,
   std::size_t index_temp = index;
   Expression* temp_expr =
       Parser::ParsePrimaryExpression(token, length, index_temp);
-  if (temp_expr == nullptr) LOGGING_ERROR("ParsePrimaryExpr return nullptr.");
+  if (temp_expr == nullptr) INTERNAL_ERROR("ParsePrimaryExpr return nullptr.");
 
   // If the expression is an array, return the array type.
-  if (temp_expr->GetStatementType() == Statement::StatementType::kArray) {
+  if (*temp_expr == Statement::StatementType::kArray) {
     ArrayType* array_type = new ArrayType();
     array_type->SetSubType(
         type, dynamic_cast<Array*>(temp_expr)->GetIndexExpression());

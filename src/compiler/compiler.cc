@@ -13,6 +13,7 @@
 #include "compiler/logging/logging.h"
 #include "compiler/parser/parser.h"
 #include "compiler/token/token.h"
+#include "compiler/generator/generator.h"
 
 
 int main(int argc, char* argv[]) {
@@ -32,8 +33,8 @@ int main(int argc, char* argv[]) {
   Aq::Compiler::Ast::Compound* ast = Aq::Compiler::Parser::Parse(token);
   if (ast == nullptr) Aq::Compiler::LOGGING_ERROR("ast is nullptr.");
 
-  Aq::Compiler::BytecodeGenerator bytecode_generator;
-  bytecode_generator.GenerateBytecode(ast, argv[2]);
+  Aq::Compiler::Generator::Generator generator;
+  generator.Generate(ast, argv[2]);
 
   Aq::Compiler::LOGGING_INFO("Generate Bytecode SUCCESS!");
 

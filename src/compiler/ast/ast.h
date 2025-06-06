@@ -54,6 +54,8 @@ class Statement {
   Statement(const Statement&) = default;
   Statement& operator=(const Statement&) = default;
 
+  bool operator==(const StatementType& type) { return statement_type_ == type; }
+
  protected:
   StatementType statement_type_;
 };
@@ -322,6 +324,7 @@ class Function : public Expression {
   virtual ~Function() = default;
 
   Expression* GetFunctionNameExpression() { return function_name_; }
+  std::string GetFunctionName() { return std::string(*function_name_); }
   std::vector<Expression*> GetParameters() { return parameters_; }
 
   bool IsVariadic() { return is_variadic_; }
@@ -396,6 +399,7 @@ class Variable : public Declaration, public Expression {
 
   Type* GetVariableType() { return variable_type_; }
   Expression* GetVariableNameExpression() { return variable_name_; }
+  std::string GetVariableName() { return std::string(*variable_name_); }
   std::vector<Expression*> GetVariableValue() { return variable_value_; }
 
  protected:
@@ -668,6 +672,15 @@ class Return : public Statement {
  private:
   Expression* expression_ = nullptr;
 };
+
+// Returns true if the type of |statement| is equal to |T|. |T| does not need to
+// carry pointer types. The check is done using typeid.
+template <typename T>
+bool IsOfType(Ast::Statement* statement);
+
+// Casts |statement| to |T| type. Returns the new pointer.
+template <typename T>
+T* Cast(Ast::Statement* statement);
 
 }  // namespace Ast
 }  // namespace Compiler

@@ -41,15 +41,15 @@ Ast::Compound* Parser::Parse(std::vector<Token> token) {
 Ast::Expression* Parser::ParsePrimaryExpression(Token* token,
                                                 std::size_t length,
                                                 std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
   return ExpressionParser::ParsePrimaryExpression(token, length, index);
 }
 
 Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
                                        std::size_t& index) {
-  if (token == nullptr) LOGGING_ERROR("token is nullptr.");
-  if (index >= length) LOGGING_ERROR("index is out of range.");
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   if (DeclarationParser::IsDeclaration(token, length, index)) {
     if (DeclarationParser::IsFunctionDeclaration(token, length, index)) {
@@ -361,7 +361,7 @@ Ast::Declaration* Parser::ParseDeclaration(Token* token, std::size_t length,
     }
   }
 
-  LOGGING_ERROR("Unexpected declaration.");
+  INTERNAL_ERROR("Unexpected declaration.");
   return nullptr;
 }
 

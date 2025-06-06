@@ -19,9 +19,8 @@ int8_t Value::GetByteValue() {
     } else if (value_.value.keyword == Token::KeywordType::False) {
       return false;
     } else {
-      LOGGING_ERROR(
-          "Unexpected keyword type: " +
-              std::to_string(static_cast<int>(value_.value.keyword)));
+      LOGGING_ERROR("Unexpected keyword type: " +
+                    std::to_string(static_cast<int>(value_.value.keyword)));
     }
   }
   return value_.value.character;
@@ -48,9 +47,8 @@ std::size_t Value::GetVmType() {
         value_.value.keyword == Token::KeywordType::False) {
       return 0x01;
     } else {
-      LOGGING_ERROR(
-          "Unexpected keyword type: " +
-              std::to_string(static_cast<int>(value_.value.keyword)));
+      LOGGING_ERROR("Unexpected keyword type: " +
+                    std::to_string(static_cast<int>(value_.value.keyword)));
     }
   }
   if (value_.type == Token::Type::CHARACTER) {
@@ -89,17 +87,31 @@ std::size_t Value::GetVmType() {
   } catch (...) {
   }
 
-  LOGGING_ERROR( "Unexpected value type.");
+  INTERNAL_ERROR("Unexpected value type.");
   return 0x00;
 }
 Expression::operator std::string() {
   // TODO: Implement a proper conversion for Expression.
-  if (statement_type_ == StatementType::kIdentifier)
-    return *dynamic_cast<Identifier*>(this);
+  if (IsOfType<Identifier>(this)) return *Cast<Identifier>(this);
   LOGGING_WARNING(
       "Expression does not have a valid string representation. Returning empty "
       "string.");
   return std::string();
+}
+
+template <typename T>
+bool IsOfType(Ast::Statement* statement) {
+  if (typeid(T) == typeid(*statement)) {
+    return true;
+  }
+  return false;
+}
+
+template <typename T>
+T* Cast(Ast::Statement* statement) {
+  T* result = dynamic_cast<T*>(statement);
+  if (result == nullptr) INTERNAL_ERROR("result is nullptr.");
+  return result;
 }
 
 }  // namespace Ast

@@ -27,8 +27,7 @@ int Lexer::LexToken(Token last_token, Token& return_token) {
 
 LexStart:
   if (current_location > code_end_) {
-    LOGGING_ERROR(
-                   "Memory out of bounds during lexical analysis.");
+    INTERNAL_ERROR("Memory out of bounds during lexical analysis.");
     return -1;
   }
 
@@ -265,8 +264,8 @@ bool Lexer::IsHexEscapeCharacter(char* current_location) {
       return true;
     } else {
       LOGGING_ERROR(
-                     "Invalid hex escape character: 'x' must be followed by a "
-                     "hexadecimal digit.");
+          "Invalid hex escape character: 'x' must be followed by a "
+          "hexadecimal digit.");
     }
   }
   return false;
@@ -373,8 +372,8 @@ void Lexer::LexGeneralEscapeCharacter(Token& token, char*& current_location) {
       break;
     default:
       const char current_escape_str[3] = {'\\', *current_location, '\0'};
-      LOGGING_ERROR( "Unknown escape character '\\" +
-                                       std::string(current_escape_str) + "'.");
+      LOGGING_ERROR("Unknown escape character '\\" +
+                    std::string(current_escape_str) + "'.");
       break;
   }
   current_location++;
@@ -616,9 +615,8 @@ void Lexer::HandleFinalToken(Token& token, char*& current_location) {
       break;
 
     default:
-      LOGGING_ERROR(
-                     "Unknown token type: " +
-                         std::to_string(static_cast<int>(token.type)));
+      INTERNAL_ERROR("Unknown token type: " +
+                     std::to_string(static_cast<int>(token.type)));
       return;
   }
 }
