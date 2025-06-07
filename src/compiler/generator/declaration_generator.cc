@@ -63,10 +63,12 @@ void HandleFunctionDeclaration(Generator& generator,
 
   generator.context.function_context = new FunctionContext();
 
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
 
+  // Gets the function statement and its parameters.
   Ast::Function* statement = declaration->GetFunctionStatement();
-  auto arguments = statement->GetParameters();
+  auto parameters = statement->GetParameters();
   std::vector<Bytecode> code;
 
   // Handles the function name with scopes.
@@ -83,11 +85,11 @@ void HandleFunctionDeclaration(Generator& generator,
     return;
   }
 
-  // Handles function arguments and return value.
-  std::vector<std::size_t> arguments_index;
+  // Handles function parameters and return value.
+  std::vector<std::size_t> parameters_index;
   HandleReturnVariableInHandlingFunction(generator, declaration, scope_name,
-                                         arguments_index);
-  HandleFunctionArguments(generator, declaration, arguments_index, code);
+                                         parameters_index);
+  HandleFunctionArguments(generator, declaration, parameters_index, code);
 
   // Handles function body.
   HandleStatement(generator, declaration->GetFunctionBody(), code);
@@ -96,8 +98,9 @@ void HandleFunctionDeclaration(Generator& generator,
   HandleReturnInHandlingFunction(generator, code);
   HandleGotoInHandlingFunction(generator, current_scope, code);
 
-  AddFunctionIntoList(generator, declaration, arguments_index, code);
+  AddFunctionIntoList(generator, declaration, parameters_index, code);
 
+  // Destroys temporary context.
   scopes.pop_back();
   delete generator.context.function_context;
   generator.context.function_context = nullptr;
@@ -107,8 +110,10 @@ void HandleClassFunctionDeclaration(Generator& generator,
                                     Ast::FunctionDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
+  // Creates temporary context.
   generator.context.function_context = new FunctionContext();
 
+  // Gets the reference of context.
   auto& current_class = generator.context.current_class;
   auto& label_map = generator.context.function_context->label_map;
   auto& scopes = generator.context.scopes;
@@ -129,7 +134,7 @@ void HandleClassFunctionDeclaration(Generator& generator,
   scopes.push_back(scope_name);
   std::size_t current_scope = scopes.size() - 1;
 
-  // Adds the function into class functions map.
+  // Records the creation of the function.
   current_class->GetFunctions().insert(name);
 
   // DEPRECATED: Keep this implementation for adaptation to previous versions.
@@ -141,11 +146,11 @@ void HandleClassFunctionDeclaration(Generator& generator,
     return;
   }
 
-  // Handles function arguments and return value.
-  std::vector<std::size_t> arguments_index;
+  // Handles function parameters and return value.
+  std::vector<std::size_t> parameters_index;
   HandleReturnVariableInHandlingFunction(generator, declaration, scope_name,
-                                         arguments_index);
-  HandleFunctionArguments(generator, declaration, arguments_index, code);
+                                         parameters_index);
+  HandleFunctionArguments(generator, declaration, parameters_index, code);
 
   // Handles function body.
   HandleClassStatement(generator, declaration->GetFunctionBody(), code);
@@ -154,8 +159,9 @@ void HandleClassFunctionDeclaration(Generator& generator,
   HandleReturnInHandlingFunction(generator, code);
   HandleGotoInHandlingFunction(generator, current_scope, code);
 
-  AddClassFunctionIntoList(generator, declaration, arguments_index, code);
+  AddClassFunctionIntoList(generator, declaration, parameters_index, code);
 
+  // Destroys temporary context.
   scopes.pop_back();
   delete generator.context.function_context;
   generator.context.function_context = nullptr;
@@ -165,15 +171,17 @@ void HandleClassConstructor(Generator& generator,
                             Ast::FunctionDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
-  auto arguments_index =
+  auto parameters_index =
       HandleFactoryFunctionInHandlingConstructor(generator, declaration);
+
   HandleConstructorFunctionInHandlingConstructor(generator, declaration,
-                                                 arguments_index);
+                                                 parameters_index);
 }
 
 void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
   auto& classes = generator.context.classes;
   auto& classes_list = generator.classes;
@@ -183,6 +191,7 @@ void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
   std::string class_name =
       scopes.back() + "." + std::string(declaration->GetClassName());
 
+  // Adds the class name into scopes.
   scopes.push_back(class_name);
 
   // Check if there are any errors in the preprocessing.
@@ -202,12 +211,16 @@ void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
 
   HandleMethodsInHandlingClass(generator, declaration);
 
+  // Adds the void default constructor if the class doesn't have a constructor.
   if (functions.find(class_name) == functions.end())
     AddVoidConstructorInHandlingClass(generator, declaration);
 
+  // Adds the class into the class list.
+  classes_list.push_back(*current_class);
+
+  // Destroys temporary context.
   scopes.pop_back();
   current_class = nullptr;
-  classes_list.push_back(*current_class);
 }
 
 std::size_t HandleVariableDeclaration(Generator& generator,
@@ -215,12 +228,14 @@ std::size_t HandleVariableDeclaration(Generator& generator,
                                       std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
+  // Gets the reference of context.
   auto& memory = generator.global_memory;
   auto& scopes = generator.context.scopes;
-  auto& functions = generator.context.functions;
-  auto& global_code = generator.global_code;
   auto& variables = generator.context.variables;
 
+  // For non const types, |return_type| is equivalent to |vm_type|, but for
+  // const types, |vm_type| is the internal variable type excluding the const
+  // wrapper, and |return_type| is the final returned variable type.
   std::vector<uint8_t> vm_type = declaration->GetVariableType()->GetVmType();
   std::vector<uint8_t> return_type = vm_type;
 
@@ -231,101 +246,258 @@ std::size_t HandleVariableDeclaration(Generator& generator,
     vm_type.erase(vm_type.begin());
   }
 
-  bool is_has_value = declaration->GetVariableValue()[0] != nullptr;
-  if (!is_has_value) {
-    std::size_t variable_index = memory.AddWithType(vm_type);
+  std::string variable_name =
+      scopes.back() + "#" + declaration->GetVariableName();
 
-    if (category == Ast::Type::TypeCategory::kClass) {
-      std::string func_name = std::string(*declaration->GetVariableType());
-      for (int64_t i = scopes.size() - 1; i >= -1; i--) {
-        auto iterator = functions.find(func_name);
-        if (i != -1) iterator = functions.find(scopes[i] + "." + func_name);
-        if (iterator != functions.end()) {
-          func_name = func_name;
-          if (i != -1) func_name = scopes[i] + "." + func_name;
-          break;
-        }
-        if (i == -1) LOGGING_ERROR("Function not found.");
-      }
+  std::size_t variable_index = memory.AddWithType(vm_type);
 
-      std::size_t reference_index = memory.Add(1);
+  // If the variable is a class type, it needs to be handled specially.
+  if (category == Ast::Type::TypeCategory::kClass)
+    HandleClassInHandlingVariable(generator, declaration, variable_index);
 
-      global_code.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, variable_index));
+  // If the variable value isn't nullptr, it means that the variable is not
+  // initialized.
+  if (declaration->GetVariableValue()[0] != nullptr) {
+    std::size_t value_index =
+        HandleExpression(generator, declaration->GetVariableValue()[0], code);
 
-      global_code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, reference_index,
-                                     memory.AddByte(0),
-                                     memory.AddString(func_name)));
-
-      // Classes without initialization requires default initialization.
-      global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4,
-                                     reference_index,
-                                     memory.AddString("@constructor"), 1, 0));
+    // If the variable is a reference type, it needs to be handled
+    // specially.
+    if (category == Ast::Type::TypeCategory::kReference) {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, variable_index, value_index));
+    } else {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, variable_index, value_index));
     }
 
-    variables.emplace(scopes.back() + "#" + declaration->GetVariableName(),
-                      variable_index);
-    return variable_index;
-  } else {
+    if (category == Ast::Type::TypeCategory::kConst) {
+      std::size_t const_index = memory.AddWithType(return_type);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, const_index, variable_index));
+      variable_index = const_index;
+    }
+  } else if (category == Ast::Type::TypeCategory::kConst) {
+    // If the variable is a const type and not initialized, it will be
+    // initialized to a default value without const.
+    LOGGING_WARNING(
+        "The const variable declaration without initialization is deprecated "
+        "and it isn't const now.");
+  } else if (category == Ast::Type::TypeCategory::kReference) {
+    // If the variable is a reference type and not initialized, it will meet
+    // undefined behavior.
+    LOGGING_WARNING(
+        "The reference variable declaration without initialization is "
+        "deprecated.");
+  }
+
+  variables[variable_name] = variable_index;
+  return variable_index;
+}
+
+std::size_t HandleGlobalVariableDeclaration(Generator& generator,
+                                            Ast::Variable* declaration,
+                                            std::vector<Bytecode>& code) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& start_class = generator.main_class;
+  auto& variables = start_class.GetVariables();
+  auto& memory = start_class.GetMemory();
+  auto& global_memory = generator.global_memory;
+
+  // For non const types, |return_type| is equivalent to |vm_type|, but for
+  // const types, |vm_type| is the internal variable type excluding the const
+  // wrapper, and |return_type| is the final returned variable type.
+  std::vector<uint8_t> vm_type = declaration->GetVariableType()->GetVmType();
+  std::vector<uint8_t> return_type = vm_type;
+
+  auto category = declaration->GetVariableType()->GetTypeCategory();
+
+  // Deletes const flag if the variable type contain const.
+  if (category == Ast::Type::TypeCategory::kConst) {
+    vm_type.erase(vm_type.begin());
+  }
+
+  std::string variable_name = declaration->GetVariableName();
+
+  // |variable_index| is the original variable index in the main class memory,
+  // |reference_index| is a reference of the variable in the global memory.
+  std::size_t variable_index = memory.AddWithType(variable_name, return_type);
+  std::size_t reference_index = global_memory.Add(1);
+  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
+                          global_memory.AddString(variable_name)));
+
+  // If the variable is a class type, it needs to be handled specially.
+  if (category == Ast::Type::TypeCategory::kClass) {
+    HandleClassInHandlingVariable(generator, declaration, reference_index);
+  }
+
+  // If the variable value isn't nullptr, it means that the variable is not
+  // initialized.
+  if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index =
-        HandleExpr(declaration->GetVariableValue()[0], code);
-    std::size_t var_index = memory.AddWithType(vm_type);
-    if (category == Ast::Type::TypeCategory::kClass) {
-      std::string func_name = (std::string)*declaration->GetVariableType();
-      for (int64_t i = scopes.size() - 1; i >= -1; i--) {
-        auto iterator = functions.find(func_name);
-        if (i != -1) iterator = functions.find(scopes[i] + "." + func_name);
-        if (iterator != functions.end()) {
+        HandleExpression(generator, declaration->GetVariableValue()[0], code);
+
+    if (category == Ast::Type::TypeCategory::kReference) {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, value_index));
+    } else {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, reference_index, value_index));
+    }
+
+    if (category == Ast::Type::TypeCategory::kConst) {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, reference_index, value_index));
+    }
+
+  } else if (category == Ast::Type::TypeCategory::kConst) {
+    // If the variable is a const type and not initialized, it will be
+    // initialized to a default value.
+    LOGGING_WARNING(
+        "The const variable declaration without initialization is deprecated.");
+
+  } else if (category == Ast::Type::TypeCategory::kReference) {
+    // If the variable is a reference type and not initialized, it will meet
+    // undefined behavior.
+    LOGGING_WARNING(
+        "The reference variable declaration without initialization is "
+        "deprecated.");
+  }
+
+  variables[variable_name] = reference_index;
+  return reference_index;
+}
+
+std::size_t HandleStaticVariableDeclaration(Generator& generator,
+                                            Ast::Variable* declaration,
+                                            std::vector<Bytecode>& code) {
+  // TODO
+  if (declaration == nullptr)
+    EXIT_COMPILER(
+        "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+        "Bytecode>&)",
+        "declaration is nullptr.");
+
+  std::vector<uint8_t> vm_type = declaration->GetVarType()->GetVmType();
+  std::vector<uint8_t> return_type = vm_type;
+  if (declaration->GetVarType()->GetType() == Type::TypeType::kConst) {
+    vm_type.erase(vm_type.begin());
+  }
+
+  if (declaration->GetValue()[0] == nullptr) {
+    std::size_t var_index = global_memory_.AddWithType(vm_type);
+    if (declaration->GetVarType()->GetType() == Type::TypeType::kConst)
+      EXIT_COMPILER(
+          "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+          "Bytecode>&)",
+          "const var without value not support.");
+    if (declaration->GetVarType()->GetType() == Type::TypeType::kClass) {
+      std::string func_name = (std::string)*declaration->GetVarType();
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
+        auto iterator = func_decl_map_.find(func_name);
+        if (i != -1)
+          iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
+        if (iterator != func_decl_map_.end()) {
           func_name = func_name;
-          if (i != -1) func_name = scopes[i] + "." + func_name;
+          if (i != -1) func_name = current_scope_[i] + "." + func_name;
           break;
         }
-        if (i == -1) LOGGING_ERROR("Function not found.");
+        if (i == -1)
+          EXIT_COMPILER(
+              "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+              "Bytecode>&)",
+              "Function not found.");
       }
 
-      std::size_t var_index_reference = memory.Add(1);
+      std::size_t var_index_reference = global_memory_.Add(1);
 
-      global_code.push_back(
+      global_code_.push_back(
           Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
 
-      global_code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, var_index_reference,
-                                     memory.AddByte(0),
-                                     memory.AddString(func_name)));
+      global_code_.push_back(Bytecode(
+          _AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),
+          global_memory_.AddString(func_name)));
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, var_index_reference,
+                   global_memory_.AddString("@constructor"), 1, 0));
     }
-    if (category == Ast::Type::TypeCategory::kReference) {
+    declaration_map_.emplace(
+        current_scope_.back() + "." +
+            static_cast<std::string>(*declaration->GetName()),
+        std::pair<VarDeclNode*, std::size_t>(declaration, var_index));
+    return var_index;
+  } else {
+    std::size_t value_index = HandleExpr(declaration->GetValue()[0], code);
+    std::size_t var_index = global_memory_.AddWithType(vm_type);
+    if (declaration->GetVarType()->GetType() == Type::TypeType::kClass) {
+      std::string func_name = (std::string)*declaration->GetVarType();
+      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
+        auto iterator = func_decl_map_.find(func_name);
+        if (i != -1)
+          iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
+        if (iterator != func_decl_map_.end()) {
+          func_name = func_name;
+          if (i != -1) func_name = current_scope_[i] + "." + func_name;
+          break;
+        }
+        if (i == -1)
+          EXIT_COMPILER(
+              "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
+              "Bytecode>&)",
+              "Function not found.");
+      }
+
+      std::size_t var_index_reference = global_memory_.Add(1);
+
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
+
+      global_code_.push_back(Bytecode(
+          _AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),
+          global_memory_.AddString(func_name)));
+
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
+    }
+    if (declaration->GetVarType()->GetType() == Type::TypeType::kReference) {
       std::vector<uint8_t> value_ptr = vm_type;
       value_ptr.erase(value_ptr.begin());
       value_ptr.insert(value_ptr.begin(), 0x06);
-      code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, var_index, value_index));
-      variables.emplace(scopes.back() + "#" + declaration->GetVariableName(),
-                        var_index);
+      global_code_.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index, value_index));
+      declaration_map_.emplace(
+          current_scope_.back() + "." +
+              static_cast<std::string>(*declaration->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(declaration, var_index));
       return var_index;
     }
-    code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
-    if (category == Ast::Type::TypeCategory::kConst) {
-      std::size_t const_var_index = memory.AddWithType(return_type);
-      std::vector<uint8_t> value_ptr = vm_type;
-      value_ptr.insert(value_ptr.begin(), 0x06);
-      code.push_back(
+    global_code_.push_back(
+        Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
+    if (declaration->GetVarType()->GetType() == Type::TypeType::kConst) {
+      std::size_t const_var_index = global_memory_.AddWithType(return_type);
+      // std::vector<uint8_t> value_ptr = vm_type;
+      // value_ptr.insert(value_ptr.begin(), 0x06);
+      global_code_.push_back(
           Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
-      variables.emplace(scopes.back() + "#" + declaration->GetVariableName(),
-                        const_var_index);
+      declaration_map_.emplace(
+          current_scope_.back() + "." +
+              static_cast<std::string>(*declaration->GetName()),
+          std::pair<VarDeclNode*, std::size_t>(declaration, const_var_index));
       return const_var_index;
     }
-    variables.emplace(scopes.back() + "#" + declaration->GetVariableName(),
-                      var_index);
+    declaration_map_.emplace(
+        current_scope_.back() + "." +
+            static_cast<std::string>(*declaration->GetName()),
+        std::pair<VarDeclNode*, std::size_t>(declaration, var_index));
     return var_index;
   }
 }
-std::size_t HandleGlobalVariableDeclaration(Ast::Variable* declaration,
-                                            std::vector<Bytecode>& code) {}
-std::size_t HandleStaticVariableDeclaration(Ast::Variable* declaration,
-                                            std::vector<Bytecode>& code) {}
 std::size_t HandleClassVariableDeclaration(
     ClassMemory& memory,
-    std::unordered_map<std::string, std::size_t>& variable_declaration_map,
+    std::unordered_map<std::string, std::size_t>& variable_variables,
     Ast::Variable* declaration, std::vector<Bytecode>& code) {}
 std::size_t HandleArrayDeclaration(Ast::ArrayDeclaration* declaration,
                                    std::vector<Bytecode>& code) {}
@@ -335,7 +507,7 @@ std::size_t HandleStaticArrayDeclaration(Ast::ArrayDeclaration* declaration,
                                          std::vector<Bytecode>& code) {}
 std::size_t HandleClassArrayDeclaration(
     ClassMemory& memory,
-    std::unordered_map<std::string, std::size_t>& variable_declaration_map,
+    std::unordered_map<std::string, std::size_t>& variable_variables,
     Ast::ArrayDeclaration* declaration, std::vector<Bytecode>& code) {}
 
 void GenerateBytecode(std::string import_location) {
@@ -357,17 +529,18 @@ void GenerateBytecode(std::string import_location) {
 
 std::string GetFunctionNameWithScope(Generator& generator,
                                      Ast::FunctionDeclaration* declaration) {
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
 
   // Gets the function statement and its parameters.
   Ast::Function* statement = declaration->GetFunctionStatement();
-  std::vector<Ast::Expression*> arguments = statement->GetParameters();
+  std::vector<Ast::Expression*> parameters = statement->GetParameters();
 
   // Gets the function name with scopes.
   std::string scope_name = scopes.back() + "." + statement->GetFunctionName();
 
-  // Adds the function arguments type into the scope name.
-  for (std::size_t i = 0; i < arguments.size(); i++) {
+  // Adds the function parameters type into the scope name.
+  for (std::size_t i = 0; i < parameters.size(); i++) {
     // Adds the argument type separator to the scope name.
     if (i == 0) {
       scope_name += "@";
@@ -376,28 +549,28 @@ std::string GetFunctionNameWithScope(Generator& generator,
     }
 
     // Adds the argument type to the scope name.
-    if (Ast::IsOfType<Ast::Variable>(arguments[i])) {
-      auto declaration = Ast::Cast<Ast::Variable>(arguments[i]);
+    if (Ast::IsOfType<Ast::Variable>(parameters[i])) {
+      auto declaration = Ast::Cast<Ast::Variable>(parameters[i]);
       scope_name += std::string(*declaration->GetVariableType());
 
-    } else if (Ast::IsOfType<Ast::ArrayDeclaration>(arguments[i])) {
-      auto declaration = Ast::Cast<Ast::ArrayDeclaration>(arguments[i]);
+    } else if (Ast::IsOfType<Ast::ArrayDeclaration>(parameters[i])) {
+      auto declaration = Ast::Cast<Ast::ArrayDeclaration>(parameters[i]);
       scope_name += std::string(*declaration->GetVariableType());
 
     } else {
       LOGGING_ERROR(
-          "Function arguments is not a variable or array declaration.");
+          "Function parameters is not a variable or array declaration.");
     }
 
-    // Handles variadic arguments.
-    if (i == arguments.size() - 1 && statement->IsVariadic()) {
+    // Handles variadic parameters.
+    if (i == parameters.size() - 1 && statement->IsVariadic()) {
       scope_name += ",...";
     }
   }
 
-  // Handles variadic arguments if the function is variadic and arguments size
+  // Handles variadic parameters if the function is variadic and parameters size
   // is 0.
-  if (arguments.size() == 0 && statement->IsVariadic()) {
+  if (parameters.size() == 0 && statement->IsVariadic()) {
     scope_name += "@...";
   }
 
@@ -406,61 +579,62 @@ std::string GetFunctionNameWithScope(Generator& generator,
 
 void HandleFunctionArguments(Generator& generator,
                              Ast::FunctionDeclaration* declaration,
-                             std::vector<std::size_t>& arguments_index,
+                             std::vector<std::size_t>& parameters_index,
                              std::vector<Bytecode>& code) {
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
   auto& memory = generator.global_memory;
   auto& variables = generator.context.variables;
 
   // Gets the function statement and its parameters.
   Ast::Function* statement = declaration->GetFunctionStatement();
-  auto arguments = statement->GetParameters();
+  auto parameters = statement->GetParameters();
 
   // Handles functions that only contain variable parameters.
-  if (arguments.size() == 0 && statement->IsVariadic()) {
+  if (parameters.size() == 0 && statement->IsVariadic()) {
     std::size_t index = memory.Add(1);
 
-    // Adds index into |arguments_index| and |variables|.
-    arguments_index.push_back(index);
+    // Adds index into |parameters_index| and |variables|.
+    parameters_index.push_back(index);
     variables[scopes.back() + "#args"] = index;
     return;
   }
 
-  // Handles function arguments.
-  for (std::size_t i = 0; i < arguments.size(); i++) {
-    if (Ast::IsOfType<Ast::Variable>(arguments[i])) {
+  // Handles function parameters.
+  for (std::size_t i = 0; i < parameters.size(); i++) {
+    if (Ast::IsOfType<Ast::Variable>(parameters[i])) {
       // Gets function declaration and name.
-      auto declaration = Ast::Cast<Ast::Variable>(arguments[i]);
+      auto declaration = Ast::Cast<Ast::Variable>(parameters[i]);
       std::string name = scopes.back() + "#" + declaration->GetVariableName();
 
       std::size_t index = HandleVariableDeclaration(declaration, code);
 
-      // Adds index into |arguments_index| and |variables|.
-      arguments_index.push_back(index);
+      // Adds index into |parameters_index| and |variables|.
+      parameters_index.push_back(index);
       variables[name] = index;
 
-    } else if (Ast::IsOfType<Ast::ArrayDeclaration>(arguments[i])) {
+    } else if (Ast::IsOfType<Ast::ArrayDeclaration>(parameters[i])) {
       // Gets function declaration and name.
-      auto declaration = Ast::Cast<Ast::ArrayDeclaration>(arguments[i]);
+      auto declaration = Ast::Cast<Ast::ArrayDeclaration>(parameters[i]);
       std::string name = scopes.back() + "#" + declaration->GetVariableName();
 
       std::size_t index = HandleArrayDeclaration(declaration, code);
 
-      // Adds index into |arguments_index| and |variables|.
-      arguments_index.push_back(index);
+      // Adds index into |parameters_index| and |variables|.
+      parameters_index.push_back(index);
       variables[name] = index;
 
     } else {
       INTERNAL_ERROR(
-          "Function arguments is not a variable or array declaration.");
+          "Function parameters is not a variable or array declaration.");
     }
 
     // Handles variable parameters if have.
-    if (i == arguments.size() - 1 && statement->IsVariadic()) {
+    if (i == parameters.size() - 1 && statement->IsVariadic()) {
       std::size_t index = memory.Add(1);
 
-      // Adds index into |arguments_index| and |variables|.
-      arguments_index.push_back(index);
+      // Adds index into |parameters_index| and |variables|.
+      parameters_index.push_back(index);
       variables[scopes.back() + "#args"] = index;
     }
   }
@@ -468,6 +642,7 @@ void HandleFunctionArguments(Generator& generator,
 
 void HandleReturnInHandlingFunction(Generator& generator,
                                     std::vector<Bytecode>& code) {
+  // Gets the reference of context.
   auto& exit_index = generator.context.function_context->exit_index;
   auto& memory = generator.global_memory;
 
@@ -481,6 +656,7 @@ void HandleReturnInHandlingFunction(Generator& generator,
 void HandleGotoInHandlingFunction(Generator& generator,
                                   std::size_t current_scope,
                                   std::vector<Bytecode>& code) {
+  // Gets the reference of context.
   auto& goto_map = generator.context.function_context->goto_map;
   auto& memory = generator.global_memory;
   auto& scopes = generator.context.scopes;
@@ -504,94 +680,106 @@ void HandleGotoInHandlingFunction(Generator& generator,
 
 void AddFunctionIntoList(Generator& generator,
                          Ast::FunctionDeclaration* declaration,
-                         std::vector<std::size_t>& arguments_index,
+                         std::vector<std::size_t>& parameters_index,
                          std::vector<Bytecode>& code) {
+  // Gets the reference of context.
   auto& function_list = generator.functions;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
 
-  Function function(name, arguments_index, code);
+  Function function(name, parameters_index, code);
   if (statement->IsVariadic()) function.EnableVariadic();
   function_list.push_back(function);
 }
 
 void AddClassFunctionIntoList(Generator& generator,
                               Ast::FunctionDeclaration* declaration,
-                              std::vector<std::size_t>& arguments_index,
+                              std::vector<std::size_t>& parameters_index,
                               std::vector<Bytecode>& code) {
+  // Gets the reference of context.
   auto& function_list = generator.context.current_class->GetFunctionList();
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
 
-  Function function(name, arguments_index, code);
+  // Adds function into class function list.
+  Function function(name, parameters_index, code);
   if (statement->IsVariadic()) function.EnableVariadic();
   function_list.push_back(function);
 }
 
 void HandleReturnVariableInHandlingFunction(
     Generator& generator, Ast::FunctionDeclaration* declaration,
-    std::string scope_name, std::vector<std::size_t>& arguments_index) {
+    std::string scope_name, std::vector<std::size_t>& parameters_index) {
+  // Gets the reference of context.
   auto& variables = generator.context.variables;
   auto& memory = generator.global_memory;
 
   std::vector<uint8_t> vm_type = declaration->GetReturnType()->GetVmType();
   variables[scope_name + "#!return"] = memory.AddWithType(vm_type);
   variables[scope_name + "#!return_reference"] = memory.Add(1);
-  arguments_index.push_back(variables[scope_name + "#!return_reference"]);
+  parameters_index.push_back(variables[scope_name + "#!return_reference"]);
 }
 
 std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
     Generator& generator, Ast::FunctionDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
+  // Creates temporary context.
   generator.context.function_context = new FunctionContext();
 
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
   auto& memory = generator.global_memory;
   auto& functions = generator.context.functions;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
-  auto arguments = statement->GetParameters();
+  auto parameters = statement->GetParameters();
   std::vector<Bytecode> code;
 
+  // Records the creation of the function.
   functions.insert(name);
 
-  // Handles the return value and arguments.
-  std::vector<std::size_t> arguments_index;
+  // Handles the return value and parameters.
+  std::vector<std::size_t> parameters_index;
   std::size_t return_index = memory.Add(1);
-  arguments_index.push_back(return_index);
-  HandleFunctionArguments(generator, declaration, arguments_index, code);
+  parameters_index.push_back(return_index);
+  HandleFunctionArguments(generator, declaration, parameters_index, code);
 
   // Builds the main part of the factory function.
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_index,
                           memory.AddUint64t(0), memory.AddString(name)));
-  std::vector<std::size_t> method_arguments = arguments_index;
-  method_arguments.insert(
-      method_arguments.begin(),
-      {return_index, memory.AddString("@constructor"), arguments_index.size()});
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_arguments));
+  std::vector<std::size_t> method_parameters = parameters_index;
+  method_parameters.insert(method_parameters.begin(),
+                           {return_index, memory.AddString("@constructor"),
+                            parameters_index.size()});
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_parameters));
 
-  AddFunctionIntoList(generator, declaration, arguments_index, code);
+  AddFunctionIntoList(generator, declaration, parameters_index, code);
 
+  // Destroys temporary context.
   scopes.pop_back();
   delete generator.context.function_context;
   generator.context.function_context = nullptr;
-  return arguments_index;
+
+  return parameters_index;
 }
 
 void HandleConstructorFunctionInHandlingConstructor(
     Generator& generator, Ast::FunctionDeclaration* declaration,
-    std::vector<std::size_t>& arguments_index) {
+    std::vector<std::size_t>& parameters_index) {
+  // Creates temporary context.
   generator.context.function_context = new FunctionContext();
 
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
   auto& memory = generator.global_memory;
   auto& functions = generator.context.functions;
   auto& current_class = generator.context.current_class;
 
+  // Creates the bytecode vector.
   std::vector<Bytecode> code;
 
   // Handles the function name with scopes.
@@ -599,6 +787,7 @@ void HandleConstructorFunctionInHandlingConstructor(
   scopes.push_back(scope_name);
   std::size_t current_scope = scopes.size() - 1;
 
+  // Records the creation of the function.
   current_class->GetFunctions().insert("@constructor");
 
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
@@ -623,8 +812,9 @@ void HandleConstructorFunctionInHandlingConstructor(
 
   HandleGotoInHandlingFunction(generator, current_scope, code);
 
-  AddClassFunctionIntoList(generator, declaration, arguments_index, code);
+  AddClassFunctionIntoList(generator, declaration, parameters_index, code);
 
+  // Destroys temporary context.
   scopes.pop_back();
   delete generator.context.function_context;
   generator.context.function_context = nullptr;
@@ -632,6 +822,7 @@ void HandleConstructorFunctionInHandlingConstructor(
 
 void HandleSubClassesInHandlingClass(Generator& generator,
                                      Ast::Class* declaration) {
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
   auto& classes = generator.context.classes;
 
@@ -680,8 +871,8 @@ void HandleStaticMembersInHandlingClass(Generator& generator,
 
 void HandleClassMembersInHandlingClass(Generator& generator,
                                        Ast::Class* declaration) {
+  // Gets the reference of context.
   auto& current_class = generator.context.current_class;
-
   auto& memory = current_class->GetMemory();
   auto& variables = current_class->GetVariables();
   auto& code = current_class->GetCode();
@@ -725,18 +916,20 @@ void AddVoidConstructorInHandlingClass(Generator& generator,
                                        Ast::Class* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
-  auto arguments_index =
+  auto parameters_index =
       HandleVoidFactoryFunctionInHandlingClass(generator, declaration);
 
   HandleVoidConstructorFunctionInHandlingClass(generator, declaration,
-                                               arguments_index);
+                                               parameters_index);
 }
 std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
     Generator& generator, Ast::Class* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
+  // Creates temporary context.
   generator.context.function_context = new FunctionContext();
 
+  // Gets the reference of context.
   auto& scopes = generator.context.scopes;
   auto& functions = generator.context.functions;
   auto& current_class = generator.context.current_class;
@@ -746,14 +939,16 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
   auto& function_list = generator.functions;
   auto& exit_index = generator.context.function_context->exit_index;
 
+  // Handles the function name with scopes and the class name.
   std::string name = scopes.back();
   std::string class_name = declaration->GetClassName();
 
-  // Handles the arguments.
-  std::vector<std::size_t> arguments_index;
+  // Handles the parameters.
+  std::vector<std::size_t> parameters_index;
   std::size_t return_index = memory.Add(1);
-  arguments_index.push_back(return_index);
+  parameters_index.push_back(return_index);
 
+  // Records the creation of the function.
   functions.insert(name);
 
   // Builds the main part of the factory function.
@@ -763,30 +958,87 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, return_index,
                           memory.AddString("@constructor"), 1, return_index));
 
-  Function factory(name, arguments_index, code);
+  // Adds the function into function list.
+  Function factory(name, parameters_index, code);
   function_list.push_back(factory);
 
+  // Destroys temporary context.
   delete generator.context.function_context;
   generator.context.function_context = nullptr;
-  return arguments_index;
+  return parameters_index;
 }
+
 void HandleVoidConstructorFunctionInHandlingClass(
     Generator& generator, Ast::Class* declaration,
-    std::vector<std::size_t>& arguments_index) {
+    std::vector<std::size_t>& parameters_index) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
+  // Gets the reference of context.
   auto& current_class = generator.context.current_class;
 
+  // Records the creation of the function.
   current_class->GetFunctions().insert("@constructor");
 
+  // Handles the class init.
   std::vector<Bytecode> code;
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  for (std::size_t i = 0; i < current_class->GetCode().size(); i++) {
+    code.push_back(current_class->GetCode()[i]);
+  }
 
-  Function constructor("@constructor", arguments_index, code);
+  // Adds function into class function list.
+  Function constructor("@constructor", parameters_index, code);
   current_class->GetFunctionList().push_back(constructor);
 
+  // Destroys temporary context.
   delete generator.context.function_context;
   generator.context.function_context = nullptr;
+}
+
+void HandleClassInHandlingVariable(Generator& generator,
+                                   Ast::Variable* declaration,
+                                   std::size_t variable_index) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& memory = generator.global_memory;
+  auto& global_code = generator.global_code;
+  auto& scopes = generator.context.scopes;
+  auto& functions = generator.context.functions;
+
+  // Gets the class name, which is same as the function name.
+  std::string name = std::string(*declaration->GetVariableType());
+  for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+    // Searching globally first and then conducting a search with scope is to
+    // avoid the situation where the scope index is exceeded and -1 occurs.
+    auto iterator = functions.find(name);
+
+    // If the search scope is not the global scope, adds the scope name to the
+    // class name.
+    if (i != -1) iterator = functions.find(scopes[i] + "." + name);
+    if (iterator != functions.end()) {
+      // Searching globally first and then conducting a search with scope is to
+      // avoid the situation where the scope index is exceeded and -1 occurs.
+      name = name;
+
+      // If the search scope is not the global scope, adds the scope name to the
+      // class name.
+      if (i != -1) name = scopes[i] + "." + name;
+      break;
+    }
+    if (i == -1) LOGGING_ERROR("Class not found.");
+  }
+
+  // Adds the class into global memory.
+  std::size_t reference_index = memory.Add(1);
+  global_code.push_back(
+      Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, variable_index));
+  global_code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, reference_index,
+                                 memory.AddByte(0), memory.AddString(name)));
+
+  // Classes without initialization requires default initialization.
+  global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4,
+                                 reference_index,
+                                 memory.AddString("@constructor"), 1, 0));
 }
 }  // namespace Generator
 }  // namespace Compiler

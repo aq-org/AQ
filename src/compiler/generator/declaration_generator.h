@@ -51,7 +51,7 @@ std::string GetFunctionNameWithScope(Generator& generator,
                                      Ast::FunctionDeclaration* declaration);
 void HandleFunctionArguments(Generator& generator,
                              Ast::FunctionDeclaration* declaration,
-                             std::vector<std::size_t>& arguments_index,
+                             std::vector<std::size_t>& parameters_index,
                              std::vector<Bytecode>& code);
 void HandleReturnInHandlingFunction(Generator& generator,
                                     std::vector<Bytecode>& code);
@@ -60,20 +60,20 @@ void HandleGotoInHandlingFunction(Generator& generator,
                                   std::vector<Bytecode>& code);
 void AddFunctionIntoList(Generator& generator,
                          Ast::FunctionDeclaration* declaration,
-                         std::vector<std::size_t>& arguments_index,
+                         std::vector<std::size_t>& parameters_index,
                          std::vector<Bytecode>& code);
 void AddClassFunctionIntoList(Generator& generator,
                               Ast::FunctionDeclaration* declaration,
-                              std::vector<std::size_t>& arguments_index,
+                              std::vector<std::size_t>& parameters_index,
                               std::vector<Bytecode>& code);
 void HandleReturnVariableInHandlingFunction(
     Generator& generator, Ast::FunctionDeclaration* declaration,
-    std::string scope_name, std::vector<std::size_t>& arguments_index);
+    std::string scope_name, std::vector<std::size_t>& parameters_index);
 std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
     Generator& generator, Ast::FunctionDeclaration* declaration);
 void HandleConstructorFunctionInHandlingConstructor(
     Generator& generator, Ast::FunctionDeclaration* declaration,
-    std::vector<std::size_t>& arguments_index);
+    std::vector<std::size_t>& parameters_index);
 void HandleSubClassesInHandlingClass(Generator& generator,
                                      Ast::Class* declaration);
 void HandleStaticMembersInHandlingClass(Generator& generator,
@@ -88,7 +88,10 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
     Generator& generator, Ast::Class* declaration);
 void HandleVoidConstructorFunctionInHandlingClass(
     Generator& generator, Ast::Class* declaration,
-    std::vector<std::size_t>& arguments_index);
+    std::vector<std::size_t>& parameters_index);
+void HandleClassInHandlingVariable(Generator& generator,
+                                   Ast::Variable* declaration,
+                                   std::size_t variable_index);
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq
