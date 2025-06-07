@@ -69,6 +69,26 @@ void AddClassFunctionIntoList(Generator& generator,
 void HandleReturnVariableInHandlingFunction(
     Generator& generator, Ast::FunctionDeclaration* declaration,
     std::string scope_name, std::vector<std::size_t>& arguments_index);
+std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
+    Generator& generator, Ast::FunctionDeclaration* declaration);
+void HandleConstructorFunctionInHandlingConstructor(
+    Generator& generator, Ast::FunctionDeclaration* declaration,
+    std::vector<std::size_t>& arguments_index);
+void HandleSubClassesInHandlingClass(Generator& generator,
+                                     Ast::Class* declaration);
+void HandleStaticMembersInHandlingClass(Generator& generator,
+                                        Ast::Class* declaration);
+void HandleClassMembersInHandlingClass(Generator& generator,
+                                       Ast::Class* declaration);
+void HandleMethodsInHandlingClass(Generator& generator,
+                                  Ast::Class* declaration);
+void AddVoidConstructorInHandlingClass(Generator& generator,
+                                       Ast::Class* declaration);
+std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
+    Generator& generator, Ast::Class* declaration);
+void HandleVoidConstructorFunctionInHandlingClass(
+    Generator& generator, Ast::Class* declaration,
+    std::vector<std::size_t>& arguments_index);
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq
