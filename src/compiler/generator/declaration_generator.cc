@@ -8,11 +8,11 @@
 #include <vector>
 
 #include "compiler/ast/ast.h"
-#include "compiler/compiler.h"
+#include "compiler/ast/type.h"
 #include "compiler/generator/bytecode.h"
+#include "compiler/generator/generator.h"
 #include "compiler/generator/memory.h"
 #include "compiler/logging/logging.h"
-#include "compiler/parser/parser.h"
 
 namespace Aq {
 namespace Compiler {
@@ -242,9 +242,8 @@ std::size_t HandleVariableDeclaration(Generator& generator,
   auto category = declaration->GetVariableType()->GetTypeCategory();
 
   // Deletes const flag if the variable type contain const.
-  if (category == Ast::Type::TypeCategory::kConst) {
+  if (category == Ast::Type::TypeCategory::kConst)
     vm_type.erase(vm_type.begin());
-  }
 
   std::string variable_name =
       scopes.back() + "#" + declaration->GetVariableName();
@@ -255,7 +254,7 @@ std::size_t HandleVariableDeclaration(Generator& generator,
   if (category == Ast::Type::TypeCategory::kClass)
     HandleClassInHandlingVariable(generator, declaration, variable_index);
 
-  // If the variable value isn't nullptr, it means that the variable is not
+  // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index =
@@ -283,6 +282,7 @@ std::size_t HandleVariableDeclaration(Generator& generator,
     LOGGING_WARNING(
         "The const variable declaration without initialization is deprecated "
         "and it isn't const now.");
+
   } else if (category == Ast::Type::TypeCategory::kReference) {
     // If the variable is a reference type and not initialized, it will meet
     // undefined behavior.
@@ -315,9 +315,8 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
   auto category = declaration->GetVariableType()->GetTypeCategory();
 
   // Deletes const flag if the variable type contain const.
-  if (category == Ast::Type::TypeCategory::kConst) {
+  if (category == Ast::Type::TypeCategory::kConst)
     vm_type.erase(vm_type.begin());
-  }
 
   std::string variable_name = declaration->GetVariableName();
 
@@ -329,16 +328,17 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
                           global_memory.AddString(variable_name)));
 
   // If the variable is a class type, it needs to be handled specially.
-  if (category == Ast::Type::TypeCategory::kClass) {
+  if (category == Ast::Type::TypeCategory::kClass)
     HandleClassInHandlingVariable(generator, declaration, reference_index);
-  }
 
-  // If the variable value isn't nullptr, it means that the variable is not
+  // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index =
         HandleExpression(generator, declaration->GetVariableValue()[0], code);
 
+    // If the variable is a reference type, it needs to be handled
+    // specially.
     if (category == Ast::Type::TypeCategory::kReference) {
       code.push_back(
           Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, value_index));
@@ -371,210 +371,492 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
 }
 
 std::size_t HandleStaticVariableDeclaration(Generator& generator,
-                                            Ast::Variable* declaration,
-                                            std::vector<Bytecode>& code) {
-  // TODO
-  if (declaration == nullptr)
-    EXIT_COMPILER(
-        "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
-        "Bytecode>&)",
-        "declaration is nullptr.");
+                                            Ast::Variable* declaration) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
-  std::vector<uint8_t> vm_type = declaration->GetVarType()->GetVmType();
-  std::vector<uint8_t> return_type = vm_type;
-  if (declaration->GetVarType()->GetType() == Type::TypeType::kConst) {
-    vm_type.erase(vm_type.begin());
-  }
-
-  if (declaration->GetValue()[0] == nullptr) {
-    std::size_t var_index = global_memory_.AddWithType(vm_type);
-    if (declaration->GetVarType()->GetType() == Type::TypeType::kConst)
-      EXIT_COMPILER(
-          "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
-          "Bytecode>&)",
-          "const var without value not support.");
-    if (declaration->GetVarType()->GetType() == Type::TypeType::kClass) {
-      std::string func_name = (std::string)*declaration->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
-        auto iterator = func_decl_map_.find(func_name);
-        if (i != -1)
-          iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
-        if (iterator != func_decl_map_.end()) {
-          func_name = func_name;
-          if (i != -1) func_name = current_scope_[i] + "." + func_name;
-          break;
-        }
-        if (i == -1)
-          EXIT_COMPILER(
-              "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
-              "Bytecode>&)",
-              "Function not found.");
-      }
-
-      std::size_t var_index_reference = global_memory_.Add(1);
-
-      global_code_.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
-
-      global_code_.push_back(Bytecode(
-          _AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),
-          global_memory_.AddString(func_name)));
-
-      global_code_.push_back(
-          Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, var_index_reference,
-                   global_memory_.AddString("@constructor"), 1, 0));
-    }
-    declaration_map_.emplace(
-        current_scope_.back() + "." +
-            static_cast<std::string>(*declaration->GetName()),
-        std::pair<VarDeclNode*, std::size_t>(declaration, var_index));
-    return var_index;
-  } else {
-    std::size_t value_index = HandleExpr(declaration->GetValue()[0], code);
-    std::size_t var_index = global_memory_.AddWithType(vm_type);
-    if (declaration->GetVarType()->GetType() == Type::TypeType::kClass) {
-      std::string func_name = (std::string)*declaration->GetVarType();
-      for (int64_t i = current_scope_.size() - 1; i >= -1; i--) {
-        auto iterator = func_decl_map_.find(func_name);
-        if (i != -1)
-          iterator = func_decl_map_.find(current_scope_[i] + "." + func_name);
-        if (iterator != func_decl_map_.end()) {
-          func_name = func_name;
-          if (i != -1) func_name = current_scope_[i] + "." + func_name;
-          break;
-        }
-        if (i == -1)
-          EXIT_COMPILER(
-              "BytecodeGenerator::HandleStaticVarDecl(VarDeclNode*,std::vector<"
-              "Bytecode>&)",
-              "Function not found.");
-      }
-
-      std::size_t var_index_reference = global_memory_.Add(1);
-
-      global_code_.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index_reference, var_index));
-
-      global_code_.push_back(Bytecode(
-          _AQVM_OPERATOR_NEW, 3, var_index_reference, global_memory_.AddByte(0),
-          global_memory_.AddString(func_name)));
-
-      global_code_.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
-    }
-    if (declaration->GetVarType()->GetType() == Type::TypeType::kReference) {
-      std::vector<uint8_t> value_ptr = vm_type;
-      value_ptr.erase(value_ptr.begin());
-      value_ptr.insert(value_ptr.begin(), 0x06);
-      global_code_.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, var_index, value_index));
-      declaration_map_.emplace(
-          current_scope_.back() + "." +
-              static_cast<std::string>(*declaration->GetName()),
-          std::pair<VarDeclNode*, std::size_t>(declaration, var_index));
-      return var_index;
-    }
-    global_code_.push_back(
-        Bytecode(_AQVM_OPERATOR_EQUAL, 2, var_index, value_index));
-    if (declaration->GetVarType()->GetType() == Type::TypeType::kConst) {
-      std::size_t const_var_index = global_memory_.AddWithType(return_type);
-      // std::vector<uint8_t> value_ptr = vm_type;
-      // value_ptr.insert(value_ptr.begin(), 0x06);
-      global_code_.push_back(
-          Bytecode(_AQVM_OPERATOR_CONST, 2, const_var_index, var_index));
-      declaration_map_.emplace(
-          current_scope_.back() + "." +
-              static_cast<std::string>(*declaration->GetName()),
-          std::pair<VarDeclNode*, std::size_t>(declaration, const_var_index));
-      return const_var_index;
-    }
-    declaration_map_.emplace(
-        current_scope_.back() + "." +
-            static_cast<std::string>(*declaration->GetName()),
-        std::pair<VarDeclNode*, std::size_t>(declaration, var_index));
-    return var_index;
-  }
-}
-std::size_t HandleClassVariableDeclaration(
-    ClassMemory& memory,
-    std::unordered_map<std::string, std::size_t>& variable_variables,
-    Ast::Variable* declaration, std::vector<Bytecode>& code) {}
-std::size_t HandleArrayDeclaration(Ast::ArrayDeclaration* declaration,
-                                   std::vector<Bytecode>& code) {}
-std::size_t HandleGlobalArrayDeclaration(Ast::ArrayDeclaration* declaration,
-                                         std::vector<Bytecode>& code) {}
-std::size_t HandleStaticArrayDeclaration(Ast::ArrayDeclaration* declaration,
-                                         std::vector<Bytecode>& code) {}
-std::size_t HandleClassArrayDeclaration(
-    ClassMemory& memory,
-    std::unordered_map<std::string, std::size_t>& variable_variables,
-    Ast::ArrayDeclaration* declaration, std::vector<Bytecode>& code) {}
-
-void GenerateBytecode(std::string import_location) {
-  std::vector<char> code;
-  Aq::Compiler::ReadCodeFromFile(import_location.c_str(), code);
-
-  std::vector<Aq::Compiler::Token> token;
-  Aq::Compiler::LexCode(code, token);
-
-  Aq::Compiler::Ast::Compound* ast = Aq::Compiler::Parser::Parse(token);
-  if (ast == nullptr) Aq::Compiler::LOGGING_ERROR("ast is nullptr.");
-
-  Aq::Compiler::Generator::Generator generator;
-  import_location = import_location + "bc";
-  generator.Generate(ast, import_location.c_str());
-
-  Aq::Compiler::LOGGING_INFO("Generate Bytecode SUCCESS!");
-}
-
-std::string GetFunctionNameWithScope(Generator& generator,
-                                     Ast::FunctionDeclaration* declaration) {
   // Gets the reference of context.
+  auto& global_memory = generator.global_memory;
+  auto& scopes = generator.context.scopes;
+  auto& global_code = generator.global_code;
+  auto& variables = generator.context.variables;
+
+  // For non const types, |return_type| is equivalent to |vm_type|, but for
+  // const types, |vm_type| is the internal variable type excluding the const
+  // wrapper, and |return_type| is the final returned variable type.
+  std::vector<uint8_t> vm_type = declaration->GetVariableType()->GetVmType();
+  std::vector<uint8_t> return_type = vm_type;
+
+  auto category = declaration->GetVariableType()->GetTypeCategory();
+
+  // Deletes const flag if the variable type contain const.
+  if (category == Ast::Type::TypeCategory::kConst)
+    vm_type.erase(vm_type.begin());
+
+  std::string variable_name =
+      scopes.back() + "." + declaration->GetVariableName();
+
+  std::size_t variable_index = global_memory.AddWithType(vm_type);
+
+  // If the variable is a class type, it needs to be handled specially.
+  if (category == Ast::Type::TypeCategory::kClass)
+    HandleClassInHandlingVariable(generator, declaration, variable_index);
+
+  // If the variable value isn't nullptr, it means that the variable is
+  // initialized.
+  if (declaration->GetVariableValue()[0] != nullptr) {
+    std::size_t value_index = HandleExpression(
+        generator, declaration->GetVariableValue()[0], global_code);
+
+    // If the variable is a reference type, it needs to be handled
+    // specially.
+    if (category == Ast::Type::TypeCategory::kReference) {
+      global_code.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, variable_index, value_index));
+    } else {
+      global_code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, variable_index, value_index));
+    }
+
+    if (category == Ast::Type::TypeCategory::kConst) {
+      std::size_t const_index = global_memory.AddWithType(return_type);
+      global_code.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, const_index, variable_index));
+      variable_index = const_index;
+    }
+  } else if (category == Ast::Type::TypeCategory::kConst) {
+    // If the variable is a const type and not initialized, it will be
+    // initialized to a default value without const.
+    LOGGING_WARNING(
+        "The const variable declaration without initialization is deprecated "
+        "and it isn't const now.");
+
+  } else if (category == Ast::Type::TypeCategory::kReference) {
+    // If the variable is a reference type and not initialized, it will meet
+    // undefined behavior.
+    LOGGING_WARNING(
+        "The reference variable declaration without initialization is "
+        "deprecated.");
+  }
+
+  variables[variable_name] = variable_index;
+  return variable_index;
+}
+
+std::size_t HandleClassVariableDeclaration(Generator& generator,
+                                           Ast::Variable* declaration) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& start_class = generator.main_class;
+  auto& global_memory = generator.global_memory;
+  auto& current_class = generator.context.current_class;
+  auto& memory = current_class->GetMemory();
+  auto& variables = current_class->GetVariables();
+  auto& code = current_class->GetCode();
+
+  // For non const types, |return_type| is equivalent to |vm_type|, but for
+  // const types, |vm_type| is the internal variable type excluding the const
+  // wrapper, and |return_type| is the final returned variable type.
+  std::vector<uint8_t> vm_type = declaration->GetVariableType()->GetVmType();
+  std::vector<uint8_t> return_type = vm_type;
+
+  auto category = declaration->GetVariableType()->GetTypeCategory();
+
+  // Deletes const flag if the variable type contain const.
+  if (category == Ast::Type::TypeCategory::kConst)
+    vm_type.erase(vm_type.begin());
+
+  std::string variable_name = declaration->GetVariableName();
+
+  // |variable_index| is the original variable index in the main class memory,
+  // |reference_index| is a reference of the variable in the global memory.
+  std::size_t variable_index = memory.AddWithType(variable_name, return_type);
+  std::size_t reference_index = global_memory.Add(1);
+  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
+                          global_memory.AddString(variable_name)));
+
+  // If the variable is a class type, it needs to be handled specially.
+  if (category == Ast::Type::TypeCategory::kClass)
+    HandleClassInHandlingVariable(generator, declaration, reference_index);
+
+  // If the variable value isn't nullptr, it means that the variable is
+  // initialized.
+  if (declaration->GetVariableValue()[0] != nullptr) {
+    std::size_t value_index =
+        HandleExpression(generator, declaration->GetVariableValue()[0], code);
+
+    // If the variable is a reference type, it needs to be handled
+    // specially.
+    if (category == Ast::Type::TypeCategory::kReference) {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, value_index));
+    } else {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, reference_index, value_index));
+    }
+
+    if (category == Ast::Type::TypeCategory::kConst) {
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_CONST, 2, reference_index, value_index));
+    }
+
+  } else if (category == Ast::Type::TypeCategory::kConst) {
+    // If the variable is a const type and not initialized, it will be
+    // initialized to a default value.
+    LOGGING_WARNING(
+        "The const variable declaration without initialization is deprecated.");
+
+  } else if (category == Ast::Type::TypeCategory::kReference) {
+    // If the variable is a reference type and not initialized, it will meet
+    // undefined behavior.
+    LOGGING_WARNING(
+        "The reference variable declaration without initialization is "
+        "deprecated.");
+  }
+
+  variables[variable_name] = reference_index;
+  return reference_index;
+}
+std::size_t HandleArrayDeclaration(Generator& generator,
+                                   Ast::ArrayDeclaration* declaration,
+                                   std::vector<Bytecode>& code) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& global_memory = generator.global_memory;
+  auto& variables = generator.context.variables;
   auto& scopes = generator.context.scopes;
 
-  // Gets the function statement and its parameters.
-  Ast::Function* statement = declaration->GetFunctionStatement();
-  std::vector<Ast::Expression*> parameters = statement->GetParameters();
+  // Handles the array type.
+  Ast::ArrayType* array_type =
+      dynamic_cast<Ast::ArrayType*>(declaration->GetVariableType());
+  if (array_type == nullptr) INTERNAL_ERROR("array_type is nullptr.");
+  if (array_type->GetTypeCategory() == Ast::Type::TypeCategory::kConst)
+    LOGGING_ERROR("const array not support.");
 
-  // Gets the function name with scopes.
-  std::string scope_name = scopes.back() + "." + statement->GetFunctionName();
+  std::string variable_name =
+      scopes.back() + "#" + declaration->GetVariableName();
 
-  // Adds the function parameters type into the scope name.
-  for (std::size_t i = 0; i < parameters.size(); i++) {
-    // Adds the argument type separator to the scope name.
-    if (i == 0) {
-      scope_name += "@";
-    } else {
-      scope_name += ",";
-    }
+  // Adds the array index and the type index.
+  std::size_t array_index = global_memory.AddWithType(array_type->GetVmType());
+  std::size_t array_type_index = 0;
 
-    // Adds the argument type to the scope name.
-    if (Ast::IsOfType<Ast::Variable>(parameters[i])) {
-      auto declaration = Ast::Cast<Ast::Variable>(parameters[i]);
-      scope_name += std::string(*declaration->GetVariableType());
+  // Gets the sub type of the array type and its category.
+  Ast::Type* sub_type = array_type->GetSubType();
+  auto sub_type_category = sub_type->GetTypeCategory();
 
-    } else if (Ast::IsOfType<Ast::ArrayDeclaration>(parameters[i])) {
-      auto declaration = Ast::Cast<Ast::ArrayDeclaration>(parameters[i]);
-      scope_name += std::string(*declaration->GetVariableType());
+  // If the sub type is a class type, it needs to be handled specially.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::string class_name =
+        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+    array_type_index = global_memory.AddString(class_name);
 
-    } else {
-      LOGGING_ERROR(
-          "Function parameters is not a variable or array declaration.");
-    }
+  } else {
+    // If the vm type of the sub type isn't 0x00 (auto type), it means that
+    // the sub type is a primitive type, so we can add it into the global
+    // memory.
+    if (sub_type->GetVmType()[0] != 0x00)
+      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
+  }
 
-    // Handles variadic parameters.
-    if (i == parameters.size() - 1 && statement->IsVariadic()) {
-      scope_name += ",...";
+  // Handles the array creation bytecode.
+  // The array is created with the size of 1, and the type of the sub type.
+  // This means that regardless of the size of the array definition, it is
+  // actually determined based on the actual number of initialization lists
+  // given.
+  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
+                          global_memory.AddByte(1), array_type_index));
+
+  // If the sub type is a class type, it needs to be handled specially. Because
+  // the default generated class index is considered an initialized value
+  // because it is smaller than the array size, it will not be automatically
+  // initialized when the ARRAY operator is called.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::size_t current_index = global_memory.Add(1);
+    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
+                            global_memory.AddByte(0)));
+    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
+                            global_memory.AddString("@constructor"), 1, 0));
+  }
+
+  // Handles the array initialization with the initialization lists.
+  if (!declaration->GetVariableValue().empty()) {
+    for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
+      // Gets the corresponding array index reference.
+      std::size_t current_index = global_memory.Add(1);
+      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory.AddUint64t(i)));
+
+      // Gets the value of the initialization list and assigns value to
+      // corresponding index.
+      std::size_t value_index =
+          HandleExpression(generator, declaration->GetVariableValue()[i], code);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
   }
 
-  // Handles variadic parameters if the function is variadic and parameters size
-  // is 0.
-  if (parameters.size() == 0 && statement->IsVariadic()) {
-    scope_name += "@...";
+  variables[variable_name] = array_index;
+  return array_index;
+}
+
+std::size_t HandleGlobalArrayDeclaration(Generator& generator,
+                                         Ast::ArrayDeclaration* declaration,
+                                         std::vector<Bytecode>& code) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& global_memory = generator.global_memory;
+  auto& variables = generator.context.variables;
+  auto& scopes = generator.context.scopes;
+  auto& start_class = generator.main_class;
+  auto& memory = start_class.GetMemory();
+
+  // Handles the array type.
+  Ast::ArrayType* array_type =
+      dynamic_cast<Ast::ArrayType*>(declaration->GetVariableType());
+  if (array_type == nullptr) INTERNAL_ERROR("array_type is nullptr.");
+  if (array_type->GetTypeCategory() == Ast::Type::TypeCategory::kConst)
+    LOGGING_ERROR("const array not support.");
+
+  std::string variable_name = declaration->GetVariableName();
+
+  // Adds the array index and the type index.
+  std::size_t original_array_index =
+      memory.AddWithType(variable_name, array_type->GetVmType());
+  std::size_t array_index = global_memory.Add(1);
+  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 2,
+                          global_memory.AddString(variable_name)));
+  std::size_t array_type_index = 0;
+
+  // Gets the sub type of the array type and its category.
+  Ast::Type* sub_type = array_type->GetSubType();
+  auto sub_type_category = sub_type->GetTypeCategory();
+
+  // If the sub type is a class type, it needs to be handled specially.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::string class_name =
+        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+    array_type_index = global_memory.AddString(class_name);
+
+  } else {
+    // If the vm type of the sub type isn't 0x00 (auto type), it means that
+    // the sub type is a primitive type, so we can add it into the global
+    // memory.
+    if (sub_type->GetVmType()[0] != 0x00)
+      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
   }
 
-  return scope_name;
+  // Handles the array creation bytecode.
+  // The array is created with the size of 1, and the type of the sub type.
+  // This means that regardless of the size of the array definition, it is
+  // actually determined based on the actual number of initialization lists
+  // given.
+  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
+                          global_memory.AddByte(1), array_type_index));
+
+  // If the sub type is a class type, it needs to be handled specially. Because
+  // the default generated class index is considered an initialized value
+  // because it is smaller than the array size, it will not be automatically
+  // initialized when the ARRAY operator is called.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::size_t current_index = global_memory.Add(1);
+    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
+                            global_memory.AddByte(0)));
+    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
+                            global_memory.AddString("@constructor"), 1, 0));
+  }
+
+  // Handles the array initialization with the initialization lists.
+  if (!declaration->GetVariableValue().empty()) {
+    for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
+      // Gets the corresponding array index reference.
+      std::size_t current_index = global_memory.Add(1);
+      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory.AddUint64t(i)));
+
+      // Gets the value of the initialization list and assigns value to
+      // corresponding index.
+      std::size_t value_index =
+          HandleExpression(generator, declaration->GetVariableValue()[i], code);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+    }
+  }
+
+  variables[variable_name] = array_index;
+  return array_index;
+}
+
+std::size_t HandleStaticArrayDeclaration(Generator& generator,
+                                         Ast::ArrayDeclaration* declaration) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& global_memory = generator.global_memory;
+  auto& variables = generator.context.variables;
+  auto& scopes = generator.context.scopes;
+  auto& global_code = generator.global_code;
+
+  // Handles the array type.
+  Ast::ArrayType* array_type =
+      dynamic_cast<Ast::ArrayType*>(declaration->GetVariableType());
+  if (array_type == nullptr) INTERNAL_ERROR("array_type is nullptr.");
+  if (array_type->GetTypeCategory() == Ast::Type::TypeCategory::kConst)
+    LOGGING_ERROR("const array not support.");
+
+  std::string variable_name =
+      scopes.back() + "." + declaration->GetVariableName();
+
+  // Adds the array index and the type index.
+  std::size_t array_index = global_memory.AddWithType(array_type->GetVmType());
+  std::size_t array_type_index = 0;
+
+  // Gets the sub type of the array type and its category.
+  Ast::Type* sub_type = array_type->GetSubType();
+  auto sub_type_category = sub_type->GetTypeCategory();
+
+  // If the sub type is a class type, it needs to be handled specially.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::string class_name =
+        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+    array_type_index = global_memory.AddString(class_name);
+
+  } else {
+    // If the vm type of the sub type isn't 0x00 (auto type), it means that
+    // the sub type is a primitive type, so we can add it into the global
+    // memory.
+    if (sub_type->GetVmType()[0] != 0x00)
+      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
+  }
+
+  // Handles the array creation bytecode.
+  // The array is created with the size of 1, and the type of the sub type.
+  // This means that regardless of the size of the array definition, it is
+  // actually determined based on the actual number of initialization lists
+  // given.
+  global_code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
+                                 global_memory.AddByte(1), array_type_index));
+
+  // If the sub type is a class type, it needs to be handled specially. Because
+  // the default generated class index is considered an initialized value
+  // because it is smaller than the array size, it will not be automatically
+  // initialized when the ARRAY operator is called.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::size_t current_index = global_memory.Add(1);
+    global_code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                                   array_index, global_memory.AddByte(0)));
+    global_code.push_back(
+        Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
+                 global_memory.AddString("@constructor"), 1, 0));
+  }
+
+  // Handles the array initialization with the initialization lists.
+  if (!declaration->GetVariableValue().empty()) {
+    for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
+      // Gets the corresponding array index reference.
+      std::size_t current_index = global_memory.Add(1);
+      global_code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                                     array_index, global_memory.AddUint64t(i)));
+
+      // Gets the value of the initialization list and assigns value to
+      // corresponding index.
+      std::size_t value_index = HandleExpression(
+          generator, declaration->GetVariableValue()[i], global_code);
+      global_code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+    }
+  }
+
+  variables[variable_name] = array_index;
+  return array_index;
+}
+
+std::size_t HandleClassArrayDeclaration(Generator& generator,
+                                        Ast::ArrayDeclaration* declaration) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& global_memory = generator.global_memory;
+  auto& current_class = generator.context.current_class;
+  auto& memory = current_class->GetMemory();
+  auto& variables = current_class->GetVariables();
+  auto& code = current_class->GetCode();
+
+  // Handles the array type.
+  Ast::ArrayType* array_type =
+      dynamic_cast<Ast::ArrayType*>(declaration->GetVariableType());
+  if (array_type == nullptr) INTERNAL_ERROR("array_type is nullptr.");
+  if (array_type->GetTypeCategory() == Ast::Type::TypeCategory::kConst)
+    LOGGING_ERROR("const array not support.");
+
+  std::string variable_name = declaration->GetVariableName();
+
+  // Adds the array index and the type index.
+  std::size_t original_array_index =
+      memory.AddWithType(variable_name, array_type->GetVmType());
+  std::size_t array_index = global_memory.Add(1);
+  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 2,
+                          global_memory.AddString(variable_name)));
+  std::size_t array_type_index = 0;
+
+  // Gets the sub type of the array type and its category.
+  Ast::Type* sub_type = array_type->GetSubType();
+  auto sub_type_category = sub_type->GetTypeCategory();
+
+  // If the sub type is a class type, it needs to be handled specially.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::string class_name =
+        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+    array_type_index = global_memory.AddString(class_name);
+
+  } else {
+    // If the vm type of the sub type isn't 0x00 (auto type), it means that
+    // the sub type is a primitive type, so we can add it into the global
+    // memory.
+    if (sub_type->GetVmType()[0] != 0x00)
+      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
+  }
+
+  // Handles the array creation bytecode.
+  // The array is created with the size of 1, and the type of the sub type.
+  // This means that regardless of the size of the array definition, it is
+  // actually determined based on the actual number of initialization lists
+  // given.
+  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
+                          global_memory.AddByte(1), array_type_index));
+
+  // If the sub type is a class type, it needs to be handled specially. Because
+  // the default generated class index is considered an initialized value
+  // because it is smaller than the array size, it will not be automatically
+  // initialized when the ARRAY operator is called.
+  if (sub_type_category == Ast::Type::TypeCategory::kClass) {
+    std::size_t current_index = global_memory.Add(1);
+    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
+                            global_memory.AddByte(0)));
+    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
+                            global_memory.AddString("@constructor"), 1, 0));
+  }
+
+  // Handles the array initialization with the initialization lists.
+  if (!declaration->GetVariableValue().empty()) {
+    for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
+      // Gets the corresponding array index reference.
+      std::size_t current_index = global_memory.Add(1);
+      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory.AddUint64t(i)));
+
+      // Gets the value of the initialization list and assigns value to
+      // corresponding index.
+      std::size_t value_index =
+          HandleExpression(generator, declaration->GetVariableValue()[i], code);
+      code.push_back(
+          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+    }
+  }
+
+  variables[variable_name] = array_index;
+  return array_index;
 }
 
 void HandleFunctionArguments(Generator& generator,
@@ -1039,6 +1321,36 @@ void HandleClassInHandlingVariable(Generator& generator,
   global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4,
                                  reference_index,
                                  memory.AddString("@constructor"), 1, 0));
+}
+
+std::string GetClassNameString(Generator& generator, Ast::ClassType* type) {
+  // Gets the reference of context.
+  auto& scopes = generator.context.scopes;
+  auto& functions = generator.context.functions;
+
+  std::string name = type->GetClassName();
+  for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+    // Searching globally first and then conducting a search with scope is to
+    // avoid the situation where the scope index is exceeded and -1 occurs.
+    auto iterator = functions.find(name);
+
+    // If the search scope is not the global scope, adds the scope name to the
+    // class name.
+    if (i != -1) iterator = functions.find(scopes[i] + "." + name);
+    if (iterator != functions.end()) {
+      // Searching globally first and then conducting a search with scope is to
+      // avoid the situation where the scope index is exceeded and -1 occurs.
+      name = name;
+
+      // If the search scope is not the global scope, adds the scope name to the
+      // class name.
+      if (i != -1) name = scopes[i] + "." + name;
+      break;
+    }
+    if (i == -1) LOGGING_ERROR("Class not found.");
+  }
+
+  return name;
 }
 }  // namespace Generator
 }  // namespace Compiler

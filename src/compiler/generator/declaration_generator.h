@@ -24,25 +24,46 @@ void HandleImport(Generator& generator, Ast::Import* statement);
 void HandleFunctionDeclaration(Generator& generator,
                                Ast::FunctionDeclaration* declaration);
 
+// Handles the class function declaration.
 void HandleClassFunctionDeclaration(Generator& generator,
                                     Ast::FunctionDeclaration* declaration);
+
+// Handles the class constructor.
 void HandleClassConstructor(Generator& generator,
                             Ast::FunctionDeclaration* declaration);
+
+// Handles the class declaration.
 void HandleClassDeclaration(Generator& generator, Ast::Class* declaration);
+
+// Handles the variable declaration.
 std::size_t HandleVariableDeclaration(Generator& generator,
                                       Ast::Variable* declaration);
+
+// Handles the static declaration.
 std::size_t HandleGlobalVariableDeclaration(Generator& generator,
                                             Ast::Variable* declaration);
+
+// Handles the static variable declaration.
 std::size_t HandleStaticVariableDeclaration(Generator& generator,
                                             Ast::Variable* declaration);
+
+// Handles the variable declaration.
 std::size_t HandleClassVariableDeclaration(Generator& generator,
                                            Ast::Variable* declaration);
+
+// Handles the array declaration.
 std::size_t HandleArrayDeclaration(Generator& generator,
                                    Ast::ArrayDeclaration* declaration);
+
+// Handles the global variable declaration.
 std::size_t HandleGlobalArrayDeclaration(Generator& generator,
                                          Ast::ArrayDeclaration* declaration);
+
+// Handles the static array declaration.
 std::size_t HandleStaticArrayDeclaration(Generator& generator,
                                          Ast::ArrayDeclaration* declaration);
+
+// Handles the class array declaration.
 std::size_t HandleClassArrayDeclaration(Generator& generator,
                                         Ast::ArrayDeclaration* declaration);
 
@@ -92,6 +113,7 @@ void HandleVoidConstructorFunctionInHandlingClass(
 void HandleClassInHandlingVariable(Generator& generator,
                                    Ast::Variable* declaration,
                                    std::size_t variable_index);
+std::string GetClassNameString(Generator& generator, Ast::ClassType* type);
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq
