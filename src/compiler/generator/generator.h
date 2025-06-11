@@ -38,7 +38,7 @@ struct Generator {
   }
   virtual ~Generator() = default;
 
-  void Generate(Ast::Compound* stmt, const char* output_file);
+  void Generate(Ast::Compound* statement, const char* output_file);
 
   bool is_big_endian = false;
   Class main_class;
@@ -52,39 +52,41 @@ struct Generator {
   std::vector<Bytecode> global_code;
 };
 
-void HandleStmt(Ast::Statement* stmt, std::vector<Bytecode>& code);
-void HandleBreakStmt(std::vector<Bytecode>& code);
-void HandleClassStmt(Ast::Statement* stmt, std::vector<Bytecode>& code);
-void HandleReturn(Ast::Return* stmt, std::vector<Bytecode>& code);
-void HandleCompoundStmt(Ast::Compound* stmt, std::vector<Bytecode>& code);
-void HandleIfStmt(Ast::If* stmt, std::vector<Bytecode>& code);
-void HandleWhileStmt(Ast::While* stmt, std::vector<Bytecode>& code);
-void HandleDowhileStmt(Ast::DoWhile* stmt, std::vector<Bytecode>& code);
-void HandleForStmt(Ast::For* stmt, std::vector<Bytecode>& code);
-std::size_t HandleExpr(Ast::Expression* expr, std::vector<Bytecode>& code);
-std::size_t HandleUnaryExpr(Ast::Unary* expr, std::vector<Bytecode>& code);
-std::size_t HandleBinaryExpr(Ast::Binary* expr, std::vector<Bytecode>& code);
-std::size_t HandlePeriodExpr(Ast::Binary* expr, std::vector<Bytecode>& code);
-std::size_t HandleFuncInvoke(Ast::Function* func, std::vector<Bytecode>& code);
-std::size_t HandleClassFuncInvoke(Ast::Function* func,
+
+std::size_t HandleExpression(Generator& generator, Ast::Expression* expression,
+                       std::vector<Bytecode>& code);
+std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
+                            std::vector<Bytecode>& code);
+std::size_t HandleBinaryExpression(Generator& generator, Ast::Binary* expression,
+                             std::vector<Bytecode>& code);
+std::size_t HandlePeriodExpression(Generator& generator, Ast::Binary* expression,
+                             std::vector<Bytecode>& code);
+std::size_t HandleFuncInvoke(Generator& generator, Ast::Function* func,
+                             std::vector<Bytecode>& code);
+std::size_t HandleClassFuncInvoke(Generator& generator, Ast::Function* func,
                                   std::vector<Bytecode>& code);
-void HandleLabel(Ast::Label* label, std::vector<Bytecode>& code);
-void HandleGoto(Ast::Goto* label, std::vector<Bytecode>& code);
-void HandleStartGoto(Ast::Goto* label, std::vector<Bytecode>& code);
-std::size_t GetIndex(Ast::Expression* expr, std::vector<Bytecode>& code);
-std::size_t GetClassIndex(Ast::Expression* expr, std::vector<Bytecode>& code);
-std::size_t AddConstInt8t(int8_t value);
-int64_t SwapLong(int64_t x);
-double SwapDouble(double x);
-uint64_t SwapUint64t(uint64_t x);
-void InsertUint64ToCode(uint64_t value);
-static std::size_t EncodeUleb128(std::size_t value,
+void HandleLabel(Generator& generator, Ast::Label* label,
+                 std::vector<Bytecode>& code);
+void HandleGoto(Generator& generator, Ast::Goto* label,
+                std::vector<Bytecode>& code);
+void HandleStartGoto(Generator& generator, Ast::Goto* label,
+                     std::vector<Bytecode>& code);
+std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
+                     std::vector<Bytecode>& code);
+std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
+                          std::vector<Bytecode>& code);
+std::size_t AddConstInt8t(Generator& generator, int8_t value);
+int64_t SwapLong(Generator& generator, int64_t x);
+double SwapDouble(Generator& generator, double x);
+uint64_t SwapUint64t(Generator& generator, uint64_t x);
+void InsertUint64ToCode(Generator& generator, uint64_t value);
+static std::size_t EncodeUleb128(Generator& generator, std::size_t value,
                                  std::vector<uint8_t>& output);
-void GenerateBytecodeFile(const char* output_file);
-void GenerateMnemonicFile(const char* output_file_name);
-Ast::Type* GetExprType(Ast::Expression* expr);
-std::string GetExprTypeString(Ast::Expression* expr);
-bool IsDereferenced(Ast::Expression* expr);
+void GenerateBytecodeFile(Generator& generator, const char* output_file);
+void GenerateMnemonicFile(Generator& generator, const char* output_file_name);
+Ast::Type* GetExprType(Generator& generator, Ast::Expression* expression);
+std::string GetExprTypeString(Generator& generator, Ast::Expression* expression);
+bool IsDereferenced(Generator& generator, Ast::Expression* expression);
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq

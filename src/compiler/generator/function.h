@@ -45,6 +45,7 @@ class Function {
 struct FunctionContext {
   std::vector<std::pair<std::string, std::size_t>> goto_map;
   std::unordered_map<std::string, std::size_t> label_map;
+  std::size_t current_scope = 0;
   std::vector<std::size_t> exit_index;
   std::vector<int64_t> loop_break_index;
 };

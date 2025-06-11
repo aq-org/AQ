@@ -12,6 +12,7 @@
 #include "compiler/generator/bytecode.h"
 #include "compiler/generator/generator.h"
 #include "compiler/generator/memory.h"
+#include "compiler/generator/statement_generator.h"
 #include "compiler/logging/logging.h"
 
 namespace Aq {
@@ -65,6 +66,7 @@ void HandleFunctionDeclaration(Generator& generator,
 
   // Gets the reference of context.
   auto& scopes = generator.context.scopes;
+  auto& current_scope = generator.context.function_context->current_scope;
 
   // Gets the function statement and its parameters.
   Ast::Function* statement = declaration->GetFunctionStatement();
@@ -74,7 +76,7 @@ void HandleFunctionDeclaration(Generator& generator,
   // Handles the function name with scopes.
   std::string scope_name = GetFunctionNameWithScope(generator, declaration);
   scopes.push_back(scope_name);
-  std::size_t current_scope = scopes.size() - 1;
+  current_scope = scopes.size() - 1;
 
   // DEPRECATED: Keep this implementation for adaptation to previous versions.
   // In principle, it will no longer be used.
@@ -117,6 +119,7 @@ void HandleClassFunctionDeclaration(Generator& generator,
   auto& current_class = generator.context.current_class;
   auto& label_map = generator.context.function_context->label_map;
   auto& scopes = generator.context.scopes;
+  auto& current_scope = generator.context.function_context->current_scope;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
@@ -132,7 +135,7 @@ void HandleClassFunctionDeclaration(Generator& generator,
   // Handles the function name with scopes.
   std::string scope_name = GetFunctionNameWithScope(generator, declaration);
   scopes.push_back(scope_name);
-  std::size_t current_scope = scopes.size() - 1;
+  current_scope = scopes.size() - 1;
 
   // Records the creation of the function.
   current_class->GetFunctions().insert(name);
@@ -889,7 +892,8 @@ void HandleFunctionArguments(Generator& generator,
       auto declaration = Ast::Cast<Ast::Variable>(parameters[i]);
       std::string name = scopes.back() + "#" + declaration->GetVariableName();
 
-      std::size_t index = HandleVariableDeclaration(declaration, code);
+      std::size_t index =
+          HandleVariableDeclaration(generator, declaration, code);
 
       // Adds index into |parameters_index| and |variables|.
       parameters_index.push_back(index);
@@ -900,7 +904,7 @@ void HandleFunctionArguments(Generator& generator,
       auto declaration = Ast::Cast<Ast::ArrayDeclaration>(parameters[i]);
       std::string name = scopes.back() + "#" + declaration->GetVariableName();
 
-      std::size_t index = HandleArrayDeclaration(declaration, code);
+      std::size_t index = HandleArrayDeclaration(generator, declaration, code);
 
       // Adds index into |parameters_index| and |variables|.
       parameters_index.push_back(index);
@@ -1060,6 +1064,7 @@ void HandleConstructorFunctionInHandlingConstructor(
   auto& memory = generator.global_memory;
   auto& functions = generator.context.functions;
   auto& current_class = generator.context.current_class;
+  auto& current_scope = generator.context.function_context->current_scope;
 
   // Creates the bytecode vector.
   std::vector<Bytecode> code;
@@ -1067,7 +1072,7 @@ void HandleConstructorFunctionInHandlingConstructor(
   // Handles the function name with scopes.
   std::string scope_name = GetFunctionNameWithScope(generator, declaration);
   scopes.push_back(scope_name);
-  std::size_t current_scope = scopes.size() - 1;
+  current_scope = scopes.size() - 1;
 
   // Records the creation of the function.
   current_class->GetFunctions().insert("@constructor");
@@ -1088,7 +1093,7 @@ void HandleConstructorFunctionInHandlingConstructor(
     return;
   }
 
-  HandleClassStatement(declaration->GetFunctionBody(), code);
+  HandleClassStatement(generator, declaration->GetFunctionBody(), code);
 
   HandleReturnInHandlingFunction(generator, code);
 
@@ -1165,13 +1170,12 @@ void HandleClassMembersInHandlingClass(Generator& generator,
     if (Ast::IsOfType<Ast::Variable>(member)) {
       // Handles the variable.
       auto variable = Ast::Cast<Ast::Variable>(member);
-      HandleClassVariableDeclaration(generator, memory, variables, variable,
-                                     code);
+      HandleClassVariableDeclaration(generator, variable);
 
     } else if (Ast::IsOfType<Ast::ArrayDeclaration>(member)) {
       // Handles the array declaration.
       auto array = Ast::Cast<Ast::ArrayDeclaration>(member);
-      HandleClassArrayDeclaration(generator, memory, variables, array, code);
+      HandleClassArrayDeclaration(generator, array);
 
     } else {
       INTERNAL_ERROR("Unexpected code.");
