@@ -32,7 +32,7 @@ struct Context {
 
 struct Generator {
   Generator() {
-    InitBuiltInFuncDecl();
+    InitBuiltInFunctionDeclaration(*this);
     uint16_t test_data = 0x0011;
     is_big_endian = *(uint8_t*)&test_data == 0x00;
   }
@@ -52,19 +52,6 @@ struct Generator {
   std::vector<Bytecode> global_code;
 };
 
-
-std::size_t HandleExpression(Generator& generator, Ast::Expression* expression,
-                       std::vector<Bytecode>& code);
-std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
-                            std::vector<Bytecode>& code);
-std::size_t HandleBinaryExpression(Generator& generator, Ast::Binary* expression,
-                             std::vector<Bytecode>& code);
-std::size_t HandlePeriodExpression(Generator& generator, Ast::Binary* expression,
-                             std::vector<Bytecode>& code);
-std::size_t HandleFuncInvoke(Generator& generator, Ast::Function* func,
-                             std::vector<Bytecode>& code);
-std::size_t HandleClassFuncInvoke(Generator& generator, Ast::Function* func,
-                                  std::vector<Bytecode>& code);
 void HandleLabel(Generator& generator, Ast::Label* label,
                  std::vector<Bytecode>& code);
 void HandleGoto(Generator& generator, Ast::Goto* label,
@@ -75,7 +62,6 @@ std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
                      std::vector<Bytecode>& code);
 std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
                           std::vector<Bytecode>& code);
-std::size_t AddConstInt8t(Generator& generator, int8_t value);
 int64_t SwapLong(Generator& generator, int64_t x);
 double SwapDouble(Generator& generator, double x);
 uint64_t SwapUint64t(Generator& generator, uint64_t x);
@@ -85,7 +71,8 @@ static std::size_t EncodeUleb128(Generator& generator, std::size_t value,
 void GenerateBytecodeFile(Generator& generator, const char* output_file);
 void GenerateMnemonicFile(Generator& generator, const char* output_file_name);
 Ast::Type* GetExprType(Generator& generator, Ast::Expression* expression);
-std::string GetExprTypeString(Generator& generator, Ast::Expression* expression);
+std::string GetExprTypeString(Generator& generator,
+                              Ast::Expression* expression);
 bool IsDereferenced(Generator& generator, Ast::Expression* expression);
 }  // namespace Generator
 }  // namespace Compiler

@@ -10,10 +10,12 @@
 #include "compiler/ast/ast.h"
 #include "compiler/ast/type.h"
 #include "compiler/generator/bytecode.h"
+#include "compiler/generator/expression_generator.h"
 #include "compiler/generator/generator.h"
 #include "compiler/generator/memory.h"
 #include "compiler/generator/statement_generator.h"
 #include "compiler/logging/logging.h"
+
 
 namespace Aq {
 namespace Compiler {

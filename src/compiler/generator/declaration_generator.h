@@ -71,7 +71,7 @@ std::size_t HandleStaticArrayDeclaration(Generator& generator,
 std::size_t HandleClassArrayDeclaration(Generator& generator,
                                         Ast::ArrayDeclaration* declaration);
 
-// INTERNAL Handles the class in variable declaration.
+// Handles the class in variable declaration.
 void GenerateBytecode(std::string import_location);
 
 // Gets the function name with scope.

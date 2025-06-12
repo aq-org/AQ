@@ -6,6 +6,7 @@
 
 #include "compiler/ast/ast.h"
 #include "compiler/generator/declaration_generator.h"
+#include "compiler/generator/expression_generator.h"
 #include "compiler/generator/generator.h"
 #include "compiler/logging/logging.h"
 
