@@ -52,27 +52,13 @@ struct Generator {
   std::vector<Bytecode> global_code;
 };
 
-void HandleLabel(Generator& generator, Ast::Label* label,
-                 std::vector<Bytecode>& code);
-void HandleGoto(Generator& generator, Ast::Goto* label,
-                std::vector<Bytecode>& code);
-void HandleStartGoto(Generator& generator, Ast::Goto* label,
-                     std::vector<Bytecode>& code);
-std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
-                     std::vector<Bytecode>& code);
-std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
-                          std::vector<Bytecode>& code);
-int64_t SwapLong(Generator& generator, int64_t x);
-double SwapDouble(Generator& generator, double x);
-uint64_t SwapUint64t(Generator& generator, uint64_t x);
+
+
 void InsertUint64ToCode(Generator& generator, uint64_t value);
 static std::size_t EncodeUleb128(Generator& generator, std::size_t value,
                                  std::vector<uint8_t>& output);
 void GenerateBytecodeFile(Generator& generator, const char* output_file);
 void GenerateMnemonicFile(Generator& generator, const char* output_file_name);
-Ast::Type* GetExprType(Generator& generator, Ast::Expression* expression);
-std::string GetExprTypeString(Generator& generator,
-                              Ast::Expression* expression);
 bool IsDereferenced(Generator& generator, Ast::Expression* expression);
 }  // namespace Generator
 }  // namespace Compiler

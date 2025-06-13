@@ -45,50 +45,6 @@ class Memory {
   std::size_t GetMemorySize() { return memory_size_; }
 
  protected:
-  // Swaps the byte order of a 64-bit integer.
-  inline int64_t SwapLong(int64_t x) {
-    uint64_t ux = (uint64_t)x;
-    ux = ((ux << 56) & 0xFF00000000000000ULL) |
-         ((ux << 40) & 0x00FF000000000000ULL) |
-         ((ux << 24) & 0x0000FF0000000000ULL) |
-         ((ux << 8) & 0x000000FF00000000ULL) |
-         ((ux >> 8) & 0x00000000FF000000ULL) |
-         ((ux >> 24) & 0x0000000000FF0000ULL) |
-         ((ux >> 40) & 0x000000000000FF00ULL) |
-         ((ux >> 56) & 0x00000000000000FFULL);
-    return (int64_t)ux;
-  }
-
-  // Swaps the byte order of a double.
-  inline double SwapDouble(double x) {
-    uint64_t ux;
-    memcpy(&ux, &x, sizeof(uint64_t));
-    ux = ((ux << 56) & 0xFF00000000000000ULL) |
-         ((ux << 40) & 0x00FF000000000000ULL) |
-         ((ux << 24) & 0x0000FF0000000000ULL) |
-         ((ux << 8) & 0x000000FF00000000ULL) |
-         ((ux >> 8) & 0x00000000FF000000ULL) |
-         ((ux >> 24) & 0x0000000000FF0000ULL) |
-         ((ux >> 40) & 0x000000000000FF00ULL) |
-         ((ux >> 56) & 0x00000000000000FFULL);
-    double result;
-    memcpy(&result, &ux, sizeof(double));
-    return result;
-  }
-
-  // Swaps the byte order of a 64-bit unsigned integer.
-  inline uint64_t SwapUint64t(uint64_t x) {
-    x = ((x << 56) & 0xFF00000000000000ULL) |
-        ((x << 40) & 0x00FF000000000000ULL) |
-        ((x << 24) & 0x0000FF0000000000ULL) |
-        ((x << 8) & 0x000000FF00000000ULL) |
-        ((x >> 8) & 0x00000000FF000000ULL) |
-        ((x >> 24) & 0x0000000000FF0000ULL) |
-        ((x >> 40) & 0x000000000000FF00ULL) |
-        ((x >> 56) & 0x00000000000000FFULL);
-    return x;
-  }
-
   bool is_big_endian_ = false;
   std::vector<Bytecode>* init_code_;
   std::vector<uint8_t> constant_table_;
@@ -125,6 +81,47 @@ class ClassMemory : public Memory {
   Memory* global_memory_ = nullptr;
   std::vector<std::string> variable_name_;
 };
+
+// Swaps the byte order of a 64-bit integer.
+inline int64_t SwapLong(int64_t x) {
+  uint64_t ux = (uint64_t)x;
+  ux = ((ux << 56) & 0xFF00000000000000ULL) |
+       ((ux << 40) & 0x00FF000000000000ULL) |
+       ((ux << 24) & 0x0000FF0000000000ULL) |
+       ((ux << 8) & 0x000000FF00000000ULL) |
+       ((ux >> 8) & 0x00000000FF000000ULL) |
+       ((ux >> 24) & 0x0000000000FF0000ULL) |
+       ((ux >> 40) & 0x000000000000FF00ULL) |
+       ((ux >> 56) & 0x00000000000000FFULL);
+  return (int64_t)ux;
+}
+
+// Swaps the byte order of a double.
+inline double SwapDouble(double x) {
+  uint64_t ux;
+  memcpy(&ux, &x, sizeof(uint64_t));
+  ux = ((ux << 56) & 0xFF00000000000000ULL) |
+       ((ux << 40) & 0x00FF000000000000ULL) |
+       ((ux << 24) & 0x0000FF0000000000ULL) |
+       ((ux << 8) & 0x000000FF00000000ULL) |
+       ((ux >> 8) & 0x00000000FF000000ULL) |
+       ((ux >> 24) & 0x0000000000FF0000ULL) |
+       ((ux >> 40) & 0x000000000000FF00ULL) |
+       ((ux >> 56) & 0x00000000000000FFULL);
+  double result;
+  memcpy(&result, &ux, sizeof(double));
+  return result;
+}
+
+// Swaps the byte order of a 64-bit unsigned integer.
+inline uint64_t SwapUint64t(uint64_t x) {
+  x = ((x << 56) & 0xFF00000000000000ULL) |
+      ((x << 40) & 0x00FF000000000000ULL) |
+      ((x << 24) & 0x0000FF0000000000ULL) | ((x << 8) & 0x000000FF00000000ULL) |
+      ((x >> 8) & 0x00000000FF000000ULL) | ((x >> 24) & 0x0000000000FF0000ULL) |
+      ((x >> 40) & 0x000000000000FF00ULL) | ((x >> 56) & 0x00000000000000FFULL);
+  return x;
+}
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq

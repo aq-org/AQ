@@ -43,6 +43,14 @@ std::size_t AddConstInt8t(Generator& generator, int8_t value);
 // Handles the function return value.
 std::size_t HandleFunctionReturnValue(Generator& generator,
                                       std::vector<Bytecode>& code);
+
+// // Gets the index of the expression in the memory.
+std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
+                     std::vector<Bytecode>& code);
+
+// Gets the index of the class in the memory.
+std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
+                          std::vector<Bytecode>& code);
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq

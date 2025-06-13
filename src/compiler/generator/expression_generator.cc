@@ -476,6 +476,173 @@ std::size_t HandleFunctionReturnValue(Generator& generator,
 
   return return_value_reference_index;
 }
+
+std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
+                     std::vector<Bytecode>& code) {
+  if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
+
+  // Gets the reference of context.
+  auto& global_memory = generator.global_memory;
+  auto& scopes = generator.context.scopes;
+  auto& variables = generator.context.variables;
+  auto& current_scope = generator.context.function_context->current_scope;
+  auto& current_class = generator.context.current_class;
+
+  if (current_class != nullptr) {
+    return GetClassIndex(generator, expression, code);
+  }
+
+  switch (expression->GetStatementType()) {
+    case Ast::Statement::StatementType::kIdentifier: {
+      for (int64_t i = scopes.size() - 1; i >= 0; i--) {
+        auto iterator = variables.find(
+            scopes[i] + "#" +
+            std::string(*Ast::Cast<Ast::Identifier>(expression)));
+        if (iterator != variables.end()) {
+          return iterator->second;
+        }
+      }
+      LOGGING_ERROR("Identifier not found.");
+      break;
+    }
+
+    case Ast::Statement::StatementType::kValue: {
+      std::size_t vm_type = Ast::Cast<Ast::Value>(expression)->GetVmType();
+      switch (vm_type) {
+        case 0x01: {
+          int8_t value = Ast::Cast<Ast::Value>(expression)->GetByteValue();
+          return global_memory.AddByte(value);
+          break;
+        }
+
+        case 0x02: {
+          int64_t value = Ast::Cast<Ast::Value>(expression)->GetLongValue();
+          return global_memory.AddLong(value);
+        }
+
+        case 0x03: {
+          double value = Ast::Cast<Ast::Value>(expression)->GetDoubleValue();
+          return global_memory.AddDouble(value);
+        }
+
+        case 0x04: {
+          uint64_t value = Ast::Cast<Ast::Value>(expression)->GetUInt64Value();
+          return global_memory.AddUint64t(value);
+        }
+
+        case 0x05: {
+          std::string value =
+              Ast::Cast<Ast::Value>(expression)->GetStringValue();
+          std::size_t str_index = global_memory.AddString(value);
+          return str_index;
+        }
+
+        default:
+          LOGGING_ERROR("Unexpected value vm type.");
+          break;
+      }
+    }
+
+    case Ast::Statement::StatementType::kFunction:
+      return HandleFunctionInvoke(generator,
+                                  Ast::Cast<Ast::Function>(expression), code);
+
+    default:
+      LOGGING_ERROR("Unexpected expression type.");
+  }
+
+  return 0;
+}
+
+std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
+                          std::vector<Bytecode>& code) {
+  if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
+
+  // Gets the reference of context.
+  auto& global_memory = generator.global_memory;
+  auto& scopes = generator.context.scopes;
+  auto& variables = generator.context.variables;
+  auto& current_scope = generator.context.function_context->current_scope;
+  auto& current_class = generator.context.current_class;
+
+  switch (expression->GetStatementType()) {
+    case Ast::Statement::StatementType::kIdentifier: {
+      std::size_t index = 0;
+
+      std::string variable_name =
+          std::string(*Ast::Cast<Ast::Identifier>(expression));
+
+      // Check if the current class has the variable.
+      if (current_class != nullptr &&
+          current_class->GetVariable(variable_name, index)) {
+        // Gets the reference of the variable index.
+        std::size_t return_index = global_memory.Add(1);
+        code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_index, 0,
+                                global_memory.AddString(variable_name)));
+        return return_index;
+      }
+
+      for (int64_t i = scopes.size() - 1; i >= 0; i--) {
+        auto iterator = variables.find(scopes[i] + "#" + variable_name);
+
+        // If the variable is found in the current scope, return its index.
+        if (iterator != variables.end()) {
+          return iterator->second;
+        }
+      }
+
+      // If the variable is not found in any scope, log an error.
+      LOGGING_ERROR("Identifier not found.");
+      break;
+    }
+
+    case Ast::Statement::StatementType::kValue: {
+      std::size_t vm_type = Ast::Cast<Ast::Value>(expression)->GetVmType();
+      switch (vm_type) {
+        case 0x01: {
+          int8_t value = Ast::Cast<Ast::Value>(expression)->GetByteValue();
+          return global_memory.AddByte(value);
+          break;
+        }
+
+        case 0x02: {
+          int64_t value = Ast::Cast<Ast::Value>(expression)->GetLongValue();
+          return global_memory.AddLong(value);
+        }
+
+        case 0x03: {
+          double value = Ast::Cast<Ast::Value>(expression)->GetDoubleValue();
+          return global_memory.AddDouble(value);
+        }
+
+        case 0x04: {
+          uint64_t value = Ast::Cast<Ast::Value>(expression)->GetUInt64Value();
+          return global_memory.AddUint64t(value);
+        }
+
+        case 0x05: {
+          std::string value =
+              Ast::Cast<Ast::Value>(expression)->GetStringValue();
+          std::size_t str_index = global_memory.AddString(value);
+          return str_index;
+        }
+
+        default:
+          LOGGING_ERROR("Unexpected value vm type.");
+          break;
+      }
+    }
+
+    case Ast::Statement::StatementType::kFunction:
+      return HandleFunctionInvoke(generator,
+                                  Ast::Cast<Ast::Function>(expression), code);
+
+    default:
+      return 0;
+  }
+
+  return 0;
+}
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq
