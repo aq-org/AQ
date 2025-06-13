@@ -26,7 +26,6 @@ struct Context {
   FunctionContext* function_context = nullptr;
   std::vector<std::string> scopes;
   Class* current_class = nullptr;
-  std::vector<std::pair<std::string, std::size_t>> main_goto_map;
   std::size_t undefined_count = 0;
 };
 
@@ -52,14 +51,10 @@ struct Generator {
   std::vector<Bytecode> global_code;
 };
 
-
-
-void InsertUint64ToCode(Generator& generator, uint64_t value);
-static std::size_t EncodeUleb128(Generator& generator, std::size_t value,
-                                 std::vector<uint8_t>& output);
+void InsertUint64ToCode(uint64_t value, std::vector<uint8_t>& code);
 void GenerateBytecodeFile(Generator& generator, const char* output_file);
 void GenerateMnemonicFile(Generator& generator, const char* output_file_name);
-bool IsDereferenced(Generator& generator, Ast::Expression* expression);
+
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq

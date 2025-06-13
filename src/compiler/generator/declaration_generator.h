@@ -15,8 +15,6 @@
 namespace Aq {
 namespace Compiler {
 namespace Generator {
-std::unordered_map<std::string, Generator*> imports_map;
-
 // Handles the import statement.
 void HandleImport(Generator& generator, Ast::Import* statement);
 

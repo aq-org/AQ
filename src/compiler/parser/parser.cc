@@ -16,7 +16,7 @@
 
 namespace Aq {
 namespace Compiler {
-Ast::Compound* Parser::Parse(std::vector<Token> token) {
+Ast::Compound* Parser::Parse(std::vector<Token>& token) {
   Token* token_ptr = token.data();
   std::size_t index = 0;
   std::size_t length = token.size();

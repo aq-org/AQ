@@ -17,45 +17,30 @@
 namespace Aq {
 namespace Compiler {
 namespace Generator {
+class Generator;
+
 // Preprocesses the declaration statements in the given compound statement.
 // This function processes class declarations, function declarations, and
 // static declarations, and imports. It updates the current scope and
 // declaration maps accordingly.
-void PreProcessDeclaration(
-    Ast::Compound* statements, std::vector<std::string>& scopes,
-    std::unordered_set<std::string>& function_declarations,
-    std::unordered_map<std::string, std::size_t>& variable_declaration_map,
-    std::unordered_map<std::string, Generator::Class*>& class_declaration_map,
-    Memory& global_memory);
+void PreProcessDeclaration(Generator& generator, Ast::Compound* statements);
 
 // Preprocesses the function declaration in the given statement. It updates
 // the current scope and declaration maps accordingly.
-void PreProcessFunctionDeclaration(
-    Ast::FunctionDeclaration* statement, std::vector<std::string>& scopes,
-    std::unordered_set<std::string>& function_declarations);
+void PreProcessFunctionDeclaration(Generator& generator,
+                                   Ast::FunctionDeclaration* statement);
 
 // Preprocesses the class declaration in the given statement. It updates
 // the current scope and declaration maps accordingly.
-void PreProcessClassDeclaration(
-    Ast::Class* statement, std::vector<std::string>& scopes,
-    std::unordered_set<std::string>& function_declarations,
-    std::unordered_map<std::string, Generator::Class*>& class_declaration_map,
-    Memory& global_memory);
+void PreProcessClassDeclaration(Generator& generator, Ast::Class* statement);
 
 // Preprocesses the static declaration in the given statement. It updates
 // the current scope and declaration maps accordingly.
-void PreProcessStaticDeclaration(
-    Ast::Class* statement, std::vector<std::string>& scopes,
-    std::unordered_set<std::string>& function_declarations,
-    std::unordered_map<std::string, Generator::Class*>& class_declaration_map,
-    Memory& global_memory);
+void PreProcessStaticDeclaration(Generator& generator, Ast::Class* statement);
 
 // Preprocesses the import statement in the given statement. It updates
 // the global memory with the imported variables.
-void PreProcessImport(
-    Ast::Import* statement,
-    std::unordered_map<std::string, std::size_t>& variable_declaration_map,
-    Memory& global_memory);
+void PreProcessImport(Generator& generator, Ast::Import* statement);
 
 }  // namespace Generator
 }  // namespace Compiler

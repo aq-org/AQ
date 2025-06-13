@@ -8,7 +8,9 @@
 #include <string>
 #include <vector>
 
+#include "compiler/logging/logging.h"
 #include "compiler/token/token.h"
+
 
 namespace Aq {
 namespace Compiler {
@@ -66,7 +68,10 @@ class Type {
   // Returns the vm type of the Type object as a vector of uint8_t.
   std::vector<uint8_t> GetVmType();
 
-  virtual operator std::string();
+  virtual operator std::string() {
+    LOGGING_WARNING("Unexpected Type std::string.");
+    return "";
+  }
 
  protected:
   // Shows the type category of the Type object. This is a member variable

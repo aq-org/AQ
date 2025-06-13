@@ -11,6 +11,7 @@
 
 #include "compiler/ast/type.h"
 #include "compiler/token/token.h"
+#include "compiler/logging/logging.h"
 
 namespace Aq {
 namespace Compiler {
@@ -676,11 +677,20 @@ class Return : public Statement {
 // Returns true if the type of |statement| is equal to |T|. |T| does not need to
 // carry pointer types. The check is done using typeid.
 template <typename T>
-bool IsOfType(Ast::Statement* statement);
+bool IsOfType(Ast::Statement* statement) {
+  if (typeid(T) == typeid(*statement)) {
+    return true;
+  }
+  return false;
+}
 
 // Casts |statement| to |T| type. Returns the new pointer.
 template <typename T>
-T* Cast(Ast::Statement* statement);
+T* Cast(Ast::Statement* statement) {
+  T* result = dynamic_cast<T*>(statement);
+  if (result == nullptr) INTERNAL_ERROR("result is nullptr.");
+  return result;
+}
 
 }  // namespace Ast
 }  // namespace Compiler

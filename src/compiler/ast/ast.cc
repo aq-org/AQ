@@ -99,21 +99,6 @@ Expression::operator std::string() {
   return std::string();
 }
 
-template <typename T>
-bool IsOfType(Ast::Statement* statement) {
-  if (typeid(T) == typeid(*statement)) {
-    return true;
-  }
-  return false;
-}
-
-template <typename T>
-T* Cast(Ast::Statement* statement) {
-  T* result = dynamic_cast<T*>(statement);
-  if (result == nullptr) INTERNAL_ERROR("result is nullptr.");
-  return result;
-}
-
 }  // namespace Ast
 }  // namespace Compiler
 }  // namespace Aq

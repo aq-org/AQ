@@ -20,7 +20,14 @@ ${PROJECT_SOURCE_DIR}/src/compiler/parser/declaration_parser.cc
 ${PROJECT_SOURCE_DIR}/src/compiler/parser/expression_parser.cc 
 ${PROJECT_SOURCE_DIR}/src/compiler/token/token.cc 
 ${PROJECT_SOURCE_DIR}/src/compiler/token/tokenmap.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/generator/generator.cc)
+${PROJECT_SOURCE_DIR}/src/compiler/generator/generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/builtin.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/declaration_generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/expression_generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/goto_generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/memory.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/preprocesser.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/statement_generator.cc)
 
 set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
 

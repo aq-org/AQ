@@ -9,17 +9,20 @@
 
 #include "compiler/ast/ast.h"
 #include "compiler/ast/type.h"
+#include "compiler/compiler.h"
 #include "compiler/generator/bytecode.h"
 #include "compiler/generator/expression_generator.h"
 #include "compiler/generator/generator.h"
 #include "compiler/generator/memory.h"
 #include "compiler/generator/statement_generator.h"
 #include "compiler/logging/logging.h"
-
+#include "compiler/parser/parser.h"
 
 namespace Aq {
 namespace Compiler {
 namespace Generator {
+std::unordered_map<std::string, Generator*> imports_map;
+
 void HandleImport(Generator& generator, Ast::Import* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
@@ -1294,7 +1297,8 @@ void HandleClassInHandlingVariable(Generator& generator,
   auto& functions = generator.context.functions;
 
   // Gets the class name, which is same as the function name.
-  std::string name = std::string(*declaration->GetVariableType());
+  std::string name = std::string(
+      *dynamic_cast<Ast::ClassType*>(declaration->GetVariableType()));
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     // Searching globally first and then conducting a search with scope is to
     // avoid the situation where the scope index is exceeded and -1 occurs.
@@ -1358,6 +1362,77 @@ std::string GetClassNameString(Generator& generator, Ast::ClassType* type) {
 
   return name;
 }
+
+void GenerateBytecode(std::string import_location) {
+  Generator* generator = new Generator();
+  std::vector<char> code;
+  Aq::Compiler::ReadCodeFromFile(import_location.c_str(), code);
+
+  std::vector<Aq::Compiler::Token> token;
+  Aq::Compiler::LexCode(code, token);
+
+  Aq::Compiler::Ast::Compound* ast = Aq::Compiler::Parser::Parse(token);
+  if (ast == nullptr) Aq::Compiler::LOGGING_ERROR("ast is nullptr.");
+
+  import_location += std::string("bc");
+  generator->Generate(ast, import_location.c_str());
+
+  Aq::Compiler::LOGGING_INFO("Generate Bytecode SUCCESS!");
+
+  imports_map.insert(std::make_pair(import_location, generator));
+}
+
+std::string GetFunctionNameWithScope(Generator& generator,
+                                     Ast::FunctionDeclaration* declaration) {
+  // Gets the reference of context.
+
+  auto& scopes = generator.context.scopes;
+
+  // Gets the function statement and its parameters.
+  Ast::Function* statement = declaration->GetFunctionStatement();
+  std::vector<Ast::Expression*> parameters = statement->GetParameters();
+
+  // Gets the function name with scopes.
+  std::string scope_name = scopes.back() + "." + statement->GetFunctionName();
+
+  // Adds the function parameters type into the scope name.
+  for (std::size_t i = 0; i < parameters.size(); i++) {
+    // Adds the argument type separator to the scope name.
+    if (i == 0) {
+      scope_name += "@";
+    } else {
+      scope_name += ",";
+    }
+
+    // Adds the argument type to the scope name.
+    if (Ast::IsOfType<Ast::Variable>(parameters[i])) {
+      auto declaration = Ast::Cast<Ast::Variable>(parameters[i]);
+      scope_name += std::string(*declaration->GetVariableType());
+
+    } else if (Ast::IsOfType<Ast::ArrayDeclaration>(parameters[i])) {
+      auto declaration = Ast::Cast<Ast::ArrayDeclaration>(parameters[i]);
+      scope_name += std::string(*declaration->GetVariableType());
+
+    } else {
+      LOGGING_ERROR(
+          "Function parameters is not a variable or array declaration.");
+    }
+
+    // Handles variadic parameters.
+    if (i == parameters.size() - 1 && statement->IsVariadic()) {
+      scope_name += ",...";
+    }
+  }
+
+  // Handles variadic parameters if the function is variadic and parameters size
+  // is 0.
+  if (parameters.size() == 0 && statement->IsVariadic()) {
+    scope_name += "@...";
+  }
+
+  return scope_name;
+}
+
 }  // namespace Generator
 }  // namespace Compiler
 }  // namespace Aq
