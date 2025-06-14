@@ -10,8 +10,9 @@
 #include <vector>
 
 #include "compiler/ast/type.h"
-#include "compiler/token/token.h"
 #include "compiler/logging/logging.h"
+#include "compiler/token/token.h"
+
 
 namespace Aq {
 namespace Compiler {
@@ -390,7 +391,7 @@ class Variable : public Declaration, public Expression {
     Expression::statement_type_ = StatementType::kVariable;
     variable_type_ = type;
     variable_name_ = name;
-    variable_value_[0] = value;
+    variable_value_.push_back(value);
   }
 
   virtual ~Variable() = default;
