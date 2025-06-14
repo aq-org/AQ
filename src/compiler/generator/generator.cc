@@ -14,12 +14,15 @@
 #include "compiler/generator/statement_generator.h"
 #include "compiler/logging/logging.h"
 
-
 namespace Aq {
 namespace Compiler {
 namespace Generator {
 void Generator::Generate(Ast::Compound* statement, const char* output_file) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
+
+  // Adds the function context for the main function.
+  auto function_context = new FunctionContext();
+  context.function_context = function_context;
 
   global_memory.SetCode(&init_code);
 
@@ -98,6 +101,9 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
         statements.push_back(sub_statement);
     }
   }
+
+  // Restores function context null caused by possible function generation.
+  context.function_context = function_context;
 
   for (std::size_t i = 0; i < imports.size(); i++) {
     HandleImport(*this, imports[i]);
