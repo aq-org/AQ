@@ -9,18 +9,18 @@
 #include <string>
 #include <vector>
 
+#include "compiler/generator/generator.h"
 #include "compiler/lexer/lexer.h"
 #include "compiler/logging/logging.h"
 #include "compiler/parser/parser.h"
 #include "compiler/token/token.h"
-#include "compiler/generator/generator.h"
-
 
 int main(int argc, char* argv[]) {
   // TODO(command-line arguments): Add more command-line arguments and
   // related-functions for the compiler.
   if (argc < 3) {
-    Aq::Compiler::LOGGING_ERROR("Usage: " + std::string(argv[0]) + " <code> <output>");
+    Aq::Compiler::LOGGING_ERROR("Usage: " + std::string(argv[0]) +
+                                " <code> <output>");
     return -1;
   }
 
@@ -52,8 +52,10 @@ void ReadCodeFromFile(const char* filename, std::vector<char>& code) {
   std::streampos size = ifs.tellg();
   ifs.seekg(0, std::ios::beg);
 
-  std::vector<char> buffer(size);
-  ifs.read(buffer.data(), size);
+  code.resize(size);
+  ifs.read(code.data(), size);
+  code.push_back('\0');
+  ifs.close();
 }
 
 void LexCode(std::vector<char>& code, std::vector<Token>& tokens) {
