@@ -51,10 +51,11 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
                                  memory_init_name, 1, global_memory.Add(1)));
 
   // Sets the current class.
-  context.current_class = new Class();
-  context.current_class->SetName(".__start");
-  context.current_class->GetMemory().Add("@name");
-  context.current_class->GetMemory().Add("@size");
+  Class* start_class = new Class();
+  context.current_class = start_class;
+  start_class->SetName(".__start");
+  start_class->GetMemory().Add("@name");
+  start_class->GetMemory().Add("@size");
 
   // Preprocesses the declaration statements.
   PreProcessDeclaration(*this, statement);
@@ -104,6 +105,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
 
   // Restores function context null caused by possible function generation.
   context.function_context = function_context;
+  context.current_class = start_class;
 
   for (std::size_t i = 0; i < imports.size(); i++) {
     HandleImport(*this, imports[i]);
@@ -119,6 +121,10 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
         HandleStatement(*this, statements[i], global_code);
     }
   }
+
+  // Restores function context null caused by possible function generation.
+  context.function_context = function_context;
+  context.current_class = start_class;
 
   while (context.function_context->goto_map.size() > 0) {
     std::size_t goto_location = 0;
@@ -144,7 +150,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
     context.function_context->goto_map.pop_back();
   }
 
-  context.scopes.pop_back();
+  context.scopes.clear();
   context.function_context->current_scope = 0;
 
   // Generates the bytecode for the main function.

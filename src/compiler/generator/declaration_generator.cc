@@ -213,6 +213,9 @@ void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
 
   HandleSubClassesInHandlingClass(generator, declaration);
 
+  // Restores function context null caused by possible sub classes generation.
+  current_class = classes[class_name];
+
   HandleStaticMembersInHandlingClass(generator, declaration);
 
   HandleClassMembersInHandlingClass(generator, declaration);

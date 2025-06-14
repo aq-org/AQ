@@ -40,7 +40,7 @@ void PreProcessDeclaration(Generator& generator, Ast::Compound* statements) {
   for (std::size_t i = 0; i < statements_buffer.size(); i++) {
     switch (statements_buffer[i]->GetStatementType()) {
       case Ast::Statement::StatementType::kClass:
-        PreProcessStaticDeclaration(
+        PreProcessClassDeclaration(
             generator, Ast::Cast<Ast::Class>(statements_buffer[i]));
         break;
 

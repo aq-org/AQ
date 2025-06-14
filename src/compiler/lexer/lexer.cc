@@ -68,22 +68,26 @@ LexStart:
       goto LexEnd;
 
     // The string flag.
-    case '"':
+    case '"': {
+      bool is_string = return_token.type == Token::Type::STRING;
       if (LexString(return_token)) {
         current_location++;
-        if (return_token.type == Token::Type::STRING) goto LexEnd;
+        if (is_string) goto LexEnd;
         goto LexStart;
       }
       goto LexEnd;
+    }
 
     // The character flag.
-    case '\'':
+    case '\'': {
+      bool is_charater = return_token.type == Token::Type::CHARACTER;
       if (LexCharacter(return_token)) {
         current_location++;
-        if (return_token.type == Token::Type::CHARACTER) goto LexEnd;
+        if (is_charater) goto LexEnd;
         goto LexStart;
       }
       goto LexEnd;
+    }
 
       // Escape character.
     case '\\':
@@ -171,12 +175,11 @@ LexEnd:
   if (return_token.type == Token::Type::START ||
       return_token.type == Token::Type::COMMENT) {
     return_token.type = Token::Type::NONE;
-    code_ptr_ = current_location;
-    return 0;
   } else {
     // Meaningful token. Determine the specific token information.
     HandleFinalToken(return_token, current_location);
   }
+  code_ptr_ = current_location;
   return 0;
 }
 
@@ -595,8 +598,10 @@ void Lexer::HandleFinalToken(Token& token, char*& current_location) {
       token.value.character = value.location[1];
       break;
 
-    case Token::Type::STRING:;
-      token.value.string = new std::string(value.location + 1, length - 2);
+    case Token::Type::STRING:
+      if (location == nullptr || length < 2)
+        INTERNAL_ERROR("Unexpected location or string length.");
+      token.value.string = new std::string(location + 1, length - 2);
       break;
 
     case Token::Type::OPERATOR:
