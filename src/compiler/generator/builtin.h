@@ -14,7 +14,7 @@
 namespace Aq {
 namespace Compiler {
 namespace Generator {
-class Generator;
+struct Generator;
 
 // Adds built-in functions to the generator.
 void AddBuiltInFunctionDeclaration(Generator& generator, std::string name);

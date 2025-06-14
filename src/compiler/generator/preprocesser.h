@@ -17,7 +17,7 @@
 namespace Aq {
 namespace Compiler {
 namespace Generator {
-class Generator;
+struct Generator;
 
 // Preprocesses the declaration statements in the given compound statement.
 // This function processes class declarations, function declarations, and

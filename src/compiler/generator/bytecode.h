@@ -15,7 +15,7 @@ namespace Compiler {
 namespace Generator {
 class Bytecode {
  public:
-  Bytecode(std::size_t oper, std::size_t arguments_count, ...) {
+  Bytecode(uint8_t oper, std::size_t arguments_count, ...) {
     oper_ = oper;
     va_list arguments;
     va_start(arguments, arguments_count);
@@ -24,7 +24,7 @@ class Bytecode {
     }
     va_end(arguments);
   }
-  Bytecode(std::size_t oper, std::vector<std::size_t> arguments) {
+  Bytecode(uint8_t oper, std::vector<std::size_t> arguments) {
     oper_ = oper;
     arguments_ = arguments;
   }
