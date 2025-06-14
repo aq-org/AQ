@@ -427,18 +427,18 @@ std::size_t HandleFunctionInvoke(Generator& generator, Ast::Function* function,
   auto& scopes = generator.context.scopes;
   auto& functions = generator.context.functions;
 
-  std::string func_name = function->GetFunctionName();
+  std::string function_name = function->GetFunctionName();
   auto arguments = function->GetParameters();
 
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
-    auto iterator = functions.find(func_name);
+    auto iterator = functions.find(function_name);
 
     // Use the technique of reprocessing names to prevent scope overflow.
-    if (i != -1) iterator = functions.find(scopes[i] + "." + func_name);
+    if (i != -1) iterator = functions.find(scopes[i] + "." + function_name);
 
     if (iterator != functions.end()) {
       // Use the technique of reprocessing names to prevent scope overflow.
-      if (i != -1) func_name = scopes[i] + "." + func_name;
+      if (i != -1) function_name = scopes[i] + "." + function_name;
       break;
     }
 
@@ -449,9 +449,9 @@ std::size_t HandleFunctionInvoke(Generator& generator, Ast::Function* function,
   std::size_t return_value_index = HandleFunctionReturnValue(generator, code);
 
   // Handles the arguments of the functions.
-  std::vector<std::size_t> vm_arguments{2, global_memory.AddString(func_name),
-                                        arguments.size() + 1,
-                                        return_value_index};
+  std::vector<std::size_t> vm_arguments{
+      2, global_memory.AddString(function_name), arguments.size() + 1,
+      return_value_index};
   for (std::size_t i = 0; i < arguments.size(); i++)
     vm_arguments.push_back(HandleExpression(generator, arguments[i], code));
 
