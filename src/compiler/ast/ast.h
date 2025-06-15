@@ -266,13 +266,8 @@ class Binary : public Expression {
 
   Binary(Operator oper, Expression* left, Expression* right) {
     statement_type_ = StatementType::kBinary;
-    left_ = nullptr;
-    operator_ = Operator::NONE;
-    right_ = nullptr;
-  }
-  void SetBinary(Operator oper, Expression* left, Expression* right) {
-    operator_ = oper;
     left_ = left;
+    operator_ = oper;
     right_ = right;
   }
   virtual ~Binary() = default;

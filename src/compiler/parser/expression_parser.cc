@@ -23,11 +23,14 @@ Ast::Expression* Parser::ExpressionParser::ParseExpression(Token* token,
   if (DeclarationParser::IsDeclaration(token, length, index))
     return DeclarationParser::ParseVariableDeclaration(token, length, index);
 
+  LOGGING_INFO("1x");
   Ast::Expression* expr = ParsePrimaryExpression(token, length, index);
   if (expr == nullptr) INTERNAL_ERROR("expr is nullptr.");
 
+  LOGGING_INFO("2x");
   // Continues to parse expression if the expression is binary expression.
   expr = ParseBinaryExpression(token, length, index, expr, 0);
+  LOGGING_INFO("3x");
   return expr;
 }
 
@@ -69,18 +72,53 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpression(
         break;
       }
 
-      default:
+      case Token::OperatorType::star:
+      case Token::OperatorType::slash:
+      case Token::OperatorType::percent:
+      case Token::OperatorType::plus:
+      case Token::OperatorType::minus:
+      case Token::OperatorType::lessless:
+      case Token::OperatorType::greatergreater:
+      case Token::OperatorType::less:
+      case Token::OperatorType::lessequal:
+      case Token::OperatorType::greater:
+      case Token::OperatorType::greaterequal:
+      case Token::OperatorType::equalequal:
+      case Token::OperatorType::exclaimequal:
+      case Token::OperatorType::amp:
+      case Token::OperatorType::caret:
+      case Token::OperatorType::pipe:
+      case Token::OperatorType::ampamp:
+      case Token::OperatorType::pipepipe:
+      case Token::OperatorType::equal:
+      case Token::OperatorType::plusequal:
+      case Token::OperatorType::minusequal:
+      case Token::OperatorType::starequal:
+      case Token::OperatorType::slashequal:
+      case Token::OperatorType::percentequal:
+      case Token::OperatorType::ampequal:
+      case Token::OperatorType::caretequal:
+      case Token::OperatorType::pipeequal:
+      case Token::OperatorType::lesslessequal:
+      case Token::OperatorType::greatergreaterequal:
         return ParseBinaryExpressionWithoutComma(token, length, index, left,
                                                  priority);
+
+      default:
+        if (expr == nullptr) LOGGING_ERROR("ERRORRRRRRRRRRRRRRRRRR");
+        return expr;
     }
   }
 
+  if (expr == nullptr) LOGGING_ERROR("ERRORRRRRRRRRRRRRRRRRR");
   return expr;
 }
 
 Ast::Expression* Parser::ExpressionParser::ParseBinaryExpressionWithoutComma(
     Token* token, std::size_t length, std::size_t& index, Ast::Expression* left,
     unsigned int priority) {
+  LOGGING_INFO("AAAAAAAAAAAAAAAAAAAAAAAA");
+
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
   if (left == nullptr) INTERNAL_ERROR("left is nullptr.");
@@ -363,9 +401,12 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpressionWithoutComma(
       }
 
       default:
+          LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO1OOOOOOOOOOOOOOOO");
         return expr;
     }
   }
+
+    LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO2OOOOOOOOOOOOOOOO");
 
   return expr;
 }
@@ -421,7 +462,6 @@ unsigned int Parser::ExpressionParser::GetPriority(Token token) {
         return 0;
     }
   }
-  INTERNAL_ERROR("Unexpected code.");
   return 0;
 }
 
@@ -437,6 +477,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
   Ast::Expression* pre_operator_expression = nullptr;
 
   while (state != State::kEnd && index < length) {
+    LOGGING_INFO("message");
     if (token[index] == Token::Type::OPERATOR) {
       switch (token[index].value.oper) {
         case Token::OperatorType::plus:  // +
@@ -583,8 +624,11 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
                token[index] == Token::Type::CHARACTER ||
                token[index] == Token::Type::STRING) {
       Ast::Value* value = new Ast::Value(token[index]);
+      if (value == nullptr) INTERNAL_ERROR("value is nullptr.");
       if (full_expression == nullptr || pre_operator_expression == nullptr) {
+        LOGGING_INFO("");
         full_expression = main_expression = value;
+        if (full_expression == nullptr) INTERNAL_ERROR("message");
       } else {
         HandlePreOperatorExpression(pre_operator_expression, value);
         main_expression = value;
@@ -596,6 +640,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
         case Token::KeywordType::True:
         case Token::KeywordType::False: {
           Ast::Value* bool_node = new Ast::Value(token[index]);
+          if (bool_node == nullptr) INTERNAL_ERROR("value is nullptr.");
           if (full_expression == nullptr ||
               pre_operator_expression == nullptr) {
             full_expression = main_expression = bool_node;
@@ -618,6 +663,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
     }
   }
 
+  if (full_expression == nullptr) LOGGING_ERROR("ERRORRRRRRRRRRRRRRRRRR");
   return full_expression;
 }
 

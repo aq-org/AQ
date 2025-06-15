@@ -8,12 +8,12 @@
             "name": "gcc.exe - 生成和调试活动文件",  // 该调试任务的名字，启动调试时会在待选列表中显示
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+            "program": "F:\\aq\\build\\Debug\\aq_compiler.exe",
             "args": [
-                //"${fileDirname}\\aqstl.aq",
-                "${fileDirname}\\aqstl.aqbc"
+                "F:\\aq\\build\\Debug\\aqstl.aq",
+                "F:\\aq\\build\\Debug\\aqstl.aqbc"
             ],
-            "stopAtEntry": false,  // 这一项控制是否在入口处暂停，默认false不暂停，改为true暂停
+            "stopAtEntry": true,  // 这一项控制是否在入口处暂停，默认false不暂停，改为true暂停
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,  // 这一项控制是否启动外部控制台（独立的黑框）运行程序，默认false表示在集成终端中运行
@@ -26,7 +26,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "C/C++: gcc.exe build active file"  // 调试前的预执行任务，这里的值是tasks.json文件中对应的编译任务，也就是调试前需要先编译
+            "preLaunchTask": "cmake build"  // 调试前的预执行任务，这里的值是tasks.json文件中对应的编译任务，也就是调试前需要先编译
         }
     ]
 }

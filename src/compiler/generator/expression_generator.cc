@@ -13,17 +13,22 @@ namespace Compiler {
 namespace Generator {
 std::size_t HandleExpression(Generator& generator, Ast::Expression* expression,
                              std::vector<Bytecode>& code) {
+  LOGGING_INFO("Handling 222222222222222222: ");
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
-  if (*expression == Ast::Statement::StatementType::kUnary ||
-      *expression == Ast::Statement::StatementType::kArray) {
+  LOGGING_INFO("Handling 111111111111111111111: ");
+
+  if (Ast::IsOfType<Ast::Unary>(expression) ||
+      Ast::IsOfType<Ast::Array>(expression)) {
+    LOGGING_INFO("Handling 333333333333333333333: ");
     return HandleUnaryExpression(generator, Ast::Cast<Ast::Unary>(expression),
                                  code);
-  } else if (*expression == Ast::Statement::StatementType::kBinary) {
+  } else if (Ast::IsOfType<Ast::Binary>(expression)) {
+    LOGGING_INFO("Handling 444444444444444444444: ");
     return HandleBinaryExpression(generator, Ast::Cast<Ast::Binary>(expression),
                                   code);
   }
-
+  LOGGING_INFO("Handling 555555555555555555555: ");
   return GetIndex(generator, expression, code);
 }
 
@@ -112,8 +117,11 @@ std::size_t HandleBinaryExpression(Generator& generator,
   std::size_t left = 0;
   std::size_t right = 0;
   if (expression->GetOperator() != Ast::Binary::Operator::kMember) {
+    LOGGING_INFO("message");
     right = HandleExpression(generator, right_expression, code);
+    LOGGING_INFO("message");
     left = HandleExpression(generator, left_expression, code);
+    LOGGING_INFO("message");
   }
 
   std::size_t result = global_memory.Add(1);
@@ -489,7 +497,8 @@ std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
   auto& current_class = generator.context.current_class;
 
   if (current_class != nullptr) {
-    return GetClassIndex(generator, expression, code);
+    std::size_t index = GetClassIndex(generator, expression, code);
+    if (index != 0) return index;
   }
 
   switch (expression->GetStatementType()) {
@@ -498,6 +507,11 @@ std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
         auto iterator = variables.find(
             scopes[i] + "#" +
             std::string(*Ast::Cast<Ast::Identifier>(expression)));
+
+        LOGGING_INFO("Searching for identifier: " + scopes[i] + "#" +
+                     std::string(*Ast::Cast<Ast::Identifier>(expression)) +
+                     " in scope: " + scopes[i]);
+
         if (iterator != variables.end()) {
           return iterator->second;
         }
@@ -591,9 +605,9 @@ std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
         }
       }
 
-      // If the variable is not found in any scope, log an error.
-      LOGGING_ERROR("Identifier not found.");
-      break;
+      // If the variable is not found in any scope, return 0 and try to get the
+      // index from the global memory by GetIndex().
+      return 0;
     }
 
     case Ast::Statement::StatementType::kValue: {

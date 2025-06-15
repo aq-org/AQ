@@ -30,7 +30,9 @@ Ast::Compound* Parser::Parse(std::vector<Token>& token) {
     if (DeclarationParser::IsDeclaration(token_ptr, length, index)) {
       stmts.push_back(ParseDeclaration(token_ptr, length, index));
     } else {
+      LOGGING_INFO("Parsing statement at index: " + std::to_string(index));
       stmts.push_back(ParseStatement(token_ptr, length, index));
+      LOGGING_INFO("INDEXXXXXXXXXXXXXXXXXX: " + std::to_string(index));
     }
   }
 
@@ -50,6 +52,8 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
                                        std::size_t& index) {
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
+
+  LOGGING_INFO("STATEMENT");
 
   if (DeclarationParser::IsDeclaration(token, length, index)) {
     if (DeclarationParser::IsFunctionDeclaration(token, length, index)) {
@@ -75,6 +79,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
 
   switch (token[index].type) {
     case Token::Type::OPERATOR:
+      LOGGING_INFO("OPERATOR");
       return ParseStatementWithOperator(token, length, index);
 
     case Token::Type::KEYWORD:
@@ -116,6 +121,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
+          LOGGING_INFO("6666666666661");
           Ast::Expression* condition =
               ExpressionParser::ParseExpression(token, length, index);
 
@@ -126,8 +132,9 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
+          LOGGING_INFO("6666666666662");
           return new Ast::While(condition,
-                                ParseStatement(token, length, ++index));
+                                ParseStatement(token, length, index));
         }
 
         case Token::KeywordType::Do: {
@@ -165,10 +172,10 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          Ast::Expression* start = nullptr;
+          Ast::Expression* start = new Ast::Expression();
 
-          if (!(token[index + 1] == Token::OperatorType::semi))
-            start = ExpressionParser::ParseExpression(token, length, index);
+          if (!(token[index] == Token::OperatorType::semi)){LOGGING_INFO("AAAAAAAAAAAAAAAA");delete start;
+            start = ExpressionParser::ParseExpression(token, length, index);}
 
           if (!(token[index] == Token::OperatorType::semi)) {
             LOGGING_WARNING("Expected ';' after 'for' start, but not found.");
@@ -176,9 +183,11 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          Ast::Expression* condition = nullptr;
-          if (!(token[index + 1] == Token::OperatorType::semi))
+          Ast::Expression* condition = new Ast::Expression();
+          if (!(token[index] == Token::OperatorType::semi)){LOGGING_INFO("AAAAAAAAAAAAAAAA");delete condition;
             condition = ExpressionParser::ParseExpression(token, length, index);
+            if(condition ==nullptr)LOGGING_ERROR("FATAL ERROR");
+          }
 
           if (!(token[index] == Token::OperatorType::semi)) {
             LOGGING_WARNING(
@@ -187,9 +196,9 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          Ast::Expression* end = nullptr;
-          if (!(token[index + 1] == Token::OperatorType::semi))
-            end = ExpressionParser::ParseExpression(token, length, index);
+          Ast::Expression* end = new Ast::Expression();
+          if (!(token[index] == Token::OperatorType::semi)){LOGGING_INFO("AAAAAAAAAAAAAAAA");delete end;
+            end = ExpressionParser::ParseExpression(token, length, index);}
 
           if (!(token[index] == Token::OperatorType::r_paren)) {
             LOGGING_WARNING("Expected ')' after 'for' end, but not found.");
@@ -299,6 +308,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
 
         case Token::KeywordType::Import: {
           index++;
+          LOGGING_INFO(std::to_string(index));
           if (token[index].type != Token::Type::STRING)
             LOGGING_ERROR("Unsupported import location.");
           std::string import_location(*token[index].value.string);
@@ -307,12 +317,14 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             LOGGING_ERROR("Unexpected import behavior.");
           std::string name(token[index].value.identifier.location,
                            token[index].value.identifier.length);
+          index++;
           Ast::Import* result = new Ast::Import(import_location, name);
           if (!(token[index] == Token::OperatorType::semi)) {
-            LOGGING_ERROR("Expected ';' after 'import', but not found.");
+            LOGGING_WARNING("Expected ';' after 'import', but not found.");
           } else {
             index++;
           }
+          LOGGING_INFO(std::to_string(index));
           return result;
         }
 
@@ -327,7 +339,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
         Ast::Identifier identifier_node(token[index]);
         Ast::Label* result = new Ast::Label(identifier_node);
         if (!(token[index] == Token::OperatorType::semi)) {
-          LOGGING_ERROR("Expected ';' after 'return', but not found.");
+          LOGGING_WARNING("Expected ';' after 'return', but not found.");
           index++;
         } else {
           index += 2;
@@ -368,6 +380,7 @@ Ast::Declaration* Parser::ParseDeclaration(Token* token, std::size_t length,
 Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
                                                    std::size_t length,
                                                    std::size_t& index) {
+  LOGGING_INFO(std::to_string(index));
   switch (token[index].value.oper) {
     // Null statement.
     case Token::OperatorType::semi:
@@ -375,6 +388,7 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
       return new Ast::Statement();
 
     case Token::OperatorType::l_brace: {
+      LOGGING_INFO("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
       index++;
       std::vector<Ast::Statement*> statements;
 
@@ -395,13 +409,17 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
 
     case Token::OperatorType::r_square:
     case Token::OperatorType::r_paren:
-    case Token::OperatorType::r_brace:
-      if (!(token[index] == Token::OperatorType::r_brace)) {
+    case Token::OperatorType::r_brace: {
+      if (token[index] == Token::OperatorType::r_brace) {
         LOGGING_WARNING("Unexpected '}'.");
         index++;
       }
+      std::vector<Ast::Statement*> void_statement{new Ast::Statement()};
+      return new Ast::Compound(void_statement);
+    }
 
     default:
+      LOGGING_INFO("000000000000000000000X");
       Ast::Statement* statement =
           ExpressionParser::ParseExpression(token, length, index);
       if (token[index] == Token::OperatorType::semi) index++;

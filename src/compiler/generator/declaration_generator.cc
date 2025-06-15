@@ -259,6 +259,9 @@ std::size_t HandleVariableDeclaration(Generator& generator,
   std::string variable_name =
       scopes.back() + "#" + declaration->GetVariableName();
 
+                                        LOGGING_INFO("Handling variable declaration: " +
+                                        variable_name);
+
   std::size_t variable_index = memory.AddWithType(vm_type);
 
   // If the variable is a class type, it needs to be handled specially.
