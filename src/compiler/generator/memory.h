@@ -6,6 +6,7 @@
 #define AQ_COMPILER_GENERATOR_MEMORY_H_
 
 #include <string>
+#include <cstring>
 
 #include "compiler/generator/bytecode.h"
 #include "compiler/generator/operator.h"

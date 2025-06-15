@@ -5,6 +5,7 @@
 #include "compiler/lexer/lexer.h"
 
 #include <cstring>
+#include <vector>
 
 #include "compiler/logging/logging.h"
 #include "compiler/token/token.h"
