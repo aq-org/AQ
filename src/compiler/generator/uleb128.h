@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <cstdint>
 
 namespace Aq {
 namespace Compiler {
@@ -15,12 +16,12 @@ inline std::size_t EncodeUleb128(std::size_t value,
                                  std::vector<uint8_t>& output) {
   std::size_t count = 0;
   do {
-    uint8_t byte = value & 0x7F;
+    uint8_t byte_data = value & 0x7F;
     value >>= 7;
     if (value != 0) {
-      byte |= 0x80;
+      byte_data |= 0x80;
     }
-    output.push_back(byte);
+    output.push_back(byte_data);
     count++;
   } while (value != 0);
   return count;

@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "compiler/logging/logging.h"
 #include "compiler/token/token.h"

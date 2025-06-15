@@ -8,6 +8,7 @@
 #include <cstdarg>
 #include <cstddef>
 #include <vector>
+#include <cstdint>
 
 
 namespace Aq {

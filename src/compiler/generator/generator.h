@@ -7,6 +7,7 @@
 
 #include <cstdarg>
 #include <unordered_map>
+#include <cstdint>
 
 #include "compiler/ast/ast.h"
 #include "compiler/generator/builtin.h"

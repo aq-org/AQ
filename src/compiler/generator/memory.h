@@ -7,6 +7,7 @@
 
 #include <string>
 #include <cstring>
+#include <cstdint>
 
 #include "compiler/generator/bytecode.h"
 #include "compiler/generator/operator.h"

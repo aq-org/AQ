@@ -8,6 +8,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "compiler/ast/type.h"
 #include "compiler/logging/logging.h"
