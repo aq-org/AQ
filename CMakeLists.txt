@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.10)
 project(AQ C CXX)
 
 set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_C_COMPILER "gcc")
+set(CMAKE_CXX_STANDARD 20)
 
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/src)
