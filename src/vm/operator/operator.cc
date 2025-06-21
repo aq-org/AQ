@@ -16,12 +16,14 @@ namespace Vm {
 namespace Operator {
 int NOP() { return 0; }
 
-int LOAD(std::vector<Memory::Object>& heap, size_t ptr, size_t operand) {
+int LOAD(std::vector<Memory::Object>& heap, std::size_t ptr,
+         std::size_t operand) {
   LOGGING_WARNING("DEPRECATED OPERATOR.");
   return 0;
 }
 
-int STORE(std::vector<Memory::Object>& heap, size_t ptr, size_t operand) {
+int STORE(std::vector<Memory::Object>& heap, std::size_t ptr,
+          std::size_t operand) {
   LOGGING_WARNING("DEPRECATED OPERATOR.");
   return 0;
 }
@@ -36,8 +38,8 @@ int INVOKE_METHOD(std::vector<std::size_t> arguments);
 int NEW(std::vector<Memory::Object>& heap,
         std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
         std::string& current_bytecode_file,
-        std::unordered_map<std::string, Bytecode::Class> classes, size_t ptr,
-        size_t size, size_t type) {
+        std::unordered_map<std::string, Bytecode::Class> classes,
+        std::size_t ptr, std::size_t size, std::size_t type) {
   if (ptr >= heap.size()) INTERNAL_ERROR("ptr is out of memory.");
   if (size >= heap.size()) INTERNAL_ERROR("size is out of memory.");
 
@@ -49,8 +51,8 @@ int NEW(std::vector<Memory::Object>& heap,
     std::string file_name = std::get<std::string>(type_data.data);
     std::string class_name;
 
-    size_t start_pos = file_name.find('~');
-    size_t end_pos = file_name.find('~', start_pos + 1);
+    std::size_t start_pos = file_name.find('~');
+    std::size_t end_pos = file_name.find('~', start_pos + 1);
 
     if (start_pos != std::string::npos && end_pos != std::string::npos &&
         start_pos < end_pos) {
@@ -92,7 +94,7 @@ int NEW(std::vector<Memory::Object>& heap,
     if (type_data.type[0] == 0x05 &&
         std::get<std::string>(type_data.data).empty()) {
       if (size_value == 0) {
-        size_t i = 0;
+        std::size_t i = 0;
         data[i].type.push_back(0x09);
         data[i].const_type = true;
 
@@ -168,7 +170,7 @@ int NEW(std::vector<Memory::Object>& heap,
 
 int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
                    std::unordered_map<std::string, Bytecode::Class> classes,
-                   size_t ptr, size_t size, size_t type) {
+                   std::size_t ptr, std::size_t size, std::size_t type) {
   if (ptr >= memory->heap.size()) INTERNAL_ERROR("ptr is out of memory.");
   if (size >= memory->heap.size()) INTERNAL_ERROR("size is out of memory.");
 
@@ -192,7 +194,7 @@ int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
     if (type_data.type[0] == 0x05 &&
         std::get<std::string>(type_data.data).empty()) {
       if (size_value == 0) {
-        size_t i = 0;
+        std::size_t i = 0;
         data[i].type.push_back(0x09);
         data[i].const_type = true;
 
@@ -252,8 +254,8 @@ int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
 int InvokeCustomFunction(std::vector<Memory::Object>& heap, std::string name,
                          std::vector<std::size_t> arguments);
 
-int ARRAY(std::vector<Memory::Object>& heap, size_t result, size_t ptr,
-          size_t index) {
+int ARRAY(std::vector<Memory::Object>& heap, std::size_t result,
+          std::size_t ptr, std::size_t index) {
   auto array = GetArrayData(heap, ptr);
 
   index = GetUint64tData(heap, index);
@@ -279,6 +281,7 @@ int ARRAY(std::vector<Memory::Object>& heap, size_t result, size_t ptr,
         heap, result,
         std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
     InvokeCustomFunction(
+        heap,
         std::get<std::string>(
             std::get<std::shared_ptr<Memory::Object>>(array[index].data)->data),
         {result});
@@ -291,13 +294,13 @@ int ARRAY(std::vector<Memory::Object>& heap, size_t result, size_t ptr,
   return 0;
 }
 
-int PTR(std::vector<Memory::Object>& heap, size_t index, size_t ptr) {
+int PTR(std::vector<Memory::Object>& heap, std::size_t index, std::size_t ptr) {
   LOGGING_WARNING("DEPRECATED OPERATOR.");
   return 0;
 }
 
-int ADD(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int ADD(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -378,8 +381,8 @@ int ADD(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   }
   return 0;
 }
-int SUB(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int SUB(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -455,8 +458,8 @@ int SUB(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int MUL(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int MUL(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -542,8 +545,8 @@ int MUL(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int DIV(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int DIV(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -626,8 +629,8 @@ int DIV(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
 
   return 0;
 }
-int REM(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int REM(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -688,7 +691,8 @@ int REM(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int NEG(std::vector<Memory::Object>& heap, size_t result, size_t operand1) {
+int NEG(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
@@ -715,8 +719,8 @@ int NEG(std::vector<Memory::Object>& heap, size_t result, size_t operand1) {
   return 0;
 }
 
-int SHL(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int SHL(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -777,8 +781,8 @@ int SHL(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int SHR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int SHR(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -839,7 +843,8 @@ int SHR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int REFER(std::vector<Memory::Object>& heap, size_t result, size_t operand1) {
+int REFER(std::vector<Memory::Object>& heap, std::size_t result,
+          std::size_t operand1) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
@@ -850,8 +855,8 @@ int REFER(std::vector<Memory::Object>& heap, size_t result, size_t operand1) {
   return 0;
 }
 
-size_t IF(std::vector<Memory::Object>& heap, size_t condition,
-          size_t true_branche, size_t false_branche) {
+size_t IF(std::vector<Memory::Object>& heap, std::size_t condition,
+          std::size_t true_branche, std::size_t false_branche) {
   if (GetByteData(heap, condition) != 0) {
     return true_branche;
   } else {
@@ -859,8 +864,8 @@ size_t IF(std::vector<Memory::Object>& heap, size_t condition,
   }
 }
 
-int AND(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int AND(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -921,8 +926,8 @@ int AND(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int OR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-       size_t operand2) {
+int OR(std::vector<Memory::Object>& heap, std::size_t result,
+       std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -983,8 +988,8 @@ int OR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int XOR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
-        size_t operand2) {
+int XOR(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -1045,8 +1050,8 @@ int XOR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
   return 0;
 }
 
-int CMP(std::vector<Memory::Object>& heap, size_t result, size_t opcode,
-        size_t operand1, size_t operand2) {
+int CMP(std::vector<Memory::Object>& heap, std::size_t result,
+        std::size_t opcode, std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -1449,7 +1454,7 @@ int INVOKE(std::vector<Memory::Object>& heap,
                builtin_functions,
            std::vector<std::size_t> arguments) {
   if (arguments.size() < 2) LOGGING_ERROR("Invalid arguments.");
-  size_t function = arguments[0];
+  std::size_t function = arguments[0];
   arguments.erase(arguments.begin(), arguments.begin() + 1);
   auto invoke_function = builtin_functions.find(GetStringData(heap, function));
   if (invoke_function != builtin_functions.end()) {
@@ -1460,7 +1465,8 @@ int INVOKE(std::vector<Memory::Object>& heap,
   return InvokeCustomFunction(heap, GetStringData(heap, function), arguments);
 }
 
-int EQUAL(std::vector<Memory::Object>& heap, size_t result, size_t value) {
+int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
+          std::size_t value) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (value >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
@@ -1501,15 +1507,15 @@ int EQUAL(std::vector<Memory::Object>& heap, size_t result, size_t value) {
 }
 
 int CrossMemoryEqual(std::shared_ptr<Memory::Memory> result_memory,
-                     size_t result,
+                     std::size_t result,
                      std::shared_ptr<Memory::Memory> value_memory,
-                     size_t value) {
+                     std::size_t value) {
   if (result >= result_memory->heap.size())
     INTERNAL_ERROR("Out of object_table_size.");
   if (value >= value_memory->heap.size())
     INTERNAL_ERROR("Out of object_table_size.");
 
-  Memory::Object value_data = GetOriginData(heap, value);
+  Memory::Object value_data = GetOriginData(value_memory->heap, value);
 
   switch (value_data.type[0]) {
     case 0x00:
@@ -1553,13 +1559,13 @@ int CrossMemoryEqual(std::shared_ptr<Memory::Memory> result_memory,
   return 0;
 }
 
-size_t GOTO(std::vector<Memory::Object>& heap, size_t location) {
+size_t GOTO(std::vector<Memory::Object>& heap, std::size_t location) {
   return GetUint64tData(heap, location);
 }
 
 int LOAD_CONST(std::vector<Memory::Object>& heap,
-               std::vector<Memory::Object>& constant_pool, size_t object,
-               size_t const_object) {
+               std::vector<Memory::Object>& constant_pool, std::size_t object,
+               std::size_t const_object) {
   if (object >= heap.size()) INTERNAL_ERROR("Out of object_table_size.");
   if (const_object >= constant_pool.size())
     INTERNAL_ERROR("Out of constant_pool_size.");
@@ -1597,101 +1603,81 @@ int LOAD_CONST(std::vector<Memory::Object>& heap,
   return 0;
 }
 
-int CONVERT(size_t result, size_t operand1) {
+int CONVERT(std::vector<Memory::Object>& heap, std::size_t result,
+            std::size_t operand1) {
   LOGGING_WARNING("DEPRECATED OPERATOR.");
   return 0;
 }
 
-int _CONST(size_t result, size_t operand1) {
-  if (result >= object_table_size)
-    EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
+int _CONST(std::vector<Memory::Object>& heap, std::size_t result,
+           std::size_t operand1) {
+  if (result >= heap.size()) LOGGING_ERROR("Out of object_table_size.");
+  if (operand1 >= heap.size()) LOGGING_ERROR("Out of object_table_size.");
 
-  SetConstData(heap, result, object_table + operand1);
+  SetConstData(heap, result,
+               std::shared_ptr<Memory::Object>(&heap[operand1], [](void*) {}));
   return 0;
 }
 
-int INVOKE_METHOD(size_t* args) {
-  if (args == NULL) EXIT_VM("INVOKE_METHOD(size_t*)", "Invalid args.");
-  size_t func = args[1];
-  size_t arg_count = args[2];
-  size_t return_value = args[3];
-  size_t* invoke_args = NULL;
-  if (arg_count > 0) {
-    invoke_args = args + 4;
-  }
-  InternalObject args_obj = {arg_count - 1, invoke_args};
+int INVOKE_METHOD(
+    std::vector<Memory::Object>& heap,
+    std::unordered_map<std::string,
+                       std::function<int(std::vector<std::size_t>)>>&
+        builtin_functions,
+    std::vector<size_t> arguments) {
+  if (arguments.size() < 3) INTERNAL_ERROR("Invalid arguments.");
 
-  func_ptr invoke_func = GetFunction(GetStringData(func));
-  if (invoke_func != NULL) {
-    invoke_func(args_obj, return_value);
+  std::size_t class_index = arguments[0];
+  std::size_t function = arguments[1];
+
+  arguments.erase(arguments.begin(), arguments.begin() + 2);
+  auto invoke_function = builtin_functions.find(GetStringData(heap, function));
+  if (invoke_function != builtin_functions.end()) {
+    invoke_function->second(arguments);
     return 0;
   }
 
-  return InvokeClassFunction(args[0], GetStringData(func), arg_count,
-                             return_value, invoke_args);
+  return InvokeClassFunction(class_index, GetStringData(heap, function),
+                             arguments);
 }
 
-int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
-  if (result >= object_table_size)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)",
-            "Result out of object_table_size.");
-  if (class >= object_table_size)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)",
-            "Class Out of object_table_size.");
+int LOAD_MEMBER(std::vector<Memory::Object>& heap,
+                std::unordered_map<std::string, Bytecode::Class>& classes,
+                std::size_t result, std::size_t class_index,
+                std::size_t operand) {
+  if (result >= heap.size()) INTERNAL_ERROR("Result out of object_table_size.");
+  if (class_index >= heap.size())
+    INTERNAL_ERROR("Class Out of object_table_size.");
 
-  struct Object* class_data = object_table + class;
-  class_data = GetOriginData(class_data);
-  // printf("\nType: %i\n", class_data->type[0]);
-  if (class_data == NULL || class_data->type[0] != 0x09)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class data.");
+  auto class_data = GetOriginData(heap, class_index);
+  if (class_data.type[0] != 0x09) LOGGING_ERROR("Error class data.");
 
-  if (class_data->data.object_data == NULL ||
-      class_data->data.object_data->type == NULL ||
-      class_data->data.object_data->type[0] != 0x05)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)",
-            "Unsupported class name type.");
-  const char* class_name = class_data->data.object_data->data.string_data;
+  if (std::get<std::vector<Memory::Object>>(class_data.data).empty() ||
+      std::get<std::vector<Memory::Object>>(class_data.data)[0].type.empty() ||
+      std::get<std::vector<Memory::Object>>(class_data.data)[0].type[0] != 0x05)
+    LOGGING_ERROR("Unsupported class name type.");
+  std::string class_name = std::get<std::string>(
+      std::get<std::vector<Memory::Object>>(class_data.data)[0].data);
 
-  struct Object* name_data = object_table + operand;
-  name_data = GetOriginData(name_data);
-  if (name_data == NULL || name_data->type[0] != 0x05)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Error class name data.");
+  auto name_data = GetOriginData(heap, class_index);
+  if (name_data.type[0] != 0x05) LOGGING_ERROR("Error class data.");
 
-  const char* var_name = name_data->data.string_data;
+  std::string variable_name = std::get<std::string>(name_data.data);
 
-  size_t offset = 0;
-  bool is_find = false;
-  const unsigned int class_hash = hash(class_name);
-  struct ClassList* current_class_table = &class_table[class_hash];
-  while (current_class_table != NULL &&
-         current_class_table->class.name != NULL) {
-    if (strcmp(current_class_table->class.name, class_name) == 0) {
-      bool is_var_find = false;
-      const unsigned int member_hash = hash(var_name);
-      struct ClassVarInfoList* current_var_table =
-          &(current_class_table->class.var_info_table[member_hash]);
-      while (current_var_table != NULL && current_var_table->name != NULL) {
-        if (strcmp(current_var_table->name, var_name) == 0) {
-          offset = current_var_table->index;
-          is_var_find = true;
-          break;
-        }
-        current_var_table = current_var_table->next;
-      }
-      if (!is_var_find)
-        EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class Var not found.");
-      is_find = true;
-      break;
-    }
-    current_class_table = current_class_table->next;
-  }
+  auto class_declaration = classes.find(class_name);
 
-  if (!is_find)
-    EXIT_VM("LOAD_MEMBER(size_t,size_t,size_t)", "Class not found.");
+  if (class_declaration == classes.end())
+    LOGGING_ERROR("Class not found: " + class_name);
 
-  struct Object* object_data = class_data->data.object_data + offset;
+  if (class_declaration->second.variables.find(variable_name) ==
+      class_declaration->second.variables.end())
+    LOGGING_ERROR("Variable not found: " + variable_name);
+
+  std::size_t offset = class_declaration->second.variables[variable_name];
+
+  std::shared_ptr<Memory::Object> object_data = std::shared_ptr<Memory::Object>(
+      &std::get<std::vector<Memory::Object>>(class_data.data)[offset],
+      [](void*) {});
 
   SetReferenceData(heap, result, object_data);
 
