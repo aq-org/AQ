@@ -4,6 +4,7 @@
 
 #include "vm/operator/operator.h"
 
+#include <functional>
 #include <string>
 
 #include "vm/bytecode/bytecode.h"
@@ -80,11 +81,7 @@ int NEW(std::vector<Memory::Object>& heap,
       size_value == 0)
     size_value = 1;
 
-  std::vector<Memory::Object> data(size_value + 1);
-
-  data[0].type.push_back(0x04);
-  data[0].const_type = true;
-  data[0].data = size_value;
+  std::vector<Memory::Object> data(size_value);
 
   if (type == 0) {
     for (size_t i = 1; i < 2; i++) {
@@ -169,1466 +166,1449 @@ int NEW(std::vector<Memory::Object>& heap,
   return 0;
 }
 
-int CrossMemoryNew(struct Memory* memory, size_t ptr, size_t size,
-                   size_t type) {
-  if (ptr >= memory->object_table_size)
-    EXIT_VM("NEW(size_t, size_t)", "ptr is out of memory.");
-  if (size >= object_table_size)
-    EXIT_VM("NEW(size_t, size_t)", "size is out of memory.");
+int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
+                   std::unordered_map<std::string, Bytecode::Class> classes,
+                   size_t ptr, size_t size, size_t type) {
+  if (ptr >= memory->heap.size()) INTERNAL_ERROR("ptr is out of memory.");
+  if (size >= memory->heap.size()) INTERNAL_ERROR("size is out of memory.");
 
-  struct Object* type_data = object_table + type;
-  type_data = GetOriginData(type_data);
+  Memory::Object type_data = GetOriginData(memory->heap, type);
 
-  size_t size_value = GetUint64tData(size);
+  std::size_t size_value = GetUint64tData(memory->heap, size);
 
-  if ((type == 0 ||
-       (type_data->type[0] != 0x05 || type_data->data.string_data == NULL)) &&
+  if ((type == 0 || (type_data.type[0] != 0x05 ||
+                     std::get<std::string>(type_data.data).empty())) &&
       size_value == 0)
     size_value = 1;
 
-  struct Object* data = calloc(size_value + 1, sizeof(struct Object));
-  AddFreePtr(data);
-
-  uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
-  data[0].type = type_ptr;
-  type_ptr[0] = 0x04;
-  data[0].const_type = true;
-  data[0].data.uint64t_data = size_value;
-
-  AddFreePtr(type_ptr);
+  std::vector<Memory::Object> data(size_value);
 
   if (type == 0) {
     for (size_t i = 1; i < 2; i++) {
-      uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
-      data[i].type = type_ptr;
+      data[i].type.push_back(0x00);
       data[i].const_type = false;
-      AddFreePtr(type_ptr);
     }
   } else {
-    if (type_data->type[0] == 0x05 && type_data->data.string_data != NULL) {
+    if (type_data.type[0] == 0x05 &&
+        std::get<std::string>(type_data.data).empty()) {
       if (size_value == 0) {
         size_t i = 0;
-        uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
-        data[i].type = type_ptr;
-        data[i].type[0] = 0x09;
+        data[i].type.push_back(0x09);
         data[i].const_type = true;
-        AddFreePtr(type_ptr);
 
-        struct Class* class_data = NULL;
-        const char* class = GetStringData(type);
-        const unsigned int class_hash = hash(class);
-        struct ClassList* current_class_table = &class_table[class_hash];
-        while (current_class_table != NULL &&
-               current_class_table->class.name != NULL) {
-          if (strcmp(current_class_table->class.name, class) == 0) {
-            class_data = &current_class_table->class;
-            break;
-          }
-          current_class_table = current_class_table->next;
+        std::string class_name = GetStringData(memory->heap, type);
+
+        if (classes.find(class_name) == classes.end())
+          LOGGING_ERROR("class not found.");
+
+        Bytecode::Class& class_data = classes[class_name];
+
+        std::vector<Memory::Object> class_object(class_data.members.size());
+        for (size_t j = 0; j < class_data.members.size(); j++) {
+          class_object[j].type = class_data.members[j].type;
+          class_object[j].const_type = class_data.members[j].const_type;
         }
 
-        if (class_data == NULL) {
-          EXIT_VM("NEW(size_t, size_t)", "Class not found.");
-        }
-
-        struct Object* class_object =
-            calloc(class_data->members_size, sizeof(struct Object));
-        AddFreePtr(class_object);
-        for (size_t j = 0; j < class_data->members_size; j++) {
-          uint8_t* location = class_data->members[j].type;
-          size_t length = 1;
-          bool is_type_end = false;
-          while (!is_type_end) {
-            switch (*location) {
-              case 0x00:
-              case 0x01:
-              case 0x02:
-              case 0x03:
-              case 0x04:
-              case 0x05:
-              case 0x09:
-                is_type_end = true;
-                break;
-
-              case 0x06:
-              case 0x07:
-              case 0x08:
-                length++;
-                location++;
-                break;
-
-              default:
-                EXIT_VM("AddClass(void*)", "Unsupported type.");
-                break;
-            }
-          }
-
-          class_object[j].type = calloc(length, sizeof(uint8_t));
-          AddFreePtr(class_object[j].type);
-          memcpy(class_object[j].type, class_data->members[j].type, length);
-          class_object[j].const_type = class_data->members[j].const_type;
-        }
-        class_object[0].const_type = true;
-        class_object[0].type[0] = 0x05;
-        class_object[0].data.string_data = class;
-        class_object[1].const_type = true;
-        class_object[1].type[0] = 0x04;
-        class_object[1].data.uint64t_data = class_data->members_size;
-        data[i].data.object_data = class_object;
-
+        class_object.insert(class_object.begin(), {{0x05}, true, class_name});
       } else {
         for (size_t i = 1; i < size_value + 1; i++) {
-          uint8_t* type_ptr = calloc(1, sizeof(uint8_t));
-          data[i].type = type_ptr;
-          data[i].type[0] = 0x09;
+          data[i].type.push_back(0x09);
           data[i].const_type = true;
-          AddFreePtr(type_ptr);
 
-          struct Class* class_data = NULL;
-          const char* class = GetStringData(type);
-          const unsigned int class_hash = hash(class);
-          struct ClassList* current_class_table = &class_table[class_hash];
-          while (current_class_table != NULL &&
-                 current_class_table->class.name != NULL) {
-            if (strcmp(current_class_table->class.name, class) == 0) {
-              class_data = &current_class_table->class;
-              break;
-            }
-            current_class_table = current_class_table->next;
+          std::string class_name = GetStringData(memory->heap, type);
+
+          if (classes.find(class_name) == classes.end())
+            LOGGING_ERROR("class not found.");
+
+          Bytecode::Class& class_data = classes[class_name];
+
+          std::vector<Memory::Object> class_object(class_data.members.size());
+          for (size_t j = 0; j < class_data.members.size(); j++) {
+            class_object[j].type = class_data.members[j].type;
+            class_object[j].const_type = class_data.members[j].const_type;
           }
 
-          if (class_data == NULL) {
-            EXIT_VM("NEW(size_t, size_t)", "Class not found.");
-          }
-
-          struct Object* class_object =
-              calloc(class_data->members_size, sizeof(struct Object));
-          AddFreePtr(class_object);
-          for (size_t j = 0; j < class_data->members_size; j++) {
-            uint8_t* location = class_data->members[j].type;
-            size_t length = 1;
-            bool is_type_end = false;
-            while (!is_type_end) {
-              switch (*location) {
-                case 0x00:
-                case 0x01:
-                case 0x02:
-                case 0x03:
-                case 0x04:
-                case 0x05:
-                case 0x09:
-                  is_type_end = true;
-                  break;
-
-                case 0x06:
-                case 0x07:
-                case 0x08:
-                  length++;
-                  location++;
-                  break;
-
-                default:
-                  EXIT_VM("AddClass(void*)", "Unsupported type.");
-                  break;
-              }
-            }
-
-            class_object[j].type = calloc(length, sizeof(uint8_t));
-            AddFreePtr(class_object[j].type);
-            memcpy(class_object[j].type, class_data->members[j].type, length);
-            class_object[j].const_type = class_data->members[j].const_type;
-          }
-          class_object[0].const_type = true;
-          class_object[0].type[0] = 0x05;
-          class_object[0].data.string_data = class;
-          class_object[1].const_type = true;
-          class_object[1].type[0] = 0x04;
-          class_object[1].data.uint64t_data = class_data->members_size;
-          data[i].data.object_data = class_object;
+          class_object.insert(class_object.begin(), {{0x05}, true, class_name});
         }
       }
     } else {
       for (size_t i = 1; i < 2; i++) {
-        data[i].type = type_data->type;
+        data[i].type = type_data.type;
         data[i].const_type = true;
       }
     }
   }
 
-  if (size_value == 0 && type_data->type[0] == 0x05 &&
-      type_data->data.string_data != NULL) {
-    SetObjectObjectData(memory->object_table + ptr, data->data.object_data);
+  if (size_value == 0 && type_data.type[0] == 0x05 &&
+      !std::get<std::string>(type_data.data).empty()) {
+    SetObjectData(memory->heap, ptr,
+                  std::get<std::vector<Memory::Object>>(type_data.data));
   } else {
-    SetPtrObjectData(memory->object_table + ptr, data);
+    SetArrayData(memory->heap, ptr, data);
   }
   return 0;
 }
 
-int InvokeCustomFunction(const char* name, size_t args_size,
-                         size_t return_value, size_t* args);
+int InvokeCustomFunction(std::vector<Memory::Object>& heap, std::string name,
+                         std::vector<std::size_t> arguments);
 
-int ARRAY(size_t result, size_t ptr, size_t index) {
-  struct Object* array_object = GetPtrData(ptr);
+int ARRAY(std::vector<Memory::Object>& heap, size_t result, size_t ptr,
+          size_t index) {
+  auto array = GetArrayData(heap, ptr);
 
-  index = GetUint64tData(index);
+  index = GetUint64tData(heap, index);
 
-  size_t original_size = GetUint64tObjectData(array_object);
-  if (index >= GetUint64tObjectData(array_object)) {
-    size_t newsize = index + 1;
-    size_t new_allocated =
-        (size_t)newsize + (newsize >> 3) + (newsize < 9 ? 3 : 6) + 1;
-    struct Object* new_array = calloc(new_allocated, sizeof(struct Object));
-    AddFreePtr(new_array);
-    memcpy(new_array, array_object,
-           sizeof(struct Object) * (GetUint64tObjectData(array_object) + 1));
-    SetPtrData(ptr, new_array);
-    new_array[0].const_type = true;
-    new_array[0].type[0] = 0x04;
-    new_array[0].data.uint64t_data = newsize;
-    array_object = new_array;
+  if (index >= array.size()) {
+    array.resize(index + 1);
   }
 
-  bool is_type_null = (array_object + 1 + index)->type == NULL;
+  bool is_type_null = array[index].type.size() == 0;
 
-  if ((array_object + 1 + index)->type == NULL) {
-    if ((array_object + 1)->const_type) {
-      (array_object + 1 + index)->const_type = true;
-      (array_object + 1 + index)->type = (array_object + 1)->type;
+  if (array[index].type.size() == 0) {
+    if (array[index].const_type) {
+      array[index].const_type = true;
+      array[index].type = array[0].type;
     } else {
-      (array_object + 1 + index)->type = calloc(1, sizeof(uint8_t));
+      array[index].const_type = false;
+      array[index].type.push_back(0x00);
     }
   }
 
-  if ((array_object + 1)->const_type && (array_object + 1)->type[0] == 0x09 &&
-      is_type_null) {
-    SetReferenceData(result, array_object + 1 + index);
-    InvokeCustomFunction((array_object + 1)->data.object_data->data.string_data,
-                         1, result, NULL);
+  if (array[0].const_type && array[0].type[0] == 0x09 && is_type_null) {
+    SetReferenceData(
+        heap, result,
+        std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
+    InvokeCustomFunction(
+        std::get<std::string>(
+            std::get<std::shared_ptr<Memory::Object>>(array[index].data)->data),
+        {result});
   }
 
-  SetReferenceData(result, array_object + 1 + index);
+  SetReferenceData(
+      heap, result,
+      std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
 
   return 0;
 }
-int PTR(size_t index, size_t ptr) {
-  SetPtrData(ptr, object_table + index);
+
+int PTR(std::vector<Memory::Object>& heap, size_t index, size_t ptr) {
+  LOGGING_WARNING("DEPRECATED OPERATOR.");
   return 0;
 }
-int ADD(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("ADD(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("ADD(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("ADD(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int ADD(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if (GetByteData(operand1) + GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) + GetByteData(operand2) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) + GetByteData(operand2));
+        if (GetByteData(heap, operand1) + GetByteData(heap, operand2) >
+                INT8_MAX ||
+            GetByteData(heap, operand1) + GetByteData(heap, operand2) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) + GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) + GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) + GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) + GetLongData(heap, operand2));
         break;
       case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) + GetDoubleData(operand2));
+        SetDoubleData(
+            heap, result,
+            GetDoubleData(heap, operand1) + GetDoubleData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) + GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) + GetUint64tData(heap, operand2));
         break;
       case 0x05: {
-        char* new_str = (char*)calloc(strlen(GetStringData(operand1)) +
-                                          strlen(GetStringData(operand2)) + 1,
-                                      sizeof(char));
-        AddFreePtr(new_str);
-        strncpy(new_str, GetStringData(operand1),
-                strlen(GetStringData(operand1)));
-        strncat(new_str, GetStringData(operand2),
-                strlen(GetStringData(operand2)));
-        SetStringData(result, new_str);
+        SetStringData(heap, result,
+                      std::get<std::string>(operand1_data.data) +
+                          std::get<std::string>(operand2_data.data));
         break;
       }
       default:
-        EXIT_VM("ADD(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("ADD(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR(
+          "It is not supported to add strings directly to other types. Other "
+          "types should be converted to strings through conversion functions.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) + GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) + GetLongData(heap, operand2));
         break;
+
       case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) + GetDoubleData(operand2));
+        SetDoubleData(
+            heap, result,
+            GetDoubleData(heap, operand1) + GetDoubleData(heap, operand2));
         break;
+
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) + GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) + GetUint64tData(heap, operand2));
         break;
-      case 0x06:
-        if (operand1_data->type[0] == 0x06) {
-          SetPtrData(result, GetPtrData(operand1) + GetLongData(operand2));
-        } else {
-          SetPtrData(result, GetLongData(operand1) + GetPtrData(operand2));
-        }
-        break;
+
       default:
-        EXIT_VM("ADD(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int SUB(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("SUB(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("SUB(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("SUB(size_t,size_t,size_t)", "Out of object_table_size.");
+int SUB(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if (GetByteData(operand1) - GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) - GetByteData(operand2) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) - GetByteData(operand2));
+        if (GetByteData(heap, operand1) - GetByteData(heap, operand2) >
+                INT8_MAX ||
+            GetByteData(heap, operand1) - GetByteData(heap, operand2) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) - GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) - GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) - GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) - GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) - GetLongData(heap, operand2));
         break;
       case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) - GetDoubleData(operand2));
+        SetDoubleData(
+            heap, result,
+            GetDoubleData(heap, operand1) - GetDoubleData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) - GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) - GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("SUB(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("SUB(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR(
+          "It is not supported to add strings directly to other types. Other "
+          "types should be converted to strings through conversion functions.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) - GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) - GetLongData(heap, operand2));
         break;
+
       case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) - GetDoubleData(operand2));
+        SetDoubleData(
+            heap, result,
+            GetDoubleData(heap, operand1) - GetDoubleData(heap, operand2));
         break;
+
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) - GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) - GetUint64tData(heap, operand2));
         break;
-      case 0x06:
-        if (operand1_data->type[0] == 0x06) {
-          SetPtrData(result, GetPtrData(operand1) - GetLongData(operand2));
-        } else {
-          EXIT_VM("SUB(size_t,size_t,size_t)", "Unsupported operator.");
-        }
-        break;
+
       default:
-        EXIT_VM("SUB(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int MUL(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("MUL(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("MUL(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("MUL(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int MUL(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if (GetByteData(operand1) * GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) * GetByteData(operand2) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) * GetByteData(operand2));
+        if (GetByteData(heap, operand1) * GetByteData(heap, operand2) >
+                INT8_MAX ||
+            GetByteData(heap, operand1) * GetByteData(heap, operand2) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) * GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) * GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) * GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) * GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) * GetLongData(heap, operand2));
         break;
       case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) * GetDoubleData(operand2));
+        SetDoubleData(
+            heap, result,
+            GetDoubleData(heap, operand1) * GetDoubleData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) * GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) * GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("MUL(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) * GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) * GetLongData(heap, operand2));
         break;
       case 0x03:
-        SetDoubleData(result,
-                      GetDoubleData(operand1) * GetDoubleData(operand2));
+        SetDoubleData(
+            heap, result,
+            GetDoubleData(heap, operand1) * GetDoubleData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) * GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) * GetUint64tData(heap, operand2));
         break;
       case 0x05:
-        if (operand1_data->type[0] == 0x05) {
-          char* new_str = (char*)calloc(
-              GetUint64tData(operand2) * strlen(GetStringData(operand1)) + 1,
-              sizeof(char));
-          AddFreePtr(new_str);
-          for (size_t i = 0; i < GetUint64tData(operand2); i++) {
-            strncat(new_str, GetStringData(operand1),
-                    strlen(GetStringData(operand1)));
-          }
-          SetStringData(result, new_str);
+        if (operand1_data.type[0] == 0x05) {
+          std::string new_string;
+          for (std::size_t i = 0; i < Memory::GetUint64tData(heap, operand2);
+               i++)
+            new_string += std::get<std::string>(operand1_data.data);
+          SetStringData(heap, result, new_string);
+
         } else {
-          char* new_str = (char*)calloc(
-              GetUint64tData(operand1) * strlen(GetStringData(operand2)) + 1,
-              sizeof(char));
-          AddFreePtr(new_str);
-          for (size_t i = 0; i < GetUint64tData(operand1); i++) {
-            strncat(new_str, GetStringData(operand2),
-                    strlen(GetStringData(operand2)));
-          }
-          SetStringData(result, new_str);
+          std::string new_string;
+          for (std::size_t i = 0; i < Memory::GetUint64tData(heap, operand1);
+               i++)
+            new_string += std::get<std::string>(operand2_data.data);
+          SetStringData(heap, result, new_string);
         }
         break;
+
       default:
-        EXIT_VM("MUL(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int DIV(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("DIV(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("DIV(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("DIV(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int DIV(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-    EXIT_VM("DIV(size_t,size_t,size_t)", "Unsupported type.");
-  uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                            ? operand1_data->type[0]
-                            : operand2_data->type[0];
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+    LOGGING_ERROR("Unsupported string type.");
+  uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                            ? operand1_data.type[0]
+                            : operand2_data.type[0];
 
   switch (result_type) {
     case 0x01:
-      if (GetByteData(operand1) / GetByteData(operand2) > INT8_MAX ||
-          GetByteData(operand1) / GetByteData(operand2) < INT8_MIN) {
-        if (GetByteData(operand1) % GetByteData(operand2) == 0) {
-          SetLongData(result, GetByteData(operand1) / GetByteData(operand2));
+      if (GetByteData(heap, operand1) / GetByteData(heap, operand2) >
+              INT8_MAX ||
+          GetByteData(heap, operand1) / GetByteData(heap, operand2) <
+              INT8_MIN) {
+        if (GetByteData(heap, operand1) % GetByteData(heap, operand2) == 0) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) / GetByteData(heap, operand2));
         } else {
-          SetDoubleData(result, (double)GetByteData(operand1) /
-                                    (double)GetByteData(operand2));
+          SetDoubleData(heap, result,
+                        (double)GetByteData(heap, operand1) /
+                            (double)GetByteData(heap, operand2));
         }
       } else {
-        if (GetByteData(operand1) % GetByteData(operand2) == 0) {
-          SetByteData(result, GetByteData(operand1) / GetByteData(operand2));
+        if (GetByteData(heap, operand1) % GetByteData(heap, operand2) == 0) {
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) / GetByteData(heap, operand2));
         } else {
-          SetDoubleData(result, (double)GetByteData(operand1) /
-                                    (double)GetByteData(operand2));
+          SetDoubleData(heap, result,
+                        (double)GetByteData(heap, operand1) /
+                            (double)GetByteData(heap, operand2));
         }
       }
       break;
     case 0x02:
-      if (GetLongData(operand1) % GetLongData(operand2) == 0) {
-        SetLongData(result, GetLongData(operand1) / GetLongData(operand2));
+      if (GetLongData(heap, operand1) % GetLongData(heap, operand2) == 0) {
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) / GetLongData(heap, operand2));
       } else {
-        SetDoubleData(result, (double)GetLongData(operand1) /
-                                  (double)GetLongData(operand2));
+        SetDoubleData(heap, result,
+                      (double)GetLongData(heap, operand1) /
+                          (double)GetLongData(heap, operand2));
       }
       break;
     case 0x03:
-      SetDoubleData(result, (double)GetDoubleData(operand1) /
-                                (double)GetDoubleData(operand2));
+      SetDoubleData(
+          heap, result,
+          GetDoubleData(heap, operand1) / GetDoubleData(heap, operand2));
       break;
     case 0x04:
-      if (GetUint64tData(operand1) / GetUint64tData(operand2) > INT64_MAX) {
-        SetUint64tData(result,
-                       GetUint64tData(operand1) / GetUint64tData(operand2));
+      if (GetUint64tData(heap, operand1) / GetUint64tData(heap, operand2) >
+          INT64_MAX) {
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) / GetUint64tData(heap, operand2));
       } else {
-        if (GetUint64tData(operand1) % GetUint64tData(operand2) == 0) {
-          SetLongData(result,
-                      GetUint64tData(operand1) / GetUint64tData(operand2));
+        if (GetUint64tData(heap, operand1) % GetUint64tData(heap, operand2) ==
+            0) {
+          SetLongData(
+              heap, result,
+              GetUint64tData(heap, operand1) / GetUint64tData(heap, operand2));
         } else {
-          SetDoubleData(result, (double)GetUint64tData(operand1) /
-                                    (double)GetUint64tData(operand2));
+          SetDoubleData(heap, result,
+                        (double)GetUint64tData(heap, operand1) /
+                            (double)GetUint64tData(heap, operand2));
         }
       }
       break;
+
     default:
-      EXIT_VM("DIV(size_t,size_t,size_t)", "Unsupported type.");
+      LOGGING_ERROR("Unsupported type.");
       break;
   }
 
   return 0;
 }
-int REM(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("REM(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("REM(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("REM(size_t,size_t,size_t)", "Out of object_table_size.");
+int REM(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if (GetByteData(operand1) % GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) % GetByteData(operand2) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) % GetByteData(operand2));
+        if (GetByteData(heap, operand1) % GetByteData(heap, operand2) >
+                INT8_MAX ||
+            GetByteData(heap, operand1) % GetByteData(heap, operand2) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) % GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) % GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) % GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) % GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) % GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) % GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) % GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("REM(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("REM(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR("Unsupported type.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) % GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) % GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) % GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) % GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("REM(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int NEG(size_t result, size_t operand1) {
-  if (result >= object_table_size)
-    EXIT_VM("SUB(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("SUB(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  operand1_data = GetOriginData(operand1_data);
+int NEG(std::vector<Memory::Object>& heap, size_t result, size_t operand1) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+
+  switch (operand1_data.type[0]) {
     case 0x01:
-      SetByteData(result, -GetByteData(operand1));
+      SetByteData(heap, result, -GetByteData(heap, operand1));
       break;
     case 0x02:
-      SetLongData(result, -GetLongData(operand1));
+      SetLongData(heap, result, -GetLongData(heap, operand1));
       break;
     case 0x03:
-      SetDoubleData(result, -GetDoubleData(operand1));
+      SetDoubleData(heap, result, -GetDoubleData(heap, operand1));
       break;
     case 0x04:
-      SetUint64tData(result, -GetUint64tData(operand1));
+      SetUint64tData(heap, result, -GetUint64tData(heap, operand1));
       break;
     default:
-      EXIT_VM("NEG(size_t,size_t)", "Unsupported type.");
+      LOGGING_ERROR("Unsupported type.");
       break;
   }
 
   return 0;
 }
-int SHL(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("SHL(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("SHL(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("SHL(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int SHL(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if (GetByteData(operand1) << GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) << GetByteData(operand2) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) << GetByteData(operand2));
+        if (GetByteData(heap, operand1) << GetByteData(heap, operand2) >
+                INT8_MAX ||
+            GetByteData(heap, operand1) << GetByteData(heap, operand2) <
+                INT8_MIN) {
+          SetLongData(heap, result,
+                      GetByteData(heap, operand1)
+                          << GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) << GetByteData(operand2));
+          SetByteData(heap, result,
+                      GetByteData(heap, operand1)
+                          << GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) << GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) << GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result, GetUint64tData(operand1)
-                                   << GetUint64tData(operand2));
+        SetUint64tData(heap, result,
+                       GetUint64tData(heap, operand1)
+                           << GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("SHL(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("SHL(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR("Unsupported type.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) << GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) << GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result, GetUint64tData(operand1)
-                                   << GetUint64tData(operand2));
+        SetUint64tData(heap, result,
+                       GetUint64tData(heap, operand1)
+                           << GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("SHL(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int SHR(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("SHR(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("SHR(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("SHR(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int SHR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if (GetByteData(operand1) >> GetByteData(operand2) > INT8_MAX ||
-            GetByteData(operand1) >> GetByteData(operand2) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) >> GetByteData(operand2));
+        if (GetByteData(heap, operand1) >> GetByteData(heap, operand2) >
+                INT8_MAX ||
+            GetByteData(heap, operand1) >> GetByteData(heap, operand2) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) >> GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) >> GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) >> GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) >> GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) >> GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) >> GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("SHR(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("SHR(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR("Unsupported type.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) >> GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) >> GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) >> GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) >> GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("SHR(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int REFER(size_t result, size_t operand1) {
-  if (result >= object_table_size)
-    EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("REFER(size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* data = GetOriginData(object_table + operand1);
+int REFER(std::vector<Memory::Object>& heap, size_t result, size_t operand1) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  SetReferenceData(result, data);
+  auto data = GetOriginDataReference(heap, operand1);
+
+  SetReferenceData(heap, result, data);
 
   return 0;
 }
-size_t IF(size_t condition, size_t true_branche, size_t false_branche) {
-  if (GetByteData(condition) != 0) {
+
+size_t IF(std::vector<Memory::Object>& heap, size_t condition,
+          size_t true_branche, size_t false_branche) {
+  if (GetByteData(heap, condition) != 0) {
     return true_branche;
   } else {
     return false_branche;
   }
 }
-int AND(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("AND(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("AND(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("AND(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int AND(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if ((GetByteData(operand1) & GetByteData(operand2)) > INT8_MAX ||
-            (GetByteData(operand1) & GetByteData(operand2)) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) & GetByteData(operand2));
+        if ((GetByteData(heap, operand1) & GetByteData(heap, operand2)) >
+                INT8_MAX ||
+            (GetByteData(heap, operand1) & GetByteData(heap, operand2)) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) & GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) & GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) & GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) & GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) & GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) & GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) & GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("AND(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("AND(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR("Unsupported type.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) & GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) & GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) & GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) & GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("AND(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int OR(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("OR(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("OR(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("OR(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int OR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+       size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if ((GetByteData(operand1) | GetByteData(operand2)) > INT8_MAX ||
-            (GetByteData(operand1) | GetByteData(operand2)) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) | GetByteData(operand2));
+        if ((GetByteData(heap, operand1) | GetByteData(heap, operand2)) >
+                INT8_MAX ||
+            (GetByteData(heap, operand1) | GetByteData(heap, operand2)) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) | GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) | GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) | GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) | GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) | GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) | GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) | GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("OR(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("OR(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR("Unsupported type.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) | GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) | GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) | GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) | GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("OR(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int XOR(size_t result, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("XOR(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("XOR(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("XOR(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int XOR(std::vector<Memory::Object>& heap, size_t result, size_t operand1,
+        size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (operand1_data->type[0] == operand2_data->type[0]) {
-    switch (operand1_data->type[0]) {
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
+
+  if (operand1_data.type[0] == operand2_data.type[0]) {
+    switch (operand1_data.type[0]) {
       case 0x01:
-        if ((GetByteData(operand1) ^ GetByteData(operand2)) > INT8_MAX ||
-            (GetByteData(operand1) ^ GetByteData(operand2)) < INT8_MIN) {
-          SetLongData(result, GetByteData(operand1) ^ GetByteData(operand2));
+        if ((GetByteData(heap, operand1) ^ GetByteData(heap, operand2)) >
+                INT8_MAX ||
+            (GetByteData(heap, operand1) ^ GetByteData(heap, operand2)) <
+                INT8_MIN) {
+          SetLongData(
+              heap, result,
+              GetByteData(heap, operand1) ^ GetByteData(heap, operand2));
         } else {
-          SetByteData(result, GetByteData(operand1) ^ GetByteData(operand2));
+          SetByteData(
+              heap, result,
+              GetByteData(heap, operand1) ^ GetByteData(heap, operand2));
         }
         break;
       case 0x02:
-        SetLongData(result, GetLongData(operand1) ^ GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) ^ GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) ^ GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) ^ GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("XOR(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   } else {
-    if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-      EXIT_VM("XOR(size_t,size_t,size_t)", "Unsupported type.");
-    uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                              ? operand1_data->type[0]
-                              : operand2_data->type[0];
+    if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+      LOGGING_ERROR("Unsupported type.");
+    uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                              ? operand1_data.type[0]
+                              : operand2_data.type[0];
     switch (result_type) {
       case 0x02:
-        SetLongData(result, GetLongData(operand1) ^ GetLongData(operand2));
+        SetLongData(heap, result,
+                    GetLongData(heap, operand1) ^ GetLongData(heap, operand2));
         break;
       case 0x04:
-        SetUint64tData(result,
-                       GetUint64tData(operand1) ^ GetUint64tData(operand2));
+        SetUint64tData(
+            heap, result,
+            GetUint64tData(heap, operand1) ^ GetUint64tData(heap, operand2));
         break;
       default:
-        EXIT_VM("XOR(size_t,size_t,size_t)", "Unsupported type.");
+        LOGGING_ERROR("Unsupported type.");
         break;
     }
   }
   return 0;
 }
-int CMP(size_t result, size_t opcode, size_t operand1, size_t operand2) {
-  if (result >= object_table_size)
-    EXIT_VM("CMP(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("CMP(size_t,size_t,size_t)", "Out of object_table_size.");
-  if (operand2 >= object_table_size)
-    EXIT_VM("CMP(size_t,size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* operand1_data = object_table + operand1;
-  struct Object* operand2_data = object_table + operand2;
-  operand1_data = GetOriginData(operand1_data);
-  operand2_data = GetOriginData(operand2_data);
+int CMP(std::vector<Memory::Object>& heap, size_t result, size_t opcode,
+        size_t operand1, size_t operand2) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand1 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (operand2 >= heap.size()) INTERNAL_ERROR("Out of memory.");
+
+  Memory::Object operand1_data = GetOriginData(heap, operand1);
+  Memory::Object operand2_data = GetOriginData(heap, operand2);
 
   switch (opcode) {
     case 0x00:
-      if (operand1_data->type[0] == operand2_data->type[0]) {
-        switch (operand1_data->type[0]) {
+      if (operand1_data.type[0] == operand2_data.type[0]) {
+        switch (operand1_data.type[0]) {
           case 0x01:
-            SetByteData(result, GetByteData(operand1) == GetByteData(operand2));
+            SetByteData(
+                heap, result,
+                GetByteData(heap, operand1) == GetByteData(heap, operand2));
             break;
           case 0x02:
-            SetByteData(result, GetLongData(operand1) == GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) == GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) == GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) == GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) == GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) ==
+                            GetUint64tData(heap, operand2));
             break;
           case 0x05:
-            SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)) == 0);
+            SetByteData(
+                heap, result,
+                GetStringData(heap, operand1) == GetStringData(heap, operand2));
             break;
           case 0x06:
-            SetByteData(result, GetPtrData(operand1) == GetPtrData(operand2));
+            SetByteData(
+                heap, result,
+                GetArrayData(heap, operand1) == GetArrayData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       } else {
-        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                                  ? operand1_data->type[0]
-                                  : operand2_data->type[0];
+        if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+          LOGGING_ERROR("Unsupported type.");
+        uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                                  ? operand1_data.type[0]
+                                  : operand2_data.type[0];
         switch (result_type) {
           case 0x02:
-            SetByteData(result, GetLongData(operand1) == GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) == GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) == GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) == GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) == GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) ==
+                            GetUint64tData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       }
       break;
     case 0x01:
-      if (operand1_data->type[0] == operand2_data->type[0]) {
-        switch (operand1_data->type[0]) {
+      if (operand1_data.type[0] == operand2_data.type[0]) {
+        switch (operand1_data.type[0]) {
           case 0x01:
-            SetByteData(result, GetByteData(operand1) != GetByteData(operand2));
+            SetByteData(
+                heap, result,
+                GetByteData(heap, operand1) != GetByteData(heap, operand2));
             break;
           case 0x02:
-            SetByteData(result, GetLongData(operand1) != GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) != GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) != GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) != GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) != GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) !=
+                            GetUint64tData(heap, operand2));
             break;
           case 0x05:
-            SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)) != 0);
+            SetByteData(
+                heap, result,
+                GetStringData(heap, operand1) != GetStringData(heap, operand2));
             break;
           case 0x06:
-            SetByteData(result, GetPtrData(operand1) != GetPtrData(operand2));
+            SetByteData(
+                heap, result,
+                GetArrayData(heap, operand1) != GetArrayData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       } else {
-        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                                  ? operand1_data->type[0]
-                                  : operand2_data->type[0];
+        if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+          LOGGING_ERROR("Unsupported type.");
+        uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                                  ? operand1_data.type[0]
+                                  : operand2_data.type[0];
         switch (result_type) {
           case 0x02:
-            SetByteData(result, GetLongData(operand1) != GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) != GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) != GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) != GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) != GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) !=
+                            GetUint64tData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       }
       break;
     case 0x02:
-      if (operand1_data->type[0] == operand2_data->type[0]) {
-        switch (operand1_data->type[0]) {
+      if (operand1_data.type[0] == operand2_data.type[0]) {
+        switch (operand1_data.type[0]) {
           case 0x01:
-            SetByteData(result, GetByteData(operand1) > GetByteData(operand2));
+            SetByteData(
+                heap, result,
+                GetByteData(heap, operand1) > GetByteData(heap, operand2));
             break;
           case 0x02:
-            SetByteData(result, GetLongData(operand1) > GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) > GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) > GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) > GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) > GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) >
+                            GetUint64tData(heap, operand2));
             break;
           case 0x05:
-            SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)) > 0);
+            SetByteData(
+                heap, result,
+                GetStringData(heap, operand1) > GetStringData(heap, operand2));
             break;
           case 0x06:
-            SetByteData(result, GetPtrData(operand1) > GetPtrData(operand2));
+            LOGGING_WARNING("Not supported array type.");
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       } else {
-        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                                  ? operand1_data->type[0]
-                                  : operand2_data->type[0];
+        if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+          LOGGING_ERROR("Unsupported type.");
+        uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                                  ? operand1_data.type[0]
+                                  : operand2_data.type[0];
         switch (result_type) {
           case 0x02:
-            SetByteData(result, GetLongData(operand1) > GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) > GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) > GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) > GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) > GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) >
+                            GetUint64tData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       }
       break;
     case 0x03:
-      if (operand1_data->type[0] == operand2_data->type[0]) {
-        switch (operand1_data->type[0]) {
+      if (operand1_data.type[0] == operand2_data.type[0]) {
+        switch (operand1_data.type[0]) {
           case 0x01:
-            SetByteData(result, GetByteData(operand1) >= GetByteData(operand2));
+            SetByteData(
+                heap, result,
+                GetByteData(heap, operand1) >= GetByteData(heap, operand2));
             break;
           case 0x02:
-            SetByteData(result, GetLongData(operand1) >= GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) >= GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) >= GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) >= GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) >= GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) >=
+                            GetUint64tData(heap, operand2));
             break;
           case 0x05:
-            SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)) >= 0);
+            SetByteData(
+                heap, result,
+                GetStringData(heap, operand1) >= GetStringData(heap, operand2));
             break;
           case 0x06:
-            SetByteData(result, GetPtrData(operand1) >= GetPtrData(operand2));
+            LOGGING_WARNING("Not supported array type.");
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       } else {
-        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                                  ? operand1_data->type[0]
-                                  : operand2_data->type[0];
+        if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+          LOGGING_ERROR("Unsupported type.");
+        uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                                  ? operand1_data.type[0]
+                                  : operand2_data.type[0];
         switch (result_type) {
           case 0x02:
-            SetByteData(result, GetLongData(operand1) >= GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) >= GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) >= GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) >= GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) >= GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) >=
+                            GetUint64tData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       }
       break;
     case 0x04:
-      if (operand1_data->type[0] == operand2_data->type[0]) {
-        switch (operand1_data->type[0]) {
+      if (operand1_data.type[0] == operand2_data.type[0]) {
+        switch (operand1_data.type[0]) {
           case 0x01:
-            SetByteData(result, GetByteData(operand1) < GetByteData(operand2));
+            SetByteData(
+                heap, result,
+                GetByteData(heap, operand1) < GetByteData(heap, operand2));
             break;
           case 0x02:
-            SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) < GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) < GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) < GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) < GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) <
+                            GetUint64tData(heap, operand2));
             break;
           case 0x05:
-            SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)) < 0);
+            SetByteData(
+                heap, result,
+                GetStringData(heap, operand1) < GetStringData(heap, operand2));
             break;
           case 0x06:
-            SetByteData(result, GetPtrData(operand1) < GetPtrData(operand2));
+            LOGGING_WARNING("Not supported array type.");
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       } else {
-        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                                  ? operand1_data->type[0]
-                                  : operand2_data->type[0];
+        if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+          LOGGING_ERROR("Unsupported type.");
+        uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                                  ? operand1_data.type[0]
+                                  : operand2_data.type[0];
         switch (result_type) {
           case 0x02:
-            SetByteData(result, GetLongData(operand1) < GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) < GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) < GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) < GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) < GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) <
+                            GetUint64tData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       }
       break;
     case 0x05:
-      if (operand1_data->type[0] == operand2_data->type[0]) {
-        switch (operand1_data->type[0]) {
+      if (operand1_data.type[0] == operand2_data.type[0]) {
+        switch (operand1_data.type[0]) {
           case 0x01:
-            SetByteData(result, GetByteData(operand1) <= GetByteData(operand2));
+            SetByteData(
+                heap, result,
+                GetByteData(heap, operand1) <= GetByteData(heap, operand2));
             break;
           case 0x02:
-            SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) <= GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) <= GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) <= GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) <= GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) <=
+                            GetUint64tData(heap, operand2));
             break;
           case 0x05:
-            SetByteData(result, strcmp(GetStringData(operand1),
-                                       GetStringData(operand2)) <= 0);
+            SetByteData(
+                heap, result,
+                GetStringData(heap, operand1) <= GetStringData(heap, operand2));
             break;
           case 0x06:
-            SetByteData(result, GetPtrData(operand1) <= GetPtrData(operand2));
+            LOGGING_WARNING("Not supported array type.");
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       } else {
-        if (operand1_data->type[0] == 0x05 || operand2_data->type[0] == 0x05)
-          EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
-        uint8_t result_type = operand1_data->type[0] > operand2_data->type[0]
-                                  ? operand1_data->type[0]
-                                  : operand2_data->type[0];
+        if (operand1_data.type[0] == 0x05 || operand2_data.type[0] == 0x05)
+          LOGGING_ERROR("Unsupported type.");
+        uint8_t result_type = operand1_data.type[0] > operand2_data.type[0]
+                                  ? operand1_data.type[0]
+                                  : operand2_data.type[0];
         switch (result_type) {
           case 0x02:
-            SetByteData(result, GetLongData(operand1) <= GetLongData(operand2));
+            SetByteData(
+                heap, result,
+                GetLongData(heap, operand1) <= GetLongData(heap, operand2));
             break;
           case 0x03:
-            SetByteData(result,
-                        GetDoubleData(operand1) <= GetDoubleData(operand2));
+            SetByteData(
+                heap, result,
+                GetDoubleData(heap, operand1) <= GetDoubleData(heap, operand2));
             break;
           case 0x04:
-            SetByteData(result,
-                        GetUint64tData(operand1) <= GetUint64tData(operand2));
+            SetByteData(heap, result,
+                        GetUint64tData(heap, operand1) <=
+                            GetUint64tData(heap, operand2));
             break;
           default:
-            EXIT_VM("CMP(size_t,size_t,size_t)", "Unsupported type.");
+            LOGGING_ERROR("Unsupported type.");
             break;
         }
       }
       break;
     default:
-      EXIT_VM("CMP(size_t,size_t,size_t,size_t)", "Invalid opcode.");
+      LOGGING_ERROR("Invalid opcode.");
   }
   return 0;
 }
-int INVOKE(size_t* args) {
-  if (args == NULL) EXIT_VM("INVOKE(size_t*)", "Invalid args.");
-  size_t func = args[0];
-  size_t arg_count = args[1];
-  size_t return_value = args[2];
-  size_t* invoke_args = NULL;
-  if (arg_count > 0) {
-    invoke_args = args + 3;
-  }
-  InternalObject args_obj = {arg_count - 1, invoke_args};
-  func_ptr invoke_func = GetFunction(GetStringData(func));
-  if (invoke_func != NULL) {
-    invoke_func(args_obj, return_value);
+
+int INVOKE(std::vector<Memory::Object>& heap,
+           std::unordered_map<std::string,
+                              std::function<int(std::vector<std::size_t>)>>&
+               builtin_functions,
+           std::vector<std::size_t> arguments) {
+  if (arguments.size() < 2) LOGGING_ERROR("Invalid arguments.");
+  size_t function = arguments[0];
+  arguments.erase(arguments.begin(), arguments.begin() + 1);
+  auto invoke_function = builtin_functions.find(GetStringData(heap, function));
+  if (invoke_function != builtin_functions.end()) {
+    invoke_function->second(arguments);
     return 0;
   }
 
-  return InvokeCustomFunction(GetStringData(func), arg_count, return_value,
-                              invoke_args);
+  return InvokeCustomFunction(heap, GetStringData(heap, function), arguments);
 }
-int EQUAL(size_t result, size_t value) {
-  if (result >= object_table_size)
-    EXIT_VM("EQUAL(size_t,size_t)", "Out of object_table_size.");
-  if (value >= object_table_size)
-    EXIT_VM("EQUAL(size_t,size_t)", "Out of object_table_size.");
 
-  struct Object* value_data = object_table + value;
-  value_data = GetOriginData(value_data);
+int EQUAL(std::vector<Memory::Object>& heap, size_t result, size_t value) {
+  if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (value >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  switch (value_data->type[0]) {
+  Memory::Object value_data = GetOriginData(heap, value);
+
+  switch (value_data.type[0]) {
     case 0x00:
       break;
     case 0x01:
-      SetByteData(result, GetByteData(value));
+      SetByteData(heap, result, GetByteData(heap, value));
       break;
     case 0x02:
-      SetLongData(result, GetLongData(value));
+      SetLongData(heap, result, GetLongData(heap, value));
       break;
     case 0x03:
-      SetDoubleData(result, GetDoubleData(value));
+      SetDoubleData(heap, result, GetDoubleData(heap, value));
       break;
     case 0x04:
-      SetUint64tData(result, GetUint64tData(value));
+      SetUint64tData(heap, result, GetUint64tData(heap, value));
       break;
     case 0x05:
-      SetStringData(result, GetStringData(value));
+      SetStringData(heap, result, GetStringData(heap, value));
       break;
     case 0x06:
-      SetPtrData(result, GetPtrData(value));
+      SetArrayData(heap, result, GetArrayData(heap, value));
       break;
     case 0x09:
-      SetObjectData(result, GetObjectData(value));
+      SetObjectData(heap, result, GetObjectData(heap, value));
       break;
     case 0x0A:
-      SetOriginData(result, GetOriginData(object_table + value));
+      // SetOriginData(heap, result, GetPointerData(heap, value));
+      LOGGING_WARNING("Not supported origin type yet.");
       break;
     default:
-      EXIT_VM("EQUAL(size_t,size_t)", "Unsupported type.");
+      LOGGING_ERROR("Unsupported type.");
   }
   return 0;
 }
 
-int CrossMemoryEqual(struct Memory* result_memory, size_t result,
-                     struct Memory* value_memory, size_t value) {
-  if (result >= result_memory->object_table_size)
-    EXIT_VM("CrossMemoryEqual(struct Memory*,size_t,struct Memory*,size_t)",
-            "Out of object_table_size.");
-  if (value >= value_memory->object_table_size)
-    EXIT_VM("CrossMemoryEqual(struct Memory*,size_t,struct Memory*,size_t)",
-            "Out of object_table_size.");
+int CrossMemoryEqual(std::shared_ptr<Memory::Memory> result_memory,
+                     size_t result,
+                     std::shared_ptr<Memory::Memory> value_memory,
+                     size_t value) {
+  if (result >= result_memory->heap.size())
+    INTERNAL_ERROR("Out of object_table_size.");
+  if (value >= value_memory->heap.size())
+    INTERNAL_ERROR("Out of object_table_size.");
 
-  struct Object* value_data = value_memory->object_table + value;
-  value_data = GetOriginData(value_data);
+  Memory::Object value_data = GetOriginData(heap, value);
 
-  switch (value_data->type[0]) {
+  switch (value_data.type[0]) {
     case 0x00:
       break;
     case 0x01:
-      SetByteObjectData(result_memory->object_table + result,
-                        GetByteObjectData(value_memory->object_table + value));
+      SetByteData(result_memory->heap, result,
+                  GetByteData(value_memory->heap, value));
       break;
     case 0x02:
-      SetLongObjectData(result_memory->object_table + result,
-                        GetLongObjectData(value_memory->object_table + value));
+      SetLongData(result_memory->heap, result,
+                  GetLongData(value_memory->heap, value));
       break;
     case 0x03:
-      SetDoubleObjectData(
-          result_memory->object_table + result,
-          GetDoubleObjectData(value_memory->object_table + value));
+      SetDoubleData(result_memory->heap, result,
+                    GetDoubleData(value_memory->heap, value));
       break;
     case 0x04:
-      SetUint64tObjectData(
-          result_memory->object_table + result,
-          GetUint64tObjectData(value_memory->object_table + value));
+      SetUint64tData(result_memory->heap, result,
+                     GetUint64tData(value_memory->heap, value));
       break;
     case 0x05:
-      SetStringObjectData(
-          result_memory->object_table + result,
-          GetStringObjectData(value_memory->object_table + value));
+      SetStringData(result_memory->heap, result,
+                    GetStringData(value_memory->heap, value));
       break;
     case 0x06:
-      SetPtrObjectData(result_memory->object_table + result,
-                       GetPtrObjectData(value_memory->object_table + value));
+      SetArrayData(result_memory->heap, result,
+                   GetArrayData(value_memory->heap, value));
       break;
     case 0x09:
-      SetObjectObjectData(
-          result_memory->object_table + result,
-          GetObjectObjectData(value_memory->object_table + value));
+      SetObjectData(result_memory->heap, result,
+                    GetObjectData(value_memory->heap, value));
       break;
     case 0x0A:
-      SetOriginObjectData(result_memory->object_table + result,
-                          GetOriginData(value_memory->object_table + value));
+      // SetOriginData(result_memory->heap, result,
+      //               GetOriginData(value_memory->object_table + value));
+      LOGGING_WARNING("Not supported origin type yet.");
       break;
     default:
-      EXIT_VM("CrossMemoryEqual(struct Memory*,size_t,struct Memory*,size_t)",
-              "Unsupported type.");
+      LOGGING_ERROR("Unsupported type.");
   }
   return 0;
 }
 
-size_t GOTO(size_t location) { return GetUint64tData(location); }
-int LOAD_CONST(size_t object, size_t const_object) {
-  if (object >= object_table_size)
-    EXIT_VM("LOAD_CONST(size_t,size_t)", "Out of object_table_size.");
-  if (const_object >= const_object_table_size)
-    EXIT_VM("LOAD_CONST(size_t,size_t)", "Out of const_object_table_size.");
+size_t GOTO(std::vector<Memory::Object>& heap, size_t location) {
+  return GetUint64tData(heap, location);
+}
 
-  switch (const_object_table[const_object].type[0]) {
+int LOAD_CONST(std::vector<Memory::Object>& heap,
+               std::vector<Memory::Object>& constant_pool, size_t object,
+               size_t const_object) {
+  if (object >= heap.size()) INTERNAL_ERROR("Out of object_table_size.");
+  if (const_object >= constant_pool.size())
+    INTERNAL_ERROR("Out of constant_pool_size.");
+
+  switch (constant_pool[const_object].type[0]) {
     case 0x01:
-      SetByteData(object, const_object_table[const_object].data.byte_data);
+      SetByteData(heap, object,
+                  std::get<int8_t>(constant_pool[const_object].data));
       break;
     case 0x02:
-      SetLongData(object, const_object_table[const_object].data.long_data);
+      SetLongData(heap, object,
+                  std::get<int64_t>(constant_pool[const_object].data));
       break;
     case 0x03:
-      SetDoubleData(object, const_object_table[const_object].data.double_data);
+      SetDoubleData(heap, object,
+                    std::get<double>(constant_pool[const_object].data));
       break;
     case 0x04:
-      SetUint64tData(object,
-                     const_object_table[const_object].data.uint64t_data);
+      SetUint64tData(heap, object,
+                     std::get<uint64_t>(constant_pool[const_object].data));
       break;
     case 0x05:
-      SetStringData(object, const_object_table[const_object].data.string_data);
+      SetStringData(heap, object,
+                    std::get<std::string>(constant_pool[const_object].data));
       break;
     case 0x06:
-      SetPtrData(object, const_object_table[const_object].data.ptr_data);
+      SetArrayData(heap, object,
+                   std::get<std::vector<Memory::Object>>(
+                       constant_pool[const_object].data));
       break;
     default:
-      EXIT_VM("LOAD_CONST(size_t,size_t)", "Unsupported type.");
+      LOGGING_ERROR("Unsupported type.");
   }
 
   return 0;
 }
+
 int CONVERT(size_t result, size_t operand1) {
-  if (result >= object_table_size)
-    EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
-  if (operand1 >= object_table_size)
-    EXIT_VM("CONVERT(size_t,size_t)", "Out of object_table_size.");
-
-  struct Object* result_data = object_table + result;
-  result_data = GetOriginData(result_data);
-
-  switch (result_data->type[0]) {
-    case 0x01:
-      SetByteData(result, GetByteData(operand1));
-      break;
-
-    case 0x02:
-      SetLongData(result, GetLongData(operand1));
-      break;
-
-    case 0x03:
-      SetDoubleData(result, GetDoubleData(operand1));
-      break;
-
-    case 0x04:
-      SetUint64tData(result, GetUint64tData(operand1));
-      break;
-
-    case 0x05:
-      SetStringData(result, GetStringData(operand1));
-      break;
-
-    case 0x06:
-      SetPtrData(result, GetPtrData(operand1));
-      break;
-
-    default:
-      EXIT_VM("CONVERT(size_t,size_t)", "Unsupported type.");
-      break;
-  }
+  LOGGING_WARNING("DEPRECATED OPERATOR.");
   return 0;
 }
+
 int _CONST(size_t result, size_t operand1) {
   if (result >= object_table_size)
     EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
   if (operand1 >= object_table_size)
     EXIT_VM("CONST(size_t,size_t)", "Out of object_table_size.");
 
-  SetConstData(result, object_table + operand1);
+  SetConstData(heap, result, object_table + operand1);
   return 0;
 }
 
@@ -1713,7 +1693,7 @@ int LOAD_MEMBER(size_t result, size_t class, size_t operand) {
 
   struct Object* object_data = class_data->data.object_data + offset;
 
-  SetReferenceData(result, object_data);
+  SetReferenceData(heap, result, object_data);
 
   return 0;
 }

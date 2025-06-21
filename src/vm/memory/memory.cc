@@ -11,6 +11,35 @@
 namespace Aq {
 namespace Vm {
 namespace Memory {
+std::shared_ptr<Object> GetOriginDataReference(std::vector<Object>& heap,
+                                               size_t index) {
+  if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
+
+  auto object = std::shared_ptr<Object>(&heap[index], [](void*) {});
+
+  while (true) {
+    switch (object->type[0]) {
+      case 0x00:
+      case 0x01:
+      case 0x02:
+      case 0x03:
+      case 0x04:
+      case 0x05:
+      case 0x06:
+      case 0x08:
+      case 0x09:
+      case 0x0A:
+        return object;
+
+      case 0x07:
+        object = std::get<std::shared_ptr<Object>>(object->data);
+        break;
+    }
+  }
+
+  INTERNAL_ERROR("Unexpected running location.");
+  return object;
+}
 
 Object GetOriginData(std::vector<Object>& heap, size_t index) {
   Object origin_data = heap[index];
@@ -302,7 +331,7 @@ void SetUint64tData(std::vector<Object>& heap, size_t index, uint64_t value) {
 }
 
 void SetStringData(std::vector<Object>& heap, size_t index,
-                   const char* string) {
+                   std::string string) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
@@ -310,7 +339,7 @@ void SetStringData(std::vector<Object>& heap, size_t index,
 
   if (!object->const_type || object->type[0] == 0x05) {
     object->type[0] = 0x05;
-    object->data = std::string(string);
+    object->data = string;
   }
 }
 
@@ -364,6 +393,22 @@ void SetObjectData(std::vector<Object>& heap, size_t index,
     const_object->data = objects;
   }
 }
+
+/*int SetOriginData(std::vector<Object>& heap, size_t index, void* object) {
+  if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
+  if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
+
+  auto origin_object = GetLastDataReference(heap, index);
+
+  if (!origin_object->const_type || origin_object->type[0] == 0x0A) {
+    origin_object->type[0] = 0x0A;
+    origin_object->data = object;
+  } else {
+    LOGGING_ERROR("Unsupported data type.");
+  }
+
+  return 0;
+}*/
 
 }  // namespace Memory
 }  // namespace Vm

@@ -29,6 +29,13 @@ struct Memory {
   std::vector<Object> constant_pool;
 };
 
+inline bool operator==(const Object& lhs, const Object& rhs) {
+  return lhs.type == rhs.type && lhs.data == rhs.data;
+}
+
+std::shared_ptr<Object> GetOriginDataReference(std::vector<Object>& heap,
+                                               size_t index);
+
 Object GetOriginData(std::vector<Object>& heap, size_t index);
 
 std::shared_ptr<Object> GetLastReference(std::vector<Object>& heap,
@@ -64,7 +71,7 @@ void SetDoubleData(std::vector<Object>& heap, size_t index, double value);
 
 void SetUint64tData(std::vector<Object>& heap, size_t index, uint64_t value);
 
-void SetStringData(std::vector<Object>& heap, size_t index, const char* string);
+void SetStringData(std::vector<Object>& heap, size_t index, std::string string);
 
 void SetReferenceData(std::vector<Object>& heap, size_t index,
                       std::shared_ptr<Object> object);
