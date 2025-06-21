@@ -381,6 +381,7 @@ int ADD(std::vector<Memory::Object>& heap, std::size_t result,
   }
   return 0;
 }
+
 int SUB(std::vector<Memory::Object>& heap, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -629,6 +630,7 @@ int DIV(std::vector<Memory::Object>& heap, std::size_t result,
 
   return 0;
 }
+
 int REM(std::vector<Memory::Object>& heap, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
@@ -1506,50 +1508,50 @@ int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
   return 0;
 }
 
-int CrossMemoryEqual(std::shared_ptr<Memory::Memory> result_memory,
+int CrossMemoryEqual(std::vector<Memory::Object>& result_heap,
                      std::size_t result,
-                     std::shared_ptr<Memory::Memory> value_memory,
+                     std::vector<Memory::Object>& value_heap,
                      std::size_t value) {
-  if (result >= result_memory->heap.size())
+  if (result >= result_heap.size())
     INTERNAL_ERROR("Out of object_table_size.");
-  if (value >= value_memory->heap.size())
+  if (value >= value_heap.size())
     INTERNAL_ERROR("Out of object_table_size.");
 
-  Memory::Object value_data = GetOriginData(value_memory->heap, value);
+  Memory::Object value_data = GetOriginData(value_heap, value);
 
   switch (value_data.type[0]) {
     case 0x00:
       break;
     case 0x01:
-      SetByteData(result_memory->heap, result,
-                  GetByteData(value_memory->heap, value));
+      SetByteData(result_heap, result,
+                  GetByteData(value_heap, value));
       break;
     case 0x02:
-      SetLongData(result_memory->heap, result,
-                  GetLongData(value_memory->heap, value));
+      SetLongData(result_heap, result,
+                  GetLongData(value_heap, value));
       break;
     case 0x03:
-      SetDoubleData(result_memory->heap, result,
-                    GetDoubleData(value_memory->heap, value));
+      SetDoubleData(result_heap, result,
+                    GetDoubleData(value_heap, value));
       break;
     case 0x04:
-      SetUint64tData(result_memory->heap, result,
-                     GetUint64tData(value_memory->heap, value));
+      SetUint64tData(result_heap, result,
+                     GetUint64tData(value_heap, value));
       break;
     case 0x05:
-      SetStringData(result_memory->heap, result,
-                    GetStringData(value_memory->heap, value));
+      SetStringData(result_heap, result,
+                    GetStringData(value_heap, value));
       break;
     case 0x06:
-      SetArrayData(result_memory->heap, result,
-                   GetArrayData(value_memory->heap, value));
+      SetArrayData(result_heap, result,
+                   GetArrayData(value_heap, value));
       break;
     case 0x09:
-      SetObjectData(result_memory->heap, result,
-                    GetObjectData(value_memory->heap, value));
+      SetObjectData(result_heap, result,
+                    GetObjectData(value_heap, value));
       break;
     case 0x0A:
-      // SetOriginData(result_memory->heap, result,
+      // SetOriginData(result_heap, result,
       //               GetOriginData(value_memory->object_table + value));
       LOGGING_WARNING("Not supported origin type yet.");
       break;

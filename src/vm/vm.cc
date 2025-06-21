@@ -132,7 +132,6 @@ void Vm::Initialize(std::vector<char>& code) {
 
   // Reads the heap type.
   for (size_t i = 0; i < heap_size; i++) {
-    memory_->heap[i].type.push_back(*bytecode_file);
     bool is_type_end = false;
     while (!is_type_end) {
       switch (*(uint8_t*)bytecode_file) {
@@ -143,13 +142,15 @@ void Vm::Initialize(std::vector<char>& code) {
         case 0x04:
         case 0x05:
         case 0x09:
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
           is_type_end = true;
           break;
 
         case 0x06:
         case 0x07:
         case 0x08:
-          bytecode_file = bytecode_file += 1;
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          bytecode_file += 1;
           break;
 
         default:

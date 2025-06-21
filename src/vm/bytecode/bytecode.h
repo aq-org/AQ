@@ -18,22 +18,22 @@ namespace Aq {
 namespace Vm {
 namespace Bytecode {
 struct Instruction {
-  Operator::Operator opers;
+  Operator::Operator oper;
   std::vector<std::size_t> arguments;
 };
 
-typedef struct {
+struct Function {
   std::string name;
   std::vector<std::size_t> arguments;
   bool is_variadic;
   std::vector<Instruction> instructions;
-} Function;
+};
 
 struct Class {
   std::string name;
   std::vector<Memory::Object> members;
   std::unordered_map<std::string, std::size_t> variables;
-  std::vector<Function> functions;
+  std::unordered_map<std::string, Function> functions;
   std::unordered_map<std::string, std::size_t> bytecodes;
   std::shared_ptr<Memory::Memory> memory;
 };
