@@ -72,15 +72,19 @@ void Vm::Initialize(std::vector<char>& code) {
   uint16_t test_data = 0x0011;
   is_big_endian_ = *(uint8_t*)&test_data == 0x00;
 
+  LOGGING_INFO("DEUBG");
   // Skips the magic number and version.
   char* bytecode_file = code.data() + 8;
 
   memory_ = std::make_shared<Memory::Memory>();
 
+  LOGGING_INFO("DEUBG");
   // Gets the bytecode constant pool size.
   std::size_t constant_pool_size = 0;
   bytecode_file += DecodeUleb128((uint8_t*)bytecode_file, &constant_pool_size);
+  memory_->constant_pool.resize(constant_pool_size);
 
+  LOGGING_INFO("DEUBG");
   // Reads the constant pool data.
   for (size_t i = 0; i < constant_pool_size; i++) {
     memory_->constant_pool[i].type.push_back(*bytecode_file);
@@ -127,9 +131,11 @@ void Vm::Initialize(std::vector<char>& code) {
     }
   }
 
+  LOGGING_INFO("DEUBG");
   // Gets the object table size.
   std::size_t heap_size = 0;
   bytecode_file += DecodeUleb128((uint8_t*)bytecode_file, &heap_size);
+  memory_->heap.resize(heap_size);
 
   // Reads the heap type.
   for (size_t i = 0; i < heap_size; i++) {
@@ -162,6 +168,8 @@ void Vm::Initialize(std::vector<char>& code) {
     if (memory_->heap[i].type[0] != 0x00) memory_->heap[i].const_type = true;
     bytecode_file += 1;
   }
+
+  LOGGING_INFO("DEUBG");
 
   // Reads the class declarations.
   while (bytecode_file < code.data() + code.size() - 1) {

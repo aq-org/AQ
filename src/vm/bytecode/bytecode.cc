@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "vm/bytecode/bytecode.h"
 #include "vm/logging/logging.h"
@@ -91,6 +92,7 @@ char* AddClassMethod(char* location,
   while (*location != '\0') location += 1;
   location += 1;
 
+  LOGGING_INFO(function_name);
   // Gets the context of the function.
   auto& function = functions[function_name];
   auto& instructions = function.instructions;
@@ -103,20 +105,25 @@ char* AddClassMethod(char* location,
     function.is_variadic = false;
   }
 
+  LOGGING_INFO("DEUBG");
   // Sets the arguments.
   std::size_t arguments_size = 0;
   location += DecodeUleb128((uint8_t*)location, &arguments_size);
+  LOGGING_INFO(std::to_string(arguments_size));
   function.arguments.resize(arguments_size);
   for (size_t i = 0; i < arguments_size; i++)
     location += DecodeUleb128((uint8_t*)location, &function.arguments[i]);
 
+  LOGGING_INFO("DEUBG");
+
   // Sets the instructions.
   std::size_t instructions_size = 0;
   location += DecodeUleb128((uint8_t*)location, &instructions_size);
-
   instructions.resize(instructions_size);
 
+  LOGGING_INFO("DEUBG");
   for (size_t i = 0; i < instructions_size; i++) {
+    LOGGING_INFO("0000");
     instructions[i].oper = static_cast<Operator::Operator>(*(uint8_t*)location);
     location += 1;
     switch (instructions[i].oper) {
@@ -260,7 +267,8 @@ char* AddClassMethod(char* location,
         break;
 
       default:
-        LOGGING_ERROR("Invalid operator.");
+        LOGGING_ERROR("Invalid operator. " +
+                      std::to_string(static_cast<int>(instructions[i].oper)));
     }
   }
 
@@ -278,9 +286,17 @@ char* AddClass(char* location,
   // Gets the members size.
   std::size_t members_size = 0;
   location += DecodeUleb128((uint8_t*)location, &members_size);
+  classes[class_name].members.resize(members_size);
 
   // Sets the members type.
   for (size_t i = 0; i < members_size; i++) {
+    // Gets the member name.
+    const char* name_location = location;
+    while (*location != '\0') location += 1;
+    location += 1;
+    std::string member_name(location, location - name_location);
+    classes[class_name].variables[member_name] = i;
+
     bool is_type_end = false;
     while (!is_type_end) {
       switch (*(uint8_t*)location) {
@@ -291,6 +307,7 @@ char* AddClass(char* location,
         case 0x04:
         case 0x05:
         case 0x09:
+        case 0x0A:
           classes[class_name].members[i].type.push_back(*(uint8_t*)location);
           is_type_end = true;
           break;
@@ -303,7 +320,8 @@ char* AddClass(char* location,
           break;
 
         default:
-          LOGGING_ERROR("Unsupported data type.");
+          LOGGING_ERROR("Unsupported data type " +
+                        std::to_string(*(uint8_t*)location));
           break;
       }
     }
@@ -462,7 +480,8 @@ int InvokeClassFunction(
       case Operator::Operator::NEW:
         Operator::NEW(heap, bytecode_files, current_bytecode_file, classes,
                       run_code[i].arguments[0], run_code[i].arguments[1],
-                      is_big_endian, run_code[i].arguments[2],memory,builtin_functions);
+                      is_big_endian, run_code[i].arguments[2], memory,
+                      builtin_functions);
         break;
       case Operator::Operator::ARRAY:
         Operator::ARRAY(heap, run_code[i].arguments[0],
@@ -679,7 +698,8 @@ int InvokeCustomFunction(
       case Operator::Operator::NEW:
         Operator::NEW(heap, bytecode_files, current_bytecode_file, classes,
                       is_big_endian, run_code[i].arguments[0],
-                      run_code[i].arguments[1], run_code[i].arguments[2],memory,builtin_functions);
+                      run_code[i].arguments[1], run_code[i].arguments[2],
+                      memory, builtin_functions);
         break;
       case Operator::Operator::ARRAY:
         Operator::ARRAY(heap, run_code[i].arguments[0],
@@ -810,6 +830,7 @@ char* AddBytecodeFileClass(
   // Gets the members size.
   std::size_t members_size = 0;
   location += DecodeUleb128((uint8_t*)location, &members_size);
+  classes[class_name].members.resize(members_size);
 
   // Handles the members.
   classes[class_name].members.resize(members_size);
@@ -830,6 +851,7 @@ char* AddBytecodeFileClass(
         case 0x04:
         case 0x05:
         case 0x09:
+        case 0x0A:
           classes[class_name].members[i].type.push_back(*(uint8_t*)location);
           is_type_end = true;
           break;
@@ -937,6 +959,7 @@ char* HandleBytecodeFile(
   // Gets the heap size.
   std::size_t heap_size = 0;
   bytecode_file += DecodeUleb128((uint8_t*)bytecode_file, &heap_size);
+  memory->heap.resize(heap_size);
 
   // Handles the heap type.
   for (size_t i = 0; i < heap_size; i++) {
@@ -951,6 +974,7 @@ char* HandleBytecodeFile(
         case 0x04:
         case 0x05:
         case 0x09:
+        case 0x0A:
           memory->heap[i].type.push_back(*(uint8_t*)bytecode_file);
           is_type_end = true;
           break;

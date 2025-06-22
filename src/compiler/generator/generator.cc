@@ -233,34 +233,40 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
   code.push_back(0x00);
   code.push_back(0x03);
 
-  InsertUint64ToCode(is_big_endian
-                         ? global_memory.GetConstTableSize()
-                         : SwapUint64t(global_memory.GetConstTableSize()),
-                     code);
+  // Gets the constant pool size.
+  std::vector<uint8_t> consant_pool_size;
+  EncodeUleb128(global_memory.GetConstTableSize(), consant_pool_size);
+  code.insert(code.end(), consant_pool_size.begin(), consant_pool_size.end());
+
+  // Writes the constant pool data.
   for (std::size_t i = 0; i < global_memory.GetConstTable().size(); i++) {
     code.push_back(global_memory.GetConstTable()[i]);
   }
-  std::size_t memory_size = global_memory.GetMemorySize();
-  InsertUint64ToCode(is_big_endian ? memory_size : SwapUint64t(memory_size),
-                     code);
+
+  // Gets the bytecode size.
+  std::vector<uint8_t> memory_size;
+  EncodeUleb128(global_memory.GetMemorySize(), memory_size);
+  code.insert(code.end(), memory_size.begin(), memory_size.end());
+
+  // Writes the memory data.
   for (std::size_t i = 0; i < global_memory.GetMemoryType().size(); i++) {
     code.push_back(global_memory.GetMemoryType()[i]);
   }
 
   for (std::size_t i = 0; i < classes.size(); i++) {
+    // Writes the class name.
     std::string class_name_str = classes[i].GetName();
-
     const char* class_name = class_name_str.c_str();
     code.insert(code.end(), reinterpret_cast<const uint8_t*>(class_name),
                 reinterpret_cast<const uint8_t*>(class_name +
                                                  class_name_str.size() + 1));
 
-    std::size_t memory_size = classes[i].GetMemory().GetMemorySize();
-    memory_size = is_big_endian ? memory_size : SwapUint64t(memory_size);
+    // Writes the class memory information.
+    std::vector<uint8_t> class_memory_size;
+    EncodeUleb128(classes[i].GetMemory().GetMemorySize(), class_memory_size);
+    code.insert(code.end(), class_memory_size.begin(), class_memory_size.end());
 
-    code.insert(code.end(), reinterpret_cast<const uint8_t*>(&memory_size),
-                reinterpret_cast<const uint8_t*>(&memory_size + 1));
-
+    // Writes the class memory data.
     for (std::size_t j = 0; j < classes[i].GetMemory().GetMemoryType().size();
          j++) {
       for (std::size_t k = 0;
@@ -270,10 +276,10 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
       code.push_back(classes[i].GetMemory().GetMemoryType()[j]);
     }
 
-    std::size_t methods_size = classes[i].GetFunctionList().size();
-    methods_size = is_big_endian ? methods_size : SwapUint64t(methods_size);
-    code.insert(code.end(), reinterpret_cast<const uint8_t*>(&methods_size),
-                reinterpret_cast<const uint8_t*>(&methods_size + 1));
+    // Writes the class members size.
+    std::vector<uint8_t> methods_size;
+    EncodeUleb128(classes[i].GetFunctionList().size(), methods_size);
+    code.insert(code.end(), methods_size.begin(), methods_size.end());
 
     std::vector<Function> func_list = classes[i].GetFunctionList();
 
@@ -296,11 +302,11 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
         code.insert(code.end(), args_buffer.begin(), args_buffer.end());
       }
 
-      uint64_t value = is_big_endian
-                           ? func_list[z].GetCode().size()
-                           : SwapUint64t(func_list[z].GetCode().size());
-      code.insert(code.end(), reinterpret_cast<uint8_t*>(&value),
-                  reinterpret_cast<uint8_t*>(&value) + 8);
+      // Writes the instructions size.
+      std::vector<uint8_t> instructions_size;
+      EncodeUleb128(func_list[z].GetCode().size(), instructions_size);
+      code.insert(code.end(), instructions_size.begin(),
+                  instructions_size.end());
 
       for (std::size_t j = 0; j < func_list[z].GetCode().size(); j++) {
         std::vector<uint8_t> buffer;
@@ -791,11 +797,10 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
       code.end(), reinterpret_cast<const uint8_t*>(class_name),
       reinterpret_cast<const uint8_t*>(class_name + class_name_str.size() + 1));
 
-  memory_size = start_class->GetMemory().GetMemorySize();
-  memory_size = is_big_endian ? memory_size : SwapUint64t(memory_size);
-
-  code.insert(code.end(), reinterpret_cast<const uint8_t*>(&memory_size),
-              reinterpret_cast<const uint8_t*>(&memory_size + 1));
+  // Writes the start class memory information.
+  std::vector<uint8_t> start_memory_size;
+  EncodeUleb128(start_class->GetMemory().GetMemorySize(), start_memory_size);
+  code.insert(code.end(), start_memory_size.begin(), start_memory_size.end());
 
   for (std::size_t j = 0; j < start_class->GetMemory().GetMemoryType().size();
        j++) {
@@ -806,10 +811,10 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
     code.push_back(start_class->GetMemory().GetMemoryType()[j]);
   }
 
-  std::size_t methods_size = functions.size();
-  methods_size = is_big_endian ? methods_size : SwapUint64t(methods_size);
-  code.insert(code.end(), reinterpret_cast<const uint8_t*>(&methods_size),
-              reinterpret_cast<const uint8_t*>(&methods_size + 1));
+  // Writes the start functions information.
+  std::vector<uint8_t> functions_size;
+  EncodeUleb128(functions.size(), functions_size);
+  code.insert(code.end(), functions_size.begin(), functions_size.end());
 
   std::vector<Function> func_list = functions;
 
@@ -832,10 +837,10 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
       code.insert(code.end(), args_buffer.begin(), args_buffer.end());
     }
 
-    uint64_t value = is_big_endian ? func_list[i].GetCode().size()
-                                   : SwapUint64t(func_list[i].GetCode().size());
-    code.insert(code.end(), reinterpret_cast<uint8_t*>(&value),
-                reinterpret_cast<uint8_t*>(&value) + 8);
+    // Writes the instructions size.
+    std::vector<uint8_t> instructions_size;
+    EncodeUleb128(func_list[i].GetCode().size(), instructions_size);
+    code.insert(code.end(), instructions_size.begin(), instructions_size.end());
 
     for (std::size_t j = 0; j < func_list[i].GetCode().size(); j++) {
       std::vector<uint8_t> buffer;
