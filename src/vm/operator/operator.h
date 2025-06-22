@@ -69,8 +69,15 @@ int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
                    std::unordered_map<std::string, Bytecode::Class> classes,
                    std::size_t ptr, std::size_t size, std::size_t type);
 
-int ARRAY(std::vector<Memory::Object>& heap, std::size_t result,
-          std::size_t ptr, std::size_t index);
+int ARRAY(
+    std::vector<Memory::Object>& heap, std::size_t result, std::size_t ptr,
+    std::size_t index,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
+    std::unordered_map<std::string,
+                       std::function<int(std::vector<std::size_t>)>>
+        builtin_functions,
+    std::string& current_bytecode_file);
 
 int PTR(std::vector<Memory::Object>& heap, std::size_t index, std::size_t ptr);
 
@@ -115,11 +122,15 @@ int XOR(std::vector<Memory::Object>& heap, std::size_t result,
 int CMP(std::vector<Memory::Object>& heap, std::size_t result,
         std::size_t opcode, std::size_t operand1, std::size_t operand2);
 
-int INVOKE(std::vector<Memory::Object>& heap,
-           std::unordered_map<std::string,
-                              std::function<int(std::vector<std::size_t>)>>&
-               builtin_functions,
-           std::vector<std::size_t> arguments);
+int INVOKE(
+    std::vector<Memory::Object>& heap,
+    std::unordered_map<std::string,
+                       std::function<int(std::vector<std::size_t>)>>&
+        builtin_functions,
+    std::vector<std::size_t> arguments,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
+    std::string& current_bytecode_file);
 int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
           std::size_t value);
 

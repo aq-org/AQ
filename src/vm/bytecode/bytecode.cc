@@ -5,9 +5,14 @@
 #include "vm/bytecode/bytecode.h"
 
 #include <cstdint>
+#include <memory>
 
+#include "vm/bytecode/bytecode.h"
+#include "vm/logging/logging.h"
 #include "vm/memory/memory.h"
+#include "vm/operator/operator.h"
 #include "vm/utils/utils.h"
+#include "vm/vm.h"
 
 namespace Aq {
 namespace Vm {
@@ -79,11 +84,11 @@ std::vector<std::size_t> GetUnknownCountParamentForClass(char*& ptr) {
 
 char* AddClassMethod(char* location,
                      std::unordered_map<std::string, Function>& functions) {
-  if (*(char*)location == '.') location += 1;
+  if (*location == '.') location += 1;
 
   // Gets the function name.
   std::string function_name(location);
-  while (*(char*)location != '\0') location += 1;
+  while (*location != '\0') location += 1;
   location += 1;
 
   // Gets the context of the function.
@@ -267,7 +272,7 @@ char* AddClass(char* location,
                std::shared_ptr<Memory::Memory> memory) {
   // Gets the class name.
   std::string class_name(location);
-  while (*(char*)location != '\0') location += 1;
+  while (*location != '\0') location += 1;
   location += 1;
 
   // Gets the members size.
@@ -298,7 +303,7 @@ char* AddClass(char* location,
           break;
 
         default:
-          Aq::Vm::LOGGING_ERROR("Unsupported data type.");
+          LOGGING_ERROR("Unsupported data type.");
           break;
       }
     }
@@ -460,7 +465,9 @@ int InvokeClassFunction(
         break;
       case Operator::Operator::ARRAY:
         Operator::ARRAY(heap, run_code[i].arguments[0],
-                        run_code[i].arguments[1], run_code[i].arguments[2]);
+                        run_code[i].arguments[1], run_code[i].arguments[2],
+                        classes, bytecode_files, builtin_functions,
+                        current_bytecode_file);
         break;
       case Operator::Operator::PTR:
         Operator::PTR(heap, run_code[i].arguments[0], run_code[i].arguments[1]);
@@ -522,7 +529,8 @@ int InvokeClassFunction(
                       run_code[i].arguments[2], run_code[i].arguments[3]);
         break;
       case Operator::Operator::INVOKE:
-        Operator::INVOKE(heap, builtin_functions, run_code[i].arguments);
+        Operator::INVOKE(heap, builtin_functions, run_code[i].arguments,
+                         classes, bytecode_files, current_bytecode_file);
         break;
       case Operator::Operator::EQUAL:
         Operator::EQUAL(heap, run_code[i].arguments[0],
@@ -573,173 +581,208 @@ int InvokeClassFunction(
   return 0;
 }
 
-int InvokeCustomFunction(const char* name, size_t args_size,
-                         size_t return_value, size_t* args) {
-  TRACE_FUNCTION;
-  FuncInfo func_info = GetCustomFunction(name, args, args_size);
-  if (args_size < func_info.args_size) {
-    EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
-            "Invalid args_size.");
-  }
+int InvokeCustomFunction(
+    std::vector<Memory::Object>& heap, std::string name,
+    std::vector<size_t> arguments,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
+    std::unordered_map<std::string,
+                       std::function<int(std::vector<std::size_t>)>>
+        builtin_functions,
+    std::string& current_bytecode_file) {
+  if (classes.find(".!__start") == classes.end())
+    INTERNAL_ERROR("Unexpected error. Not found main class.");
 
-  if (func_info.va_flag) {
-    uint8_t* type = calloc(1, sizeof(uintptr_t));
-    type[0] = 0x04;
-    object_table[return_value].type = type;
-    object_table[return_value].data.uint64t_data =
-        args_size - func_info.args_size;
+  // Gets the main class functions.
+  auto& functions = classes[".!__start"].functions;
 
-    NEW(func_info.args[func_info.args_size], return_value, 0x00);
+  // Gets the custom function.
+  if (functions.find(name) == functions.end())
+    LOGGING_ERROR("Function not found: " + name);
+  auto function = functions[name];
 
-    if (object_table[func_info.args[func_info.args_size]].type == NULL ||
-        object_table[func_info.args[func_info.args_size]].type[0] != 0x06)
-      EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
-              "Invalid va_arg array.");
+  if (arguments.size() < function.arguments.size())
+    LOGGING_ERROR("Invalid args_size.");
 
-    for (size_t i = 0; i < args_size - func_info.args_size; i++) {
-      object_table[func_info.args[func_info.args_size]]
-          .data.ptr_data[i + 1]
-          .type = object_table[args[func_info.args_size - 1 + i]].type;
-
-      object_table[func_info.args[func_info.args_size]]
-          .data.ptr_data[i + 1]
-          .data = object_table[args[func_info.args_size - 1 + i]].data;
+  // Sets the variadic information.
+  if (function.is_variadic) {
+    std::vector<Memory::Object> variadic_list;
+    for (size_t i = 0; i < arguments.size() - function.arguments.size() + 1;
+         i++) {
+      // Copys data from arguments to target.
+      variadic_list[i].type =
+          heap[arguments[function.arguments.size() + i - 2]].type;
+      variadic_list[i].data =
+          heap[arguments[function.arguments.size() + i - 2]].data;
     }
+
+    // Sets the target.
+    heap[function.arguments.back()].type.push_back(0x06);
+    heap[function.arguments.back()].data = variadic_list;
   }
 
-  object_table[func_info.args[0]] = object_table[return_value];
-  struct Object* return_object = object_table + func_info.args[0];
-  func_info.args++;
-  args_size--;
-  for (size_t i = 0; i < func_info.args_size - 1; i++) {
-    if (object_table[func_info.args[i]].const_type &&
-        object_table[func_info.args[i]].type[0] == 0x07 &&
-        object_table[func_info.args[i]].type[1] != 0x08) {
-      object_table[func_info.args[i]].data.reference_data =
-          object_table + args[i];
-    } else if (object_table[func_info.args[i]].const_type &&
-               object_table[func_info.args[i]].type[0] == 0x07 &&
-               object_table[func_info.args[i]].type[1] == 0x08) {
-      object_table[func_info.args[i]].type =
-          object_table[func_info.args[i]].type + 1;
-      object_table[func_info.args[i]].data.const_data = object_table + args[i];
-    } else if (object_table[func_info.args[i]].const_type &&
-               object_table[func_info.args[i]].type[0] == 0x08) {
-      object_table[func_info.args[i]].data.const_data = object_table + args[i];
+  // Processes the arguments including the return value (at the arguments index
+  // 0).
+  for (size_t i = 0; i < function.arguments.size(); i++) {
+    // Handles the argument which is the reference of non-const variable.
+    if (heap[function.arguments[i]].const_type &&
+        heap[function.arguments[i]].type[0] == 0x07 &&
+        heap[function.arguments[i]].type[1] != 0x08) {
+      heap[function.arguments[i]].data =
+          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+
+      // Handles the argument which is the reference of const variable.
+    } else if (heap[function.arguments[i]].const_type &&
+               heap[function.arguments[i]].type[0] == 0x07 &&
+               heap[function.arguments[i]].type[1] == 0x08) {
+      // Deletes the const type from the type vector and sets the data.
+      heap[function.arguments[i]].type.erase(
+          heap[function.arguments[i]].type.begin(),
+          heap[function.arguments[i]].type.begin() + 1);
+
+      heap[function.arguments[i]].data =
+          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+
+      // Handles the argument which is the const object.
+    } else if (heap[function.arguments[i]].const_type &&
+               heap[function.arguments[i]].type[0] == 0x08) {
+      heap[function.arguments[i]].data =
+          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+
     } else {
-      EQUAL(func_info.args[i], args[i]);
+      // Handles other arguments which are not const or reference.
+      Operator::EQUAL(heap, function.arguments[i], arguments[i]);
     }
   }
-  struct Bytecode* run_code = func_info.commands;
-  for (size_t i = 0; i < func_info.commands_size; i++) {
-    switch (run_code[i].operator) {
-      case 0x00:
-        NOP();
+
+  auto& constant_pool = classes[".!__start"].memory->constant_pool;
+
+  auto run_code = function.instructions;
+  for (size_t i = 0; i < function.instructions.size(); i++) {
+    switch (run_code[i].oper) {
+      case Operator::Operator::NOP:
+        Operator::NOP();
         break;
-      case 0x01:
-        LOAD(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::LOAD:
+        Operator::LOAD(heap, run_code[i].arguments[0],
+                       run_code[i].arguments[1]);
         break;
-      case 0x02:
-        STORE(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::STORE:
+        Operator::STORE(heap, run_code[i].arguments[0],
+                        run_code[i].arguments[1]);
         break;
-      case 0x03:
-        NEW(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::NEW:
+        Operator::NEW(heap, bytecode_files, current_bytecode_file, classes,
+                      run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x04:
-        ARRAY(run_code[i].arguments[0], run_code[i].arguments[1],
-              run_code[i].arguments[2]);
+      case Operator::Operator::ARRAY:
+        Operator::ARRAY(heap, run_code[i].arguments[0],
+                        run_code[i].arguments[1], run_code[i].arguments[2],
+                        classes, bytecode_files, builtin_functions,
+                        current_bytecode_file);
         break;
-      case 0x05:
-        PTR(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::PTR:
+        Operator::PTR(heap, run_code[i].arguments[0], run_code[i].arguments[1]);
         break;
-      case 0x06:
-        ADD(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::ADD:
+        Operator::ADD(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x07:
-        SUB(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::SUB:
+        Operator::SUB(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x08:
-        MUL(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::MUL:
+        Operator::MUL(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x09:
-        DIV(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::DIV:
+        Operator::DIV(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x0A:
-        REM(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::REM:
+        Operator::REM(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x0B:
-        NEG(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::NEG:
+        Operator::NEG(heap, run_code[i].arguments[0], run_code[i].arguments[1]);
         break;
-      case 0x0C:
-        SHL(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::SHL:
+        Operator::SHL(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x0D:
-        SHR(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::SHR:
+        Operator::SHR(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x0E:
-        REFER(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::REFER:
+        Operator::REFER(heap, run_code[i].arguments[0],
+                        run_code[i].arguments[1]);
         break;
-      case 0x0F:
-        i = IF(run_code[i].arguments[0], run_code[i].arguments[1],
-               run_code[i].arguments[2]);
+      case Operator::Operator::IF:
+        i = Operator::IF(heap, run_code[i].arguments[0],
+                         run_code[i].arguments[1], run_code[i].arguments[2]);
         i--;
         break;
-      case 0x10:
-        AND(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::AND:
+        Operator::AND(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x11:
-        OR(run_code[i].arguments[0], run_code[i].arguments[1],
-           run_code[i].arguments[2]);
+      case Operator::Operator::OR:
+        Operator::OR(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                     run_code[i].arguments[2]);
         break;
-      case 0x12:
-        XOR(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2]);
+      case Operator::Operator::XOR:
+        Operator::XOR(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2]);
         break;
-      case 0x13:
-        CMP(run_code[i].arguments[0], run_code[i].arguments[1],
-            run_code[i].arguments[2], run_code[i].arguments[3]);
+      case Operator::Operator::CMP:
+        Operator::CMP(heap, run_code[i].arguments[0], run_code[i].arguments[1],
+                      run_code[i].arguments[2], run_code[i].arguments[3]);
         break;
-      case 0x14:
-        INVOKE(run_code[i].arguments);
+      case Operator::Operator::INVOKE:
+        Operator::INVOKE(heap, builtin_functions, run_code[i].arguments,
+                         classes, bytecode_files, current_bytecode_file);
         break;
-      case 0x15:
-        EQUAL(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::EQUAL:
+        Operator::EQUAL(heap, run_code[i].arguments[0],
+                        run_code[i].arguments[1]);
         break;
-      case 0x16:
-        i = GOTO(run_code[i].arguments[0]);
+      case Operator::Operator::GOTO:
+        i = Operator::GOTO(heap, run_code[i].arguments[0]);
         i--;
         break;
-      case 0x17:
-        LOAD_CONST(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::LOAD_CONST:
+        Operator::LOAD_CONST(heap, constant_pool, run_code[i].arguments[0],
+                             run_code[i].arguments[1]);
         break;
-      case 0x18:
-        CONVERT(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::CONVERT:
+        Operator::CONVERT(heap, run_code[i].arguments[0],
+                          run_code[i].arguments[1]);
         break;
-      case 0x19:
-        _CONST(run_code[i].arguments[0], run_code[i].arguments[1]);
+      case Operator::Operator::CONST:
+        Operator::_CONST(heap, run_code[i].arguments[0],
+                         run_code[i].arguments[1]);
         break;
-      case 0x1A:
-        INVOKE_METHOD(run_code[i].arguments);
+      case Operator::Operator::INVOKE_METHOD:
+        Operator::INVOKE_METHOD(heap, builtin_functions, run_code[i].arguments);
         break;
-      case 0x1B:
-        LOAD_MEMBER(run_code[i].arguments[0], run_code[i].arguments[1],
-                    run_code[i].arguments[2]);
+      case Operator::Operator::LOAD_MEMBER:
+        if (run_code[i].arguments[1] == 0) {
+          Operator::LOAD_MEMBER(heap, classes, run_code[i].arguments[0], 2,
+                                run_code[i].arguments[2]);
+        } else {
+          Operator::LOAD_MEMBER(heap, classes, run_code[i].arguments[0],
+                                run_code[i].arguments[1],
+                                run_code[i].arguments[2]);
+        }
         break;
-      case 0xFF:
-        WIDE();
+      case Operator::Operator::WIDE:
+        Operator::WIDE();
         break;
       default:
-        EXIT_VM("InvokeCustomFunction(const char*,size_t,size_t,size_t*)",
-                "Invalid operator.");
+        LOGGING_ERROR("Invalid operator.");
         break;
     }
   }
@@ -747,58 +790,28 @@ int InvokeCustomFunction(const char* name, size_t args_size,
   return 0;
 }
 
-void* AddBytecodeFileClass(const char* name, struct Memory* memory,
-                           void* location) {
-  char* class_name =
-      calloc(strlen(name) + strlen((char*)location) + 1, sizeof(char));
-  AddFreePtr(class_name);
-  snprintf(class_name, strlen(name) + strlen((char*)location) + 1, "%s%s", name,
-           (char*)location);
+char* AddBytecodeFileClass(
+    std::string prefix_name, std::shared_ptr<Memory::Memory> memory,
+    char* location, std::unordered_map<std::string, Bytecode::Class>& classes) {
+  std::string class_name = prefix_name + std::string(location);
 
-  struct ClassList* table = &class_table[hash(class_name)];
-  if (table == NULL)
-    EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
-            "table is NULL.");
-  while (table->next != NULL) {
-    table = table->next;
-  }
-  table->class.name = class_name;
-  while (*(char*)location != '\0') {
-    location = (void*)((uintptr_t)location + 1);
-  }
-  location = (void*)((uintptr_t)location + 1);
+  // Skips the class name.
+  while (*location != '\0') location += 1;
+  location += 1;
 
-  size_t object_size =
-      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
-  location = (void*)((uintptr_t)location + 8);
-  table->class.members_size = object_size;
-  table->class.members =
-      (struct Object*)calloc(object_size, sizeof(struct Object));
-  if (table->class.members == NULL)
-    EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
-            "calloc failed.");
-  AddFreePtr(table->class.members);
+  // Gets the members size.
+  std::size_t members_size = 0;
+  location += DecodeUleb128((uint8_t*)location, &members_size);
 
-  for (size_t i = 0; i < object_size; i++) {
-    struct ClassVarInfoList* var_info =
-        &table->class.var_info_table[hash(location)];
-    if (var_info == NULL)
-      EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
-              "var info table is NULL.");
-    while (var_info->next != NULL) {
-      var_info = var_info->next;
-    }
-    var_info->name = location;
-    var_info->index = i;
-    var_info->next =
-        (struct ClassVarInfoList*)calloc(1, sizeof(struct ClassVarInfoList));
-    AddFreePtr(var_info->next);
-    while (*(char*)location != '\0') {
-      location = (void*)((uintptr_t)location + 1);
-    }
-    location = (void*)((uintptr_t)location + 1);
+  // Handles the members.
+  classes[class_name].members.resize(members_size);
+  for (size_t i = 0; i < members_size; i++) {
+    std::string member_name(location);
 
-    table->class.members[i].type = location;
+    // Skips the member name.
+    while (*location != '\0') location += 1;
+    location += 1;
+
     bool is_type_end = false;
     while (!is_type_end) {
       switch (*(uint8_t*)location) {
@@ -809,150 +822,117 @@ void* AddBytecodeFileClass(const char* name, struct Memory* memory,
         case 0x04:
         case 0x05:
         case 0x09:
+          classes[class_name].members[i].type.push_back(*(uint8_t*)location);
           is_type_end = true;
           break;
 
         case 0x06:
         case 0x07:
         case 0x08:
-          location = (void*)((uintptr_t)location + 1);
+          classes[class_name].members[i].type.push_back(*(uint8_t*)location);
+          location += 1;
           break;
 
         default:
-          EXIT_VM("AddBytecodeFileClass(const char*,struct Memory*,void*)",
-                  "Unsupported type.");
+          LOGGING_ERROR("Unsupported data type.");
           break;
       }
     }
-    if (table->class.members[i].type[0] != 0x00)
-      table->class.members[i].const_type = true;
-    location = (void*)((uintptr_t)location + 1);
+    if (classes[class_name].members[i].type[0] != 0x00)
+      classes[class_name].members[i].const_type = true;
+    location += 1;
   }
 
-  size_t method_size =
-      is_big_endian ? *(uint64_t*)location : SwapUint64t(*(uint64_t*)location);
-  location = (void*)((uintptr_t)location + 8);
+  // Gets the methods size.
+  std::size_t methods_size = 0;
+  location += DecodeUleb128((uint8_t*)location, &methods_size);
 
-  for (size_t i = 0; i < method_size; i++) {
-    location = AddClassMethodFromOutside(location, table->class.methods);
+  for (size_t i = 0; i < methods_size; i++) {
+    location = AddClassMethod(location, classes[class_name].functions);
   }
 
-  table->next = (struct ClassList*)calloc(1, sizeof(struct ClassList));
-  AddFreePtr(table->next);
-
-  table->class.memory = memory;
+  classes[class_name].memory = memory;
 
   return location;
 }
 
-void HandleBytecodeFile(const char* name, void* bytecode_file, size_t size) {
-  TRACE_FUNCTION;
-  if (((char*)bytecode_file)[0] != 0x41 || ((char*)bytecode_file)[1] != 0x51 ||
-      ((char*)bytecode_file)[2] != 0x42 || ((char*)bytecode_file)[3] != 0x43) {
-    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
-            "Invalid bytecode file.");
-  }
+char* HandleBytecodeFile(
+    std::string name, char* bytecode_file, size_t size, bool is_big_endian,
+    std::unordered_map<std::string, Bytecode::Class>& classes) {
+  if (bytecode_file[0] != 0x41 || bytecode_file[1] != 0x51 ||
+      bytecode_file[2] != 0x42 || bytecode_file[3] != 0x43)
+    LOGGING_ERROR("Invalid bytecode file.");
 
-  if (((char*)bytecode_file)[4] != 0x00 || ((char*)bytecode_file)[5] != 0x00 ||
-      ((char*)bytecode_file)[6] != 0x00 || ((char*)bytecode_file)[7] != 0x03) {
-    EXIT_VM(
-        "HandleBytecodeFile(const char*,const char*,size_t)",
+  if (bytecode_file[4] != 0x00 || bytecode_file[5] != 0x00 ||
+      bytecode_file[6] != 0x00 || bytecode_file[7] != 0x03)
+    LOGGING_ERROR(
         "This bytecode version is not supported, please check for updates.");
-  }
 
-  void* bytecode_end = (void*)((uintptr_t)bytecode_file + size);
+  char* bytecode_end = bytecode_file + size;
 
-  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+  // Skips the magic code and version.
+  bytecode_file += 8;
 
-  struct Memory* memory = calloc(1, sizeof(struct Memory));
+  auto memory = std::make_shared<Memory::Memory>();
 
-  memory->const_object_table_size =
-      is_big_endian ? *(uint64_t*)bytecode_file
-                    : SwapUint64t(*(uint64_t*)bytecode_file);
+  // Gets the constant pool size.
+  std::size_t constant_pool_size = 0;
+  bytecode_file += DecodeUleb128((uint8_t*)bytecode_file, &constant_pool_size);
 
-  memory->const_object_table = (struct Object*)malloc(
-      memory->const_object_table_size * sizeof(struct Object));
+  // Handles the constant pool.
+  for (size_t i = 0; i < constant_pool_size; i++) {
+    // Sets the type of the constant.
+    memory->constant_pool[i].type.push_back(*bytecode_file);
+    bytecode_file += 1;
 
-  if (memory->const_object_table == NULL)
-    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
-            "const_object_table malloc failed.");
-
-  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-
-  for (size_t i = 0; i < memory->const_object_table_size; i++) {
-    memory->const_object_table[i].type = bytecode_file;
-    bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
-    switch (memory->const_object_table[i].type[0]) {
+    // Sets the data of the constant.
+    switch (memory->constant_pool[i].type[0]) {
       case 0x01:
-        memory->const_object_table[i].data.byte_data = *(int8_t*)bytecode_file;
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+        memory->constant_pool[i].data = *(int8_t*)bytecode_file;
+        bytecode_file += 1;
         break;
 
       case 0x02:
-        memory->const_object_table[i].data.long_data = *(int64_t*)bytecode_file;
-        memory->const_object_table[i].data.long_data =
-            is_big_endian
-                ? memory->const_object_table[i].data.long_data
-                : SwapLong(memory->const_object_table[i].data.long_data);
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+        memory->constant_pool[i].data =
+            is_big_endian ? *(int64_t*)bytecode_file
+                          : SwapLong(*(int64_t*)bytecode_file);
+        bytecode_file += 8;
         break;
 
       case 0x03:
-        memory->const_object_table[i].data.double_data =
-            *(double*)bytecode_file;
-        memory->const_object_table[i].data.double_data =
-            is_big_endian
-                ? const_object_table[i].data.double_data
-                : SwapDouble(memory->const_object_table[i].data.double_data);
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+        memory->constant_pool[i].data =
+            is_big_endian ? *(double*)bytecode_file
+                          : SwapDouble(*(double*)bytecode_file);
+        bytecode_file += 8;
         break;
 
       case 0x04:
-        memory->const_object_table[i].data.uint64t_data =
-            *(uint64_t*)bytecode_file;
-        memory->const_object_table[i].data.uint64t_data =
-            is_big_endian
-                ? const_object_table[i].data.uint64t_data
-                : SwapUint64t(memory->const_object_table[i].data.uint64t_data);
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
+        memory->constant_pool[i].data =
+            is_big_endian ? *(uint64_t*)bytecode_file
+                          : SwapUint64t(*(uint64_t*)bytecode_file);
+        bytecode_file += 8;
         break;
 
       case 0x05: {
         size_t str_size = 0;
-        bytecode_file = (void*)((uintptr_t)bytecode_file +
-                                DecodeUleb128(bytecode_file, &str_size));
-        memory->const_object_table[i].data.string_data = bytecode_file;
-        bytecode_file = (void*)((uintptr_t)bytecode_file + str_size);
+        bytecode_file += DecodeUleb128((uint8_t*)bytecode_file, &str_size);
+        memory->constant_pool[i].data = std::string(bytecode_file, str_size);
         break;
       }
 
-      case 0x06:
-        memory->const_object_table[i].data.ptr_data = *(void**)bytecode_file;
-        bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-        break;
-
       default:
-        EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
-                "Unknown type.");
+        LOGGING_ERROR("Unknown type.");
         break;
     }
   }
 
-  memory->object_table_size = is_big_endian
-                                  ? *(uint64_t*)bytecode_file
-                                  : SwapUint64t(*(uint64_t*)bytecode_file);
+  // Gets the heap size.
+  std::size_t heap_size = 0;
+  bytecode_file += DecodeUleb128((uint8_t*)bytecode_file, &heap_size);
 
-  memory->object_table =
-      (struct Object*)calloc(memory->object_table_size, sizeof(struct Object));
-
-  if (memory->object_table == NULL)
-    EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
-            "object_table calloc failed.");
-
-  bytecode_file = (void*)((uintptr_t)bytecode_file + 8);
-
-  for (size_t i = 0; i < memory->object_table_size; i++) {
-    memory->object_table[i].type = bytecode_file;
+  // Handles the heap type.
+  for (size_t i = 0; i < heap_size; i++) {
+    memory->heap[i].type.push_back(*bytecode_file);
     bool is_type_end = false;
     while (!is_type_end) {
       switch (*(uint8_t*)bytecode_file) {
@@ -963,74 +943,50 @@ void HandleBytecodeFile(const char* name, void* bytecode_file, size_t size) {
         case 0x04:
         case 0x05:
         case 0x09:
+          memory->heap[i].type.push_back(*(uint8_t*)bytecode_file);
           is_type_end = true;
           break;
 
         case 0x06:
         case 0x07:
         case 0x08:
-          bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+          memory->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          bytecode_file += 1;
           break;
 
         default:
-          EXIT_VM("HandleBytecodeFile(const char*,const char*,size_t)",
-                  "Unsupported type.");
+          LOGGING_ERROR("Unsupported data type.");
           break;
       }
     }
-    if (memory->object_table[i].type[0] != 0x00)
-      memory->object_table[i].const_type = true;
-    bytecode_file = (void*)((uintptr_t)bytecode_file + 1);
+    if (memory->heap[i].type[0] != 0x00) memory->heap[i].const_type = true;
+    bytecode_file += 1;
   }
 
   while (bytecode_file < bytecode_end) {
-    bytecode_file = AddBytecodeFileClass(name, memory, bytecode_file);
+    bytecode_file = AddBytecodeFileClass(name, memory, bytecode_file, classes);
   }
+
+  return bytecode_file;
 }
 
-void AddBytecodeFile(const char* file) {
-  file++;
-  const char* filename_start = file;
-  while (*file != '~') {
-    file++;
-  }
-  char* file_name = calloc(file - filename_start + 1, sizeof(char));
-  memcpy(file_name, filename_start, file - filename_start);
+void AddBytecodeFile(
+    const char* file,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
+    bool is_big_endian,
+    std::unordered_map<std::string, Bytecode::Class>& classes) {
+  // Gets the filename. (Format: ~filename~class_name)
+  const char* filename_start = ++file;
+  while (*file != '~') file++;
+  std::string file_name(filename_start, file - filename_start + 1);
 
-  FILE* bytecode = fopen(file_name, "rb");
-  if (bytecode == NULL) {
-    printf("Error: Could not open file %s\n", file_name);
-    EXIT_VM("AddBytecodeFile(const char*,size_t)", "Could not open file.");
-  }
-  fseek(bytecode, 0, SEEK_END);
-  size_t bytecode_size = ftell(bytecode);
-  void* bytecode_file = malloc(bytecode_size);
-  void* bytecode_begin = bytecode_file;
-  void* bytecode_end = (void*)((uintptr_t)bytecode_file + bytecode_size);
-  fseek(bytecode, 0, SEEK_SET);
-  fread(bytecode_file, 1, bytecode_size, bytecode);
-  fclose(bytecode);
+  std::vector<char> code;
+  ReadCodeFromFile(file_name.c_str(), code);
 
-  const unsigned int class_hash = hash(file_name);
-  struct BytecodeFileList* current_bytecode_file_table =
-      &bytecode_file_table[class_hash];
-  bool is_exist = false;
-  while (current_bytecode_file_table->next != NULL) {
-    if (strcmp(current_bytecode_file_table->name, file_name) == 0) {
-      is_exist = true;
-      break;
-    }
-    current_bytecode_file_table = current_bytecode_file_table->next;
-  }
-
-  if (!is_exist) {
-    current_file_count++;
-    current_bytecode_file_table->next = malloc(sizeof(struct BytecodeFileList));
-    current_bytecode_file_table->name = file_name;
-    char* name = calloc(strlen(file_name) + 3, sizeof(char));
-    snprintf(name, strlen(file_name) + 3, "~%s~", file_name);
-
-    HandleBytecodeFile(name, bytecode_file, bytecode_size);
+  if (bytecode_files.find(file_name) == bytecode_files.end()) {
+    bytecode_files[file_name].name = file_name;
+    HandleBytecodeFile("~" + file_name + "~", code.data(), code.size(),
+                       is_big_endian, classes);
   }
 }
 }  // namespace Bytecode

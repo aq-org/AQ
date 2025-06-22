@@ -251,11 +251,15 @@ int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
   return 0;
 }
 
-int InvokeCustomFunction(std::vector<Memory::Object>& heap, std::string name,
-                         std::vector<std::size_t> arguments);
-
-int ARRAY(std::vector<Memory::Object>& heap, std::size_t result,
-          std::size_t ptr, std::size_t index) {
+int ARRAY(
+    std::vector<Memory::Object>& heap, std::size_t result, std::size_t ptr,
+    std::size_t index,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
+    std::unordered_map<std::string,
+                       std::function<int(std::vector<std::size_t>)>>
+        builtin_functions,
+    std::string& current_bytecode_file) {
   auto array = GetArrayData(heap, ptr);
 
   index = GetUint64tData(heap, index);
@@ -284,7 +288,8 @@ int ARRAY(std::vector<Memory::Object>& heap, std::size_t result,
         heap,
         std::get<std::string>(
             std::get<std::shared_ptr<Memory::Object>>(array[index].data)->data),
-        {result});
+        {result}, classes, bytecode_files, builtin_functions,
+        current_bytecode_file);
   }
 
   SetReferenceData(
@@ -1450,11 +1455,15 @@ int CMP(std::vector<Memory::Object>& heap, std::size_t result,
   return 0;
 }
 
-int INVOKE(std::vector<Memory::Object>& heap,
-           std::unordered_map<std::string,
-                              std::function<int(std::vector<std::size_t>)>>&
-               builtin_functions,
-           std::vector<std::size_t> arguments) {
+int INVOKE(
+    std::vector<Memory::Object>& heap,
+    std::unordered_map<std::string,
+                       std::function<int(std::vector<std::size_t>)>>&
+        builtin_functions,
+    std::vector<std::size_t> arguments,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
+    std::string& current_bytecode_file) {
   if (arguments.size() < 2) LOGGING_ERROR("Invalid arguments.");
   std::size_t function = arguments[0];
   arguments.erase(arguments.begin(), arguments.begin() + 1);
@@ -1464,7 +1473,9 @@ int INVOKE(std::vector<Memory::Object>& heap,
     return 0;
   }
 
-  return InvokeCustomFunction(heap, GetStringData(heap, function), arguments);
+  return InvokeCustomFunction(heap, GetStringData(heap, function), arguments,
+                              classes, bytecode_files, builtin_functions,
+                              current_bytecode_file);
 }
 
 int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
@@ -1512,10 +1523,8 @@ int CrossMemoryEqual(std::vector<Memory::Object>& result_heap,
                      std::size_t result,
                      std::vector<Memory::Object>& value_heap,
                      std::size_t value) {
-  if (result >= result_heap.size())
-    INTERNAL_ERROR("Out of object_table_size.");
-  if (value >= value_heap.size())
-    INTERNAL_ERROR("Out of object_table_size.");
+  if (result >= result_heap.size()) INTERNAL_ERROR("Out of object_table_size.");
+  if (value >= value_heap.size()) INTERNAL_ERROR("Out of object_table_size.");
 
   Memory::Object value_data = GetOriginData(value_heap, value);
 
@@ -1523,32 +1532,25 @@ int CrossMemoryEqual(std::vector<Memory::Object>& result_heap,
     case 0x00:
       break;
     case 0x01:
-      SetByteData(result_heap, result,
-                  GetByteData(value_heap, value));
+      SetByteData(result_heap, result, GetByteData(value_heap, value));
       break;
     case 0x02:
-      SetLongData(result_heap, result,
-                  GetLongData(value_heap, value));
+      SetLongData(result_heap, result, GetLongData(value_heap, value));
       break;
     case 0x03:
-      SetDoubleData(result_heap, result,
-                    GetDoubleData(value_heap, value));
+      SetDoubleData(result_heap, result, GetDoubleData(value_heap, value));
       break;
     case 0x04:
-      SetUint64tData(result_heap, result,
-                     GetUint64tData(value_heap, value));
+      SetUint64tData(result_heap, result, GetUint64tData(value_heap, value));
       break;
     case 0x05:
-      SetStringData(result_heap, result,
-                    GetStringData(value_heap, value));
+      SetStringData(result_heap, result, GetStringData(value_heap, value));
       break;
     case 0x06:
-      SetArrayData(result_heap, result,
-                   GetArrayData(value_heap, value));
+      SetArrayData(result_heap, result, GetArrayData(value_heap, value));
       break;
     case 0x09:
-      SetObjectData(result_heap, result,
-                    GetObjectData(value_heap, value));
+      SetObjectData(result_heap, result, GetObjectData(value_heap, value));
       break;
     case 0x0A:
       // SetOriginData(result_heap, result,
