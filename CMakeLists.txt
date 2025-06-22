@@ -29,7 +29,12 @@ ${PROJECT_SOURCE_DIR}/src/compiler/generator/memory.cc
 ${PROJECT_SOURCE_DIR}/src/compiler/generator/preprocesser.cc
 ${PROJECT_SOURCE_DIR}/src/compiler/generator/statement_generator.cc)
 
-set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
+set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/vm/vm.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/builtin/builtin.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/bytecode/bytecode.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/memory/memory.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/operator/operator.cc
+)
 
 add_executable(aq_compiler ${COMPILER_SOURCES})
 add_executable(aq_vm ${VM_SOURCES})
