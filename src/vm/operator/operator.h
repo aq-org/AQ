@@ -63,7 +63,11 @@ int NEW(std::vector<Memory::Object>& heap,
         std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
         std::string& current_bytecode_file,
         std::unordered_map<std::string, Bytecode::Class> classes,
-        std::size_t ptr, std::size_t size, std::size_t type);
+        bool is_big_endian, std::size_t ptr, std::size_t size, std::size_t type,
+        std::shared_ptr<Memory::Memory>& memory,
+        std::unordered_map<std::string,
+                           std::function<int(std::vector<std::size_t>)>>
+            builtin_functions);
 
 int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
                    std::unordered_map<std::string, Bytecode::Class> classes,
@@ -77,7 +81,8 @@ int ARRAY(
     std::unordered_map<std::string,
                        std::function<int(std::vector<std::size_t>)>>
         builtin_functions,
-    std::string& current_bytecode_file);
+    std::string& current_bytecode_file, bool is_big_endian,
+    std::shared_ptr<Memory::Memory>& memory);
 
 int PTR(std::vector<Memory::Object>& heap, std::size_t index, std::size_t ptr);
 
@@ -130,7 +135,8 @@ int INVOKE(
     std::vector<std::size_t> arguments,
     std::unordered_map<std::string, Bytecode::Class>& classes,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
-    std::string& current_bytecode_file);
+    std::string& current_bytecode_file, bool is_big_endian,
+    std::shared_ptr<Memory::Memory>& memory);
 int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
           std::size_t value);
 
@@ -150,11 +156,14 @@ int _CONST(std::vector<Memory::Object>& heap, std::size_t result,
            std::size_t operand1);
 
 int INVOKE_METHOD(
-    std::vector<Memory::Object>& heap,
+    std::vector<Memory::Object>& heap, std::string& current_bytecode_file,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
+    std::shared_ptr<Memory::Memory>& memory,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
                        std::function<int(std::vector<std::size_t>)>>&
         builtin_functions,
-    std::vector<size_t> arguments);
+    bool is_big_endian, std::vector<size_t> arguments);
 
 int LOAD_MEMBER(std::vector<Memory::Object>& heap,
                 std::unordered_map<std::string, Bytecode::Class>& classes,

@@ -56,14 +56,15 @@ char* AddClass(char* location, std::unordered_map<std::string, Class> classes,
                std::shared_ptr<Memory::Memory> memory);
 int InvokeClassFunction(
     std::vector<Memory::Object>& heap, size_t class_index,
-    std::string function_name, std::vector<std::size_t> arguments,
+    std::string function_name, std::vector<size_t> arguments,
     std::string& current_bytecode_file,
-    std::unordered_map<std::string, Class>& classes,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
     std::shared_ptr<Memory::Memory>& memory,
-    std::unordered_map<std::string, BytecodeFile>& bytecode_files,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>&
-        builtin_functions);
+                       std::function<int(std::vector<std::size_t>)>>
+        builtin_functions,
+    bool is_big_endian);
 int InvokeCustomFunction(
     std::vector<Memory::Object>& heap, std::string name,
     std::vector<size_t> arguments,
@@ -72,11 +73,11 @@ int InvokeCustomFunction(
     std::unordered_map<std::string,
                        std::function<int(std::vector<std::size_t>)>>
         builtin_functions,
-    std::string& current_bytecode_file);
-void AddBytecodeFile(
-    std::string file, std::shared_ptr<Memory::Memory> memory,
-    std::unordered_map<std::string, BytecodeFile>& bytecode_files,
-    std::unordered_map<std::string, Class>& classes);
+    std::string& current_bytecode_file, bool is_big_endian,
+    std::shared_ptr<Memory::Memory>& memory);
+char* AddBytecodeFileClass(
+    std::string prefix_name, std::shared_ptr<Memory::Memory> memory,
+    char* location, std::unordered_map<std::string, Bytecode::Class>& classes);
 char* HandleBytecodeFile(
     std::string name, char* bytecode_file, size_t size, bool is_big_endian,
     std::unordered_map<std::string, Bytecode::Class>& classes);

@@ -181,12 +181,13 @@ void Vm::Initialize(std::vector<char>& code) {
 
   // 2 is the index of the main class in the object table.
   Operator::NEW(memory_->heap, bytecode_files_, current_bytecode_file_,
-                classes_, 2, main_class_count_index, main_class_name_index);
+                classes_, is_big_endian_, 2, main_class_count_index,
+                main_class_name_index, memory_, builtin_functions_);
 
   // Invokes the main function of the main class.
-  Bytecode::InvokeClassFunction(memory_->heap, 2, "!__start", {1},
-                                current_bytecode_file_, classes_, memory_,
-                                bytecode_files_, builtin_functions_);
+  Bytecode::InvokeClassFunction(
+      memory_->heap, 2, "!__start", {1}, current_bytecode_file_, classes_,
+      memory_, bytecode_files_, builtin_functions_, is_big_endian_);
 }
 
 }  // namespace Vm

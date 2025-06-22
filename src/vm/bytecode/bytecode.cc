@@ -335,7 +335,8 @@ int InvokeClassFunction(
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
                        std::function<int(std::vector<std::size_t>)>>
-        builtin_functions) {
+        builtin_functions,
+    bool is_big_endian) {
   auto class_name_object = GetObjectData(heap, class_index);
   if (class_name_object.empty() || class_name_object[0].type[0] != 0x05)
     LOGGING_ERROR("Invalid class name object.");
@@ -461,13 +462,13 @@ int InvokeClassFunction(
       case Operator::Operator::NEW:
         Operator::NEW(heap, bytecode_files, current_bytecode_file, classes,
                       run_code[i].arguments[0], run_code[i].arguments[1],
-                      run_code[i].arguments[2]);
+                      is_big_endian, run_code[i].arguments[2],memory,builtin_functions);
         break;
       case Operator::Operator::ARRAY:
         Operator::ARRAY(heap, run_code[i].arguments[0],
                         run_code[i].arguments[1], run_code[i].arguments[2],
                         classes, bytecode_files, builtin_functions,
-                        current_bytecode_file);
+                        current_bytecode_file, is_big_endian, memory);
         break;
       case Operator::Operator::PTR:
         Operator::PTR(heap, run_code[i].arguments[0], run_code[i].arguments[1]);
@@ -530,7 +531,8 @@ int InvokeClassFunction(
         break;
       case Operator::Operator::INVOKE:
         Operator::INVOKE(heap, builtin_functions, run_code[i].arguments,
-                         classes, bytecode_files, current_bytecode_file);
+                         classes, bytecode_files, current_bytecode_file,
+                         is_big_endian, memory);
         break;
       case Operator::Operator::EQUAL:
         Operator::EQUAL(heap, run_code[i].arguments[0],
@@ -553,7 +555,9 @@ int InvokeClassFunction(
                          run_code[i].arguments[1]);
         break;
       case Operator::Operator::INVOKE_METHOD:
-        Operator::INVOKE_METHOD(heap, builtin_functions, run_code[i].arguments);
+        Operator::INVOKE_METHOD(heap, current_bytecode_file, classes, memory,
+                                bytecode_files, builtin_functions,
+                                is_big_endian, run_code[i].arguments);
         break;
       case Operator::Operator::LOAD_MEMBER:
         if (run_code[i].arguments[1] == 0) {
@@ -589,7 +593,8 @@ int InvokeCustomFunction(
     std::unordered_map<std::string,
                        std::function<int(std::vector<std::size_t>)>>
         builtin_functions,
-    std::string& current_bytecode_file) {
+    std::string& current_bytecode_file, bool is_big_endian,
+    std::shared_ptr<Memory::Memory>& memory) {
   if (classes.find(".!__start") == classes.end())
     INTERNAL_ERROR("Unexpected error. Not found main class.");
 
@@ -673,14 +678,14 @@ int InvokeCustomFunction(
         break;
       case Operator::Operator::NEW:
         Operator::NEW(heap, bytecode_files, current_bytecode_file, classes,
-                      run_code[i].arguments[0], run_code[i].arguments[1],
-                      run_code[i].arguments[2]);
+                      is_big_endian, run_code[i].arguments[0],
+                      run_code[i].arguments[1], run_code[i].arguments[2],memory,builtin_functions);
         break;
       case Operator::Operator::ARRAY:
         Operator::ARRAY(heap, run_code[i].arguments[0],
                         run_code[i].arguments[1], run_code[i].arguments[2],
                         classes, bytecode_files, builtin_functions,
-                        current_bytecode_file);
+                        current_bytecode_file, is_big_endian, memory);
         break;
       case Operator::Operator::PTR:
         Operator::PTR(heap, run_code[i].arguments[0], run_code[i].arguments[1]);
@@ -743,7 +748,8 @@ int InvokeCustomFunction(
         break;
       case Operator::Operator::INVOKE:
         Operator::INVOKE(heap, builtin_functions, run_code[i].arguments,
-                         classes, bytecode_files, current_bytecode_file);
+                         classes, bytecode_files, current_bytecode_file,
+                         is_big_endian, memory);
         break;
       case Operator::Operator::EQUAL:
         Operator::EQUAL(heap, run_code[i].arguments[0],
@@ -766,7 +772,9 @@ int InvokeCustomFunction(
                          run_code[i].arguments[1]);
         break;
       case Operator::Operator::INVOKE_METHOD:
-        Operator::INVOKE_METHOD(heap, builtin_functions, run_code[i].arguments);
+        Operator::INVOKE_METHOD(heap, current_bytecode_file, classes, memory,
+                                bytecode_files, builtin_functions,
+                                is_big_endian, run_code[i].arguments);
         break;
       case Operator::Operator::LOAD_MEMBER:
         if (run_code[i].arguments[1] == 0) {

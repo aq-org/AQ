@@ -28,18 +28,14 @@ int STORE(std::vector<Memory::Object>& heap, std::size_t ptr,
   return 0;
 }
 
-int InvokeClassFunction(size_t class_index, std::string name,
-                        std::vector<std::size_t> arguments);
-
-void AddBytecodeFile(std::string file);
-
-int INVOKE_METHOD(std::vector<std::size_t> arguments);
-
 int NEW(std::vector<Memory::Object>& heap,
         std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
         std::string& current_bytecode_file,
         std::unordered_map<std::string, Bytecode::Class> classes,
-        std::size_t ptr, std::size_t size, std::size_t type) {
+        bool is_big_endian, std::size_t ptr, std::size_t size,
+        std::size_t type,std::shared_ptr<Memory::Memory>& memory,std::unordered_map<std::string,
+                       std::function<int(std::vector<std::size_t>)>>
+        builtin_functions) {
   if (ptr >= heap.size()) INTERNAL_ERROR("ptr is out of memory.");
   if (size >= heap.size()) INTERNAL_ERROR("size is out of memory.");
 
@@ -73,7 +69,8 @@ int NEW(std::vector<Memory::Object>& heap,
         return 0;
       }
 
-      AddBytecodeFile(std::get<std::string>(type_data.data));
+      Bytecode::AddBytecodeFile(std::get<std::string>(type_data.data).c_str(),
+                                bytecode_files, is_big_endian, classes);
     }
   }
   std::size_t size_value = GetUint64tData(heap, size);
@@ -160,7 +157,9 @@ int NEW(std::vector<Memory::Object>& heap,
       class_data.memory->heap[2].data = data;
 
       heap.push_back({{0x05}, true, std::string("@constructor")});
-      INVOKE_METHOD({2, heap.size() - 1, 1, 0});
+      INVOKE_METHOD(heap, current_bytecode_file, classes, memory,
+                    bytecode_files, builtin_functions, is_big_endian,
+                    {2, heap.size() - 1, 1, 0});
     }
   } else {
     SetArrayData(heap, ptr, data);
@@ -259,7 +258,8 @@ int ARRAY(
     std::unordered_map<std::string,
                        std::function<int(std::vector<std::size_t>)>>
         builtin_functions,
-    std::string& current_bytecode_file) {
+    std::string& current_bytecode_file, bool is_big_endian,
+    std::shared_ptr<Memory::Memory>& memory) {
   auto array = GetArrayData(heap, ptr);
 
   index = GetUint64tData(heap, index);
@@ -284,12 +284,12 @@ int ARRAY(
     SetReferenceData(
         heap, result,
         std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
-    InvokeCustomFunction(
+    Bytecode::InvokeCustomFunction(
         heap,
         std::get<std::string>(
             std::get<std::shared_ptr<Memory::Object>>(array[index].data)->data),
         {result}, classes, bytecode_files, builtin_functions,
-        current_bytecode_file);
+        current_bytecode_file, is_big_endian, memory);
   }
 
   SetReferenceData(
@@ -1463,7 +1463,8 @@ int INVOKE(
     std::vector<std::size_t> arguments,
     std::unordered_map<std::string, Bytecode::Class>& classes,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
-    std::string& current_bytecode_file) {
+    std::string& current_bytecode_file, bool is_big_endian,
+    std::shared_ptr<Memory::Memory>& memory) {
   if (arguments.size() < 2) LOGGING_ERROR("Invalid arguments.");
   std::size_t function = arguments[0];
   arguments.erase(arguments.begin(), arguments.begin() + 1);
@@ -1473,9 +1474,9 @@ int INVOKE(
     return 0;
   }
 
-  return InvokeCustomFunction(heap, GetStringData(heap, function), arguments,
-                              classes, bytecode_files, builtin_functions,
-                              current_bytecode_file);
+  return Bytecode::InvokeCustomFunction(
+      heap, GetStringData(heap, function), arguments, classes, bytecode_files,
+      builtin_functions, current_bytecode_file, is_big_endian, memory);
 }
 
 int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
@@ -1624,11 +1625,14 @@ int _CONST(std::vector<Memory::Object>& heap, std::size_t result,
 }
 
 int INVOKE_METHOD(
-    std::vector<Memory::Object>& heap,
+    std::vector<Memory::Object>& heap, std::string& current_bytecode_file,
+    std::unordered_map<std::string, Bytecode::Class>& classes,
+    std::shared_ptr<Memory::Memory>& memory,
+    std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
                        std::function<int(std::vector<std::size_t>)>>&
         builtin_functions,
-    std::vector<size_t> arguments) {
+    bool is_big_endian, std::vector<size_t> arguments) {
   if (arguments.size() < 3) INTERNAL_ERROR("Invalid arguments.");
 
   std::size_t class_index = arguments[0];
@@ -1641,8 +1645,10 @@ int INVOKE_METHOD(
     return 0;
   }
 
-  return InvokeClassFunction(class_index, GetStringData(heap, function),
-                             arguments);
+  return Bytecode::InvokeClassFunction(
+      heap, class_index, GetStringData(heap, function), arguments,
+      current_bytecode_file, classes, memory, bytecode_files, builtin_functions,
+      is_big_endian);
 }
 
 int LOAD_MEMBER(std::vector<Memory::Object>& heap,
