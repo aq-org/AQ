@@ -12,6 +12,7 @@
 #include "vm/builtin/builtin.h"
 #include "vm/bytecode/bytecode.h"
 #include "vm/logging/logging.h"
+#include "vm/operator/operator.h"
 #include "vm/utils/utils.h"
 
 int main(int argc, char* argv[]) {
@@ -164,7 +165,7 @@ void Vm::Initialize(std::vector<char>& code) {
 
   // Reads the class declarations.
   while (bytecode_file < code.data() + code.size() - 1) {
-    bytecode_file = AddClass(bytecode_file);
+    bytecode_file = Bytecode::AddClass(bytecode_file, classes_, memory_);
   }
 
   // Initializes the current bytecode file.
@@ -179,10 +180,13 @@ void Vm::Initialize(std::vector<char>& code) {
   std::size_t main_class_count_index = memory_->heap.size() - 1;
 
   // 2 is the index of the main class in the object table.
-  NEW(memory_->heap, 2, main_class_count_index, main_class_name_index);
+  Operator::NEW(memory_->heap, bytecode_files_, current_bytecode_file_,
+                classes_, 2, main_class_count_index, main_class_name_index);
 
   // Invokes the main function of the main class.
-  InvokeClassFunction(memory_->heap, 2, "!__start", {1});
+  Bytecode::InvokeClassFunction(memory_->heap, 2, "!__start", {1},
+                                current_bytecode_file_, classes_, memory_,
+                                bytecode_files_, builtin_functions_);
 }
 
 }  // namespace Vm
