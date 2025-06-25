@@ -61,7 +61,8 @@ Object GetOriginData(std::vector<Object>& heap, size_t index) {
         break;
 
       default:
-        LOGGING_ERROR("Unsupported data type.");
+        LOGGING_ERROR("Object type is error at index " + std::to_string(index));
+        LOGGING_ERROR("Unsupported data type."+std::to_string(origin_data.type[0]));
         break;
     }
   }
@@ -73,6 +74,15 @@ std::shared_ptr<Object> GetLastReference(std::vector<Object>& heap,
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
   auto object = std::shared_ptr<Object>(&heap[index], [](void*) {});
+
+  if(!object->const_type&&object->type[0] != 0x07){ 
+    object->type.resize(2);
+    object->type[0] = 0x07; // Set as reference type.
+    object->type[1] = 0x00; // Set as non-const reference.
+    object->data = std::make_shared<Object>(heap[index]);
+    object->const_type = false;
+    heap[index] = *object; // Update the heap with the new reference.
+    return object;}
 
   if (object->type[0] != 0x07) LOGGING_ERROR("Not a reference.");
 
@@ -116,6 +126,7 @@ std::shared_ptr<Object> GetLastDataReference(std::vector<Object>& heap,
           object->const_type = false;
         } else {
           object = std::get<std::shared_ptr<Object>>(object->data);
+          object->const_type = true;
         }
         break;
 
@@ -386,12 +397,15 @@ void SetObjectData(std::vector<Object>& heap, size_t index,
 
   auto const_object = GetLastDataReference(heap, index);
 
-  if (const_object->type.size() < 2) INTERNAL_ERROR("Unexpected type size.");
+  if (const_object->type.size() < 1) INTERNAL_ERROR("Unexpected type size.");
 
   if (!const_object->const_type || const_object->type[0] == 0x09) {
     const_object->type[0] = 0x09;
     const_object->data = objects;
   }
+
+  LOGGING_INFO("Set object data at index " + std::to_string(index) +
+                   " with type " + std::to_string(heap[index].type[0]) + ".");
 }
 
 /*int SetOriginData(std::vector<Object>& heap, size_t index, void* object) {

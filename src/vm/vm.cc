@@ -143,11 +143,40 @@ void Vm::Initialize(std::vector<char>& code) {
     while (!is_type_end) {
       switch (*(uint8_t*)bytecode_file) {
         case 0x00:
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          is_type_end = true;
+          break;
+        
         case 0x01:
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          memory_->heap[i].data = (int8_t)0;
+          is_type_end = true;
+          break;
+
         case 0x02:
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          memory_->heap[i].data = (int64_t)0;
+          is_type_end = true;
+          break;
+
         case 0x03:
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          memory_->heap[i].data = (double)0.0;
+          is_type_end = true;
+          break;
+
         case 0x04:
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          memory_->heap[i].data = (int8_t)0;
+          is_type_end = true;
+          break;
+
         case 0x05:
+          memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
+          memory_->heap[i].data = "";
+          is_type_end = true;
+          break;
+        
         case 0x09:
           memory_->heap[i].type.push_back(*(uint8_t*)bytecode_file);
           is_type_end = true;
@@ -173,13 +202,21 @@ void Vm::Initialize(std::vector<char>& code) {
 
   // Reads the class declarations.
   while (bytecode_file < code.data() + code.size() - 1) {
+    LOGGING_INFO("ADD CLASS");
     bytecode_file = Bytecode::AddClass(bytecode_file, classes_, memory_);
+    
+    LOGGING_INFO("COMPLETE CLASS");
   }
 
   // Initializes the current bytecode file.
   current_bytecode_file_ = "";
 
+  LOGGING_INFO("DEUBG");
+
   Builtin::InitializeBuiltinFunction(builtin_functions_);
+
+
+  LOGGING_INFO("DEUBG");
 
   // Initializes the main class.
   memory_->heap.push_back({{0x05}, true, ".!__start"});
@@ -187,15 +224,24 @@ void Vm::Initialize(std::vector<char>& code) {
   memory_->heap.push_back({{0x04}, true, uint64_t(0)});
   std::size_t main_class_count_index = memory_->heap.size() - 1;
 
+
+  LOGGING_INFO("DEUBG");
+
   // 2 is the index of the main class in the object table.
   Operator::NEW(memory_->heap, bytecode_files_, current_bytecode_file_,
                 classes_, is_big_endian_, 2, main_class_count_index,
                 main_class_name_index, memory_, builtin_functions_);
 
+
+  LOGGING_INFO("DEUBG");
+
   // Invokes the main function of the main class.
   Bytecode::InvokeClassFunction(
       memory_->heap, 2, "!__start", {1}, current_bytecode_file_, classes_,
       memory_, bytecode_files_, builtin_functions_, is_big_endian_);
+
+      
+  LOGGING_INFO("DEUBG");
 }
 
 }  // namespace Vm

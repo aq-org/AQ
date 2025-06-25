@@ -84,6 +84,7 @@ std::vector<std::size_t> GetUnknownCountParamentForClass(char*& ptr) {
 }
 
 char* AddClassMethod(char* location,
+    std::vector<Memory::Object>& heap,
                      std::unordered_map<std::string, Function>& functions) {
   if (*location == '.') location += 1;
 
@@ -113,6 +114,18 @@ char* AddClassMethod(char* location,
   function.arguments.resize(arguments_size);
   for (size_t i = 0; i < arguments_size; i++)
     location += DecodeUleb128((uint8_t*)location, &function.arguments[i]);
+
+  // Sets the function return value type.
+  
+  auto new_data = std::make_shared<Memory::Object>();
+  new_data->type = heap[function.arguments[0]].type;
+  new_data->const_type = 
+      heap[function.arguments[0]].const_type;
+  new_data->data = heap[function.arguments[0]].data;
+  heap[function.arguments[0]].type.insert(
+      heap[function.arguments[0]].type.begin(), 0x07);
+  heap[function.arguments[0]].const_type = true;
+  heap[function.arguments[0]].data = new_data;
 
   LOGGING_INFO("DEUBG");
 
@@ -276,12 +289,14 @@ char* AddClassMethod(char* location,
 }
 
 char* AddClass(char* location,
-               std::unordered_map<std::string, Bytecode::Class> classes,
+               std::unordered_map<std::string, Bytecode::Class>& classes,
                std::shared_ptr<Memory::Memory> memory) {
   // Gets the class name.
   std::string class_name(location);
   while (*location != '\0') location += 1;
   location += 1;
+
+  LOGGING_INFO(class_name);
 
   // Gets the members size.
   std::size_t members_size = 0;
@@ -336,7 +351,9 @@ char* AddClass(char* location,
 
   // Sets the class methods.
   for (size_t i = 0; i < methods_size; i++)
-    location = AddClassMethod(location, classes[class_name].functions);
+    location = AddClassMethod(location,memory->heap, classes[class_name].functions);
+
+  LOGGING_INFO("COMPLETED");
 
   // Sets the memory.
   classes[class_name].memory = memory;
@@ -345,7 +362,7 @@ char* AddClass(char* location,
 }
 
 int InvokeClassFunction(
-    std::vector<Memory::Object>& heap, size_t class_index,
+    std::vector<Memory::Object>& heap, std::size_t class_index,
     std::string function_name, std::vector<size_t> arguments,
     std::string& current_bytecode_file,
     std::unordered_map<std::string, Bytecode::Class>& classes,
@@ -389,6 +406,10 @@ int InvokeClassFunction(
     // If the class name without a bytecode file name, we assume it is a class
     // from current bytecode file.
     current_bytecode_file = "";
+
+    
+  if(function_name[0] == '.')
+    function_name = function_name.substr(1);
   }
 
   if (classes.find(class_name) == classes.end())
@@ -430,13 +451,15 @@ int InvokeClassFunction(
     if (class_heap[function.arguments[i]].const_type &&
         class_heap[function.arguments[i]].type[0] == 0x07 &&
         class_heap[function.arguments[i]].type[1] != 0x08) {
+          LOGGING_INFO("1");
       class_heap[function.arguments[i]].data =
           std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+          LOGGING_INFO("1 END");
 
       // Handles the argument which is the reference of const variable.
     } else if (class_heap[function.arguments[i]].const_type &&
                class_heap[function.arguments[i]].type[0] == 0x07 &&
-               class_heap[function.arguments[i]].type[1] == 0x08) {
+               class_heap[function.arguments[i]].type[1] == 0x08) {LOGGING_INFO("2");
       // Deletes the const type from the type vector and sets the data.
       class_heap[function.arguments[i]].type.erase(
           class_heap[function.arguments[i]].type.begin(),
@@ -447,24 +470,31 @@ int InvokeClassFunction(
 
       // Handles the argument which is the const object.
     } else if (class_heap[function.arguments[i]].const_type &&
-               class_heap[function.arguments[i]].type[0] == 0x08) {
+               class_heap[function.arguments[i]].type[0] == 0x08) {LOGGING_INFO("3");
       class_heap[function.arguments[i]].data =
           std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
 
-    } else {
+    } else {LOGGING_INFO("4");
       // Handles other arguments which are not const or reference.
       Operator::CrossMemoryEqual(classes[class_name].memory->heap,
                                  function.arguments[i], heap, arguments[i]);
     }
   }
 
+          LOGGING_INFO("1");
   // Stores the old heap and sets the new heap for the class.
   auto& old_heap = heap;
   heap = classes[class_name].memory->heap;
   auto& constant_pool = classes[class_name].memory->constant_pool;
 
+          LOGGING_INFO("1");
   auto run_code = function.instructions;
+  
+          LOGGING_INFO("1");
   for (size_t i = 0; i < function.instructions.size(); i++) {
+    
+          LOGGING_INFO(std::to_string(i) + " " +
+                      std::to_string(static_cast<int>(run_code[i].oper)));
     switch (run_code[i].oper) {
       case Operator::Operator::NOP:
         Operator::NOP();
@@ -878,7 +908,7 @@ char* AddBytecodeFileClass(
   location += DecodeUleb128((uint8_t*)location, &methods_size);
 
   for (size_t i = 0; i < methods_size; i++) {
-    location = AddClassMethod(location, classes[class_name].functions);
+    location = AddClassMethod(location,memory->heap, classes[class_name].functions);
   }
 
   classes[class_name].memory = memory;

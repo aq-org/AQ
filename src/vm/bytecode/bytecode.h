@@ -51,8 +51,10 @@ char* Get4Parament(char* ptr, size_t* first);
 std::vector<std::size_t> GetUnknownCountParament(char*& ptr);
 std::vector<std::size_t> GetUnknownCountParamentForClass(char*& ptr);
 char* AddClassMethod(char* location,
+    std::vector<Memory::Object>& heap,
                      std::unordered_map<std::string, Function>& functions);
-char* AddClass(char* location, std::unordered_map<std::string, Class> classes,
+char* AddClass(char* location, 
+               std::unordered_map<std::string, Bytecode::Class>& classes,
                std::shared_ptr<Memory::Memory> memory);
 int InvokeClassFunction(
     std::vector<Memory::Object>& heap, size_t class_index,
