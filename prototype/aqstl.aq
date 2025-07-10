@@ -7,6 +7,6 @@ int data = 100;
 auto main() {
 TESTCLASS tc;  
 __builtin_print(tc.data,"\n");
-__builtin_print("Hello World!\n");
+__builtin_print(1+100);
   return 0;
 }

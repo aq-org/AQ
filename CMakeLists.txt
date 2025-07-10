@@ -4,15 +4,41 @@
 
 cmake_minimum_required(VERSION 3.10)
 project(AQ C CXX)
-# enable_testing()
 
 set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_C_COMPILER "gcc")
+set(CMAKE_CXX_STANDARD 20)
+SET(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
+
 
 include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/src)
 
-set(COMPILER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/compiler.cc)
-set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/prototype/vm.c)
+set(COMPILER_SOURCES ${PROJECT_SOURCE_DIR}/src/compiler/compiler.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/ast/ast.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/ast/type.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/lexer/lexer.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/parser/parser.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/parser/declaration_parser.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/parser/expression_parser.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/token/token.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/token/tokenmap.cc 
+${PROJECT_SOURCE_DIR}/src/compiler/generator/generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/builtin.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/declaration_generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/expression_generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/goto_generator.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/memory.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/preprocesser.cc
+${PROJECT_SOURCE_DIR}/src/compiler/generator/statement_generator.cc)
+
+set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/vm/vm.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/builtin/builtin.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/bytecode/bytecode.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/memory/memory.cc
+${CMAKE_CURRENT_SOURCE_DIR}/src/vm/operator/operator.cc
+)
 
 add_executable(aq_compiler ${COMPILER_SOURCES})
 add_executable(aq_vm ${VM_SOURCES})
