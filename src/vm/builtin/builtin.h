@@ -10,13 +10,17 @@
 #include <unordered_map>
 #include <vector>
 
+#include "vm/memory/memory.h"
+
 namespace Aq {
 namespace Vm {
 namespace Builtin {
 void InitializeBuiltinFunction(
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>&
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions);
+
+int print(std::vector<Memory::Object>& heap,std::vector<std::size_t> arguments);
 }
 }  // namespace Vm
 }  // namespace Aq

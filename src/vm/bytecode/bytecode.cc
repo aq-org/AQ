@@ -86,6 +86,7 @@ std::vector<std::size_t> GetUnknownCountParamentForClass(char*& ptr) {
 char* AddClassMethod(char* location,
     std::vector<Memory::Object>& heap,
                      std::unordered_map<std::string, Function>& functions) {
+                      char* origin = location;
   if (*location == '.') location += 1;
 
   // Gets the function name.
@@ -110,6 +111,10 @@ char* AddClassMethod(char* location,
   // Sets the arguments.
   std::size_t arguments_size = 0;
   location += DecodeUleb128((uint8_t*)location, &arguments_size);
+
+  if(arguments_size == 0)
+    LOGGING_ERROR("Invalid arguments size.");
+
   LOGGING_INFO(std::to_string(arguments_size));
   function.arguments.resize(arguments_size);
   for (size_t i = 0; i < arguments_size; i++)
@@ -118,6 +123,9 @@ char* AddClassMethod(char* location,
   // Sets the function return value type.
   
   auto new_data = std::make_shared<Memory::Object>();
+
+  std::cout<<function.arguments.size()<<std::endl;
+
   new_data->type = heap[function.arguments[0]].type;
   new_data->const_type = 
       heap[function.arguments[0]].const_type;
@@ -132,11 +140,12 @@ char* AddClassMethod(char* location,
   // Sets the instructions.
   std::size_t instructions_size = 0;
   location += DecodeUleb128((uint8_t*)location, &instructions_size);
+  LOGGING_INFO(std::to_string(instructions_size));
   instructions.resize(instructions_size);
 
   LOGGING_INFO("DEUBG");
   for (size_t i = 0; i < instructions_size; i++) {
-    LOGGING_INFO("0000");
+    LOGGING_INFO("OP+1");
     instructions[i].oper = static_cast<Operator::Operator>(*(uint8_t*)location);
     location += 1;
     switch (instructions[i].oper) {
@@ -285,6 +294,7 @@ char* AddClassMethod(char* location,
     }
   }
 
+  LOGGING_INFO(std::to_string(location - origin));
   return location;
 }
 
@@ -369,9 +379,13 @@ int InvokeClassFunction(
     std::shared_ptr<Memory::Memory>& memory,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions,
     bool is_big_endian) {
+if(  builtin_functions.find(function_name)!=builtin_functions.end())
+  return builtin_functions[function_name](heap,arguments);
+
+
   auto class_name_object = GetObjectData(heap, class_index);
   if (class_name_object.empty() || class_name_object[0].type[0] != 0x05)
     LOGGING_ERROR("Invalid class name object.");
@@ -640,10 +654,13 @@ int InvokeCustomFunction(
     std::unordered_map<std::string, Bytecode::Class>& classes,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions,
     std::string& current_bytecode_file, bool is_big_endian,
     std::shared_ptr<Memory::Memory>& memory) {
+if(  builtin_functions.find(name)!=builtin_functions.end())
+  return builtin_functions[name](heap,arguments);
+
   if (classes.find(".!__start") == classes.end())
     INTERNAL_ERROR("Unexpected error. Not found main class.");
 

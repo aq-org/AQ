@@ -16,6 +16,7 @@
 #include "vm/utils/utils.h"
 
 int main(int argc, char* argv[]) {
+  std::cerr<<"START MAIN().";
   if (argc < 2) {
     Aq::Vm::LOGGING_ERROR("Usage: " + std::string(argv[0]) + " <filename>");
     return -1;
@@ -25,6 +26,8 @@ int main(int argc, char* argv[]) {
   Aq::Vm::ReadCodeFromFile(argv[1], code);
 
   Aq::Vm::CheckBytecode(code);
+
+  std::cerr<<"Bytecode file loaded."<<std::to_string(code.size());
 
   Aq::Vm::Vm vm;
   vm.Initialize(code);
@@ -199,6 +202,8 @@ void Vm::Initialize(std::vector<char>& code) {
   }
 
   LOGGING_INFO("DEUBG");
+
+  LOGGING_INFO(std::to_string(bytecode_file-(char*)code.data()));
 
   // Reads the class declarations.
   while (bytecode_file < code.data() + code.size() - 1) {

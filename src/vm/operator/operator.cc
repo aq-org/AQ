@@ -34,7 +34,7 @@ int NEW(std::vector<Memory::Object>& heap,
         std::unordered_map<std::string, Bytecode::Class> classes,
         bool is_big_endian, std::size_t ptr, std::size_t size,
         std::size_t type,std::shared_ptr<Memory::Memory>& memory,std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions) {
   if (ptr >= heap.size()) INTERNAL_ERROR("ptr is out of memory.");
   if (size >= heap.size()) INTERNAL_ERROR("size is out of memory.");
@@ -274,7 +274,7 @@ int ARRAY(
     std::unordered_map<std::string, Bytecode::Class>& classes,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions,
     std::string& current_bytecode_file, bool is_big_endian,
     std::shared_ptr<Memory::Memory>& memory) {
@@ -1476,7 +1476,7 @@ int CMP(std::vector<Memory::Object>& heap, std::size_t result,
 int INVOKE(
     std::vector<Memory::Object>& heap,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>&
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<std::size_t> arguments,
     std::unordered_map<std::string, Bytecode::Class>& classes,
@@ -1488,7 +1488,7 @@ int INVOKE(
   arguments.erase(arguments.begin(), arguments.begin() + 1);
   auto invoke_function = builtin_functions.find(GetStringData(heap, function));
   if (invoke_function != builtin_functions.end()) {
-    invoke_function->second(arguments);
+    invoke_function->second(heap,arguments);
     return 0;
   }
 
@@ -1663,7 +1663,7 @@ int INVOKE_METHOD(
     std::shared_ptr<Memory::Memory>& memory,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>&
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions,
     bool is_big_endian, std::vector<size_t> arguments) {
   if (arguments.size() < 3) INTERNAL_ERROR("Invalid arguments.");
@@ -1674,7 +1674,7 @@ int INVOKE_METHOD(
   arguments.erase(arguments.begin(), arguments.begin() + 2);
   auto invoke_function = builtin_functions.find(GetStringData(heap, function));
   if (invoke_function != builtin_functions.end()) {
-    invoke_function->second(arguments);
+    invoke_function->second(heap,arguments);
     return 0;
   }
 

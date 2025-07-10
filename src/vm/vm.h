@@ -35,7 +35,7 @@ class Vm {
 
   std::string current_bytecode_file_;
   std::shared_ptr<Memory::Memory> memory_;
-  std::unordered_map<std::string, std::function<int(std::vector<std::size_t>)>>
+  std::unordered_map<std::string, std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>
       builtin_functions_;
   std::unordered_map<std::string, Bytecode::BytecodeFile> bytecode_files_;
   std::unordered_map<std::string, Bytecode::Class> classes_;

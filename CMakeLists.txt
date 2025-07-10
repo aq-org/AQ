@@ -7,7 +7,9 @@ project(AQ C CXX)
 
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_STANDARD 20)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+SET(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 
 
 include_directories(${PROJECT_SOURCE_DIR})

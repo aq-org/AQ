@@ -64,7 +64,7 @@ int InvokeClassFunction(
     std::shared_ptr<Memory::Memory>& memory,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions,
     bool is_big_endian);
 int InvokeCustomFunction(
@@ -73,7 +73,7 @@ int InvokeCustomFunction(
     std::unordered_map<std::string, Bytecode::Class>& classes,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<std::size_t>)>>
+                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
         builtin_functions,
     std::string& current_bytecode_file, bool is_big_endian,
     std::shared_ptr<Memory::Memory>& memory);
