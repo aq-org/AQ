@@ -51,7 +51,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
                                  memory_init_name, 1, global_memory.Add(1)));
 
   // Sets the current class.
-  Class* start_class = new Class();
+  Class* start_class = &this->main_class;
   context.current_class = start_class;
   start_class->SetName(".__start");
   start_class->GetMemory().Add("@name");
@@ -804,6 +804,9 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
 
   for (std::size_t j = 0; j < start_class->GetMemory().GetMemoryType().size();
        j++) {
+    LOGGING_INFO("Variable name: "+
+                 start_class->GetMemory().GetVarName()[j]);
+
     for (std::size_t k = 0;
          k < start_class->GetMemory().GetVarName()[j].size() + 1; k++) {
       code.push_back(start_class->GetMemory().GetVarName()[j].c_str()[k]);

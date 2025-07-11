@@ -1702,8 +1702,10 @@ int LOAD_MEMBER(std::vector<Memory::Object>& heap,
   std::string class_name = std::get<std::string>(
       std::get<std::vector<Memory::Object>>(class_data.data)[0].data);
 
-  auto name_data = GetOriginData(heap, class_index);
-  if (name_data.type[0] != 0x05) LOGGING_ERROR("Error class data.");
+  LOGGING_INFO("Class name: " +class_name);
+
+  auto name_data = GetOriginData(heap, operand);
+  if (name_data.type[0] != 0x05) LOGGING_ERROR("Error class name data.");
 
   std::string variable_name = std::get<std::string>(name_data.data);
 

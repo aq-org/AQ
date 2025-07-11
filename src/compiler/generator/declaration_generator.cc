@@ -259,8 +259,7 @@ std::size_t HandleVariableDeclaration(Generator& generator,
   std::string variable_name =
       scopes.back() + "#" + declaration->GetVariableName();
 
-                                        LOGGING_INFO("Handling variable declaration: " +
-                                        variable_name);
+  LOGGING_INFO("Handling variable declaration: " + variable_name);
 
   std::size_t variable_index = memory.AddWithType(vm_type);
 
@@ -337,6 +336,7 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
   // |variable_index| is the original variable index in the main class memory,
   // |reference_index| is a reference of the variable in the global memory.
   std::size_t variable_index = memory.AddWithType(variable_name, return_type);
+  LOGGING_INFO("Handling global variable declaration: " + variable_name);
   std::size_t reference_index = global_memory.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
                           global_memory.AddString(variable_name)));
@@ -381,6 +381,11 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
   }
 
   variables[variable_name] = reference_index;
+
+  for (std::size_t j = 0; j < memory.GetMemoryType().size(); j++) {
+    LOGGING_INFO("Variable name: " + memory.GetVarName()[j]);
+  }
+
   return reference_index;
 }
 
