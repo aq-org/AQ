@@ -528,8 +528,8 @@ int InvokeClassFunction(
         break;
       case Operator::Operator::NEW:
         Operator::NEW(heap, bytecode_files, current_bytecode_file, classes,
-                      run_code[i].arguments[0], run_code[i].arguments[1],
-                      is_big_endian, run_code[i].arguments[2], memory,
+          is_big_endian, run_code[i].arguments[0], run_code[i].arguments[1],
+                       run_code[i].arguments[2], memory,
                       builtin_functions);
         break;
       case Operator::Operator::ARRAY:

@@ -1,39 +1,15 @@
-{
+
+  {
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "cmake configure",
+            "label": "CMake Build",
             "type": "shell",
-            "command": "cmake",
-            "args": [
-                "-S",
-                "${workspaceFolder}", // 指定源代码路径
-                "-B",
-                "${workspaceFolder}/build" // 指定生成文件的路径
-            ],
+            "command": "cmake --build build",
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
-            "problemMatcher": [],
-            "detail": "CMake配置任务"
-        },
-        {
-            "label": "cmake build",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build", // 指定构建目录
-            ],
-            "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "detail": "CMake构建任务",
-            "dependsOn": [
-                "cmake configure"
-            ]
+            }
         }
     ]
-}
+  }

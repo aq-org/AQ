@@ -89,12 +89,10 @@ int NEW(std::vector<Memory::Object>& heap,
 
   LOGGING_INFO("DEUBG");
   
-        std::vector<Memory::Object> class_object;
+  std::vector<Memory::Object> class_object;
   if (type == 0) {
-    for (size_t i = 1; i < 2; i++) {
-      data[i].type.push_back(0x00);
-      data[i].const_type = false;
-    }
+      data[0].type.push_back(0x00);
+      data[0].const_type = false;
   } else {
   LOGGING_INFO("1");
     if (type_data.type[0] == 0x05 &&!
@@ -278,9 +276,15 @@ int ARRAY(
         builtin_functions,
     std::string& current_bytecode_file, bool is_big_endian,
     std::shared_ptr<Memory::Memory>& memory) {
+  LOGGING_INFO("ARRAY operator called with result: " +
+                   std::to_string(result) + ", ptr: " + std::to_string(ptr) +
+                   ", index: " + std::to_string(index));
   auto array = GetArrayData(heap, ptr);
 
+  LOGGING_INFO("Type: "+std::to_string(array[0].type[0]) );
+
   index = GetUint64tData(heap, index);
+  LOGGING_INFO("Index: " + std::to_string(index));
 
   if (index >= array.size()) {
     array.resize(index + 1);
@@ -288,8 +292,8 @@ int ARRAY(
 
   bool is_type_null = array[index].type.size() == 0;
 
-  if (array[index].type.size() == 0) {
-    if (array[index].const_type) {
+  if (is_type_null) {
+    if (array[0].const_type) {
       array[index].const_type = true;
       array[index].type = array[0].type;
     } else {
@@ -313,6 +317,13 @@ int ARRAY(
   SetReferenceData(
       heap, result,
       std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
+
+  LOGGING_INFO("Set reference data at index " + std::to_string(result) +
+                   " with type " + std::to_string(heap[result].type[0]) + ".");
+
+                   SetLongData(heap, result,0);
+                   SetLongData(heap, result,0);
+
 
   return 0;
 }
@@ -1502,12 +1513,18 @@ int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (value >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
+  if(result == 10) {
+    
+    SetLongData(heap, result, 0);
+    return 0;
+  }
+
+
   LOGGING_INFO("EQUAL: result = {}, value = {}");
 
   Memory::Object value_data = GetOriginData(heap, value);
 
   LOGGING_INFO("EQUAL: result = {}, value = {}");
-  auto T = value_data.type[0];
   LOGGING_INFO("EQUAL: value_data.type = {}");
 
   switch (value_data.type[0]) {
@@ -1519,6 +1536,8 @@ int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
       break;
     case 0x02:
       LOGGING_INFO("EQUAL: value_data.type = 0x02");
+      
+      SetLongData(heap, result, 0);
       SetLongData(heap, result, GetLongData(heap, value));
       break;
     case 0x03:

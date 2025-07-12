@@ -131,6 +131,7 @@ std::shared_ptr<Object> GetLastDataReference(std::vector<Object>& heap,
         break;
 
       default:
+        LOGGING_INFO("Type: " + std::to_string(object->type[0]));
         return object;
     }
   }
@@ -187,6 +188,8 @@ int8_t GetByteData(std::vector<Object>& heap, size_t index) {
 int64_t GetLongData(std::vector<Object>& heap, size_t index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
+  LOGGING_INFO("Get long data at index " + std::to_string(index) +
+                   " with type " + std::to_string(heap[index].type[0]) + ".");
   Object object = GetOriginData(heap, index);
 
   switch (object.type[0]) {
@@ -255,6 +258,7 @@ uint64_t GetUint64tData(std::vector<Object>& heap, size_t index) {
       return std::get<uint64_t>(object.data);
 
     default:
+      LOGGING_INFO(std::get<std::string>(object.data));
       LOGGING_ERROR("Unsupported data type.");
       return 0;
   }
@@ -309,7 +313,13 @@ void SetLongData(std::vector<Object>& heap, size_t index, int64_t value) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
+  LOGGING_INFO("Set long data at index " + std::to_string(index) +
+                   " with type " + std::to_string(heap[index].type[0]) + ".");
+
   auto object = GetLastDataReference(heap, index);
+
+  LOGGING_INFO("Set long data at index " + std::to_string(index) +
+                   " with type " + std::to_string(object->type[0]) + ".");
 
   if (!object->const_type || object->type[0] == 0x02) {
     object->type[0] = 0x02;

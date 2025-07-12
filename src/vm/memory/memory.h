@@ -16,7 +16,7 @@ namespace Vm {
 namespace Memory {
 using Data = std::variant<int8_t, int64_t, double, uint64_t, std::string,
                           std::vector<struct Object>,
-                          std::shared_ptr<struct Object>, void*>;
+                          std::shared_ptr<struct Object>, void*, std::pair<std::vector<struct Object>,std::size_t>>;
 
 struct Object {
   std::vector<uint8_t> type;
