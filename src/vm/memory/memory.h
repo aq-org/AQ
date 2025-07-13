@@ -10,13 +10,45 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <functional>
 
 namespace Aq {
 namespace Vm {
 namespace Memory {
+class ObjectReference{
+public:
+//ObjectReference() = default;
+~ObjectReference()=default;
+
+ObjectReference(std::vector<struct Object>& memory,std::size_t index): memory_(memory),  
+index_(index) {
+}
+
+struct Object& Get(){
+  return memory_.get()[index_];
+}
+
+std::reference_wrapper<std::vector<struct Object>> GetMemory(){
+  return memory_;
+}
+
+std::size_t GetIndex(){
+  return index_;
+}
+
+bool operator==(const ObjectReference& other) const noexcept {
+  return &memory_.get() == &other.memory_.get() && 
+         index_ == other.index_;
+}
+
+private:
+std::reference_wrapper<std::vector<struct Object>> memory_;
+std::size_t index_ = 0;
+};
+
 using Data = std::variant<int8_t, int64_t, double, uint64_t, std::string,
                           std::vector<struct Object>,
-                          std::shared_ptr<struct Object>, void*, std::pair<std::vector<struct Object>*,std::size_t>>;
+                          std::shared_ptr<struct Object>, void*, ObjectReference>;
 
 struct Object {
   std::vector<uint8_t> type;
@@ -33,15 +65,15 @@ inline bool operator==(const Object& lhs, const Object& rhs) {
   return lhs.type == rhs.type && lhs.data == rhs.data;
 }
 
-std::pair<std::vector<struct Object>*,std::size_t> GetOriginDataReference(std::vector<Object>& heap,
+ObjectReference GetOriginDataReference(std::vector<Object>& heap,
                                                size_t index);
 
 Object GetOriginData(std::vector<Object>& heap, size_t index);
 
-std::pair<std::vector<struct Object>*,std::size_t> GetLastReference(std::vector<Object>& heap,
+ObjectReference GetLastReference(std::vector<Object>& heap,
                                          size_t index);
 
-                                         std::pair<std::vector<struct Object>*,std::size_t> GetLastDataReference(std::vector<Object>& heap,
+ObjectReference GetLastDataReference(std::vector<Object>& heap,
                                              size_t index);
 
 uint8_t GetObjectType(std::vector<Object>& heap, size_t index);
@@ -74,9 +106,9 @@ void SetUint64tData(std::vector<Object>& heap, size_t index, uint64_t value);
 void SetStringData(std::vector<Object>& heap, size_t index, std::string string);
 
 void SetReferenceData(std::vector<Object>& heap, size_t index,
-  std::vector<struct Object>* reference_memory,std::size_t reference_index);
+  std::vector<struct Object>& reference_memory,std::size_t reference_index);
 
-void SetConstData(std::vector<Object>& heap, size_t index,std::vector<struct Object>* reference_memory,std::size_t reference_index);
+void SetConstData(std::vector<Object>& heap, size_t index,std::vector<struct Object>& reference_memory,std::size_t reference_index);
 
 void SetObjectData(std::vector<Object>& heap, size_t index,
                    std::vector<Object> object);
