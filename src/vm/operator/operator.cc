@@ -305,7 +305,7 @@ int ARRAY(
   if (array[0].const_type && array[0].type[0] == 0x09 && is_type_null) {
     SetReferenceData(
         heap, result,
-        std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
+        array,index);
     Bytecode::InvokeCustomFunction(
         heap,
         std::get<std::string>(
@@ -315,8 +315,7 @@ int ARRAY(
   }
 
   SetReferenceData(
-      heap, result,
-      std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
+      heap, result,array,index);
 
   LOGGING_INFO("Set reference data at index " + std::to_string(result) +
                    " with type " + std::to_string(heap[result].type[0]) + ".");
@@ -886,7 +885,7 @@ int REFER(std::vector<Memory::Object>& heap, std::size_t result,
 
   auto data = GetOriginDataReference(heap, operand1);
 
-  SetReferenceData(heap, result, data);
+  SetReferenceData(heap, result, data.first,data.second);
 
   return 0;
 }
@@ -1666,13 +1665,12 @@ int CONVERT(std::vector<Memory::Object>& heap, std::size_t result,
   return 0;
 }
 
-int _CONST(std::vector<Memory::Object>& heap, std::size_t result,
+int CONST(std::vector<Memory::Object>& heap, std::size_t result,
            std::size_t operand1) {
   if (result >= heap.size()) LOGGING_ERROR("Out of object_table_size.");
   if (operand1 >= heap.size()) LOGGING_ERROR("Out of object_table_size.");
 
-  SetConstData(heap, result,
-               std::shared_ptr<Memory::Object>(&heap[operand1], [](void*) {}));
+  SetConstData(heap, result,heap,operand1);
   return 0;
 }
 
@@ -1739,11 +1737,7 @@ int LOAD_MEMBER(std::vector<Memory::Object>& heap,
 
   std::size_t offset = class_declaration->second.variables[variable_name];
 
-  std::shared_ptr<Memory::Object> object_data = std::shared_ptr<Memory::Object>(
-      &std::get<std::vector<Memory::Object>>(class_data.data)[offset],
-      [](void*) {});
-
-  SetReferenceData(heap, result, object_data);
+  SetReferenceData(heap, result, std::get<std::vector<Memory::Object>>(class_data.data),offset);
 
   return 0;
 }

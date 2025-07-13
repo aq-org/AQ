@@ -11,14 +11,14 @@
 namespace Aq {
 namespace Vm {
 namespace Memory {
-std::shared_ptr<Object> GetOriginDataReference(std::vector<Object>& heap,
+std::pair<std::vector<struct Object>&,std::size_t> GetOriginDataReference(std::vector<Object>& heap,
                                                size_t index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  auto object = std::shared_ptr<Object>(&heap[index], [](void*) {});
+  auto object = std::pair<std::vector<struct Object>&,std::size_t>(heap,index);
 
   while (true) {
-    switch (object->type[0]) {
+    switch (object.first[object.second].type[0]) {
       case 0x00:
       case 0x01:
       case 0x02:
@@ -32,7 +32,7 @@ std::shared_ptr<Object> GetOriginDataReference(std::vector<Object>& heap,
         return object;
 
       case 0x07:
-        object = std::get<std::shared_ptr<Object>>(object->data);
+        object = std::get<std::pair<std::vector<struct Object>&,std::size_t>>(object.first[object.second].data);
         break;
     }
   }
@@ -57,44 +57,46 @@ Object GetOriginData(std::vector<Object>& heap, size_t index) {
 
       case 0x07:
       case 0x08:
-        origin_data = *std::get<std::shared_ptr<Object>>(origin_data.data);
+      {auto object = std::get<std::pair<std::vector<struct Object>&,std::size_t>>(origin_data.data);
+        origin_data = object.first[object.second];
         break;
+}
 
       default:
-        LOGGING_ERROR("Object type is error at index " + std::to_string(index));
+        LOGGING_INFO("Object type is error at index " + std::to_string(index));
         LOGGING_ERROR("Unsupported data type."+std::to_string(origin_data.type[0]));
         break;
     }
   }
 }
 
-std::shared_ptr<Object> GetLastReference(std::vector<Object>& heap,
+std::pair<std::vector<struct Object>&,std::size_t> GetLastReference(std::vector<Object>& heap,
                                          size_t index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
-  auto object = std::shared_ptr<Object>(&heap[index], [](void*) {});
+  auto object = std::pair<std::vector<struct Object>&,std::size_t>(heap,index);
 
-  if(!object->const_type&&object->type[0] != 0x07){ 
-    object->type.resize(2);
-    object->type[0] = 0x07; // Set as reference type.
-    object->type[1] = 0x00; // Set as non-const reference.
-    object->data = std::make_shared<Object>(heap[index]);
-    object->const_type = false;
-    heap[index] = *object; // Update the heap with the new reference.
+  if(!object.first[object.second].const_type&&object.first[object.second].type[0] != 0x07){ 
+    object.first[object.second].type.resize(2);
+    object.first[object.second].type[0] = 0x07; // Set as reference type.
+    object.first[object.second].type[1] = 0x00; // Set as non-const reference.
+    object.first[object.second].data = std::make_shared<Object>(heap[index]);
+    object.first[object.second].const_type = false;
+    heap[index] = object.first[object.second]; // Update the heap with the new reference.
     return object;}
 
-  if (object->type[0] != 0x07) LOGGING_ERROR("Not a reference.");
+  if (object.first[object.second].type[0] != 0x07) LOGGING_ERROR("Not a reference.");
 
   while (true) {
-    if (object->type.size() == 1) {
-      if (object->type[0] == 0x07) return object;
+    if (object.first[object.second].type.size() == 1) {
+      if (object.first[object.second].type[0] == 0x07) return object;
       LOGGING_ERROR("Not a reference.");
     }
 
-    switch (object->type[1]) {
+    switch (object.first[object.second].type[1]) {
       case 0x07:
-        object = std::get<std::shared_ptr<Object>>(object->data);
+        object = std::get<std::pair<std::vector<struct Object>&,std::size_t>>(object.first[object.second].data);
         break;
 
       case 0x08:
@@ -102,7 +104,7 @@ std::shared_ptr<Object> GetLastReference(std::vector<Object>& heap,
         break;
 
       default:
-        if (object->type[0] != 0x07) LOGGING_ERROR("Not a reference.");
+        if (object.first[object.second].type[0] != 0x07) LOGGING_ERROR("Not a reference.");
         return object;
     }
   }
@@ -111,27 +113,42 @@ std::shared_ptr<Object> GetLastReference(std::vector<Object>& heap,
   return object;
 }
 
-std::shared_ptr<Object> GetLastDataReference(std::vector<Object>& heap,
+std::pair<std::vector<struct Object>&,std::size_t> GetLastDataReference(std::vector<Object>& heap,
                                              size_t index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
-  auto object = std::shared_ptr<Object>(&heap[index], [](void*) {});
+  LOGGING_INFO("1heap size: " + std::to_string(heap.size()));
+  auto object = std::pair<std::vector<struct Object>&,std::size_t>(heap, index);
 
+  LOGGING_INFO("2heap size: " + std::to_string(heap.size()));
   while (true) {
-    switch (object->type[0]) {
+    switch (object.first[object.second].type[0]) {
       case 0x07:
-        if (object->type.size() >= 2 && object->type[1] == 0x00) {
-          object = std::get<std::shared_ptr<Object>>(object->data);
-          object->const_type = false;
+      
+      //STEP 3
+      LOGGING_INFO("3heap size: " + std::to_string(heap.size()));
+        if (object.first[object.second].type.size() >= 2 && object.first[object.second].type[1] == 0x00) {
+          auto new_object = std::get<std::pair<std::vector<struct Object>&,std::size_t>>(object.first[object.second].data);
+
+          LOGGING_INFO("31heap size: " + std::to_string(heap.size()));
+          object = new_object;
+          //object.first[object.second].const_type = false;
         } else {
-          object = std::get<std::shared_ptr<Object>>(object->data);
-          object->const_type = true;
+          auto new_object = std::get<std::pair<std::vector<struct Object>&,std::size_t>>(object.first[object.second].data);
+          LOGGING_INFO("31heap size: " + std::to_string(heap.size()));
+          object = new_object;
+          //object.first[object.second].const_type = true;
         }
+        
+        
+      //STEP 4
+        LOGGING_INFO("4heap size: " + std::to_string(heap.size()));
         break;
 
       default:
-        LOGGING_INFO("Type: " + std::to_string(object->type[0]));
+        LOGGING_INFO("Type: " + std::to_string(object.first[object.second].type[0]));
+        LOGGING_INFO("5heap size: " + std::to_string(heap.size()));
         return object;
     }
   }
@@ -291,9 +308,9 @@ void SetArrayData(std::vector<Object>& heap, size_t index,
 
   auto object = GetLastDataReference(heap, index);
 
-  if (!object->const_type || object->type[0] == 0x06) {
-    object->type[0] = 0x06;
-    object->data = array;
+  if (!object.first[object.second].const_type || object.first[object.second].type[0] == 0x06) {
+    object.first[object.second].type[0] = 0x06;
+    object.first[object.second].data = array;
   }
 }
 
@@ -303,28 +320,36 @@ void SetByteData(std::vector<Object>& heap, size_t index, int8_t value) {
 
   auto object = GetLastDataReference(heap, index);
 
-  if (!object->const_type || object->type[0] == 0x01) {
-    object->type[0] = 0x01;
-    object->data = value;
+  if (!object.first[object.second].const_type || object.first[object.second].type[0] == 0x01) {
+    object.first[object.second].type[0] = 0x01;
+    object.first[object.second].data = value;
   }
 }
 
 void SetLongData(std::vector<Object>& heap, size_t index, int64_t value) {
+  LOGGING_INFO("1Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
-  LOGGING_INFO("Set long data at index " + std::to_string(index) +
+  LOGGING_INFO("2Set long data at index " + std::to_string(index) +
                    " with type " + std::to_string(heap[index].type[0]) + ".");
+
+
+  LOGGING_INFO("01 Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
 
   auto object = GetLastDataReference(heap, index);
 
-  LOGGING_INFO("Set long data at index " + std::to_string(index) +
-                   " with type " + std::to_string(object->type[0]) + ".");
 
-  if (!object->const_type || object->type[0] == 0x02) {
-    object->type[0] = 0x02;
-    object->data = value;
+  LOGGING_INFO("02 Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
+
+  LOGGING_INFO("3(END)Set long data at index " + std::to_string(index) +
+                   " with type " + std::to_string(object.first[object.second].type[0]) + ".");
+
+  if (!object.first[object.second].const_type || object.first[object.second].type[0] == 0x02) {
+    object.first[object.second].type[0] = 0x02;
+    object.first[object.second].data = value;
   }
+  
 }
 
 void SetDoubleData(std::vector<Object>& heap, size_t index, double value) {
@@ -333,9 +358,9 @@ void SetDoubleData(std::vector<Object>& heap, size_t index, double value) {
 
   auto object = GetLastDataReference(heap, index);
 
-  if (!object->const_type || object->type[0] == 0x03) {
-    object->type[0] = 0x03;
-    object->data = value;
+  if (!object.first[object.second].const_type || object.first[object.second].type[0] == 0x03) {
+    object.first[object.second].type[0] = 0x03;
+    object.first[object.second].data = value;
   }
 }
 
@@ -345,9 +370,9 @@ void SetUint64tData(std::vector<Object>& heap, size_t index, uint64_t value) {
 
   auto object = GetLastDataReference(heap, index);
 
-  if (!object->const_type || object->type[0] == 0x04) {
-    object->type[0] = 0x04;
-    object->data = value;
+  if (!object.first[object.second].const_type || object.first[object.second].type[0] == 0x04) {
+    object.first[object.second].type[0] = 0x04;
+    object.first[object.second].data = value;
   }
 }
 
@@ -358,46 +383,44 @@ void SetStringData(std::vector<Object>& heap, size_t index,
 
   auto object = GetLastDataReference(heap, index);
 
-  if (!object->const_type || object->type[0] == 0x05) {
-    object->type[0] = 0x05;
-    object->data = string;
+  if (!object.first[object.second].const_type || object.first[object.second].type[0] == 0x05) {
+    object.first[object.second].type[0] = 0x05;
+    object.first[object.second].data = string;
   }
 }
 
-void SetReferenceData(std::vector<Object>& heap, size_t index,
-                      std::shared_ptr<Object> object) {
+void SetReferenceData(std::vector<Object>& heap, size_t index,std::vector<struct Object>& reference_memory,std::size_t reference_index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
   auto reference_object = GetLastReference(heap, index);
 
-  if (reference_object->type.size() < 2)
+  if (reference_object.first[reference_object.second].type.size() < 2)
     INTERNAL_ERROR("Unexpected type size.");
 
-  if (reference_object->type[1] != 0x00 &&
-      reference_object->type[1] != object->type.back())
+  if (reference_object.first[reference_object.second].type[1] != 0x00 &&
+      reference_object.first[reference_object.second].type[1] != reference_object.first[reference_object.second].type.back())
     LOGGING_ERROR("Cannot change reference type.");
 
-  reference_object->data = object;
+  reference_object.first[reference_object.second].data = std::pair<std::vector<Object>&, std::size_t>(reference_memory, reference_index);
 }
 
-void SetConstData(std::vector<Object>& heap, size_t index,
-                  std::shared_ptr<Object> object) {
+void SetConstData(std::vector<Object>& heap, size_t index,std::vector<struct Object>& reference_memory,std::size_t reference_index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
   auto const_object = GetLastDataReference(heap, index);
 
-  if (object->const_type && object->type[0] != 0x08)
+  if (reference_memory[reference_index].const_type && reference_memory[reference_index].type[0] != 0x08)
     LOGGING_ERROR("Cannot change reference type.");
 
-  if (const_object->type.size() < 2) INTERNAL_ERROR("Unexpected type size.");
+  if (const_object.first[const_object.second].type.size() < 2) INTERNAL_ERROR("Unexpected type size.");
 
-  if (const_object->type[1] != 0x00 &&
-      const_object->type[1] != object->type.back())
+  if (const_object.first[const_object.second].type[1] != 0x00 &&
+      const_object.first[const_object.second].type[1] != reference_memory[reference_index].type.back())
     LOGGING_ERROR("Cannot change reference type.");
 
-  const_object->data = object;
+  const_object.first[const_object.second].data = std::pair<std::vector<Object>&, std::size_t>(reference_memory, reference_index);
 }
 
 void SetObjectData(std::vector<Object>& heap, size_t index,
@@ -407,11 +430,11 @@ void SetObjectData(std::vector<Object>& heap, size_t index,
 
   auto const_object = GetLastDataReference(heap, index);
 
-  if (const_object->type.size() < 1) INTERNAL_ERROR("Unexpected type size.");
+  if (const_object.first[const_object.second].type.size() < 1) INTERNAL_ERROR("Unexpected type size.");
 
-  if (!const_object->const_type || const_object->type[0] == 0x09) {
-    const_object->type[0] = 0x09;
-    const_object->data = objects;
+  if (!const_object.first[const_object.second].const_type || const_object.first[const_object.second].type[0] == 0x09) {
+    const_object.first[const_object.second].type[0] = 0x09;
+    const_object.first[const_object.second].data = objects;
   }
 
   LOGGING_INFO("Set object data at index " + std::to_string(index) +
@@ -424,9 +447,9 @@ void SetObjectData(std::vector<Object>& heap, size_t index,
 
   auto origin_object = GetLastDataReference(heap, index);
 
-  if (!origin_object->const_type || origin_object->type[0] == 0x0A) {
-    origin_object->type[0] = 0x0A;
-    origin_object->data = object;
+  if (!origin_object.first[object.second].const_type || origin_object.first[object.second].type[0] == 0x0A) {
+    origin_object.first[object.second].type[0] = 0x0A;
+    origin_object.first[object.second].data = object;
   } else {
     LOGGING_ERROR("Unsupported data type.");
   }

@@ -619,7 +619,7 @@ int InvokeClassFunction(
                           run_code[i].arguments[1]);
         break;
       case Operator::Operator::CONST:
-        Operator::_CONST(heap, run_code[i].arguments[0],
+        Operator::CONST(heap, run_code[i].arguments[0],
                          run_code[i].arguments[1]);
         break;
       case Operator::Operator::INVOKE_METHOD:
@@ -841,7 +841,7 @@ int InvokeCustomFunction(
                           run_code[i].arguments[1]);
         break;
       case Operator::Operator::CONST:
-        Operator::_CONST(heap, run_code[i].arguments[0],
+        Operator::CONST(heap, run_code[i].arguments[0],
                          run_code[i].arguments[1]);
         break;
       case Operator::Operator::INVOKE_METHOD:
