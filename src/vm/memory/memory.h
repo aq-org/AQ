@@ -16,7 +16,7 @@ namespace Vm {
 namespace Memory {
 using Data = std::variant<int8_t, int64_t, double, uint64_t, std::string,
                           std::vector<struct Object>,
-                          std::shared_ptr<struct Object>, void*, std::pair<std::vector<struct Object>&,std::size_t>>;
+                          std::shared_ptr<struct Object>, void*, std::pair<std::vector<struct Object>*,std::size_t>>;
 
 struct Object {
   std::vector<uint8_t> type;
@@ -33,15 +33,15 @@ inline bool operator==(const Object& lhs, const Object& rhs) {
   return lhs.type == rhs.type && lhs.data == rhs.data;
 }
 
-std::pair<std::vector<struct Object>&,std::size_t> GetOriginDataReference(std::vector<Object>& heap,
+std::pair<std::vector<struct Object>*,std::size_t> GetOriginDataReference(std::vector<Object>& heap,
                                                size_t index);
 
 Object GetOriginData(std::vector<Object>& heap, size_t index);
 
-std::pair<std::vector<struct Object>&,std::size_t> GetLastReference(std::vector<Object>& heap,
+std::pair<std::vector<struct Object>*,std::size_t> GetLastReference(std::vector<Object>& heap,
                                          size_t index);
 
-                                         std::pair<std::vector<struct Object>&,std::size_t> GetLastDataReference(std::vector<Object>& heap,
+                                         std::pair<std::vector<struct Object>*,std::size_t> GetLastDataReference(std::vector<Object>& heap,
                                              size_t index);
 
 uint8_t GetObjectType(std::vector<Object>& heap, size_t index);
@@ -74,9 +74,9 @@ void SetUint64tData(std::vector<Object>& heap, size_t index, uint64_t value);
 void SetStringData(std::vector<Object>& heap, size_t index, std::string string);
 
 void SetReferenceData(std::vector<Object>& heap, size_t index,
-  std::vector<struct Object>& reference_memory,std::size_t reference_index);
+  std::vector<struct Object>* reference_memory,std::size_t reference_index);
 
-void SetConstData(std::vector<Object>& heap, size_t index,std::vector<struct Object>& reference_memory,std::size_t reference_index);
+void SetConstData(std::vector<Object>& heap, size_t index,std::vector<struct Object>* reference_memory,std::size_t reference_index);
 
 void SetObjectData(std::vector<Object>& heap, size_t index,
                    std::vector<Object> object);
