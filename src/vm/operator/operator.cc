@@ -279,7 +279,7 @@ int ARRAY(
   LOGGING_INFO("ARRAY operator called with result: " +
                    std::to_string(result) + ", ptr: " + std::to_string(ptr) +
                    ", index: " + std::to_string(index));
-  auto array = GetArrayData(heap, ptr);
+  auto& array = GetArrayData(heap, ptr);
 
   LOGGING_INFO("Type: "+std::to_string(array[0].type[0]) );
 
@@ -320,8 +320,8 @@ int ARRAY(
   LOGGING_INFO("Set reference data at index " + std::to_string(result) +
                    " with type " + std::to_string(heap[result].type[0]) + ".");
 
-                   SetLongData(heap, result,0);
-                   SetLongData(heap, result,0);
+                  // SetLongData(heap, result,0);
+                   //SetLongData(heap, result,0);
 
 
   return 0;

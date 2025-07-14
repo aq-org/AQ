@@ -120,13 +120,15 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
 
   // Sets the function return value type.
 
-  auto new_data = std::make_shared<Memory::Object>();
+  //auto new_data = std::make_shared<Memory::Object>();
+  heap.push_back(Memory::Object());
+  auto new_data = Memory::ObjectReference(heap, heap.size()-1);
 
   std::cout << function.arguments.size() << std::endl;
 
-  new_data->type = heap[function.arguments[0]].type;
-  new_data->const_type = heap[function.arguments[0]].const_type;
-  new_data->data = heap[function.arguments[0]].data;
+  new_data.SetType( heap[function.arguments[0]].type);
+  new_data.SetConstant(heap[function.arguments[0]].const_type);
+  new_data.SetData(&heap[function.arguments[0]].data);
   heap[function.arguments[0]].type.insert(
       heap[function.arguments[0]].type.begin(), 0x07);
   heap[function.arguments[0]].const_type = true;
@@ -469,8 +471,7 @@ int InvokeClassFunction(
         class_heap[function.arguments[i]].type[0] == 0x07 &&
         class_heap[function.arguments[i]].type[1] != 0x08) {
       LOGGING_INFO("1");
-      class_heap[function.arguments[i]].data =
-          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+      class_heap[function.arguments[i]].data =Memory::ObjectReference(heap, arguments[i]);
       LOGGING_INFO("1 END");
 
       // Handles the argument which is the reference of const variable.
@@ -483,15 +484,13 @@ int InvokeClassFunction(
           class_heap[function.arguments[i]].type.begin(),
           class_heap[function.arguments[i]].type.begin() + 1);
 
-      class_heap[function.arguments[i]].data =
-          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+      class_heap[function.arguments[i]].data =Memory::ObjectReference(heap, arguments[i]);
 
       // Handles the argument which is the const object.
     } else if (class_heap[function.arguments[i]].const_type &&
                class_heap[function.arguments[i]].type[0] == 0x08) {
       LOGGING_INFO("3");
-      class_heap[function.arguments[i]].data =
-          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+      class_heap[function.arguments[i]].data =Memory::ObjectReference(heap, arguments[i]);
 
     } else {
       LOGGING_INFO("4");
@@ -705,8 +704,7 @@ int InvokeCustomFunction(
     if (heap[function.arguments[i]].const_type &&
         heap[function.arguments[i]].type[0] == 0x07 &&
         heap[function.arguments[i]].type[1] != 0x08) {
-      heap[function.arguments[i]].data =
-          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+      heap[function.arguments[i]].data = Memory::ObjectReference(heap, arguments[i]);
 
       // Handles the argument which is the reference of const variable.
     } else if (heap[function.arguments[i]].const_type &&
@@ -717,14 +715,12 @@ int InvokeCustomFunction(
           heap[function.arguments[i]].type.begin(),
           heap[function.arguments[i]].type.begin() + 1);
 
-      heap[function.arguments[i]].data =
-          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+      heap[function.arguments[i]].data = Memory::ObjectReference(heap, arguments[i]);
 
       // Handles the argument which is the const object.
     } else if (heap[function.arguments[i]].const_type &&
                heap[function.arguments[i]].type[0] == 0x08) {
-      heap[function.arguments[i]].data =
-          std::shared_ptr<Memory::Object>(&heap[arguments[i]], [](void*) {});
+      heap[function.arguments[i]].data =Memory::ObjectReference(heap, arguments[i]);
 
     } else {
       // Handles other arguments which are not const or reference.
