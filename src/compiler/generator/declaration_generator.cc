@@ -133,8 +133,14 @@ void HandleClassFunctionDeclaration(Generator& generator,
   // Handles the class constructor if this function is a constructor function.
   if (std::string(current_class->GetClassDeclaration()->GetClassName()) ==
       name) {
+    LOGGING_INFO("Handling class constructor AAAAAAAAAAAAAAAAAAAAAAAAAAAA: " +
+                 std::string(current_class->GetClassDeclaration()->GetClassName()));
     HandleClassConstructor(generator, declaration);
     return;
+  }else{
+    LOGGING_INFO("Handling class function: " + name);
+    LOGGING_INFO("Class: " +
+                 std::string(current_class->GetClassDeclaration()->GetClassName()));
   }
 
   // Handles the function name with scopes.
@@ -1011,6 +1017,21 @@ void AddClassFunctionIntoList(Generator& generator,
   function_list.push_back(function);
 }
 
+void AddClassConstructorFunctionIntoList(Generator& generator,
+  Ast::FunctionDeclaration* declaration,
+  std::vector<std::size_t>& parameters_index,
+  std::vector<Bytecode>& code) {
+// Gets the reference of context.
+auto& function_list = generator.context.current_class->GetFunctionList();
+
+Ast::Function* statement = declaration->GetFunctionStatement();
+
+// Adds function into class function list.
+Function function("@constructor", parameters_index, code);
+if (statement->IsVariadic()) function.EnableVariadic();
+function_list.push_back(function);
+}
+
 void HandleReturnVariableInHandlingFunction(
     Generator& generator, Ast::FunctionDeclaration* declaration,
     std::string scope_name, std::vector<std::size_t>& parameters_index) {
@@ -1115,7 +1136,7 @@ void HandleConstructorFunctionInHandlingConstructor(
 
   HandleGotoInHandlingFunction(generator, current_scope, code);
 
-  AddClassFunctionIntoList(generator, declaration, parameters_index, code);
+  AddClassConstructorFunctionIntoList(generator, declaration, parameters_index, code);
 
   // Destroys temporary context.
   scopes.pop_back();

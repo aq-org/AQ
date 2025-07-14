@@ -89,11 +89,13 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
   if (*location == '.') location += 1;
 
   // Gets the function name.
-  std::string function_name(location);
+  char* name_start = location;
   while (*location != '\0') location += 1;
+  std::string function_name(name_start, location - name_start);
   location += 1;
 
-  LOGGING_INFO(function_name);
+  LOGGING_INFO("Class Function Name: "+function_name);
+  if(function_name == "@constructor")LOGGING_INFO("Constructor function.");
   // Gets the context of the function.
   auto& function = functions[function_name];
   auto& instructions = function.instructions;
@@ -135,6 +137,13 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
   heap[function.arguments[0]].data = new_data;
 
   LOGGING_INFO("DEUBG");
+
+  //DEBUG
+  if(functions.find("@constructor") != functions.end()) {
+    LOGGING_INFO("Function @constructor already exists.");
+  } else {
+    LOGGING_INFO("Function @constructor added.");
+  }
 
   // Sets the instructions.
   std::size_t instructions_size = 0;
@@ -301,8 +310,9 @@ char* AddClass(char* location,
                std::unordered_map<std::string, Bytecode::Class>& classes,
                std::shared_ptr<Memory::Memory> memory) {
   // Gets the class name.
-  std::string class_name(location);
+  char* class_name_start = location;
   while (*location != '\0') location += 1;
+  std::string class_name(class_name_start, location - class_name_start);
   location += 1;
 
   LOGGING_INFO(class_name);
@@ -370,6 +380,13 @@ char* AddClass(char* location,
     location =
         AddClassMethod(location, memory->heap, classes[class_name].functions);
 
+  //DEBUG
+  if(classes[class_name].functions.find("@constructor") != classes[class_name].functions.end()) {
+    LOGGING_INFO("Function @constructor already exists.");
+  } else {
+    LOGGING_INFO("Function @constructor added.");
+  }  
+
   LOGGING_INFO("COMPLETED");
 
   // Sets the memory.
@@ -400,6 +417,7 @@ int InvokeClassFunction(
   // Retrieves the uninitialized class name and wait for the next step of
   // processing.
   std::string class_name = std::get<std::string>(class_name_object[0].data);
+  LOGGING_INFO("Class name: " + class_name);
 
   // Records the old current bytecode file to recover the status after the
   // processing.
@@ -435,8 +453,14 @@ int InvokeClassFunction(
     LOGGING_ERROR("Class not found: " + class_name);
 
   if (classes[class_name].functions.find(function_name) ==
-      classes[class_name].functions.end())
-    LOGGING_ERROR("Function not found: " + function_name);
+      classes[class_name].functions.end()){
+        if (classes[class_name].functions.find("@constructor") !=
+        classes[class_name].functions.end())  
+        LOGGING_WARNING("" + function_name +
+                        " not found, using @constructor instead.");
+        
+          LOGGING_ERROR("Function not found: " + function_name);
+    LOGGING_ERROR("Function not found: " + function_name);}
 
   auto function = classes[class_name].functions[function_name];
 

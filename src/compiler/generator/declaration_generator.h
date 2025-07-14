@@ -103,6 +103,12 @@ void AddClassFunctionIntoList(Generator& generator,
                               std::vector<std::size_t>& parameters_index,
                               std::vector<Bytecode>& code);
 
+// Handles the class constructor function declaration.
+                              void AddClassConstructorFunctionIntoList(Generator& generator,
+                                Ast::FunctionDeclaration* declaration,
+                                std::vector<std::size_t>& parameters_index,
+                                std::vector<Bytecode>& code);
+
 // Handles the return statement in handling function.
 void HandleReturnVariableInHandlingFunction(
     Generator& generator, Ast::FunctionDeclaration* declaration,
