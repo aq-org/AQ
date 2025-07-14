@@ -100,6 +100,8 @@ void HandleStatement(Generator& generator, Ast::Statement* statement,
 
     case Ast::Statement::StatementType::kStatement:
     default:
+      LOGGING_INFO("Unexpected statement type in the code." +
+                   std::to_string(static_cast<int>(statement->GetStatementType())));
       LOGGING_WARNING("Unexpected statement type in the code.");
       break;
   }
@@ -192,6 +194,8 @@ void HandleClassStatement(Generator& generator, Ast::Statement* statement,
 
     case Ast::Statement::StatementType::kStatement:
     default:
+      LOGGING_INFO("Unexpected statement type in the code."+
+                   std::to_string(static_cast<int>(statement->GetStatementType())));
       LOGGING_WARNING("Unexpected statement type in the code.");
       break;
   }

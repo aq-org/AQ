@@ -675,10 +675,13 @@ class Return : public Statement {
 // carry pointer types. The check is done using typeid.
 template <typename T>
 bool IsOfType(Ast::Statement* statement) {
-  if (typeid(T) == typeid(*statement)) {
-    return true;
+  if (!statement) return false;
+    
+  if constexpr (std::is_polymorphic_v<T>) {
+      return dynamic_cast<T*>(statement) != nullptr;
+  } else {
+      return typeid(T) == typeid(*statement);
   }
-  return false;
 }
 
 // Casts |statement| to |T| type. Returns the new pointer.
