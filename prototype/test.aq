@@ -1,0 +1,33 @@
+
+
+class Lexer{
+    
+void Lexer(){
+  // __builtin_print("1\n\n\n\n\n\n\n\n\n2\n");
+}
+
+void TEST(){
+    //  __builtin_print("AAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n\n\n\n\nBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+}
+}
+
+//int test_data = 0;
+
+int TEST(){
+      __builtin_print("AAAAAAAAAAAAAAAAAAAAAAAAAAA\n\n\n\n\n\n\n\n\nBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+    retern 0x08;
+}
+
+auto main(){
+    Lexer lexer;
+    //auto test_data1[1] = {"A","B","C"};
+    //__builtin_print(test_data1[1]);
+    
+    __builtin_print("START\n\n");
+
+    lexer.TEST();
+
+   // __builtin_print("\nEND\n");
+
+    return "TEST";
+}

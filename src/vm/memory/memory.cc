@@ -100,7 +100,7 @@ Object& GetOriginData(std::vector<Object>& heap, size_t index) {
 }
 
       default:
-        LOGGING_INFO("Object type is error at index " + std::to_string(index));
+        //LOGGING_INFO("Object type is error at index " + std::to_string(index));
         LOGGING_ERROR("Unsupported data type."+std::to_string(origin_data.get().type[0]));
         break;
     }
@@ -155,10 +155,10 @@ ObjectReference GetLastDataReference(std::vector<Object>& heap,
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
-  LOGGING_INFO("1heap size: " + std::to_string(heap.size()));
+  //LOGGING_INFO("1heap size: " + std::to_string(heap.size()));
   auto object = ObjectReference(heap, index);
 
-  LOGGING_INFO("2heap size: " + std::to_string(heap.size()));
+  //LOGGING_INFO("2heap size: " + std::to_string(heap.size()));
   while (true) {
     /*if(object.first == nullptr || object.second >= (*object.first).size()||
        object.Get().type.size() == 0) {
@@ -169,38 +169,37 @@ ObjectReference GetLastDataReference(std::vector<Object>& heap,
       case 0x07:
       
       //STEP 3
-      LOGGING_INFO("3heap size: " + std::to_string(heap.size()));
+      //LOGGING_INFO("3heap size: " + std::to_string(heap.size()));
         if (object.Get().type.size() >= 2 && object.Get().type[1] == 0x00) {
           
-    std::cerr << "实际类型索引: " << object.Get().data.index() << "\n";
           object.Set(std::get<ObjectReference>(object.Get().data));
 
          if(object.GetIndex() >= object.GetMemory().get().size()) {
-            LOGGING_INFO("Invalid reference data.");
+            //LOGGING_INFO("Invalid reference data.");
           }
           //auto of = object.first;
           //auto os = object.second;
 
-          LOGGING_INFO("31heap size: " + std::to_string(heap.size()));
+          //LOGGING_INFO("31heap size: " + std::to_string(heap.size()));
           //object = new_object;
 
           //Segmentation fault happen. Try to fix it.
           object.SetConstant(false);
         } else {
           object.Set(std::get<ObjectReference>(object.Get().data));
-          LOGGING_INFO("32heap size: " + std::to_string(heap.size()));
+          //LOGGING_INFO("32heap size: " + std::to_string(heap.size()));
           //object = new_object;
           object.SetConstant(true);
         }
         
         
       //STEP 4
-        LOGGING_INFO("4heap size: " + std::to_string(heap.size()));
+        //LOGGING_INFO("4heap size: " + std::to_string(heap.size()));
         break;
 
       default:
-        LOGGING_INFO("Type: " + std::to_string(object.Get().type[0]));
-        LOGGING_INFO("5heap size: " + std::to_string(heap.size()));
+        //LOGGING_INFO("Type: " + std::to_string(object.Get().type[0]));
+        //LOGGING_INFO("5heap size: " + std::to_string(heap.size()));
         return object;
     }
   }
@@ -257,8 +256,8 @@ int8_t GetByteData(std::vector<Object>& heap, size_t index) {
 int64_t GetLongData(std::vector<Object>& heap, size_t index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  LOGGING_INFO("Get long data at index " + std::to_string(index) +
-                   " with type " + std::to_string(heap[index].type[0]) + ".");
+  //LOGGING_INFO("Get long data at index " + std::to_string(index) +
+                //   " with type " + std::to_string(heap[index].type[0]) + ".");
   Object& object = GetOriginData(heap, index);
 
   switch (object.type[0]) {
@@ -327,7 +326,7 @@ uint64_t GetUint64tData(std::vector<Object>& heap, size_t index) {
       return std::get<uint64_t>(object.data);
 
     default:
-      LOGGING_INFO(std::get<std::string>(object.data));
+      //LOGGING_INFO(std::get<std::string>(object.data));
       LOGGING_ERROR("Unsupported data type.");
       return 0;
   }
@@ -379,23 +378,23 @@ void SetByteData(std::vector<Object>& heap, size_t index, int8_t value) {
 }
 
 void SetLongData(std::vector<Object>& heap, size_t index, int64_t value) {
-  LOGGING_INFO("1Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
+  //LOGGING_INFO("1Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
-  LOGGING_INFO("2Set long data at index " + std::to_string(index) +
-                   " with type " + std::to_string(heap[index].type[0]) + ".");
+  //LOGGING_INFO("2Set long data at index " + std::to_string(index) +
+                //   " with type " + std::to_string(heap[index].type[0]) + ".");
 
 
-  LOGGING_INFO("01 Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
+  //LOGGING_INFO("01 Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
 
   auto object = GetLastDataReference(heap, index);
 
 
-  LOGGING_INFO("02 Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
+  //LOGGING_INFO("02 Set long data at index " + std::to_string(index)+", Heap Size:"+ std::to_string(heap.size())+".");
 
-  LOGGING_INFO("3(END)Set long data at index " + std::to_string(index) +
-                   " with type " + std::to_string(object.Get().type[0]) + ".");
+  //LOGGING_INFO("3(END)Set long data at index " + std::to_string(index) +
+              //     " with type " + std::to_string(object.Get().type[0]) + ".");
 
   if (!object.Get().const_type || object.Get().type[0] == 0x02) {
     object.Get().type[0] = 0x02;
@@ -494,8 +493,8 @@ void SetObjectData(std::vector<Object>& heap, size_t index,
     const_object.Get().data = objects;
   }
 
-  LOGGING_INFO("Set object data at index " + std::to_string(index) +
-                   " with type " + std::to_string(heap[index].type[0]) + ".");
+  //LOGGING_INFO("Set object data at index " + std::to_string(index) +
+                  // " with type " + std::to_string(heap[index].type[0]) + ".");
 }
 
 /*int SetOriginData(std::vector<Object>& heap, size_t index, void* object) {

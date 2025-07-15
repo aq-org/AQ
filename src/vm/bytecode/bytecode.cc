@@ -94,8 +94,8 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
   std::string function_name(name_start, location - name_start);
   location += 1;
 
-  LOGGING_INFO("Class Function Name: "+function_name);
-  if(function_name == "@constructor")LOGGING_INFO("Constructor function.");
+  //LOGGING_INFO("Class Function Name: "+function_name);
+ // if(function_name == "@constructor")LOGGING_INFO("Constructor function.");
   // Gets the context of the function.
   auto& function = functions[function_name];
   auto& instructions = function.instructions;
@@ -108,14 +108,14 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
     function.is_variadic = false;
   }
 
-  LOGGING_INFO("DEUBG");
+  //LOGGING_INFO("DEUBG");
   // Sets the arguments.
   std::size_t arguments_size = 0;
   location += DecodeUleb128((uint8_t*)location, &arguments_size);
 
   if (arguments_size == 0) LOGGING_ERROR("Invalid arguments size.");
 
-  LOGGING_INFO(std::to_string(arguments_size));
+  //LOGGING_INFO(std::to_string(arguments_size));
   function.arguments.resize(arguments_size);
   for (size_t i = 0; i < arguments_size; i++)
     location += DecodeUleb128((uint8_t*)location, &function.arguments[i]);
@@ -126,7 +126,7 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
   heap.push_back(Memory::Object());
   auto new_data = Memory::ObjectReference(heap, heap.size()-1);
 
-  std::cout << function.arguments.size() << std::endl;
+ // std::cout << function.arguments.size() << std::endl;
 
   new_data.SetType( heap[function.arguments[0]].type);
   new_data.SetConstant(heap[function.arguments[0]].const_type);
@@ -136,24 +136,24 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
   heap[function.arguments[0]].const_type = true;
   heap[function.arguments[0]].data = new_data;
 
-  LOGGING_INFO("DEUBG");
+  //LOGGING_INFO("DEUBG");
 
   //DEBUG
   if(functions.find("@constructor") != functions.end()) {
-    LOGGING_INFO("Function @constructor already exists.");
+    //LOGGING_INFO("Function @constructor already exists.");
   } else {
-    LOGGING_INFO("Function @constructor added.");
+    //LOGGING_INFO("Function @constructor added.");
   }
 
   // Sets the instructions.
   std::size_t instructions_size = 0;
   location += DecodeUleb128((uint8_t*)location, &instructions_size);
-  LOGGING_INFO(std::to_string(instructions_size));
+  //LOGGING_INFO(std::to_string(instructions_size));
   instructions.resize(instructions_size);
 
-  LOGGING_INFO("DEUBG");
+  //LOGGING_INFO("DEUBG");
   for (size_t i = 0; i < instructions_size; i++) {
-    LOGGING_INFO("OP+1");
+    //LOGGING_INFO("OP+1");
     instructions[i].oper = static_cast<Operator::Operator>(*(uint8_t*)location);
     location += 1;
     switch (instructions[i].oper) {
@@ -302,7 +302,7 @@ char* AddClassMethod(char* location, std::vector<Memory::Object>& heap,
     }
   }
 
-  LOGGING_INFO(std::to_string(location - origin));
+  //LOGGING_INFO(std::to_string(location - origin));
   return location;
 }
 
@@ -315,15 +315,15 @@ char* AddClass(char* location,
   std::string class_name(class_name_start, location - class_name_start);
   location += 1;
 
-  LOGGING_INFO(class_name);
+  //LOGGING_INFO(class_name);
 
   // Gets the members size.
   std::size_t members_size = 0;
-  LOGGING_INFO(
-      std::to_string(DecodeUleb128((uint8_t*)location, &members_size)));
+  //LOGGING_INFO(
+     // std::to_string(DecodeUleb128((uint8_t*)location, &members_size)));
   location += DecodeUleb128((uint8_t*)location, &members_size);
   classes[class_name].members.resize(members_size);
-  LOGGING_INFO(location);
+  //LOGGING_INFO(location);
 
   // Sets the members type.
   for (size_t i = 0; i < members_size; i++) {
@@ -335,7 +335,7 @@ char* AddClass(char* location,
 
     location += 1;
 
-    LOGGING_INFO("MEMBER ADDED: " + member_name);
+    //LOGGING_INFO("MEMBER ADDED: " + member_name);
     classes[class_name].variables[member_name] = i;
 
     bool is_type_end = false;
@@ -382,12 +382,12 @@ char* AddClass(char* location,
 
   //DEBUG
   if(classes[class_name].functions.find("@constructor") != classes[class_name].functions.end()) {
-    LOGGING_INFO("Function @constructor already exists.");
+    //LOGGING_INFO("Function @constructor already exists.");
   } else {
-    LOGGING_INFO("Function @constructor added.");
+    //LOGGING_INFO("Function @constructor added.");
   }  
 
-  LOGGING_INFO("COMPLETED");
+  //LOGGING_INFO("COMPLETED");
 
   // Sets the memory.
   classes[class_name].memory = memory;
@@ -407,6 +407,8 @@ int InvokeClassFunction(
                                          std::vector<std::size_t>)>>&
         builtin_functions,
     bool is_big_endian) {
+  LOGGING_INFO(function_name + " called with " +
+               std::to_string(arguments.size()) + " arguments.");
   if (builtin_functions.find(function_name) != builtin_functions.end())
     return builtin_functions[function_name](heap, arguments);
 
@@ -417,7 +419,7 @@ int InvokeClassFunction(
   // Retrieves the uninitialized class name and wait for the next step of
   // processing.
   std::string class_name = std::get<std::string>(class_name_object[0].data);
-  LOGGING_INFO("Class name: " + class_name);
+  //LOGGING_INFO("Class name: " + class_name);
 
   // Records the old current bytecode file to recover the status after the
   // processing.
@@ -494,15 +496,15 @@ int InvokeClassFunction(
     if (class_heap[function.arguments[i]].const_type &&
         class_heap[function.arguments[i]].type[0] == 0x07 &&
         class_heap[function.arguments[i]].type[1] != 0x08) {
-      LOGGING_INFO("1");
+      //LOGGING_INFO("1");
       class_heap[function.arguments[i]].data =Memory::ObjectReference(heap, arguments[i]);
-      LOGGING_INFO("1 END");
+      //LOGGING_INFO("1 END");
 
       // Handles the argument which is the reference of const variable.
     } else if (class_heap[function.arguments[i]].const_type &&
                class_heap[function.arguments[i]].type[0] == 0x07 &&
                class_heap[function.arguments[i]].type[1] == 0x08) {
-      LOGGING_INFO("2");
+      //LOGGING_INFO("2");
       // Deletes the const type from the type vector and sets the data.
       class_heap[function.arguments[i]].type.erase(
           class_heap[function.arguments[i]].type.begin(),
@@ -513,29 +515,29 @@ int InvokeClassFunction(
       // Handles the argument which is the const object.
     } else if (class_heap[function.arguments[i]].const_type &&
                class_heap[function.arguments[i]].type[0] == 0x08) {
-      LOGGING_INFO("3");
+      //LOGGING_INFO("3");
       class_heap[function.arguments[i]].data =Memory::ObjectReference(heap, arguments[i]);
 
     } else {
-      LOGGING_INFO("4");
+      //LOGGING_INFO("4");
       // Handles other arguments which are not const or reference.
       Operator::CrossMemoryEqual(classes[class_name].memory->heap,
                                  function.arguments[i], heap, arguments[i]);
     }
   }
 
-  LOGGING_INFO("1");
+  //LOGGING_INFO("1");
   // Stores the old heap and sets the new heap for the class.
   auto& old_heap = heap;
   heap = classes[class_name].memory->heap;
   auto& constant_pool = classes[class_name].memory->constant_pool;
 
-  LOGGING_INFO("1");
+  //LOGGING_INFO("1");
   auto run_code = function.instructions;
 
-  LOGGING_INFO("1");
+  //LOGGING_INFO("1");
   for (size_t i = 0; i < function.instructions.size(); i++) {
-    LOGGING_INFO(std::to_string(i) + " " +
+    LOGGING_INFO(std::to_string(i) + " OPER: " +
                  std::to_string(static_cast<int>(run_code[i].oper)));
     switch (run_code[i].oper) {
       case Operator::Operator::NOP:

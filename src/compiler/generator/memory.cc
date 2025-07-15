@@ -149,9 +149,9 @@ std::size_t ClassMemory::Add(std::string name) {
 
 std::size_t ClassMemory::AddWithType(std::string name,
                                      std::vector<uint8_t> type) {
-  LOGGING_INFO("Adding variable: " + name);
+  //LOGGING_INFO("Adding variable: " + name);
   std::size_t index = memory_size_++;
-  LOGGING_INFO(std::to_string(type.size()) + " type size.");
+  //LOGGING_INFO(std::to_string(type.size()) + " type size.");
   for (std::size_t i = 0; i < type.size(); i++) {
     memory_type_.push_back(type[i]);
   }

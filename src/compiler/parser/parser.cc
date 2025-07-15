@@ -30,9 +30,9 @@ Ast::Compound* Parser::Parse(std::vector<Token>& token) {
     if (DeclarationParser::IsDeclaration(token_ptr, length, index)) {
       stmts.push_back(ParseDeclaration(token_ptr, length, index));
     } else {
-      LOGGING_INFO("Parsing statement at index: " + std::to_string(index));
+      //LOGGING_INFO("Parsing statement at index: " + std::to_string(index));
       stmts.push_back(ParseStatement(token_ptr, length, index));
-      LOGGING_INFO("INDEXXXXXXXXXXXXXXXXXX: " + std::to_string(index));
+      //LOGGING_INFO("INDEXXXXXXXXXXXXXXXXXX: " + std::to_string(index));
     }
   }
 
@@ -53,7 +53,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
 
-  LOGGING_INFO("STATEMENT");
+  //LOGGING_INFO("STATEMENT");
 
   if (DeclarationParser::IsDeclaration(token, length, index)) {
     if (DeclarationParser::IsFunctionDeclaration(token, length, index)) {
@@ -79,7 +79,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
 
   switch (token[index].type) {
     case Token::Type::OPERATOR:
-      LOGGING_INFO("OPERATOR");
+      //LOGGING_INFO("OPERATOR");
       return ParseStatementWithOperator(token, length, index);
 
     case Token::Type::KEYWORD:
@@ -121,7 +121,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          LOGGING_INFO("6666666666661");
+          //LOGGING_INFO("6666666666661");
           Ast::Expression* condition =
               ExpressionParser::ParseExpression(token, length, index);
 
@@ -132,7 +132,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          LOGGING_INFO("6666666666662");
+          //LOGGING_INFO("6666666666662");
           return new Ast::While(condition,
                                 ParseStatement(token, length, index));
         }
@@ -308,7 +308,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
 
         case Token::KeywordType::Import: {
           index++;
-          LOGGING_INFO(std::to_string(index));
+          //LOGGING_INFO(std::to_string(index));
           if (token[index].type != Token::Type::STRING)
             LOGGING_ERROR("Unsupported import location.");
           std::string import_location(*token[index].value.string);
@@ -324,7 +324,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
           } else {
             index++;
           }
-          LOGGING_INFO(std::to_string(index));
+          //LOGGING_INFO(std::to_string(index));
           return result;
         }
 
@@ -380,7 +380,7 @@ Ast::Declaration* Parser::ParseDeclaration(Token* token, std::size_t length,
 Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
                                                    std::size_t length,
                                                    std::size_t& index) {
-  LOGGING_INFO(std::to_string(index));
+  //LOGGING_INFO(std::to_string(index));
   switch (token[index].value.oper) {
     // Null statement.
     case Token::OperatorType::semi:
@@ -388,7 +388,7 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
       return new Ast::Statement();
 
     case Token::OperatorType::l_brace: {
-      LOGGING_INFO("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
+      //LOGGING_INFO("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
       index++;
       std::vector<Ast::Statement*> statements;
 
@@ -419,7 +419,7 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
     }
 
     default:
-      LOGGING_INFO("000000000000000000000X");
+      //LOGGING_INFO("000000000000000000000X");
       Ast::Statement* statement =
           ExpressionParser::ParseExpression(token, length, index);
       if (token[index] == Token::OperatorType::semi) index++;

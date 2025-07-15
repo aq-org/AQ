@@ -804,8 +804,8 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
 
   for (std::size_t j = 0; j < start_class->GetMemory().GetMemoryType().size();
        j++) {
-    LOGGING_INFO("Variable name: "+
-                 start_class->GetMemory().GetVarName()[j]);
+    //LOGGING_INFO("Variable name: "+
+          //       start_class->GetMemory().GetVarName()[j]);
 
     for (std::size_t k = 0;
          k < start_class->GetMemory().GetVarName()[j].size() + 1; k++) {
