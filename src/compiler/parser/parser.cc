@@ -17,10 +17,11 @@
 namespace Aq {
 namespace Compiler {
 Ast::Compound* Parser::Parse(std::vector<Token>& token) {
+  // Gets the basic information.
   Token* token_ptr = token.data();
   std::size_t index = 0;
   std::size_t length = token.size();
-  Ast::Compound* ast = nullptr;
+
   std::vector<Ast::Statement*> stmts;
 
   // Delete the last NONE token.
@@ -30,13 +31,11 @@ Ast::Compound* Parser::Parse(std::vector<Token>& token) {
     if (DeclarationParser::IsDeclaration(token_ptr, length, index)) {
       stmts.push_back(ParseDeclaration(token_ptr, length, index));
     } else {
-      //LOGGING_INFO("Parsing statement at index: " + std::to_string(index));
       stmts.push_back(ParseStatement(token_ptr, length, index));
-      //LOGGING_INFO("INDEXXXXXXXXXXXXXXXXXX: " + std::to_string(index));
     }
   }
 
-  ast = new Ast::Compound(stmts);
+  Ast::Compound* ast = new Ast::Compound(stmts);
   return ast;
 }
 
@@ -53,33 +52,11 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
 
-  //LOGGING_INFO("STATEMENT");
-
-  if (DeclarationParser::IsDeclaration(token, length, index)) {
-    if (DeclarationParser::IsFunctionDeclaration(token, length, index)) {
-      LOGGING_ERROR(
-          "Function declaration is not supported in general statement.");
-      return nullptr;
-    } else if (DeclarationParser::IsClassDeclaration(token, length, index)) {
-      LOGGING_ERROR("Class declaration is not supported in general statement.");
-      return nullptr;
-    } else {
-      Ast::Variable* result =
-          DeclarationParser::ParseVariableDeclaration(token, length, index);
-      if (!(token[index] == Token::OperatorType::semi)) {
-        LOGGING_WARNING(
-            "Expected ';' after variable declaration, but not found.");
-        return dynamic_cast<Ast::Declaration*>(result);
-      }
-
-      index++;
-      return dynamic_cast<Ast::Declaration*>(result);
-    }
-  }
+  if (DeclarationParser::IsDeclaration(token, length, index))
+    return ParseDeclaration(token, length, index);
 
   switch (token[index].type) {
     case Token::Type::OPERATOR:
-      //LOGGING_INFO("OPERATOR");
       return ParseStatementWithOperator(token, length, index);
 
     case Token::Type::KEYWORD:
@@ -105,10 +82,10 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
 
           Ast::Statement* body = ParseStatement(token, length, index);
 
-          if (token[index] == Token::KeywordType::Else) {
+          if (token[index] == Token::KeywordType::Else)
             return new Ast::If(condition, body,
                                ParseStatement(token, length, ++index));
-          }
+
           return new Ast::If(condition, body);
         }
 
@@ -121,7 +98,6 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          //LOGGING_INFO("6666666666661");
           Ast::Expression* condition =
               ExpressionParser::ParseExpression(token, length, index);
 
@@ -132,7 +108,6 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          //LOGGING_INFO("6666666666662");
           return new Ast::While(condition,
                                 ParseStatement(token, length, index));
         }
@@ -140,19 +115,21 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
         case Token::KeywordType::Do: {
           index++;
 
-          Ast::Statement* stmt_ = ParseStatement(token, length, index);
+          Ast::Statement* body = ParseStatement(token, length, index);
           if (!(token[index] == Token::KeywordType::While))
             LOGGING_ERROR("Expected 'while' after 'do', but not found.");
-
           index++;
+
           if (!(token[index] == Token::OperatorType::l_paren)) {
             LOGGING_WARNING(
                 "Expected '(' after 'while' condition, but not found.");
           } else {
             index++;
           }
+
           Ast::Expression* condition =
               ExpressionParser::ParseExpression(token, length, index);
+
           if (!(token[index] == Token::OperatorType::r_paren)) {
             LOGGING_WARNING(
                 "Expected ')' after 'while' condition, but not found.");
@@ -160,7 +137,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
-          return new Ast::DoWhile(condition, stmt_);
+          return new Ast::DoWhile(condition, body);
         }
 
         case Token::KeywordType::For: {
@@ -174,8 +151,10 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
 
           Ast::Expression* start = new Ast::Expression();
 
-          if (!(token[index] == Token::OperatorType::semi)){LOGGING_INFO("AAAAAAAAAAAAAAAA");delete start;
-            start = ExpressionParser::ParseExpression(token, length, index);}
+          if (!(token[index] == Token::OperatorType::semi)) {
+            delete start;
+            start = ExpressionParser::ParseExpression(token, length, index);
+          }
 
           if (!(token[index] == Token::OperatorType::semi)) {
             LOGGING_WARNING("Expected ';' after 'for' start, but not found.");
@@ -184,9 +163,10 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
           }
 
           Ast::Expression* condition = new Ast::Expression();
-          if (!(token[index] == Token::OperatorType::semi)){LOGGING_INFO("AAAAAAAAAAAAAAAA");delete condition;
+          if (!(token[index] == Token::OperatorType::semi)) {
+            delete condition;
             condition = ExpressionParser::ParseExpression(token, length, index);
-            if(condition ==nullptr)LOGGING_ERROR("FATAL ERROR");
+            if (condition == nullptr) LOGGING_ERROR("FATAL ERROR");
           }
 
           if (!(token[index] == Token::OperatorType::semi)) {
@@ -197,8 +177,10 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
           }
 
           Ast::Expression* end = new Ast::Expression();
-          if (!(token[index] == Token::OperatorType::semi)){LOGGING_INFO("AAAAAAAAAAAAAAAA");delete end;
-            end = ExpressionParser::ParseExpression(token, length, index);}
+          if (!(token[index] == Token::OperatorType::semi)) {
+            delete end;
+            end = ExpressionParser::ParseExpression(token, length, index);
+          }
 
           if (!(token[index] == Token::OperatorType::r_paren)) {
             LOGGING_WARNING("Expected ')' after 'for' end, but not found.");
@@ -233,21 +215,26 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
         case Token::KeywordType::Return: {
           index++;
 
+          // No return value.
           if (token[index] == Token::OperatorType::semi) {
             Ast::Return* result = new Ast::Return(nullptr);
             index++;
             return result;
           }
 
-          Ast::Expression* return_expr =
+          Ast::Expression* return_expression =
               ExpressionParser::ParseExpression(token, length, index);
-          if (return_expr == nullptr) LOGGING_ERROR("return_expr is nullptr.");
+          if (return_expression == nullptr)
+            LOGGING_ERROR("return_expression is nullptr.");
+
+          // Checks if the return expression is followed by a semicolon.
           if (!(token[index] == Token::OperatorType::semi)) {
             LOGGING_ERROR("Expected ';' after 'return', but not found.");
           } else {
             index++;
           }
-          return new Ast::Return(return_expr);
+
+          return new Ast::Return(return_expression);
         }
 
           /*case Token::KeywordType::From: {
@@ -308,23 +295,29 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
 
         case Token::KeywordType::Import: {
           index++;
-          //LOGGING_INFO(std::to_string(index));
+
+          // Location of the import.
           if (token[index].type != Token::Type::STRING)
             LOGGING_ERROR("Unsupported import location.");
           std::string import_location(*token[index].value.string);
           index++;
+
+          // module name.
           if (token[index].type != Token::Type::IDENTIFIER)
             LOGGING_ERROR("Unexpected import behavior.");
           std::string name(token[index].value.identifier.location,
                            token[index].value.identifier.length);
           index++;
+
           Ast::Import* result = new Ast::Import(import_location, name);
+
+          // Checks if the import is followed by a semicolon.
           if (!(token[index] == Token::OperatorType::semi)) {
             LOGGING_WARNING("Expected ';' after 'import', but not found.");
           } else {
             index++;
           }
-          //LOGGING_INFO(std::to_string(index));
+
           return result;
         }
 
@@ -333,19 +326,23 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
       }
 
     default:
+      // Label
       if (token[index].type == Token::Type::IDENTIFIER &&
-          token[index + 1].type == Token::Type::OPERATOR &&
-          token[index + 1].value.oper == Token::OperatorType::colon) {
-        Ast::Identifier identifier_node(token[index]);
-        Ast::Label* result = new Ast::Label(identifier_node);
+          token[index + 1] == Token::OperatorType::colon) {
+        Ast::Label* result = new Ast::Label(Ast::Identifier(token[index]));
+        index++;
+        
+        // Checks if the label is followed by a colon.
         if (!(token[index] == Token::OperatorType::semi)) {
           LOGGING_WARNING("Expected ';' after 'return', but not found.");
-          index++;
         } else {
-          index += 2;
+          index++;
         }
+
         return result;
       }
+
+      // Expression
       Ast::Statement* stmt_node =
           ExpressionParser::ParseExpression(token, length, index);
       if (token[index] == Token::OperatorType::semi) index++;
@@ -363,11 +360,15 @@ Ast::Declaration* Parser::ParseDeclaration(Token* token, std::size_t length,
     } else {
       Ast::Declaration* variable = dynamic_cast<Ast::Declaration*>(
           DeclarationParser::ParseVariableDeclaration(token, length, index));
+
+      // Checks if the declaration has a semicolon.
       if (!(token[index] == Token::OperatorType::semi)) {
         LOGGING_WARNING(
             "Expected ';' after variable declaration, but not found.");
         return variable;
       }
+
+      // Skips the semicolon.
       index++;
       return variable;
     }
@@ -380,7 +381,7 @@ Ast::Declaration* Parser::ParseDeclaration(Token* token, std::size_t length,
 Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
                                                    std::size_t length,
                                                    std::size_t& index) {
-  //LOGGING_INFO(std::to_string(index));
+  // LOGGING_INFO(std::to_string(index));
   switch (token[index].value.oper) {
     // Null statement.
     case Token::OperatorType::semi:
@@ -388,7 +389,7 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
       return new Ast::Statement();
 
     case Token::OperatorType::l_brace: {
-      //LOGGING_INFO("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
+      // LOGGING_INFO("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
       index++;
       std::vector<Ast::Statement*> statements;
 
@@ -419,7 +420,7 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
     }
 
     default:
-      //LOGGING_INFO("000000000000000000000X");
+      // LOGGING_INFO("000000000000000000000X");
       Ast::Statement* statement =
           ExpressionParser::ParseExpression(token, length, index);
       if (token[index] == Token::OperatorType::semi) index++;

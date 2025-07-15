@@ -5,6 +5,7 @@
 #ifndef AQ_COMPILER_GENERATOR_MEMORY_H_
 #define AQ_COMPILER_GENERATOR_MEMORY_H_
 
+#include <sys/types.h>
 #include <string>
 #include <cstring>
 #include <cstdint>
@@ -79,9 +80,12 @@ class ClassMemory : public Memory {
 
   std::vector<std::string>& GetVarName() { return variable_name_; }
 
+  std::vector<uint8_t>& GetMemoryInfo() { return memory_info_; }
+
  private:
   Memory* global_memory_ = nullptr;
   std::vector<std::string> variable_name_;
+  std::vector<uint8_t> memory_info_;
 };
 
 // Swaps the byte order of a 64-bit integer.

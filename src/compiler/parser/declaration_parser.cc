@@ -146,24 +146,27 @@ Ast::Variable* Parser::DeclarationParser::ParseVariableDeclaration(
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
 
+  // Gets variable type.
   Ast::Type* type = Ast::Type::CreateType(token, length, index);
   if (type == nullptr) INTERNAL_ERROR("type is nullptr.");
+
+  // Gets variable name.
   Ast::Expression* name =
       ExpressionParser::ParsePrimaryExpression(token, length, index);
   if (name == nullptr) INTERNAL_ERROR("name is nullptr.");
 
-  if (*name == Ast::Statement::StatementType::kArray) {
+  // Checks if the variable is an array declaration.
+  if (*name == Ast::Statement::StatementType::kArray)
     return ParseArrayDeclaration(type, name, token, length, index);
-  } else {
-    if (token[index].value.oper == Token::OperatorType::equal) {
-      return new Ast::Variable(type, name,
-                               ExpressionParser::ParseExpressionWithoutComma(
-                                   token, length, ++index));
-    }
-    return new Ast::Variable(type, name);
-  }
 
-  return nullptr;
+  // Declaration with initialization value.
+  if (token[index].value.oper == Token::OperatorType::equal)
+    return new Ast::Variable(
+        type, name,
+        ExpressionParser::ParseExpressionWithoutComma(token, length, ++index));
+
+  // Declaration only.
+  return new Ast::Variable(type, name);
 }
 
 Ast::Static* Parser::DeclarationParser::ParseStatic(Token* token,
@@ -258,7 +261,8 @@ bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
   }
 
   if (token[index] == Token::Type::IDENTIFIER &&
-      (token[index + 1] == Token::Type::IDENTIFIER ||
+      (token[index + 1] == Token::Type::IDENTIFIER ||  // Variable or Function.
+                                                       // Reference.
        (token[index + 1] == Token::OperatorType::amp &&
         token[index + 2] == Token::Type::IDENTIFIER))) {
     return true;
