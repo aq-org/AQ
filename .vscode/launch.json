@@ -17,6 +17,11 @@
                 {
                     "description": "启用反汇编风格",
                     "text": "-gdb-set disassembly-flavor intel"
+                },
+                {
+                "description": "防止gdb打开标准库函数",
+                "text": "-interpreter-exec console \"skip -rfu std::.*\"",
+                "ignoreFailures": false
                 }
             ]
         }

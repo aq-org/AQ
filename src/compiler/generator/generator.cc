@@ -78,7 +78,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
                           Ast::Cast<Ast::Variable>(sub_statement)
                               ->GetVariableName()] =
             HandleGlobalVariableDeclaration(
-                *this, Ast::Cast<Ast::Variable>(sub_statement), global_code);
+                *this, Ast::Cast<Ast::Variable>(sub_statement), init_code);
         break;
 
       case Ast::Statement::StatementType::kArrayDeclaration:
@@ -87,7 +87,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
                               ->GetVariableName()] =
             HandleGlobalArrayDeclaration(
                 *this, Ast::Cast<Ast::ArrayDeclaration>(sub_statement),
-                global_code);
+                init_code);
         break;
 
       case Ast::Statement::StatementType::kGoto:

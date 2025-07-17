@@ -12,6 +12,8 @@
 #include <variant>
 #include <vector>
 
+#include "vm/logging/logging.h"
+
 namespace Aq {
 namespace Vm {
 namespace Memory {
@@ -23,7 +25,12 @@ class ObjectReference {
   ObjectReference(std::vector<struct Object>& memory, std::size_t index)
       : memory_(memory), index_(index) {}
 
-  struct Object& Get() { return memory_.get()[index_]; }
+  struct Object& Get() {
+    if (index_ >= memory_.get().size())
+      LOGGING_ERROR("Invalid reference data.");
+
+    return memory_.get()[index_];
+  }
 
   void Set(std::vector<struct Object>& memory, std::size_t index) {
     memory_ = std::ref(memory);
@@ -37,18 +44,16 @@ class ObjectReference {
 
   void SetType(std::vector<uint8_t> type);
 
-  void SetData(int8_t data);
+  void SetData(int8_t data); 
   void SetData(int64_t data);
   void SetData(double data);
   void SetData(uint64_t data);
   void SetData(std::string data);
-  void SetData(std::vector<struct Object> data);
   void SetData(std::shared_ptr<struct Object> data);
   void SetData(void* data);
   void SetData(ObjectReference* data);
   void SetData(
-      std::variant<int8_t, int64_t, double, uint64_t, std::string,
-                   std::vector<struct Object>, void*,
+      std::variant<int8_t, int64_t, double, uint64_t, std::string, void*,
                    std::shared_ptr<struct Object>, ObjectReference>* data);
 
   void SetConstant(bool const_type);
@@ -68,14 +73,20 @@ class ObjectReference {
   std::size_t index_ = 0;
 };
 
-using Data = std::variant<int8_t, int64_t, double, uint64_t, std::string,
-                          std::vector<struct Object>, void*,
-                          std::shared_ptr<struct Object>, ObjectReference>;
+using Data =
+    std::variant<int8_t, int64_t, double, uint64_t, std::string, void*,
+                 std::shared_ptr<struct Object>, ObjectReference>;
 
 struct Object {
   std::vector<uint8_t> type;
   bool const_type;
   Data data;
+
+  bool operator==(const Object& other) const {
+    LOGGING_WARNING(
+        "Object comparison is not recommended. It may not work as expected.");
+    return type == other.type && const_type == other.const_type;
+  }
 };
 
 struct Memory {
@@ -83,9 +94,9 @@ struct Memory {
   std::vector<Object> constant_pool;
 };
 
-inline bool operator==(const Object& lhs, const Object& rhs) {
+/*inline bool operator==(const Object& lhs, const Object& rhs) {
   return lhs.type == rhs.type && lhs.data == rhs.data;
-}
+}*/
 
 ObjectReference GetOriginDataReference(std::vector<Object>& heap, size_t index);
 
@@ -109,10 +120,10 @@ uint64_t GetUint64tData(std::vector<Object>& heap, size_t index);
 
 std::string GetStringData(std::vector<Object>& heap, size_t index);
 
-std::vector<Object> GetObjectData(std::vector<Object>& heap, size_t index);
+std::vector<Object>& GetObjectData(std::vector<Object>& heap, size_t index);
 
 void SetArrayData(std::vector<Object>& heap, size_t index,
-                  std::vector<Object> array);
+                  ObjectReference array);
 
 void SetByteData(std::vector<Object>& heap, size_t index, int8_t value);
 
@@ -133,7 +144,7 @@ void SetConstData(std::vector<Object>& heap, size_t index,
                   std::size_t reference_index);
 
 void SetObjectData(std::vector<Object>& heap, size_t index,
-                   std::vector<Object> object);
+                   ObjectReference object);
 
 }  // namespace Memory
 }  // namespace Vm

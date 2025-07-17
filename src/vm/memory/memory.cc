@@ -29,9 +29,6 @@ void ObjectReference::SetData(uint64_t data) {
 void ObjectReference::SetData(std::string data) {
   memory_.get()[index_].data = data;
 }
-void ObjectReference::SetData(std::vector<struct Object> data) {
-  memory_.get()[index_].data = data;
-}
 void ObjectReference::SetData(std::shared_ptr<struct Object> data) {
   memory_.get()[index_].data = data;
 }
@@ -40,8 +37,7 @@ void ObjectReference::SetData(ObjectReference* data) {
   memory_.get()[index_].data = *data;
 }
 void ObjectReference::SetData(
-    std::variant<int8_t, int64_t, double, uint64_t, std::string,
-                 std::vector<struct Object>, void*,
+    std::variant<int8_t, int64_t, double, uint64_t, std::string, void*,
                  std::shared_ptr<struct Object>, ObjectReference>* data) {
   memory_.get()[index_].data = *data;
 }
@@ -50,7 +46,7 @@ void ObjectReference::SetConstant(bool const_type) {
   if (index_ >= memory_.get().size()) {
     LOGGING_ERROR("Invalid reference data.");
   }
-  // memory_.get()[index_].const_type = const_type;
+  memory_.get()[index_].const_type = const_type;
 }
 
 ObjectReference GetOriginDataReference(std::vector<Object>& heap,
@@ -105,8 +101,6 @@ Object& GetOriginData(std::vector<Object>& heap, size_t index) {
       }
 
       default:
-        // LOGGING_INFO("Object type is error at index " +
-        // std::to_string(index));
         LOGGING_ERROR("Unsupported data type." +
                       std::to_string(origin_data.get().type[0]));
         break;
@@ -164,6 +158,9 @@ ObjectReference GetLastDataReference(std::vector<Object>& heap, size_t index) {
   auto object = ObjectReference(heap, index);
 
   while (true) {
+    if (object.Get().type.size() <= 0)
+      LOGGING_ERROR("Object type is empty at index " + std::to_string(index));
+
     switch (object.Get().type[0]) {
       case 0x07: {
         if (object.Get().type.size() >= 2 && object.Get().type[1] == 0x00) {
@@ -202,7 +199,7 @@ std::vector<Object>& GetArrayData(std::vector<Object>& heap, size_t index) {
 
   if (object.type[0] != 0x06) LOGGING_ERROR("Unsupported array type.");
 
-  return std::get<std::vector<Object>>(object.data);
+  return std::get<ObjectReference>(object.data).GetMemory().get();
 }
 
 int8_t GetByteData(std::vector<Object>& heap, size_t index) {
@@ -321,18 +318,18 @@ std::string GetStringData(std::vector<Object>& heap, size_t index) {
   return std::get<std::string>(object.data);
 }
 
-std::vector<Object> GetObjectData(std::vector<Object>& heap, size_t index) {
+std::vector<Object>& GetObjectData(std::vector<Object>& heap, size_t index) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
   Object& object = GetOriginData(heap, index);
 
   if (object.type[0] != 0x09) LOGGING_ERROR("Unsupported data type.");
 
-  return std::get<std::vector<Object>>(object.data);
+  return std::get<ObjectReference>(object.data).GetMemory().get();
 }
 
 void SetArrayData(std::vector<Object>& heap, size_t index,
-                  std::vector<Object> array) {
+                  ObjectReference array) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
@@ -340,7 +337,9 @@ void SetArrayData(std::vector<Object>& heap, size_t index,
 
   if (!object.Get().const_type || object.Get().type[0] == 0x06) {
     object.Get().type[0] = 0x06;
-    object.Get().data = array;
+    auto temp = new std::vector<struct Object>(array.GetMemory());
+
+    object.Get().data = ObjectReference(*temp, 0);
   }
 }
 
@@ -465,7 +464,7 @@ void SetConstData(std::vector<Object>& heap, size_t index,
 }
 
 void SetObjectData(std::vector<Object>& heap, size_t index,
-                   std::vector<Object> objects) {
+                   ObjectReference objects) {
   if (index >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (heap[index].type[0] == 0x08) LOGGING_ERROR("Cannot change const data.");
 
@@ -476,7 +475,9 @@ void SetObjectData(std::vector<Object>& heap, size_t index,
 
   if (!const_object.Get().const_type || const_object.Get().type[0] == 0x09) {
     const_object.Get().type[0] = 0x09;
-    const_object.Get().data = objects;
+    auto temp = new std::vector<struct Object>(objects.GetMemory());
+
+    const_object.Get().data = ObjectReference(*temp, 0);
   }
 
   // LOGGING_INFO("Set object data at index " + std::to_string(index) +

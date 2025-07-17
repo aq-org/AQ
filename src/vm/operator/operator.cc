@@ -166,7 +166,7 @@ int NEW(std::vector<Memory::Object>& heap,
   // LOGGING_INFO("8");
   if (size_value == 0 && type_data.type[0] == 0x05 &&
       !std::get<std::string>(type_data.data).empty()) {
-    SetObjectData(heap, ptr, class_object);
+    SetObjectData(heap, ptr, Memory::ObjectReference(class_object, 0));
 
     if (is_bytecode_file_main_program) {
       std::string class_name = GetStringData(heap, type);
@@ -175,7 +175,7 @@ int NEW(std::vector<Memory::Object>& heap,
         LOGGING_ERROR("class not found.");
 
       Bytecode::Class& class_data = classes[class_name];
-      class_data.memory->heap[2].data = data;
+      class_data.memory->heap[2].data = Memory::ObjectReference(data, 0);
 
       heap.push_back({{0x05}, true, std::string("@constructor")});
       INVOKE_METHOD(heap, current_bytecode_file, classes, memory,
@@ -183,7 +183,7 @@ int NEW(std::vector<Memory::Object>& heap,
                     {2, heap.size() - 1, 1, 0});
     }
   } else {
-    SetArrayData(heap, ptr, data);
+    SetArrayData(heap, ptr, Memory::ObjectReference(data, 0));
   }
 
   // LOGGING_INFO("DEUBG 9");
@@ -266,9 +266,9 @@ int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
   if (size_value == 0 && type_data.type[0] == 0x05 &&
       !std::get<std::string>(type_data.data).empty()) {
     SetObjectData(memory->heap, ptr,
-                  std::get<std::vector<Memory::Object>>(type_data.data));
+                  std::get<Memory::ObjectReference>(type_data.data));
   } else {
-    SetArrayData(memory->heap, ptr, data);
+    SetArrayData(memory->heap, ptr, Memory::ObjectReference(data, 0));
   }
   return 0;
 }
@@ -1556,11 +1556,13 @@ int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
       break;
     case 0x06:
       // LOGGING_INFO("EQUAL: value_data.type = 0x06");
-      SetArrayData(heap, result, GetArrayData(heap, value));
+      SetArrayData(heap, result,
+                   Memory::ObjectReference(GetArrayData(heap, value), 0));
       break;
     case 0x09:
       // LOGGING_INFO("EQUAL: value_data.type = 0x09");
-      SetObjectData(heap, result, GetObjectData(heap, value));
+      SetObjectData(heap, result,
+                    Memory::ObjectReference(GetObjectData(heap, value), 0));
       break;
     case 0x0A:
       // SetOriginData(heap, result, GetPointerData(heap, value));
@@ -1602,10 +1604,13 @@ int CrossMemoryEqual(std::vector<Memory::Object>& result_heap,
       SetStringData(result_heap, result, GetStringData(value_heap, value));
       break;
     case 0x06:
-      SetArrayData(result_heap, result, GetArrayData(value_heap, value));
+      SetArrayData(result_heap, result,
+                   Memory::ObjectReference(GetArrayData(value_heap, value), 0));
       break;
     case 0x09:
-      SetObjectData(result_heap, result, GetObjectData(value_heap, value));
+      SetObjectData(
+          result_heap, result,
+          Memory::ObjectReference(GetObjectData(value_heap, value), 0));
       break;
     case 0x0A:
       // SetOriginData(result_heap, result,
@@ -1651,9 +1656,9 @@ int LOAD_CONST(std::vector<Memory::Object>& heap,
                     std::get<std::string>(constant_pool[const_object].data));
       break;
     case 0x06:
-      SetArrayData(heap, object,
-                   std::get<std::vector<Memory::Object>>(
-                       constant_pool[const_object].data));
+      SetArrayData(
+          heap, object,
+          std::get<Memory::ObjectReference>(constant_pool[const_object].data));
       break;
     default:
       LOGGING_ERROR("Unsupported type.");
@@ -1733,14 +1738,24 @@ int LOAD_MEMBER(std::vector<Memory::Object>& heap,
   auto class_data = GetOriginData(heap, class_index);
   if (class_data.type[0] != 0x09) LOGGING_ERROR("Error class data.");
 
-  if (std::get<std::vector<Memory::Object>>(class_data.data).empty() ||
-      std::get<std::vector<Memory::Object>>(class_data.data)[0].type.empty() ||
-      std::get<std::vector<Memory::Object>>(class_data.data)[0].type[0] != 0x05)
+  if (std::get<Memory::ObjectReference>(class_data.data)
+          .GetMemory()
+          .get()
+          .empty() ||
+      std::get<Memory::ObjectReference>(class_data.data)
+          .GetMemory()
+          .get()[0]
+          .type.empty() ||
+      std::get<Memory::ObjectReference>(class_data.data)
+              .GetMemory()
+              .get()[0]
+              .type[0] != 0x05)
     LOGGING_ERROR("Unsupported class name type.");
-  std::string class_name = std::get<std::string>(
-      std::get<std::vector<Memory::Object>>(class_data.data)[0].data);
-
-  // LOGGING_INFO("Class name: " +class_name);
+  std::string class_name =
+      std::get<std::string>(std::get<Memory::ObjectReference>(class_data.data)
+                                .GetMemory()
+                                .get()[0]
+                                .data);
 
   auto name_data = GetOriginData(heap, operand);
   if (name_data.type[0] != 0x05) LOGGING_ERROR("Error class name data.");
@@ -1758,9 +1773,9 @@ int LOAD_MEMBER(std::vector<Memory::Object>& heap,
 
   std::size_t offset = class_declaration->second.variables[variable_name];
 
-  SetReferenceData(heap, result,
-                   std::get<std::vector<Memory::Object>>(class_data.data),
-                   offset);
+  SetReferenceData(
+      heap, result,
+      std::get<Memory::ObjectReference>(class_data.data).GetMemory(), offset);
 
   return 0;
 }
