@@ -166,7 +166,9 @@ int NEW(std::vector<Memory::Object>& heap,
   // LOGGING_INFO("8");
   if (size_value == 0 && type_data.type[0] == 0x05 &&
       !std::get<std::string>(type_data.data).empty()) {
+    LOGGING_INFO("Name: " + std::get<std::string>(type_data.data));
     SetObjectData(heap, ptr, Memory::ObjectReference(class_object, 0));
+
 
     if (is_bytecode_file_main_program) {
       std::string class_name = GetStringData(heap, type);

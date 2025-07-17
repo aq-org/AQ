@@ -5,15 +5,14 @@
 #ifndef AQ_COMPILER_AST_AST_H_
 #define AQ_COMPILER_AST_AST_H_
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 #include "compiler/ast/type.h"
 #include "compiler/logging/logging.h"
 #include "compiler/token/token.h"
-
 
 namespace Aq {
 namespace Compiler {
@@ -67,6 +66,9 @@ class Import : public Statement {
  public:
   // General import only.
   Import(std::string import_location, std::string name) {
+    LOGGING_ERROR(
+        "General import is deprecated, use from import instead. "
+        "This will be removed in the future.");
     statement_type_ = StatementType::kImport;
     is_from_import_ = false;
     import_location_ = import_location;
@@ -76,6 +78,9 @@ class Import : public Statement {
   // From import only.
   Import(std::string import_location,
          std::map<std::string, std::string> modules) {
+    LOGGING_ERROR(
+        "From import is deprecated, use import instead. "
+        "This will be removed in the future.");
     statement_type_ = StatementType::kImport;
     is_from_import_ = true;
     import_location_ = import_location;
@@ -676,11 +681,11 @@ class Return : public Statement {
 template <typename T>
 bool IsOfType(Ast::Statement* statement) {
   if (!statement) return false;
-    
+
   if constexpr (std::is_polymorphic_v<T>) {
-      return dynamic_cast<T*>(statement) != nullptr;
+    return dynamic_cast<T*>(statement) != nullptr;
   } else {
-      return typeid(T) == typeid(*statement);
+    return typeid(T) == typeid(*statement);
   }
 }
 

@@ -155,7 +155,7 @@ void HandleVoidConstructorFunctionInHandlingClass(
 // Handles the class in handling variable.
 void HandleClassInHandlingVariable(Generator& generator,
                                    Ast::Variable* declaration,
-                                   std::size_t variable_index);
+                                   std::size_t variable_index,std::vector<Bytecode>& code);
 
 // Handles the class in handling variable.
 std::string GetClassNameString(Generator& generator, Ast::ClassType* type);

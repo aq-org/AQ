@@ -5,6 +5,7 @@
 #include "vm/memory/memory.h"
 
 #include <memory>
+#include <string>
 
 #include "vm/logging/logging.h"
 
@@ -323,7 +324,10 @@ std::vector<Object>& GetObjectData(std::vector<Object>& heap, size_t index) {
 
   Object& object = GetOriginData(heap, index);
 
-  if (object.type[0] != 0x09) LOGGING_ERROR("Unsupported data type.");
+  if (object.type[0] != 0x09) {
+    LOGGING_INFO("Object type: " + std::to_string(object.type[0])+std::to_string(object.type[1]));
+    LOGGING_ERROR("Unsupported data type.");
+  }
 
   return std::get<ObjectReference>(object.data).GetMemory().get();
 }

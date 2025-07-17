@@ -133,14 +133,15 @@ void HandleClassFunctionDeclaration(Generator& generator,
   // Handles the class constructor if this function is a constructor function.
   if (std::string(current_class->GetClassDeclaration()->GetClassName()) ==
       name) {
-    //LOGGING_INFO("Handling class constructor AAAAAAAAAAAAAAAAAAAAAAAAAAAA: " +
-               //  std::string(current_class->GetClassDeclaration()->GetClassName()));
+    // LOGGING_INFO("Handling class constructor AAAAAAAAAAAAAAAAAAAAAAAAAAAA: "
+    // +
+    //   std::string(current_class->GetClassDeclaration()->GetClassName()));
     HandleClassConstructor(generator, declaration);
     return;
-  }else{
-    //LOGGING_INFO("Handling class function: " + name);
-    //LOGGING_INFO("Class: " +
-             //    std::string(current_class->GetClassDeclaration()->GetClassName()));
+  } else {
+    // LOGGING_INFO("Handling class function: " + name);
+    // LOGGING_INFO("Class: " +
+    //     std::string(current_class->GetClassDeclaration()->GetClassName()));
   }
 
   // Handles the function name with scopes.
@@ -265,13 +266,13 @@ std::size_t HandleVariableDeclaration(Generator& generator,
   std::string variable_name =
       scopes.back() + "#" + declaration->GetVariableName();
 
-  //LOGGING_INFO("Handling variable declaration: " + variable_name);
+  // LOGGING_INFO("Handling variable declaration: " + variable_name);
 
   std::size_t variable_index = memory.AddWithType(vm_type);
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, variable_index);
+    HandleClassInHandlingVariable(generator, declaration, variable_index, code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -342,14 +343,15 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
   // |variable_index| is the original variable index in the main class memory,
   // |reference_index| is a reference of the variable in the global memory.
   std::size_t variable_index = memory.AddWithType(variable_name, return_type);
-  //LOGGING_INFO("Handling global variable declaration: " + variable_name);
+  // LOGGING_INFO("Handling global variable declaration: " + variable_name);
   std::size_t reference_index = global_memory.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
                           global_memory.AddString(variable_name)));
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, reference_index);
+    HandleClassInHandlingVariable(generator, declaration, reference_index,
+                                  code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -388,10 +390,6 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
 
   variables[variable_name] = reference_index;
 
-  for (std::size_t j = 0; j < memory.GetMemoryType().size(); j++) {
-    //LOGGING_INFO("Variable name: " + memory.GetVarName()[j]);
-  }
-
   return reference_index;
 }
 
@@ -424,7 +422,8 @@ std::size_t HandleStaticVariableDeclaration(Generator& generator,
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, variable_index);
+    HandleClassInHandlingVariable(generator, declaration, variable_index,
+                                  global_code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -502,7 +501,8 @@ std::size_t HandleClassVariableDeclaration(Generator& generator,
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, reference_index);
+    HandleClassInHandlingVariable(generator, declaration, reference_index,
+                                  code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -1017,19 +1017,18 @@ void AddClassFunctionIntoList(Generator& generator,
   function_list.push_back(function);
 }
 
-void AddClassConstructorFunctionIntoList(Generator& generator,
-  Ast::FunctionDeclaration* declaration,
-  std::vector<std::size_t>& parameters_index,
-  std::vector<Bytecode>& code) {
-// Gets the reference of context.
-auto& function_list = generator.context.current_class->GetFunctionList();
+void AddClassConstructorFunctionIntoList(
+    Generator& generator, Ast::FunctionDeclaration* declaration,
+    std::vector<std::size_t>& parameters_index, std::vector<Bytecode>& code) {
+  // Gets the reference of context.
+  auto& function_list = generator.context.current_class->GetFunctionList();
 
-Ast::Function* statement = declaration->GetFunctionStatement();
+  Ast::Function* statement = declaration->GetFunctionStatement();
 
-// Adds function into class function list.
-Function function("@constructor", parameters_index, code);
-if (statement->IsVariadic()) function.EnableVariadic();
-function_list.push_back(function);
+  // Adds function into class function list.
+  Function function("@constructor", parameters_index, code);
+  if (statement->IsVariadic()) function.EnableVariadic();
+  function_list.push_back(function);
 }
 
 void HandleReturnVariableInHandlingFunction(
@@ -1136,7 +1135,8 @@ void HandleConstructorFunctionInHandlingConstructor(
 
   HandleGotoInHandlingFunction(generator, current_scope, code);
 
-  AddClassConstructorFunctionIntoList(generator, declaration, parameters_index, code);
+  AddClassConstructorFunctionIntoList(generator, declaration, parameters_index,
+                                      code);
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -1319,12 +1319,13 @@ void HandleVoidConstructorFunctionInHandlingClass(
 
 void HandleClassInHandlingVariable(Generator& generator,
                                    Ast::Variable* declaration,
-                                   std::size_t variable_index) {
+                                   std::size_t variable_index,
+                                   std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
   auto& memory = generator.global_memory;
-  auto& global_code = generator.global_code;
+  // auto& global_code = generator.global_code;
   auto& scopes = generator.context.scopes;
   auto& functions = generator.context.functions;
 
@@ -1354,15 +1355,14 @@ void HandleClassInHandlingVariable(Generator& generator,
 
   // Adds the class into global memory.
   std::size_t reference_index = memory.Add(1);
-  global_code.push_back(
+  code.push_back(
       Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, variable_index));
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, reference_index,
-                                 memory.AddByte(0), memory.AddString(name)));
+  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, reference_index,
+                          memory.AddByte(0), memory.AddString(name)));
 
   // Classes without initialization requires default initialization.
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4,
-                                 reference_index,
-                                 memory.AddString("@constructor"), 1, 0));
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, reference_index,
+                          memory.AddString("@constructor"), 1, reference_index));
 }
 
 std::string GetClassNameString(Generator& generator, Ast::ClassType* type) {
