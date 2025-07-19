@@ -456,7 +456,7 @@ int InvokeClassFunction(
 
   auto function = classes[class_name].functions[function_name];
 
-  if (arguments.size() < function.arguments.size())
+  if (arguments.size() + 1 < function.arguments.size())
     LOGGING_ERROR("Invalid args_size.");
 
   // Sets the variadic information.
@@ -486,7 +486,7 @@ int InvokeClassFunction(
     if (class_heap[function.arguments[i]].const_type &&
         class_heap[function.arguments[i]].type[0] == 0x07 &&
         class_heap[function.arguments[i]].type[1] != 0x08) {
-      // LOGGING_INFO("1");
+       LOGGING_INFO("ICF: AHR(N-C)");
       class_heap[function.arguments[i]].data =
           Memory::ObjectReference(heap, arguments[i]);
       // LOGGING_INFO("1 END");

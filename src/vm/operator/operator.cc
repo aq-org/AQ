@@ -1520,11 +1520,6 @@ int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (value >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  if (result == 10) {
-    SetLongData(heap, result, 0);
-    return 0;
-  }
-
   // LOGGING_INFO("EQUAL: result = {}, value = {}");
 
   Memory::Object value_data = GetOriginData(heap, value);

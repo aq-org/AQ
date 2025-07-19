@@ -325,7 +325,8 @@ std::vector<Object>& GetObjectData(std::vector<Object>& heap, size_t index) {
   Object& object = GetOriginData(heap, index);
 
   if (object.type[0] != 0x09) {
-    LOGGING_INFO("Object type: " + std::to_string(object.type[0])+std::to_string(object.type[1]));
+    LOGGING_INFO("Object type: " + std::to_string(object.type[0]) +
+                 std::to_string(object.type[1]));
     LOGGING_ERROR("Unsupported data type.");
   }
 
@@ -354,8 +355,8 @@ void SetByteData(std::vector<Object>& heap, size_t index, int8_t value) {
   auto object = GetLastDataReference(heap, index);
 
   if (!object.Get().const_type || object.Get().type[0] == 0x01) {
-    object.Get().type[0] = 0x01;
-    object.Get().data = value;
+    object.SetType({0x01});
+    object.SetData(value);
   }
 }
 
@@ -380,8 +381,8 @@ void SetLongData(std::vector<Object>& heap, size_t index, int64_t value) {
   //      " with type " + std::to_string(object.Get().type[0]) + ".");
 
   if (!object.Get().const_type || object.Get().type[0] == 0x02) {
-    object.Get().type[0] = 0x02;
-    object.Get().data = value;
+    object.SetType({0x02});
+    object.SetData(value);
   }
 }
 
@@ -392,8 +393,8 @@ void SetDoubleData(std::vector<Object>& heap, size_t index, double value) {
   auto object = GetLastDataReference(heap, index);
 
   if (!object.Get().const_type || object.Get().type[0] == 0x03) {
-    object.Get().type[0] = 0x03;
-    object.Get().data = value;
+    object.SetType({0x03});
+    object.SetData(value);
   }
 }
 
@@ -404,8 +405,8 @@ void SetUint64tData(std::vector<Object>& heap, size_t index, uint64_t value) {
   auto object = GetLastDataReference(heap, index);
 
   if (!object.Get().const_type || object.Get().type[0] == 0x04) {
-    object.Get().type[0] = 0x04;
-    object.Get().data = value;
+    object.SetType({0x04});
+    object.SetData(value);
   }
 }
 
@@ -417,8 +418,8 @@ void SetStringData(std::vector<Object>& heap, size_t index,
   auto object = GetLastDataReference(heap, index);
 
   if (!object.Get().const_type || object.Get().type[0] == 0x05) {
-    object.Get().type[0] = 0x05;
-    object.Get().data = string;
+    object.SetType({0x05});
+    object.SetData(string);
   }
 }
 
