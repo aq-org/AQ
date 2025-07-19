@@ -454,17 +454,6 @@ int InvokeClassFunction(
   if (classes.find(class_name) == classes.end())
     LOGGING_ERROR("Class not found: " + class_name);
 
-  if (classes[class_name].functions.find(function_name) ==
-      classes[class_name].functions.end()) {
-    if (classes[class_name].functions.find("@constructor") !=
-        classes[class_name].functions.end())
-      LOGGING_WARNING("" + function_name +
-                      " not found, using @constructor instead.");
-
-    LOGGING_ERROR("Function not found: " + function_name);
-    LOGGING_ERROR("Function not found: " + function_name);
-  }
-
   auto function = classes[class_name].functions[function_name];
 
   if (arguments.size() < function.arguments.size())
@@ -531,9 +520,13 @@ int InvokeClassFunction(
   }
 
   // LOGGING_INFO("1");
-  //  Stores the old heap and sets the new heap for the class.
-  auto& old_heap = heap;
+  // Stores the old heap and sets the new heap for the class.
+  // NOTICE: Reference can't be changed, so we need to copy the old heap.
+  std::reference_wrapper<std::vector<Memory::Object>> old_heap = heap;
   heap = classes[class_name].memory->heap;
+  auto old_class = heap[2].data;
+  heap[2].data = std::get<Memory::ObjectReference>(
+      Memory::GetOriginDataReference(heap, class_index).Get().data);
   auto& constant_pool = classes[class_name].memory->constant_pool;
 
   // LOGGING_INFO("1");
@@ -677,6 +670,7 @@ int InvokeClassFunction(
 
   // Recovers the old heap and the current bytecode file.
   heap = old_heap;
+  heap[2].data = old_class;
   current_bytecode_file = old_current_bytecode_file;
 
   return 0;

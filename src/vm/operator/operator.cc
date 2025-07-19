@@ -97,7 +97,8 @@ int NEW(std::vector<Memory::Object>& heap,
 
   // LOGGING_INFO("DEUBG");
 
-  std::vector<Memory::Object> class_object;
+  auto class_object_ptr = new std::vector<Memory::Object>();
+  auto& class_object = *class_object_ptr;
   if (type == 0) {
     data[0].type.push_back(0x00);
     data[0].const_type = false;
@@ -166,9 +167,8 @@ int NEW(std::vector<Memory::Object>& heap,
   // LOGGING_INFO("8");
   if (size_value == 0 && type_data.type[0] == 0x05 &&
       !std::get<std::string>(type_data.data).empty()) {
-    LOGGING_INFO("Name: " + std::get<std::string>(type_data.data));
+    LOGGING_INFO("Name: " + GetStringData(heap, type));
     SetObjectData(heap, ptr, Memory::ObjectReference(class_object, 0));
-
 
     if (is_bytecode_file_main_program) {
       std::string class_name = GetStringData(heap, type);
@@ -177,12 +177,13 @@ int NEW(std::vector<Memory::Object>& heap,
         LOGGING_ERROR("class not found.");
 
       Bytecode::Class& class_data = classes[class_name];
-      class_data.memory->heap[2].data = Memory::ObjectReference(data, 0);
+      class_data.memory->heap[2].data = Memory::ObjectReference(class_object, 0);
 
       heap.push_back({{0x05}, true, std::string("@constructor")});
       INVOKE_METHOD(heap, current_bytecode_file, classes, memory,
                     bytecode_files, builtin_functions, is_big_endian,
                     {2, heap.size() - 1, 1, 0});
+      // heap.pop_back();
     }
   } else {
     SetArrayData(heap, ptr, Memory::ObjectReference(data, 0));
