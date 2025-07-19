@@ -13,22 +13,17 @@ namespace Compiler {
 namespace Generator {
 std::size_t HandleExpression(Generator& generator, Ast::Expression* expression,
                              std::vector<Bytecode>& code) {
-  //LOGGING_INFO("Handling 222222222222222222: ");
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
-
-  //LOGGING_INFO("Handling 111111111111111111111: ");
 
   if (Ast::IsOfType<Ast::Unary>(expression) ||
       Ast::IsOfType<Ast::Array>(expression)) {
-    //LOGGING_INFO("Handling 333333333333333333333: ");
     return HandleUnaryExpression(generator, Ast::Cast<Ast::Unary>(expression),
                                  code);
   } else if (Ast::IsOfType<Ast::Binary>(expression)) {
-    //LOGGING_INFO("Handling 444444444444444444444: ");
     return HandleBinaryExpression(generator, Ast::Cast<Ast::Binary>(expression),
                                   code);
   }
-  //LOGGING_INFO("Handling 555555555555555555555: ");
+
   return GetIndex(generator, expression, code);
 }
 
@@ -117,11 +112,11 @@ std::size_t HandleBinaryExpression(Generator& generator,
   std::size_t left = 0;
   std::size_t right = 0;
   if (expression->GetOperator() != Ast::Binary::Operator::kMember) {
-    //LOGGING_INFO("message");
+    // LOGGING_INFO("message");
     right = HandleExpression(generator, right_expression, code);
-    //LOGGING_INFO("message");
+    // LOGGING_INFO("message");
     left = HandleExpression(generator, left_expression, code);
-    //LOGGING_INFO("message");
+    // LOGGING_INFO("message");
   }
 
   std::size_t result = global_memory.Add(1);
@@ -268,7 +263,7 @@ std::size_t HandlePeriodExpression(Generator& generator,
   if (expression->GetOperator() != Ast::Binary::Operator::kMember)
     INTERNAL_ERROR("The expression isn't a period expression.");
 
-  LOGGING_INFO("Period expression: " );
+  LOGGING_INFO("Period expression: ");
 
   // Gets the reference of context.
   auto& global_memory = generator.global_memory;
@@ -510,9 +505,9 @@ std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
             scopes[i] + "#" +
             std::string(*Ast::Cast<Ast::Identifier>(expression)));
 
-        //LOGGING_INFO("Searching for identifier: " + scopes[i] + "#" +
-                 //    std::string(*Ast::Cast<Ast::Identifier>(expression)) +
-                   //  " in scope: " + scopes[i]);
+        // LOGGING_INFO("Searching for identifier: " + scopes[i] + "#" +
+        //     std::string(*Ast::Cast<Ast::Identifier>(expression)) +
+        //   " in scope: " + scopes[i]);
 
         if (iterator != variables.end()) {
           return iterator->second;

@@ -25,7 +25,10 @@ Ast::Compound* Parser::Parse(std::vector<Token>& token) {
   std::vector<Ast::Statement*> stmts;
 
   // Delete the last NONE token.
-  if (token_ptr[token.size() - 1].type == Token::Type::NONE) token.pop_back();
+  if (token_ptr[token.size() - 1].type == Token::Type::NONE) {
+    token.pop_back();
+    length--;
+  }
 
   while (index < token.size()) {
     if (DeclarationParser::IsDeclaration(token_ptr, length, index)) {
@@ -149,6 +152,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
             index++;
           }
 
+          // TODO(bugs): May have bugs in the for statement parsing.
           Ast::Expression* start = new Ast::Expression();
 
           if (!(token[index] == Token::OperatorType::semi)) {
@@ -200,6 +204,11 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
           Ast::Identifier label(token[index]);
           index++;
           Ast::Goto* result = new Ast::Goto(label);
+          if (!(token[index] == Token::OperatorType::semi)) {
+            LOGGING_WARNING("Expected ';' after 'goto', but not found.");
+          } else {
+            index++;
+          }
           return result;
         }
 
@@ -331,7 +340,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
           token[index + 1] == Token::OperatorType::colon) {
         Ast::Label* result = new Ast::Label(Ast::Identifier(token[index]));
         index++;
-        
+
         // Checks if the label is followed by a colon.
         if (!(token[index] == Token::OperatorType::semi)) {
           LOGGING_WARNING("Expected ';' after 'return', but not found.");

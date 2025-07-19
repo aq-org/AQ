@@ -32,6 +32,8 @@ bool Parser::DeclarationParser::IsFunctionDeclaration(Token* token,
 
   for (std::size_t i = index; i < length; i++) {
     if (token[i].type == Token::Type::IDENTIFIER) {
+      if (i + 1 >= length) INTERNAL_ERROR("index is out of range.");
+
       if (token[i + 1] == Token::OperatorType::l_paren) return true;
 
       // Skip the identifier if it is followed by a period (an identifier with
@@ -66,7 +68,7 @@ Ast::FunctionDeclaration* Parser::DeclarationParser::ParseFunctionDeclaration(
   if (index >= length) INTERNAL_ERROR("index is out of range.");
 
   Ast::Type* return_type = Ast::Type::CreateType(token, length, index);
-  Ast::Function* statement = dynamic_cast<Ast::Function*>(
+  Ast::Function* statement = Ast::Cast<Ast::Function>(
       Parser::ExpressionParser::ParsePrimaryExpression(token, length, index));
 
   if (statement == nullptr) INTERNAL_ERROR("Statement isn't a function.");
@@ -84,7 +86,7 @@ Ast::FunctionDeclaration* Parser::DeclarationParser::ParseFunctionDeclaration(
     LOGGING_ERROR("Expected '{', but not found. (Function body start).");
 
   Ast::Compound* body =
-      dynamic_cast<Ast::Compound*>(ParseStatement(token, length, index));
+      Ast::Cast<Ast::Compound>(ParseStatement(token, length, index));
   if (body == nullptr) INTERNAL_ERROR("The function body has error.");
 
   return new Ast::FunctionDeclaration(return_type, statement, body);
@@ -100,7 +102,7 @@ Ast::Class* Parser::DeclarationParser::ParseClassDeclaration(
 
   index++;
 
-  Ast::Identifier* name = dynamic_cast<Ast::Identifier*>(
+  Ast::Identifier* name = Ast::Cast<Ast::Identifier>(
       Parser::ExpressionParser::ParsePrimaryExpression(token, length, index));
   if (name == nullptr) INTERNAL_ERROR("name is not an identifier.");
 
@@ -247,7 +249,7 @@ bool Parser::DeclarationParser::HasTypeBeforeExpression(Token* token,
 bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
     Token* token, std::size_t length, std::size_t index) {
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
-  if (index >= length) INTERNAL_ERROR("index is out of range.");
+  if (index + 2 >= length) INTERNAL_ERROR("index is out of range.");
 
   // Skips the scopes if has.
   while (index < length) {
@@ -276,7 +278,7 @@ Ast::ArrayDeclaration* Parser::DeclarationParser::ParseArrayDeclaration(
     std::size_t& index) {
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
-  Ast::Array* array = dynamic_cast<Ast::Array*>(name);
+  Ast::Array* array = Ast::Cast<Ast::Array>(name);
   if (array == nullptr) INTERNAL_ERROR("name is not an array.");
 
   if (token[index].value.oper == Token::OperatorType::equal) {

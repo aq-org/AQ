@@ -591,6 +591,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
 
         case Token::OperatorType::period: {  // .
           index++;
+          if (index >= length) LOGGING_ERROR("index is out of range.");
           Ast::Identifier* identifier_node = new Ast::Identifier(token[index]);
           if (identifier_node == nullptr)
             INTERNAL_ERROR("identifier_node is nullptr.");
@@ -778,6 +779,9 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
       break;
     }
 
+    if (token[index] == Token::OperatorType::comma)
+      LOGGING_WARNING("Unexpected comma in function arguments.");
+
     arguments.push_back(ParseExpressionWithoutComma(token, length, index));
 
     if (token[index] == Token::OperatorType::comma) {
@@ -804,9 +808,17 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
     Ast::Binary* old_expression = Ast::Cast<Ast::Binary>(main_expression);
     function = new Ast::Function(old_expression->GetRightExpression(),
                                  arguments, is_variadic);
-    main_expression =
+    Ast::Binary* new_expression =
         new Ast::Binary(old_expression->GetOperator(),
                         old_expression->GetLeftExpression(), function);
+
+    if (full_expression == nullptr || pre_operator_expression == nullptr) {
+      full_expression = main_expression = new_expression;
+    } else {
+      HandlePreOperatorExpression(pre_operator_expression, new_expression);
+      main_expression = new_expression;
+    }
+
     delete old_expression;
 
   } else {

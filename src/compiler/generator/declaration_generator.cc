@@ -98,6 +98,9 @@ void HandleFunctionDeclaration(Generator& generator,
                                          parameters_index);
   HandleFunctionArguments(generator, declaration, parameters_index, code);
 
+  LOGGING_INFO("Handling function body: " +
+               std::string(statement->GetFunctionName()));
+
   // Handles function body.
   HandleStatement(generator, declaration->GetFunctionBody(), code);
 
@@ -1362,7 +1365,8 @@ void HandleClassInHandlingVariable(Generator& generator,
 
   // Classes without initialization requires default initialization.
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, reference_index,
-                          memory.AddString("@constructor"), 1, reference_index));
+                          memory.AddString("@constructor"), 1,
+                          reference_index));
 }
 
 std::string GetClassNameString(Generator& generator, Ast::ClassType* type) {
