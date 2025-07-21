@@ -240,7 +240,13 @@ void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
   classes_list.push_back(*current_class);
 
   // Destroys temporary context.
-  scopes.pop_back();
+  if (scopes.size() <= 0) {
+    LOGGING_WARNING(
+        "Scopes size is 0, this may cause unexpected behavior. "
+        "Please check the class declaration.");
+  } else {
+    scopes.pop_back();
+  }
   current_class = nullptr;
 }
 
@@ -268,8 +274,6 @@ std::size_t HandleVariableDeclaration(Generator& generator,
 
   std::string variable_name =
       scopes.back() + "#" + declaration->GetVariableName();
-
-  // LOGGING_INFO("Handling variable declaration: " + variable_name);
 
   std::size_t variable_index = memory.AddWithType(vm_type);
 
@@ -325,7 +329,8 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
 
   // Gets the reference of context.
   auto& start_class = generator.main_class;
-  auto& variables = start_class.GetVariables();
+  auto& variables = generator.context.variables;
+  auto& class_variables = start_class.GetVariables();
   auto& memory = start_class.GetMemory();
   auto& global_memory = generator.global_memory;
 
@@ -346,7 +351,7 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
   // |variable_index| is the original variable index in the main class memory,
   // |reference_index| is a reference of the variable in the global memory.
   std::size_t variable_index = memory.AddWithType(variable_name, return_type);
-  // LOGGING_INFO("Handling global variable declaration: " + variable_name);
+
   std::size_t reference_index = global_memory.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
                           global_memory.AddString(variable_name)));
@@ -391,6 +396,7 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
         "deprecated.");
   }
 
+  class_variables[variable_name] = variable_index;
   variables[variable_name] = reference_index;
 
   return reference_index;
@@ -636,8 +642,9 @@ std::size_t HandleGlobalArrayDeclaration(Generator& generator,
   // Gets the reference of context.
   auto& global_memory = generator.global_memory;
   auto& variables = generator.context.variables;
-  auto& scopes = generator.context.scopes;
   auto& start_class = generator.main_class;
+  auto& class_variables = start_class.GetVariables();
+  auto& scopes = generator.context.scopes;
   auto& memory = start_class.GetMemory();
 
   // Handles the array type.
@@ -712,7 +719,9 @@ std::size_t HandleGlobalArrayDeclaration(Generator& generator,
     }
   }
 
+  class_variables[variable_name] = original_array_index;
   variables[variable_name] = array_index;
+
   return array_index;
 }
 
@@ -1063,6 +1072,9 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   std::string name = statement->GetFunctionName();
   auto parameters = statement->GetParameters();
   std::vector<Bytecode> code;
+
+  name = GetFunctionNameWithScope(generator, declaration);
+  scopes.push_back(name);
 
   // Records the creation of the function.
   functions.insert(name);

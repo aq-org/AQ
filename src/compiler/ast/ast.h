@@ -285,6 +285,14 @@ class Binary : public Expression {
   Binary(const Binary&) = default;
   Binary& operator=(const Binary&) = default;
 
+  operator std::string() override {
+    if (operator_ != Operator::kMember)
+      LOGGING_WARNING(
+          "Binary operator is not member operator, this may cause unexpected "
+          "behavior.");
+    return std::string(*left_) + "." + std::string(*right_);
+  }
+
  private:
   Operator operator_;
   Expression* left_ = nullptr;

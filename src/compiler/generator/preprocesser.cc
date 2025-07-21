@@ -25,7 +25,7 @@ void PreProcessDeclaration(Generator& generator, Ast::Compound* statements) {
     Ast::Statement* statement = statements->GetStatements()[i];
 
     if (Ast::IsOfType<Ast::Class>(statement)) {
-      PreProcessClassDeclaration(generator, Ast::Cast<Ast::Class>(statement));
+      //PreProcessClassDeclaration(generator, Ast::Cast<Ast::Class>(statement));
       statements_buffer.push_back(statement);
 
     } else if (Ast::IsOfType<Ast::FunctionDeclaration>(statement)) {

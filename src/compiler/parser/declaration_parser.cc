@@ -133,7 +133,8 @@ Ast::Class* Parser::DeclarationParser::ParseClassDeclaration(
     } else if (token[index] == Token::KeywordType::Static) {
       static_members.push_back(ParseStatic(token, length, index));
     } else {
-      LOGGING_ERROR(
+      index++;
+      LOGGING_WARNING(
           "Statements in the class that exceed the function are not "
           "supported.");
     }

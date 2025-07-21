@@ -500,21 +500,25 @@ std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
 
   switch (expression->GetStatementType()) {
     case Ast::Statement::StatementType::kIdentifier: {
-      for (int64_t i = scopes.size() - 1; i >= 0; i--) {
+      LOGGING_INFO(std::string(*Ast::Cast<Ast::Identifier>(expression)));
+      for (int64_t i = scopes.size() - 1; i >= -1; i--) {
         auto iterator = variables.find(
-            scopes[i] + "#" +
             std::string(*Ast::Cast<Ast::Identifier>(expression)));
 
-        // LOGGING_INFO("Searching for identifier: " + scopes[i] + "#" +
-        //     std::string(*Ast::Cast<Ast::Identifier>(expression)) +
-        //   " in scope: " + scopes[i]);
+        // Use the technique of reprocessing names to prevent scope overflow.
+        if (i != -1)
+          iterator = variables.find(
+              scopes[i] + "#" +
+              std::string(*Ast::Cast<Ast::Identifier>(expression)));
 
         if (iterator != variables.end()) {
+          // Use the technique of reprocessing names to prevent scope overflow.
           return iterator->second;
         }
+
+        LOGGING_ERROR("Identifier not found.");
+        break;
       }
-      LOGGING_ERROR("Identifier not found.");
-      break;
     }
 
     case Ast::Statement::StatementType::kValue: {
@@ -602,8 +606,8 @@ std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
         }
       }
 
-      // If the variable is not found in any scope, return 0 and try to get the
-      // index from the global memory by GetIndex().
+      // If the variable is not found in any scope, return 0 and try to get
+      // the index from the global memory by GetIndex().
       return 0;
     }
 

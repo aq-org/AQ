@@ -5,8 +5,8 @@
             "name": "GDB Debug",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/aq_vm",  // 替换为实际可执行文件路径
-            "args": [//"${workspaceFolder}/build/test.aq",
+            "program": "${workspaceFolder}/build/aq_compiler",  // 替换为实际可执行文件路径
+            "args": ["${workspaceFolder}/build/test.aq",
             "${workspaceFolder}/build/test.aqbc"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
