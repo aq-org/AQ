@@ -32,18 +32,20 @@ int NEW(std::vector<Memory::Object>& heap,
         std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
         std::string& current_bytecode_file,
         std::unordered_map<std::string, Bytecode::Class> classes,
-        bool is_big_endian, std::size_t ptr, std::size_t size,
-        std::size_t type,std::shared_ptr<Memory::Memory>& memory,std::unordered_map<std::string,
-                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
-        builtin_functions) {
+        bool is_big_endian, std::size_t ptr, std::size_t size, std::size_t type,
+        std::shared_ptr<Memory::Memory>& memory,
+        std::unordered_map<std::string,
+                           std::function<int(std::vector<Memory::Object>&,
+                                             std::vector<std::size_t>)>>&
+            builtin_functions) {
   if (ptr >= heap.size()) INTERNAL_ERROR("ptr is out of memory.");
   if (size >= heap.size()) INTERNAL_ERROR("size is out of memory.");
 
-  LOGGING_INFO("DEUBG");
+  // LOGGING_INFO("DEUBG");
   Memory::Object type_data = GetOriginData(heap, type);
 
   bool is_bytecode_file_main_program = false;
-  LOGGING_INFO("DEUBG");
+  // LOGGING_INFO("DEUBG");
   if (type_data.type[0] == 0x05 &&
       std::get<std::string>(type_data.data)[0] == '~') {
     std::string file_name = std::get<std::string>(type_data.data);
@@ -63,61 +65,66 @@ int NEW(std::vector<Memory::Object>& heap,
     // TODO(bugs): May have bugs there.
     is_bytecode_file_main_program = true;
 
+    // TODO(bugs): May have bugs there.
     if (class_name == ".!__start") {
       if (bytecode_files.find(class_name) != bytecode_files.end()) {
         heap[ptr].type.push_back(0x07);
         heap[ptr].const_type = false;
-        heap[ptr].data = bytecode_files[class_name].object;
+        // heap[ptr].data = Memory::ObjectReference(class_heap, 2);
         return 0;
       }
 
       Bytecode::AddBytecodeFile(std::get<std::string>(type_data.data).c_str(),
                                 bytecode_files, is_big_endian, classes);
+      if (bytecode_files.find(class_name) != bytecode_files.end()) {
+        heap[ptr].data = Memory::ObjectReference(
+            classes[std::get<std::string>(type_data.data)].memory->heap, 2);
+        return 0;
+      }
     }
   }
-  LOGGING_INFO("DEUBG");
+  // LOGGING_INFO("DEUBG");
   std::size_t size_value = GetUint64tData(heap, size);
 
-  LOGGING_INFO("DEUBG");
+  // LOGGING_INFO("DEUBG");
   if ((type == 0 || (type_data.type[0] != 0x05 ||
                      std::get<std::string>(type_data.data).empty())) &&
       size_value == 0)
     size_value = 1;
 
-  LOGGING_INFO("DEUBG");
+  // LOGGING_INFO("DEUBG");
   std::vector<Memory::Object> data(size_value);
 
-  LOGGING_INFO("DEUBG");
-  
-        std::vector<Memory::Object> class_object;
+  // LOGGING_INFO("DEUBG");
+
+  auto class_object_ptr = new std::vector<Memory::Object>();
+  auto& class_object = *class_object_ptr;
   if (type == 0) {
-    for (size_t i = 1; i < 2; i++) {
-      data[i].type.push_back(0x00);
-      data[i].const_type = false;
-    }
+    data[0].type.push_back(0x00);
+    data[0].const_type = false;
   } else {
-  LOGGING_INFO("1");
-    if (type_data.type[0] == 0x05 &&!
-        std::get<std::string>(type_data.data).empty()) {
-  LOGGING_INFO("2");
+    // LOGGING_INFO("1");
+    if (type_data.type[0] == 0x05 &&
+        !std::get<std::string>(type_data.data).empty()) {
+      // LOGGING_INFO("2");
       if (size_value == 0) {
         data.resize(1);
         std::size_t i = 0;
         data[i].type.push_back(0x09);
         data[i].const_type = true;
 
-  LOGGING_INFO("3");
+        // LOGGING_INFO("3");
         std::string class_name = GetStringData(heap, type);
 
-        //if (current_bytecode_file == "" && class_name[0] != '~') 
-        //  class_name = "~~" + class_name;
+        // if (current_bytecode_file == "" && class_name[0] != '~')
+        //   class_name = "~~" + class_name;
 
-        LOGGING_INFO("class_name: " + class_name);
+        // LOGGING_INFO("class_name: " + class_name);
 
         if (classes.find(class_name) == classes.end())
           LOGGING_ERROR("class not found.");
 
-  LOGGING_INFO("4");
+        // LOGGING_INFO("4");
         Bytecode::Class& class_data = classes[class_name];
 
         class_object.resize(class_data.members.size());
@@ -126,14 +133,14 @@ int NEW(std::vector<Memory::Object>& heap,
           class_object[j].const_type = class_data.members[j].const_type;
         }
 
-  LOGGING_INFO("5");
+        // LOGGING_INFO("5");
         class_object.insert(class_object.begin(), {{0x05}, true, class_name});
       } else {
         for (size_t i = 1; i < size_value + 1; i++) {
           data[i].type.push_back(0x09);
           data[i].const_type = true;
 
-  LOGGING_INFO("6");
+          // LOGGING_INFO("6");
           std::string class_name = GetStringData(heap, type);
 
           if (classes.find(class_name) == classes.end())
@@ -141,7 +148,6 @@ int NEW(std::vector<Memory::Object>& heap,
 
           Bytecode::Class& class_data = classes[class_name];
 
-  LOGGING_INFO("7");
           for (size_t j = 0; j < class_data.members.size(); j++) {
             class_object[j].type = class_data.members[j].type;
             class_object[j].const_type = class_data.members[j].const_type;
@@ -158,10 +164,11 @@ int NEW(std::vector<Memory::Object>& heap,
     }
   }
 
-  LOGGING_INFO("8");
+  // LOGGING_INFO("8");
   if (size_value == 0 && type_data.type[0] == 0x05 &&
       !std::get<std::string>(type_data.data).empty()) {
-    SetObjectData(heap, ptr,class_object);
+    LOGGING_INFO("Name: " + GetStringData(heap, type));
+    SetObjectData(heap, ptr, Memory::ObjectReference(class_object, 0));
 
     if (is_bytecode_file_main_program) {
       std::string class_name = GetStringData(heap, type);
@@ -170,18 +177,19 @@ int NEW(std::vector<Memory::Object>& heap,
         LOGGING_ERROR("class not found.");
 
       Bytecode::Class& class_data = classes[class_name];
-      class_data.memory->heap[2].data = data;
+      class_data.memory->heap[2].data = Memory::ObjectReference(class_object, 0);
 
       heap.push_back({{0x05}, true, std::string("@constructor")});
       INVOKE_METHOD(heap, current_bytecode_file, classes, memory,
                     bytecode_files, builtin_functions, is_big_endian,
                     {2, heap.size() - 1, 1, 0});
+      // heap.pop_back();
     }
   } else {
-    SetArrayData(heap, ptr, data);
+    SetArrayData(heap, ptr, Memory::ObjectReference(data, 0));
   }
 
-  LOGGING_INFO("DEUBG 9");
+  // LOGGING_INFO("DEUBG 9");
   return 0;
 }
 
@@ -261,9 +269,9 @@ int CrossMemoryNew(std::shared_ptr<Memory::Memory> memory,
   if (size_value == 0 && type_data.type[0] == 0x05 &&
       !std::get<std::string>(type_data.data).empty()) {
     SetObjectData(memory->heap, ptr,
-                  std::get<std::vector<Memory::Object>>(type_data.data));
+                  std::get<Memory::ObjectReference>(type_data.data));
   } else {
-    SetArrayData(memory->heap, ptr, data);
+    SetArrayData(memory->heap, ptr, Memory::ObjectReference(data, 0));
   }
   return 0;
 }
@@ -274,13 +282,20 @@ int ARRAY(
     std::unordered_map<std::string, Bytecode::Class>& classes,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
+                       std::function<int(std::vector<Memory::Object>&,
+                                         std::vector<std::size_t>)>>&
         builtin_functions,
     std::string& current_bytecode_file, bool is_big_endian,
     std::shared_ptr<Memory::Memory>& memory) {
-  auto array = GetArrayData(heap, ptr);
+  // LOGGING_INFO("ARRAY operator called with result: " +
+  //      std::to_string(result) + ", ptr: " + std::to_string(ptr) +
+  //  ", index: " + std::to_string(index));
+  auto& array = GetArrayData(heap, ptr);
+
+  // LOGGING_INFO("Type: "+std::to_string(array[0].type[0]) );
 
   index = GetUint64tData(heap, index);
+  // LOGGING_INFO("Index: " + std::to_string(index));
 
   if (index >= array.size()) {
     array.resize(index + 1);
@@ -288,8 +303,8 @@ int ARRAY(
 
   bool is_type_null = array[index].type.size() == 0;
 
-  if (array[index].type.size() == 0) {
-    if (array[index].const_type) {
+  if (is_type_null) {
+    if (array[0].const_type) {
       array[index].const_type = true;
       array[index].type = array[0].type;
     } else {
@@ -299,9 +314,7 @@ int ARRAY(
   }
 
   if (array[0].const_type && array[0].type[0] == 0x09 && is_type_null) {
-    SetReferenceData(
-        heap, result,
-        std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
+    SetReferenceData(heap, result, array, index);
     Bytecode::InvokeCustomFunction(
         heap,
         std::get<std::string>(
@@ -310,9 +323,13 @@ int ARRAY(
         current_bytecode_file, is_big_endian, memory);
   }
 
-  SetReferenceData(
-      heap, result,
-      std::shared_ptr<Memory::Object>(&array[index], [](void*) {}));
+  SetReferenceData(heap, result, array, index);
+
+  // LOGGING_INFO("Set reference data at index " + std::to_string(result) +
+  //     " with type " + std::to_string(heap[result].type[0]) + ".");
+
+  // SetLongData(heap, result,0);
+  // SetLongData(heap, result,0);
 
   return 0;
 }
@@ -875,7 +892,7 @@ int REFER(std::vector<Memory::Object>& heap, std::size_t result,
 
   auto data = GetOriginDataReference(heap, operand1);
 
-  SetReferenceData(heap, result, data);
+  SetReferenceData(heap, result, data.GetMemory(), data.GetIndex());
 
   return 0;
 }
@@ -1476,7 +1493,8 @@ int CMP(std::vector<Memory::Object>& heap, std::size_t result,
 int INVOKE(
     std::vector<Memory::Object>& heap,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
+                       std::function<int(std::vector<Memory::Object>&,
+                                         std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<std::size_t> arguments,
     std::unordered_map<std::string, Bytecode::Class>& classes,
@@ -1488,7 +1506,7 @@ int INVOKE(
   arguments.erase(arguments.begin(), arguments.begin() + 1);
   auto invoke_function = builtin_functions.find(GetStringData(heap, function));
   if (invoke_function != builtin_functions.end()) {
-    invoke_function->second(heap,arguments);
+    invoke_function->second(heap, arguments);
     return 0;
   }
 
@@ -1502,44 +1520,47 @@ int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
   if (result >= heap.size()) INTERNAL_ERROR("Out of memory.");
   if (value >= heap.size()) INTERNAL_ERROR("Out of memory.");
 
-  LOGGING_INFO("EQUAL: result = {}, value = {}");
+  // LOGGING_INFO("EQUAL: result = {}, value = {}");
 
   Memory::Object value_data = GetOriginData(heap, value);
 
-  LOGGING_INFO("EQUAL: result = {}, value = {}");
-  auto T = value_data.type[0];
-  LOGGING_INFO("EQUAL: value_data.type = {}");
+  // LOGGING_INFO("EQUAL: result = {}, value = {}");
+  // LOGGING_INFO("EQUAL: value_data.type = {}");
 
   switch (value_data.type[0]) {
     case 0x00:
       break;
     case 0x01:
-    LOGGING_INFO("EQUAL: value_data.type = 0x01");
+      // LOGGING_INFO("EQUAL: value_data.type = 0x01");
       SetByteData(heap, result, GetByteData(heap, value));
       break;
     case 0x02:
-      LOGGING_INFO("EQUAL: value_data.type = 0x02");
+      // LOGGING_INFO("EQUAL: value_data.type = 0x02");
+
+      SetLongData(heap, result, 0);
       SetLongData(heap, result, GetLongData(heap, value));
       break;
     case 0x03:
-      LOGGING_INFO("EQUAL: value_data.type = 0x03");
+      // LOGGING_INFO("EQUAL: value_data.type = 0x03");
       SetDoubleData(heap, result, GetDoubleData(heap, value));
       break;
     case 0x04:
-      LOGGING_INFO("EQUAL: value_data.type = 0x04");
+      // LOGGING_INFO("EQUAL: value_data.type = 0x04");
       SetUint64tData(heap, result, GetUint64tData(heap, value));
       break;
     case 0x05:
-      LOGGING_INFO("EQUAL: value_data.type = 0x05");
+      // LOGGING_INFO("EQUAL: value_data.type = 0x05");
       SetStringData(heap, result, GetStringData(heap, value));
       break;
     case 0x06:
-      LOGGING_INFO("EQUAL: value_data.type = 0x06");
-      SetArrayData(heap, result, GetArrayData(heap, value));
+      // LOGGING_INFO("EQUAL: value_data.type = 0x06");
+      SetArrayData(heap, result,
+                   Memory::ObjectReference(GetArrayData(heap, value), 0));
       break;
     case 0x09:
-      LOGGING_INFO("EQUAL: value_data.type = 0x09");
-      SetObjectData(heap, result, GetObjectData(heap, value));
+      // LOGGING_INFO("EQUAL: value_data.type = 0x09");
+      SetObjectData(heap, result,
+                    Memory::ObjectReference(GetObjectData(heap, value), 0));
       break;
     case 0x0A:
       // SetOriginData(heap, result, GetPointerData(heap, value));
@@ -1548,8 +1569,8 @@ int EQUAL(std::vector<Memory::Object>& heap, std::size_t result,
     default:
       LOGGING_ERROR("Unsupported type.");
   }
-  
-  LOGGING_INFO("EQUAL: result = {}, value = {}");
+
+  // LOGGING_INFO("EQUAL: result = {}, value = {}");
   return 0;
 }
 
@@ -1581,10 +1602,13 @@ int CrossMemoryEqual(std::vector<Memory::Object>& result_heap,
       SetStringData(result_heap, result, GetStringData(value_heap, value));
       break;
     case 0x06:
-      SetArrayData(result_heap, result, GetArrayData(value_heap, value));
+      SetArrayData(result_heap, result,
+                   Memory::ObjectReference(GetArrayData(value_heap, value), 0));
       break;
     case 0x09:
-      SetObjectData(result_heap, result, GetObjectData(value_heap, value));
+      SetObjectData(
+          result_heap, result,
+          Memory::ObjectReference(GetObjectData(value_heap, value), 0));
       break;
     case 0x0A:
       // SetOriginData(result_heap, result,
@@ -1630,9 +1654,9 @@ int LOAD_CONST(std::vector<Memory::Object>& heap,
                     std::get<std::string>(constant_pool[const_object].data));
       break;
     case 0x06:
-      SetArrayData(heap, object,
-                   std::get<std::vector<Memory::Object>>(
-                       constant_pool[const_object].data));
+      SetArrayData(
+          heap, object,
+          std::get<Memory::ObjectReference>(constant_pool[const_object].data));
       break;
     default:
       LOGGING_ERROR("Unsupported type.");
@@ -1647,13 +1671,12 @@ int CONVERT(std::vector<Memory::Object>& heap, std::size_t result,
   return 0;
 }
 
-int _CONST(std::vector<Memory::Object>& heap, std::size_t result,
-           std::size_t operand1) {
+int CONST(std::vector<Memory::Object>& heap, std::size_t result,
+          std::size_t operand1) {
   if (result >= heap.size()) LOGGING_ERROR("Out of object_table_size.");
   if (operand1 >= heap.size()) LOGGING_ERROR("Out of object_table_size.");
 
-  SetConstData(heap, result,
-               std::shared_ptr<Memory::Object>(&heap[operand1], [](void*) {}));
+  SetConstData(heap, result, heap, operand1);
   return 0;
 }
 
@@ -1663,20 +1686,38 @@ int INVOKE_METHOD(
     std::shared_ptr<Memory::Memory>& memory,
     std::unordered_map<std::string, Bytecode::BytecodeFile>& bytecode_files,
     std::unordered_map<std::string,
-                       std::function<int(std::vector<Memory::Object>&,std::vector<std::size_t>)>>&
+                       std::function<int(std::vector<Memory::Object>&,
+                                         std::vector<std::size_t>)>>&
         builtin_functions,
     bool is_big_endian, std::vector<size_t> arguments) {
+  LOGGING_INFO("INVOKE_METHOD: arguments size = " +
+               std::to_string(arguments.size()));
   if (arguments.size() < 3) INTERNAL_ERROR("Invalid arguments.");
 
+  LOGGING_INFO("DEBUG1");
   std::size_t class_index = arguments[0];
   std::size_t function = arguments[1];
 
+  LOGGING_INFO(GetStringData(heap, function));
+
+  LOGGING_INFO("DEBUG2");
+
   arguments.erase(arguments.begin(), arguments.begin() + 2);
+
+  LOGGING_INFO("DEBUG3");
+
   auto invoke_function = builtin_functions.find(GetStringData(heap, function));
+
+  LOGGING_INFO("DEBUG4");
+
   if (invoke_function != builtin_functions.end()) {
-    invoke_function->second(heap,arguments);
+    LOGGING_INFO("DEBUG IN1");
+    invoke_function->second(heap, arguments);
+    LOGGING_INFO("DEBUG IN2");
     return 0;
   }
+
+  LOGGING_INFO("DEBUG5");
 
   return Bytecode::InvokeClassFunction(
       heap, class_index, GetStringData(heap, function), arguments,
@@ -1695,15 +1736,27 @@ int LOAD_MEMBER(std::vector<Memory::Object>& heap,
   auto class_data = GetOriginData(heap, class_index);
   if (class_data.type[0] != 0x09) LOGGING_ERROR("Error class data.");
 
-  if (std::get<std::vector<Memory::Object>>(class_data.data).empty() ||
-      std::get<std::vector<Memory::Object>>(class_data.data)[0].type.empty() ||
-      std::get<std::vector<Memory::Object>>(class_data.data)[0].type[0] != 0x05)
+  if (std::get<Memory::ObjectReference>(class_data.data)
+          .GetMemory()
+          .get()
+          .empty() ||
+      std::get<Memory::ObjectReference>(class_data.data)
+          .GetMemory()
+          .get()[0]
+          .type.empty() ||
+      std::get<Memory::ObjectReference>(class_data.data)
+              .GetMemory()
+              .get()[0]
+              .type[0] != 0x05)
     LOGGING_ERROR("Unsupported class name type.");
-  std::string class_name = std::get<std::string>(
-      std::get<std::vector<Memory::Object>>(class_data.data)[0].data);
+  std::string class_name =
+      std::get<std::string>(std::get<Memory::ObjectReference>(class_data.data)
+                                .GetMemory()
+                                .get()[0]
+                                .data);
 
-  auto name_data = GetOriginData(heap, class_index);
-  if (name_data.type[0] != 0x05) LOGGING_ERROR("Error class data.");
+  auto name_data = GetOriginData(heap, operand);
+  if (name_data.type[0] != 0x05) LOGGING_ERROR("Error class name data.");
 
   std::string variable_name = std::get<std::string>(name_data.data);
 
@@ -1718,11 +1771,9 @@ int LOAD_MEMBER(std::vector<Memory::Object>& heap,
 
   std::size_t offset = class_declaration->second.variables[variable_name];
 
-  std::shared_ptr<Memory::Object> object_data = std::shared_ptr<Memory::Object>(
-      &std::get<std::vector<Memory::Object>>(class_data.data)[offset],
-      [](void*) {});
-
-  SetReferenceData(heap, result, object_data);
+  SetReferenceData(
+      heap, result,
+      std::get<Memory::ObjectReference>(class_data.data).GetMemory(), offset);
 
   return 0;
 }

@@ -26,7 +26,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
 
   global_memory.SetCode(&init_code);
 
-  // Main program return value.
+  // Main program return value and its reference.
   global_memory.Add(1);
   global_memory.Add(1);
 
@@ -51,7 +51,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
                                  memory_init_name, 1, global_memory.Add(1)));
 
   // Sets the current class.
-  Class* start_class = new Class();
+  Class* start_class = &this->main_class;
   context.current_class = start_class;
   start_class->SetName(".__start");
   start_class->GetMemory().Add("@name");
@@ -78,7 +78,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
                           Ast::Cast<Ast::Variable>(sub_statement)
                               ->GetVariableName()] =
             HandleGlobalVariableDeclaration(
-                *this, Ast::Cast<Ast::Variable>(sub_statement), global_code);
+                *this, Ast::Cast<Ast::Variable>(sub_statement), init_code);
         break;
 
       case Ast::Statement::StatementType::kArrayDeclaration:
@@ -87,7 +87,7 @@ void Generator::Generate(Ast::Compound* statement, const char* output_file) {
                               ->GetVariableName()] =
             HandleGlobalArrayDeclaration(
                 *this, Ast::Cast<Ast::ArrayDeclaration>(sub_statement),
-                global_code);
+                init_code);
         break;
 
       case Ast::Statement::StatementType::kGoto:
@@ -239,9 +239,8 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
   code.insert(code.end(), consant_pool_size.begin(), consant_pool_size.end());
 
   // Writes the constant pool data.
-  for (std::size_t i = 0; i < global_memory.GetConstTable().size(); i++) {
-    code.push_back(global_memory.GetConstTable()[i]);
-  }
+  code.insert(code.end(), global_memory.GetConstTable().begin(),
+              global_memory.GetConstTable().end());
 
   // Gets the bytecode size.
   std::vector<uint8_t> memory_size;
@@ -249,9 +248,8 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
   code.insert(code.end(), memory_size.begin(), memory_size.end());
 
   // Writes the memory data.
-  for (std::size_t i = 0; i < global_memory.GetMemoryType().size(); i++) {
-    code.push_back(global_memory.GetMemoryType()[i]);
-  }
+  code.insert(code.end(), global_memory.GetMemoryType().begin(),
+              global_memory.GetMemoryType().end());
 
   for (std::size_t i = 0; i < classes.size(); i++) {
     // Writes the class name.
@@ -267,16 +265,10 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
     code.insert(code.end(), class_memory_size.begin(), class_memory_size.end());
 
     // Writes the class memory data.
-    for (std::size_t j = 0; j < classes[i].GetMemory().GetMemoryType().size();
-         j++) {
-      for (std::size_t k = 0;
-           k < classes[i].GetMemory().GetVarName()[j].size() + 1; k++) {
-        code.push_back(classes[i].GetMemory().GetVarName()[j].c_str()[k]);
-      }
-      code.push_back(classes[i].GetMemory().GetMemoryType()[j]);
-    }
+    code.insert(code.end(), classes[i].GetMemory().GetMemoryInfo().begin(),
+                classes[i].GetMemory().GetMemoryInfo().end());
 
-    // Writes the class members size.
+    // Writes the class methods size.
     std::vector<uint8_t> methods_size;
     EncodeUleb128(classes[i].GetFunctionList().size(), methods_size);
     code.insert(code.end(), methods_size.begin(), methods_size.end());
@@ -294,6 +286,7 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
 
       std::vector<uint8_t> args_buffer;
 
+      // Writes the function parameters size and its parameters.
       EncodeUleb128(func_list[z].GetParameters().size(), args_buffer);
       code.insert(code.end(), args_buffer.begin(), args_buffer.end());
       for (std::size_t j = 0; j < func_list[z].GetParameters().size(); j++) {
@@ -802,14 +795,8 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
   EncodeUleb128(start_class->GetMemory().GetMemorySize(), start_memory_size);
   code.insert(code.end(), start_memory_size.begin(), start_memory_size.end());
 
-  for (std::size_t j = 0; j < start_class->GetMemory().GetMemoryType().size();
-       j++) {
-    for (std::size_t k = 0;
-         k < start_class->GetMemory().GetVarName()[j].size() + 1; k++) {
-      code.push_back(start_class->GetMemory().GetVarName()[j].c_str()[k]);
-    }
-    code.push_back(start_class->GetMemory().GetMemoryType()[j]);
-  }
+  code.insert(code.end(), start_class->GetMemory().GetMemoryInfo().begin(),
+              start_class->GetMemory().GetMemoryInfo().end());
 
   // Writes the start functions information.
   std::vector<uint8_t> functions_size;
@@ -829,6 +816,7 @@ void GenerateBytecodeFile(Generator& generator, const char* output_file) {
 
     std::vector<uint8_t> args_buffer;
 
+    // Writes the function parameters size and its parameters.
     EncodeUleb128(func_list[i].GetParameters().size(), args_buffer);
     code.insert(code.end(), args_buffer.begin(), args_buffer.end());
     for (std::size_t j = 0; j < func_list[i].GetParameters().size(); j++) {

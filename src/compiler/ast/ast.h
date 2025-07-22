@@ -5,15 +5,14 @@
 #ifndef AQ_COMPILER_AST_AST_H_
 #define AQ_COMPILER_AST_AST_H_
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 #include "compiler/ast/type.h"
 #include "compiler/logging/logging.h"
 #include "compiler/token/token.h"
-
 
 namespace Aq {
 namespace Compiler {
@@ -67,6 +66,9 @@ class Import : public Statement {
  public:
   // General import only.
   Import(std::string import_location, std::string name) {
+    LOGGING_ERROR(
+        "General import is deprecated, use from import instead. "
+        "This will be removed in the future.");
     statement_type_ = StatementType::kImport;
     is_from_import_ = false;
     import_location_ = import_location;
@@ -76,6 +78,9 @@ class Import : public Statement {
   // From import only.
   Import(std::string import_location,
          std::map<std::string, std::string> modules) {
+    LOGGING_ERROR(
+        "From import is deprecated, use import instead. "
+        "This will be removed in the future.");
     statement_type_ = StatementType::kImport;
     is_from_import_ = true;
     import_location_ = import_location;
@@ -279,6 +284,14 @@ class Binary : public Expression {
 
   Binary(const Binary&) = default;
   Binary& operator=(const Binary&) = default;
+
+  operator std::string() override {
+    if (operator_ != Operator::kMember)
+      LOGGING_WARNING(
+          "Binary operator is not member operator, this may cause unexpected "
+          "behavior.");
+    return std::string(*left_) + "." + std::string(*right_);
+  }
 
  private:
   Operator operator_;
@@ -675,10 +688,13 @@ class Return : public Statement {
 // carry pointer types. The check is done using typeid.
 template <typename T>
 bool IsOfType(Ast::Statement* statement) {
-  if (typeid(T) == typeid(*statement)) {
-    return true;
+  if (!statement) return false;
+
+  if constexpr (std::is_polymorphic_v<T>) {
+    return dynamic_cast<T*>(statement) != nullptr;
+  } else {
+    return typeid(T) == typeid(*statement);
   }
-  return false;
 }
 
 // Casts |statement| to |T| type. Returns the new pointer.

@@ -337,7 +337,7 @@ void Lexer::LexOctEscapeCharacter(Token& token, char*& current_location) {
 }
 
 void Lexer::LexGeneralEscapeCharacter(Token& token, char*& current_location) {
-  switch (*current_location) {
+  switch (*(current_location + 1)) {
     case 'n':
       *current_location = '\n';
       break;

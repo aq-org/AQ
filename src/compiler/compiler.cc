@@ -24,15 +24,19 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
+  // Gets the code from the file.
   std::vector<char> code;
   Aq::Compiler::ReadCodeFromFile(argv[1], code);
 
+  // Lexes the code and stores it in a vector of tokens.
   std::vector<Aq::Compiler::Token> token;
   Aq::Compiler::LexCode(code, token);
 
+  // Parses the code and generates the AST.
   Aq::Compiler::Ast::Compound* ast = Aq::Compiler::Parser::Parse(token);
   if (ast == nullptr) Aq::Compiler::LOGGING_ERROR("ast is nullptr.");
 
+  // Generates the bytecode from the AST.
   Aq::Compiler::Generator::Generator generator;
   generator.Generate(ast, argv[2]);
 
@@ -60,16 +64,16 @@ void ReadCodeFromFile(const char* filename, std::vector<char>& code) {
 
 void LexCode(std::vector<char>& code, std::vector<Token>& tokens) {
   Aq::Compiler::Lexer lexer(code.data(), code.size());
+
   Aq::Compiler::Token first_token;
   lexer.LexToken(first_token, first_token);
   tokens.push_back(first_token);
-  while (true) {
+
+  // Lexes the code until the end of the file.
+  while (!lexer.IsReadEnd()) {
     Aq::Compiler::Token token_buffer;
     lexer.LexToken(tokens.back(), token_buffer);
     tokens.push_back(token_buffer);
-    if (lexer.IsReadEnd()) {
-      break;
-    }
   }
 }
 }  // namespace Compiler

@@ -23,14 +23,12 @@ Ast::Expression* Parser::ExpressionParser::ParseExpression(Token* token,
   if (DeclarationParser::IsDeclaration(token, length, index))
     return DeclarationParser::ParseVariableDeclaration(token, length, index);
 
-  LOGGING_INFO("1x");
   Ast::Expression* expr = ParsePrimaryExpression(token, length, index);
   if (expr == nullptr) INTERNAL_ERROR("expr is nullptr.");
 
-  LOGGING_INFO("2x");
   // Continues to parse expression if the expression is binary expression.
   expr = ParseBinaryExpression(token, length, index, expr, 0);
-  LOGGING_INFO("3x");
+
   return expr;
 }
 
@@ -117,8 +115,6 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpression(
 Ast::Expression* Parser::ExpressionParser::ParseBinaryExpressionWithoutComma(
     Token* token, std::size_t length, std::size_t& index, Ast::Expression* left,
     unsigned int priority) {
-  LOGGING_INFO("AAAAAAAAAAAAAAAAAAAAAAAA");
-
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
   if (left == nullptr) INTERNAL_ERROR("left is nullptr.");
@@ -401,12 +397,12 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpressionWithoutComma(
       }
 
       default:
-          LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO1OOOOOOOOOOOOOOOO");
+        // LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO1OOOOOOOOOOOOOOOO");
         return expr;
     }
   }
 
-    LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO2OOOOOOOOOOOOOOOO");
+  // LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO2OOOOOOOOOOOOOOOO");
 
   return expr;
 }
@@ -470,6 +466,8 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
 
+  LOGGING_INFO("Parsing primary expression.");
+
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
   Ast::Expression* full_expression = nullptr;
@@ -477,8 +475,9 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
   Ast::Expression* pre_operator_expression = nullptr;
 
   while (state != State::kEnd && index < length) {
-    LOGGING_INFO("message");
     if (token[index] == Token::Type::OPERATOR) {
+      LOGGING_INFO("Parsing operator: " +
+                   std::to_string(static_cast<int>(token[index].value.oper)));
       switch (token[index].value.oper) {
         case Token::OperatorType::plus:  // +
           if (state == State::kPreOper) {
@@ -526,32 +525,37 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
           if (state == State::kPostOper) {
             ParseArrayExpression(token, length, index, full_expression,
                                  main_expression, pre_operator_expression);
+            break;
           }
+          state = State::kEnd;
           break;
 
         case Token::OperatorType::r_square:  // ]
-          if (token[index + 1] == Token::OperatorType::period) {
-            LOGGING_WARNING("Unexpected ']'.");
-            index++;
-          } else {
-            state = State::kEnd;
-          }
+          state = State::kEnd;
           break;
 
         case Token::OperatorType::l_paren:  // (
           if (state == State::kPreOper) {
             index++;
+
             ParseParenthesizedExpression(ParseExpression(token, length, index),
                                          full_expression, main_expression,
                                          pre_operator_expression);
+
+            if (!(token[index] == Token::OperatorType::r_paren)) {
+              LOGGING_WARNING("Expected ')', but not found ')'.");
+            } else {
+              index++;
+            }
+
             state = State::kPostOper;
-            index++;
-          } else if (state == State::kPostOper &&
-                     token[index - 1] == Token::Type::IDENTIFIER) {
+
+          } else if (state == State::kPostOper) {
+            LOGGING_INFO("Parsing function call expression.");
             ParseFunctionCallExpression(token, length, index, full_expression,
                                         main_expression,
                                         pre_operator_expression);
-            state = State::kPostOper;
+
           } else {
             state = State::kEnd;
           }
@@ -572,6 +576,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
           index++;
           break;
         }
+
         case Token::OperatorType::minusminus: {  // --
           if (state == State::kPreOper) {
             ParseIncrementAndDecrementOperatorsExpression(
@@ -586,10 +591,16 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
 
         case Token::OperatorType::period: {  // .
           index++;
+          if (index >= length) LOGGING_ERROR("index is out of range.");
           Ast::Identifier* identifier_node = new Ast::Identifier(token[index]);
+          if (identifier_node == nullptr)
+            INTERNAL_ERROR("identifier_node is nullptr.");
           index++;
+
           Ast::Binary* binary_node = new Ast::Binary(
               Ast::Binary::Operator::kMember, main_expression, identifier_node);
+          if (binary_node == nullptr) INTERNAL_ERROR("binary_node is nullptr.");
+
           if (full_expression == main_expression) {
             full_expression = main_expression = binary_node;
           } else {
@@ -607,8 +618,13 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
           state = State::kEnd;
           break;
       }
+
     } else if (token[index] == Token::Type::IDENTIFIER) {
       Ast::Identifier* identifier_node = new Ast::Identifier(token[index]);
+      if (identifier_node == nullptr)
+        INTERNAL_ERROR("identifier_node is nullptr.");
+      index++;
+
       if (full_expression == nullptr || pre_operator_expression == nullptr) {
         full_expression = main_expression = identifier_node;
       } else {
@@ -617,30 +633,36 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
       }
 
       // Continues reading the expression if the next token is a period.
-      if (!(token[index + 1] == Token::OperatorType::period))
+      if (!(token[index] == Token::OperatorType::period)) {
         state = State::kPostOper;
-      index++;
+      } else {
+        LOGGING_INFO("DEBUG POINT 1");
+      }
+
     } else if (token[index] == Token::Type::NUMBER ||
                token[index] == Token::Type::CHARACTER ||
                token[index] == Token::Type::STRING) {
       Ast::Value* value = new Ast::Value(token[index]);
       if (value == nullptr) INTERNAL_ERROR("value is nullptr.");
+      index++;
+
       if (full_expression == nullptr || pre_operator_expression == nullptr) {
-        LOGGING_INFO("");
         full_expression = main_expression = value;
-        if (full_expression == nullptr) INTERNAL_ERROR("message");
       } else {
         HandlePreOperatorExpression(pre_operator_expression, value);
         main_expression = value;
       }
-      index++;
+
       state = State::kEnd;
+
     } else if (token[index] == Token::Type::KEYWORD) {
       switch (token[index].value.keyword) {
         case Token::KeywordType::True:
         case Token::KeywordType::False: {
           Ast::Value* bool_node = new Ast::Value(token[index]);
           if (bool_node == nullptr) INTERNAL_ERROR("value is nullptr.");
+          index++;
+
           if (full_expression == nullptr ||
               pre_operator_expression == nullptr) {
             full_expression = main_expression = bool_node;
@@ -648,22 +670,24 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
             HandlePreOperatorExpression(pre_operator_expression, bool_node);
             main_expression = bool_node;
           }
-          index++;
+
           state = State::kEnd;
           break;
         }
+
         default:
           LOGGING_ERROR("Unexpected keyword \"" +
                         std::string(Token::GetKeywordTypeString(
                                         token[index].value.keyword) +
                                     "\"."));
       }
+
     } else {
       state = State::kEnd;
     }
   }
 
-  if (full_expression == nullptr) LOGGING_ERROR("ERRORRRRRRRRRRRRRRRRRR");
+  if (full_expression == nullptr) INTERNAL_ERROR("full_expression is nullptr.");
   return full_expression;
 }
 
@@ -683,11 +707,12 @@ void Parser::ExpressionParser::HandlePreOperatorExpression(
     Ast::Expression*& pre_operator_expression,
     Ast::Expression* new_expression) {
   if (pre_operator_expression != nullptr) {
-    Ast::Unary* old_expression =
-        dynamic_cast<Ast::Unary*>(pre_operator_expression);
+    Ast::Unary* old_expression = Ast::Cast<Ast::Unary>(pre_operator_expression);
     pre_operator_expression =
         new Ast::Unary(old_expression->GetOperator(), new_expression);
     delete old_expression;
+  } else {
+    LOGGING_WARNING("pre_operator_expression is nullptr.");
   }
 }
 
@@ -708,8 +733,10 @@ void Parser::ExpressionParser::ParseArrayExpression(
     Ast::Expression*& full_expression, Ast::Expression*& main_expression,
     Ast::Expression*& pre_operator_expression) {
   index++;
+
   Ast::Array* array_node =
       new Ast::Array(main_expression, ParseExpression(token, length, index));
+
   if (full_expression == nullptr || pre_operator_expression == nullptr) {
     full_expression = main_expression = array_node;
   } else {
@@ -729,8 +756,11 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
     Token* token, std::size_t length, std::size_t& index,
     Ast::Expression*& full_expression, Ast::Expression*& main_expression,
     Ast::Expression*& pre_operator_expression) {
-  std::vector<Ast::Expression*> arguments;
+  LOGGING_INFO("Parsing function call expression.");
+
   index++;
+
+  std::vector<Ast::Expression*> arguments;
   bool is_variadic = false;
 
   // Parses the arguments of the function call.
@@ -739,11 +769,18 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
     // Handles variable parameters.
     if (token[index] == Token::OperatorType::ellipsis) {
       is_variadic = true;
-      if (!(token[index + 1] == Token::OperatorType::r_paren))
+
+      if (!(token[index + 1] == Token::OperatorType::r_paren)) {
         LOGGING_WARNING("Expected ')' after '...', but not fonud ')'.");
-      index++;
+      } else {
+        index++;
+      }
+
       break;
     }
+
+    if (token[index] == Token::OperatorType::comma)
+      LOGGING_WARNING("Unexpected comma in function arguments.");
 
     arguments.push_back(ParseExpressionWithoutComma(token, length, index));
 
@@ -757,21 +794,33 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
     }
   }
 
-  if (!(token[index] == Token::OperatorType::r_paren))
+  if (!(token[index] == Token::OperatorType::r_paren)) {
     LOGGING_WARNING("Expected ')' after arguments, but not fonud ')'.");
-  index++;
+  } else {
+    index++;
+  }
 
   Ast::Function* function = nullptr;
   if (main_expression != nullptr &&
       *main_expression == Ast::Statement::StatementType::kBinary) {
+    LOGGING_INFO("Handling function with scopes.");
     // Handles the function with scopes.
-    Ast::Binary* old_expression = dynamic_cast<Ast::Binary*>(main_expression);
+    Ast::Binary* old_expression = Ast::Cast<Ast::Binary>(main_expression);
     function = new Ast::Function(old_expression->GetRightExpression(),
                                  arguments, is_variadic);
-    main_expression =
+    Ast::Binary* new_expression =
         new Ast::Binary(old_expression->GetOperator(),
                         old_expression->GetLeftExpression(), function);
+
+    if (full_expression == nullptr || pre_operator_expression == nullptr) {
+      full_expression = main_expression = new_expression;
+    } else {
+      HandlePreOperatorExpression(pre_operator_expression, new_expression);
+      main_expression = new_expression;
+    }
+
     delete old_expression;
+
   } else {
     // Handles the function without scopes.
     function = new Ast::Function(main_expression, arguments, is_variadic);
@@ -783,20 +832,25 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
     }
   }
 }
+
 void Parser::ExpressionParser::ParseIncrementAndDecrementOperatorsExpression(
     bool is_pre_operator, bool is_increment, Ast::Expression*& full_expression,
     Ast::Expression*& pre_operator_expression) {
+  // Gets the operator type based on whether it is an increment or decrement
+  // operator and whether it is a pre- or post-operator.
   Ast::Unary::Operator oper;
   if (is_increment) {
-    if (is_pre_operator)
+    if (is_pre_operator) {
       oper = Ast::Unary::Operator::kPreInc;
-    else
+    } else {
       oper = Ast::Unary::Operator::kPostInc;
+    }
   } else {
-    if (is_pre_operator)
+    if (is_pre_operator) {
       oper = Ast::Unary::Operator::kPreDec;
-    else
+    } else {
       oper = Ast::Unary::Operator::kPostDec;
+    }
   }
 
   Ast::Unary* unary = nullptr;
@@ -808,6 +862,7 @@ void Parser::ExpressionParser::ParseIncrementAndDecrementOperatorsExpression(
       HandlePreOperatorExpression(pre_operator_expression, unary);
       pre_operator_expression = unary;
     }
+
   } else {
     unary = new Ast::Unary(oper, full_expression);
     full_expression = unary;

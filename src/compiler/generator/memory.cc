@@ -4,6 +4,8 @@
 
 #include "compiler/generator/memory.h"
 
+#include "compiler/logging/logging.h"
+
 namespace Aq {
 namespace Compiler {
 namespace Generator {
@@ -142,6 +144,11 @@ std::size_t ClassMemory::Add(std::string name) {
   std::size_t index = memory_size_++;
   memory_type_.push_back(0x00);
   variable_name_.push_back(name);
+
+  memory_info_.insert(
+      memory_info_.end(), reinterpret_cast<const uint8_t*>(name.c_str()),
+      reinterpret_cast<const uint8_t*>(name.c_str() + name.size() + 1));
+  memory_info_.push_back(0x00);
   return index;
 }
 
@@ -153,12 +160,22 @@ std::size_t ClassMemory::AddWithType(std::string name,
   }
   variable_name_.push_back(name);
 
+  memory_info_.insert(
+      memory_info_.end(), reinterpret_cast<const uint8_t*>(name.c_str()),
+      reinterpret_cast<const uint8_t*>(name.c_str() + name.size() + 1));
+  memory_info_.insert(memory_info_.end(), type.begin(), type.end());
+
   return index;
 }
 
 std::size_t ClassMemory::AddByte(std::string name, int8_t value) {
   memory_type_.push_back(0x01);
   memory_size_++;
+
+  memory_info_.insert(
+      memory_info_.end(), reinterpret_cast<const uint8_t*>(name.c_str()),
+      reinterpret_cast<const uint8_t*>(name.c_str() + name.size() + 1));
+  memory_info_.push_back(0x01);
 
   std::size_t index = global_memory_->Add(1);
   variable_name_.push_back(name);
@@ -174,6 +191,11 @@ std::size_t ClassMemory::AddLong(std::string name, int64_t value) {
   memory_type_.push_back(0x02);
   memory_size_++;
 
+  memory_info_.insert(
+      memory_info_.end(), reinterpret_cast<const uint8_t*>(name.c_str()),
+      reinterpret_cast<const uint8_t*>(name.c_str() + name.size() + 1));
+  memory_info_.push_back(0x02);
+
   std::size_t index = global_memory_->Add(1);
   variable_name_.push_back(name);
 
@@ -187,6 +209,11 @@ std::size_t ClassMemory::AddLong(std::string name, int64_t value) {
 std::size_t ClassMemory::AddDouble(std::string name, double value) {
   memory_type_.push_back(0x03);
   memory_size_++;
+
+  memory_info_.insert(
+      memory_info_.end(), reinterpret_cast<const uint8_t*>(name.c_str()),
+      reinterpret_cast<const uint8_t*>(name.c_str() + name.size() + 1));
+  memory_info_.push_back(0x03);
 
   std::size_t index = global_memory_->Add(1);
   variable_name_.push_back(name);
@@ -202,6 +229,11 @@ std::size_t ClassMemory::AddUint64t(std::string name, uint64_t value) {
   memory_type_.push_back(0x04);
   memory_size_++;
 
+  memory_info_.insert(
+      memory_info_.end(), reinterpret_cast<const uint8_t*>(name.c_str()),
+      reinterpret_cast<const uint8_t*>(name.c_str() + name.size() + 1));
+  memory_info_.push_back(0x04);
+
   std::size_t index = global_memory_->Add(1);
   variable_name_.push_back(name);
 
@@ -215,6 +247,11 @@ std::size_t ClassMemory::AddUint64t(std::string name, uint64_t value) {
 std::size_t ClassMemory::AddString(std::string name, std::string value) {
   memory_type_.push_back(0x05);
   memory_size_++;
+
+  memory_info_.insert(
+      memory_info_.end(), reinterpret_cast<const uint8_t*>(name.c_str()),
+      reinterpret_cast<const uint8_t*>(name.c_str() + name.size() + 1));
+  memory_info_.push_back(0x05);
 
   std::size_t index = global_memory_->Add(1);
   variable_name_.push_back(name);

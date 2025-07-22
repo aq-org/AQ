@@ -152,7 +152,7 @@ int LOAD_CONST(std::vector<Memory::Object>& heap,
 
 int CONVERT(std::vector<Memory::Object>& heap, std::size_t result,
             std::size_t operand1);
-int _CONST(std::vector<Memory::Object>& heap, std::size_t result,
+int CONST(std::vector<Memory::Object>& heap, std::size_t result,
            std::size_t operand1);
 
 int INVOKE_METHOD(
