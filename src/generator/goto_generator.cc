@@ -7,6 +7,7 @@
 #include "ast/ast.h"
 #include "generator/bytecode.h"
 #include "generator/generator.h"
+#include "generator/operator.h"
 #include "logging/logging.h"
 
 namespace Aq {

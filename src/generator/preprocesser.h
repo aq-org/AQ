@@ -5,14 +5,7 @@
 #ifndef AQ_GENERATOR_PREPROCESSER_H_
 #define AQ_GENERATOR_PREPROCESSER_H_
 
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
-
 #include "ast/ast.h"
-#include "generator/class.h"
-#include "generator/memory.h"
 
 namespace Aq {
 namespace Generator {

@@ -9,6 +9,7 @@
 #include "generator/expression_generator.h"
 #include "generator/generator.h"
 #include "generator/goto_generator.h"
+#include "generator/operator.h"
 #include "logging/logging.h"
 
 namespace Aq {

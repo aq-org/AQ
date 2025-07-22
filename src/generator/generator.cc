@@ -10,9 +10,12 @@
 #include "ast/ast.h"
 #include "generator/declaration_generator.h"
 #include "generator/goto_generator.h"
+#include "generator/operator.h"
 #include "generator/preprocesser.h"
 #include "generator/statement_generator.h"
+#include "generator/uleb128.h"
 #include "logging/logging.h"
+
 
 namespace Aq {
 namespace Generator {

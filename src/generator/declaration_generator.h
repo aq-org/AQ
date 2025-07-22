@@ -5,12 +5,9 @@
 #ifndef AQ_GENERATOR_DECLARATION_GENERATOR_H_
 #define AQ_GENERATOR_DECLARATION_GENERATOR_H_
 
-#include <unordered_map>
-
 #include "ast/ast.h"
 #include "generator/bytecode.h"
 #include "generator/generator.h"
-#include "generator/memory.h"
 
 namespace Aq {
 namespace Generator {

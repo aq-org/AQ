@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "generator/bytecode.h"
-#include "generator/operator.h"
 
 namespace Aq {
 namespace Generator {

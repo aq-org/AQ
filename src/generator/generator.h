@@ -5,14 +5,12 @@
 #ifndef AQ_GENERATOR_GENERATOR_H_
 #define AQ_GENERATOR_GENERATOR_H_
 
-#include <cstdarg>
 #include <unordered_map>
 #include <cstdint>
 
 #include "ast/ast.h"
 #include "generator/builtin.h"
 #include "generator/class.h"
-#include "generator/operator.h"
 
 namespace Aq {
 namespace Generator {

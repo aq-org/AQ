@@ -6,10 +6,6 @@
 #define AQ_GENERATOR_BUILTIN_H_
 
 #include <string>
-#include <unordered_set>
-#include <vector>
-
-#include "ast/ast.h"
 
 namespace Aq {
 namespace Generator {

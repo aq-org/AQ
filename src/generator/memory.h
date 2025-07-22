@@ -11,8 +11,6 @@
 #include <cstdint>
 
 #include "generator/bytecode.h"
-#include "generator/operator.h"
-#include "generator/uleb128.h"
 
 namespace Aq {
 namespace Generator {

@@ -7,7 +7,6 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include <cstdint>
 
 #include "ast/ast.h"
 #include "generator/bytecode.h"

@@ -7,16 +7,18 @@
 #include <unordered_map>
 #include <vector>
 
+#include "aq.h"
 #include "ast/ast.h"
 #include "ast/type.h"
-#include "aq.h"
 #include "generator/bytecode.h"
 #include "generator/expression_generator.h"
 #include "generator/generator.h"
 #include "generator/memory.h"
+#include "generator/operator.h"
 #include "generator/statement_generator.h"
 #include "logging/logging.h"
 #include "parser/parser.h"
+
 
 namespace Aq {
 namespace Generator {
