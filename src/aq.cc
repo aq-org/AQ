@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "generator/generator.h"
+#include "interpreter/interpreter.h"
 #include "lexer/lexer.h"
 #include "logging/logging.h"
 #include "parser/parser.h"
@@ -37,8 +37,8 @@ int main(int argc, char* argv[]) {
   if (ast == nullptr) Aq::LOGGING_ERROR("ast is nullptr.");
 
   // Generates the bytecode from the AST.
-  Aq::Generator::Generator generator;
-  generator.Generate(ast, argv[2]);
+  Aq::Interpreter::Interpreter interpreter;
+  interpreter.Generate(ast, argv[2]);
 
   Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
 

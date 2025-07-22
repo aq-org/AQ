@@ -5,16 +5,16 @@
 #ifndef AQ_GENERATOR_GENERATOR_H_
 #define AQ_GENERATOR_GENERATOR_H_
 
-#include <unordered_map>
 #include <cstdint>
+#include <unordered_map>
 
 #include "ast/ast.h"
-#include "generator/builtin.h"
-#include "generator/class.h"
+#include "interpreter/builtin.h"
+#include "interpreter/class.h"
 
 namespace Aq {
-namespace Generator {
-struct Generator;
+namespace Interpreter {
+struct Interpreter;
 
 struct Context {
   std::unordered_set<std::string> functions;
@@ -27,15 +27,17 @@ struct Context {
   std::size_t undefined_count = 0;
 };
 
-struct Generator {
-  Generator() {
+struct Interpreter {
+  Interpreter() {
     InitBuiltInFunctionDeclaration(*this);
     uint16_t test_data = 0x0011;
     is_big_endian = *(uint8_t*)&test_data == 0x00;
   }
-  virtual ~Generator() = default;
+  virtual ~Interpreter() = default;
 
   void Generate(Ast::Compound* statement, const char* output_file);
+
+  void Run();
 
   bool is_big_endian = false;
   Class main_class;
@@ -49,11 +51,7 @@ struct Generator {
   std::vector<Bytecode> global_code;
 };
 
-void InsertUint64ToCode(uint64_t value, std::vector<uint8_t>& code);
-void GenerateBytecodeFile(Generator& generator, const char* output_file);
-void GenerateMnemonicFile(Generator& generator, const char* output_file_name);
-
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

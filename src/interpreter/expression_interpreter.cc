@@ -2,41 +2,41 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "generator/expression_generator.h"
+#include "interpreter/expression_interpreter.h"
 
 #include "ast/ast.h"
-#include "generator/generator.h"
-#include "generator/operator.h"
+#include "interpreter/interpreter.h"
+#include "interpreter/operator.h"
 #include "logging/logging.h"
 
 namespace Aq {
-namespace Generator {
-std::size_t HandleExpression(Generator& generator, Ast::Expression* expression,
+namespace Interpreter {
+std::size_t HandleExpression(Interpreter& interpreter, Ast::Expression* expression,
                              std::vector<Bytecode>& code) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   if (Ast::IsOfType<Ast::Unary>(expression) ||
       Ast::IsOfType<Ast::Array>(expression)) {
-    return HandleUnaryExpression(generator, Ast::Cast<Ast::Unary>(expression),
+    return HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(expression),
                                  code);
   } else if (Ast::IsOfType<Ast::Binary>(expression)) {
-    return HandleBinaryExpression(generator, Ast::Cast<Ast::Binary>(expression),
+    return HandleBinaryExpression(interpreter, Ast::Cast<Ast::Binary>(expression),
                                   code);
   }
 
-  return GetIndex(generator, expression, code);
+  return GetIndex(interpreter, expression, code);
 }
 
-std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
+std::size_t HandleUnaryExpression(Interpreter& interpreter, Ast::Unary* expression,
                                   std::vector<Bytecode>& code) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
+  auto& global_memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
 
   std::size_t sub_expression =
-      HandleExpression(generator, expression->GetExpression(), code);
+      HandleExpression(interpreter, expression->GetExpression(), code);
   std::size_t new_index = global_memory.Add(1);
 
   switch (expression->GetOperator()) {
@@ -44,7 +44,7 @@ std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expression));
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expression,
-                              sub_expression, AddConstInt8t(generator, 1)));
+                              sub_expression, AddConstInt8t(interpreter, 1)));
       return new_index;
     }
 
@@ -52,18 +52,18 @@ std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expression));
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expression,
-                              sub_expression, AddConstInt8t(generator, 1)));
+                              sub_expression, AddConstInt8t(interpreter, 1)));
       return new_index;
     }
 
     case Ast::Unary::Operator::kPreInc:  // ++ (prefix)
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expression,
-                              sub_expression, AddConstInt8t(generator, 1)));
+                              sub_expression, AddConstInt8t(interpreter, 1)));
       return sub_expression;
 
     case Ast::Unary::Operator::kPreDec:  // -- (prefix)
       code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expression,
-                              sub_expression, AddConstInt8t(generator, 1)));
+                              sub_expression, AddConstInt8t(interpreter, 1)));
       return sub_expression;
 
     case Ast::Unary::Operator::kPlus:  // + (unary plus)
@@ -80,7 +80,7 @@ std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
 
     case Ast::Unary::Operator::ARRAY: {  // []
       std::size_t offset = HandleExpression(
-          generator, Ast::Cast<Ast::Array>(expression)->GetIndexExpression(),
+          interpreter, Ast::Cast<Ast::Array>(expression)->GetIndexExpression(),
           code);
 
       code.push_back(
@@ -96,13 +96,13 @@ std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
   }
 }
 
-std::size_t HandleBinaryExpression(Generator& generator,
+std::size_t HandleBinaryExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
                                    std::vector<Bytecode>& code) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
+  auto& global_memory = interpreter.global_memory;
 
   // Gets the reference of expressions.
   Ast::Expression* right_expression = expression->GetRightExpression();
@@ -113,9 +113,9 @@ std::size_t HandleBinaryExpression(Generator& generator,
   std::size_t right = 0;
   if (expression->GetOperator() != Ast::Binary::Operator::kMember) {
     // LOGGING_INFO("message");
-    right = HandleExpression(generator, right_expression, code);
+    right = HandleExpression(interpreter, right_expression, code);
     // LOGGING_INFO("message");
-    left = HandleExpression(generator, left_expression, code);
+    left = HandleExpression(interpreter, left_expression, code);
     // LOGGING_INFO("message");
   }
 
@@ -244,7 +244,7 @@ std::size_t HandleBinaryExpression(Generator& generator,
       return left;
 
     case Ast::Binary::Operator::kMember: {
-      return HandlePeriodExpression(generator, expression, code);
+      return HandlePeriodExpression(interpreter, expression, code);
       break;
     }
 
@@ -257,7 +257,7 @@ std::size_t HandleBinaryExpression(Generator& generator,
   return 0;
 }
 
-std::size_t HandlePeriodExpression(Generator& generator,
+std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
                                    std::vector<Bytecode>& code) {
   if (expression->GetOperator() != Ast::Binary::Operator::kMember)
@@ -266,10 +266,10 @@ std::size_t HandlePeriodExpression(Generator& generator,
   LOGGING_INFO("Period expression: ");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
-  auto& functions = generator.context.functions;
-  auto& variables = generator.context.variables;
+  auto& global_memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& functions = interpreter.context.functions;
+  auto& variables = interpreter.context.variables;
 
   Ast::Expression* handle_expr = expression;
   std::vector<Ast::Expression*> expressions;
@@ -333,7 +333,7 @@ std::size_t HandlePeriodExpression(Generator& generator,
           // global memory.
           std::size_t name_index = global_memory.AddString(full_name);
           std::size_t return_value_index =
-              HandleFunctionReturnValue(generator, code);
+              HandleFunctionReturnValue(interpreter, code);
 
           // Handles the function arguments.
           auto arguments = right_expression->GetParameters();
@@ -344,7 +344,7 @@ std::size_t HandlePeriodExpression(Generator& generator,
               2, name_index, arguments_size + 1, return_value_index};
           for (std::size_t i = 0; i < arguments_size; i++)
             invoke_arguments.push_back(
-                HandleExpression(generator, arguments[i], code));
+                HandleExpression(interpreter, arguments[i], code));
 
           code.push_back(
               Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_arguments));
@@ -377,13 +377,13 @@ std::size_t HandlePeriodExpression(Generator& generator,
     case Ast::Statement::StatementType::kFunction: {
       // Handles the class and function name.
       std::size_t class_index =
-          HandleExpression(generator, expression->GetLeftExpression(), code);
+          HandleExpression(interpreter, expression->GetLeftExpression(), code);
       std::size_t function_name_index = global_memory.AddString(
           Ast::Cast<Ast::Function>(right_expression)->GetFunctionName());
 
       // Handles the function return value.
       std::size_t return_value_index =
-          HandleFunctionReturnValue(generator, code);
+          HandleFunctionReturnValue(interpreter, code);
 
       // Handles the function arguments.
       auto arguments =
@@ -396,7 +396,7 @@ std::size_t HandlePeriodExpression(Generator& generator,
           return_value_index};
       for (std::size_t i = 0; i < arguments_size; i++)
         invoke_arguments.push_back(
-            HandleExpression(generator, arguments[i], code));
+            HandleExpression(interpreter, arguments[i], code));
 
       code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_arguments));
       break;
@@ -407,7 +407,7 @@ std::size_t HandlePeriodExpression(Generator& generator,
 
       // Handles the class and variable name.
       std::size_t class_index =
-          HandleExpression(generator, expression->GetLeftExpression(), code);
+          HandleExpression(interpreter, expression->GetLeftExpression(), code);
       std::size_t variable_name_index = global_memory.AddString(std::string(
           *Ast::Cast<Ast::Identifier>(expression->GetRightExpression())));
 
@@ -423,14 +423,14 @@ std::size_t HandlePeriodExpression(Generator& generator,
   return 0;
 }
 
-std::size_t HandleFunctionInvoke(Generator& generator, Ast::Function* function,
+std::size_t HandleFunctionInvoke(Interpreter& interpreter, Ast::Function* function,
                                  std::vector<Bytecode>& code) {
   if (function == nullptr) INTERNAL_ERROR("function is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
-  auto& functions = generator.context.functions;
+  auto& global_memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& functions = interpreter.context.functions;
 
   std::string function_name = function->GetFunctionName();
   auto arguments = function->GetParameters();
@@ -451,28 +451,28 @@ std::size_t HandleFunctionInvoke(Generator& generator, Ast::Function* function,
   }
 
   // Handles the function return value.
-  std::size_t return_value_index = HandleFunctionReturnValue(generator, code);
+  std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
 
   // Handles the arguments of the functions.
   std::vector<std::size_t> vm_arguments{
       2, global_memory.AddString(function_name), arguments.size() + 1,
       return_value_index};
   for (std::size_t i = 0; i < arguments.size(); i++)
-    vm_arguments.push_back(HandleExpression(generator, arguments[i], code));
+    vm_arguments.push_back(HandleExpression(interpreter, arguments[i], code));
 
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, vm_arguments));
 
   return return_value_index;
 }
 
-std::size_t AddConstInt8t(Generator& generator, int8_t value) {
-  return generator.global_memory.AddByte(value);
+std::size_t AddConstInt8t(Interpreter& interpreter, int8_t value) {
+  return interpreter.global_memory.AddByte(value);
 }
 
-std::size_t HandleFunctionReturnValue(Generator& generator,
+std::size_t HandleFunctionReturnValue(Interpreter& interpreter,
                                       std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
+  auto& global_memory = interpreter.global_memory;
 
   std::size_t return_value_index = global_memory.Add(1);
   std::size_t return_value_reference_index = global_memory.Add(1);
@@ -482,19 +482,19 @@ std::size_t HandleFunctionReturnValue(Generator& generator,
   return return_value_reference_index;
 }
 
-std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
+std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
                      std::vector<Bytecode>& code) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
-  auto& variables = generator.context.variables;
-  auto& current_scope = generator.context.function_context->current_scope;
-  auto& current_class = generator.context.current_class;
+  auto& global_memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& variables = interpreter.context.variables;
+  auto& current_scope = interpreter.context.function_context->current_scope;
+  auto& current_class = interpreter.context.current_class;
 
   if (current_class != nullptr) {
-    std::size_t index = GetClassIndex(generator, expression, code);
+    std::size_t index = GetClassIndex(interpreter, expression, code);
     if (index != 0) return index;
   }
 
@@ -559,7 +559,7 @@ std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
     }
 
     case Ast::Statement::StatementType::kFunction:
-      return HandleFunctionInvoke(generator,
+      return HandleFunctionInvoke(interpreter,
                                   Ast::Cast<Ast::Function>(expression), code);
 
     default:
@@ -569,16 +569,16 @@ std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
   return 0;
 }
 
-std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
+std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
                           std::vector<Bytecode>& code) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
-  auto& variables = generator.context.variables;
-  auto& current_scope = generator.context.function_context->current_scope;
-  auto& current_class = generator.context.current_class;
+  auto& global_memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& variables = interpreter.context.variables;
+  auto& current_scope = interpreter.context.function_context->current_scope;
+  auto& current_class = interpreter.context.current_class;
 
   switch (expression->GetStatementType()) {
     case Ast::Statement::StatementType::kIdentifier: {
@@ -649,7 +649,7 @@ std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
     }
 
     case Ast::Statement::StatementType::kFunction:
-      return HandleFunctionInvoke(generator,
+      return HandleFunctionInvoke(interpreter,
                                   Ast::Cast<Ast::Function>(expression), code);
 
     default:
@@ -658,5 +658,5 @@ std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
 
   return 0;
 }
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq

@@ -10,7 +10,7 @@
 #include <cstdint>
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 inline std::size_t EncodeUleb128(std::size_t value,
                                  std::vector<uint8_t>& output) {
   std::size_t count = 0;
@@ -25,6 +25,6 @@ inline std::size_t EncodeUleb128(std::size_t value,
   } while (value != 0);
   return count;
 }
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 #endif

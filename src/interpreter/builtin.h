@@ -8,15 +8,15 @@
 #include <string>
 
 namespace Aq {
-namespace Generator {
-struct Generator;
+namespace Interpreter {
+struct Interpreter;
 
-// Adds built-in functions to the generator.
-void AddBuiltInFunctionDeclaration(Generator& generator, std::string name);
+// Adds built-in functions to the interpreter.
+void AddBuiltInFunctionDeclaration(Interpreter& interpreter, std::string name);
 
 // Initializes built-in function declarations.
-void InitBuiltInFunctionDeclaration(Generator& generator);
-}  // namespace Generator
+void InitBuiltInFunctionDeclaration(Interpreter& interpreter);
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

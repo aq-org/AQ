@@ -2,13 +2,13 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "generator/memory.h"
+#include "interpreter/memory.h"
 
-#include "generator/operator.h"
-#include "generator/uleb128.h"
+#include "interpreter/operator.h"
+#include "interpreter/uleb128.h"
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 
 std::size_t Memory::Add(std::size_t size) {
   std::size_t index = memory_size_;
@@ -263,5 +263,5 @@ std::size_t ClassMemory::AddString(std::string name, std::string value) {
   return memory_size_ - 1;
 }
 
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq

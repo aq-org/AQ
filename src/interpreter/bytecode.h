@@ -12,7 +12,7 @@
 
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 class Bytecode {
  public:
   Bytecode(uint8_t oper, std::size_t arguments_count, ...) {
@@ -48,7 +48,7 @@ class Bytecode {
   uint8_t oper_ = 0x00;
   std::vector<std::size_t> arguments_;
 };
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

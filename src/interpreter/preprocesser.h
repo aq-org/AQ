@@ -8,33 +8,33 @@
 #include "ast/ast.h"
 
 namespace Aq {
-namespace Generator {
-struct Generator;
+namespace Interpreter {
+struct Interpreter;
 
 // Preprocesses the declaration statements in the given compound statement.
 // This function processes class declarations, function declarations, and
 // static declarations, and imports. It updates the current scope and
 // declaration maps accordingly.
-void PreProcessDeclaration(Generator& generator, Ast::Compound* statements);
+void PreProcessDeclaration(Interpreter& interpreter, Ast::Compound* statements);
 
 // Preprocesses the function declaration in the given statement. It updates
 // the current scope and declaration maps accordingly.
-void PreProcessFunctionDeclaration(Generator& generator,
+void PreProcessFunctionDeclaration(Interpreter& interpreter,
                                    Ast::FunctionDeclaration* statement);
 
 // Preprocesses the class declaration in the given statement. It updates
 // the current scope and declaration maps accordingly.
-void PreProcessClassDeclaration(Generator& generator, Ast::Class* statement);
+void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement);
 
 // Preprocesses the static declaration in the given statement. It updates
 // the current scope and declaration maps accordingly.
-void PreProcessStaticDeclaration(Generator& generator, Ast::Class* statement);
+void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement);
 
 // Preprocesses the import statement in the given statement. It updates
 // the global memory with the imported variables.
-void PreProcessImport(Generator& generator, Ast::Import* statement);
+void PreProcessImport(Interpreter& interpreter, Ast::Import* statement);
 
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

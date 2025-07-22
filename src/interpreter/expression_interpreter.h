@@ -9,48 +9,48 @@
 #include <vector>
 
 #include "ast/ast.h"
-#include "generator/bytecode.h"
-#include "generator/generator.h"
+#include "interpreter/bytecode.h"
+#include "interpreter/interpreter.h"
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 // Handles the expression.
-std::size_t HandleExpression(Generator& generator, Ast::Expression* expression,
+std::size_t HandleExpression(Interpreter& interpreter, Ast::Expression* expression,
                              std::vector<Bytecode>& code);
 
 // Handles the unary expression.
-std::size_t HandleUnaryExpression(Generator& generator, Ast::Unary* expression,
+std::size_t HandleUnaryExpression(Interpreter& interpreter, Ast::Unary* expression,
                                   std::vector<Bytecode>& code);
 
 // Handles the binary expression.
-std::size_t HandleBinaryExpression(Generator& generator,
+std::size_t HandleBinaryExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
                                    std::vector<Bytecode>& code);
 
 // Handles the period expression.
-std::size_t HandlePeriodExpression(Generator& generator,
+std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
                                    std::vector<Bytecode>& code);
 
 // Handles the function invoke.
-std::size_t HandleFunctionInvoke(Generator& generator, Ast::Function* func,
+std::size_t HandleFunctionInvoke(Interpreter& interpreter, Ast::Function* func,
                                  std::vector<Bytecode>& code);
 
 // Handles the function invoke.
-std::size_t AddConstInt8t(Generator& generator, int8_t value);
+std::size_t AddConstInt8t(Interpreter& interpreter, int8_t value);
 
 // Handles the function return value.
-std::size_t HandleFunctionReturnValue(Generator& generator,
+std::size_t HandleFunctionReturnValue(Interpreter& interpreter,
                                       std::vector<Bytecode>& code);
 
 // // Gets the index of the expression in the memory.
-std::size_t GetIndex(Generator& generator, Ast::Expression* expression,
+std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
                      std::vector<Bytecode>& code);
 
 // Gets the index of the class in the memory.
-std::size_t GetClassIndex(Generator& generator, Ast::Expression* expression,
+std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
                           std::vector<Bytecode>& code);
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

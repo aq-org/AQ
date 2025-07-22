@@ -8,19 +8,19 @@
 #include <vector>
 
 #include "ast/ast.h"
-#include "generator/bytecode.h"
-#include "generator/generator.h"
+#include "interpreter/bytecode.h"
+#include "interpreter/interpreter.h"
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 // Handles the label.
-void HandleLabel(Generator& generator, Ast::Label* label,
+void HandleLabel(Interpreter& interpreter, Ast::Label* label,
                  std::vector<Bytecode>& code);
 
 // Handles the goto.
-void HandleGoto(Generator& generator, Ast::Goto* label,
+void HandleGoto(Interpreter& interpreter, Ast::Goto* label,
                 std::vector<Bytecode>& code);
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

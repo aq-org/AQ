@@ -10,10 +10,10 @@
 #include <cstring>
 #include <cstdint>
 
-#include "generator/bytecode.h"
+#include "interpreter/bytecode.h"
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 class Memory {
  public:
   Memory() {
@@ -125,7 +125,7 @@ inline uint64_t SwapUint64t(uint64_t x) {
       ((x >> 40) & 0x000000000000FF00ULL) | ((x >> 56) & 0x00000000000000FFULL);
   return x;
 }
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

@@ -9,10 +9,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "generator/bytecode.h"
+#include "interpreter/bytecode.h"
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 class Function {
  public:
   Function(std::string name, std::vector<std::size_t> parameters,
@@ -47,7 +47,7 @@ struct FunctionContext {
   std::vector<std::size_t> exit_index;
   std::vector<int64_t> loop_break_index;
 };
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

@@ -2,23 +2,23 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "generator/goto_generator.h"
+#include "interpreter/goto_interpreter.h"
 
 #include "ast/ast.h"
-#include "generator/bytecode.h"
-#include "generator/generator.h"
-#include "generator/operator.h"
+#include "interpreter/bytecode.h"
+#include "interpreter/interpreter.h"
+#include "interpreter/operator.h"
 #include "logging/logging.h"
 
 namespace Aq {
-namespace Generator {
-void HandleLabel(Generator& generator, Ast::Label* label,
+namespace Interpreter {
+void HandleLabel(Interpreter& interpreter, Ast::Label* label,
                  std::vector<Bytecode>& code) {
   if (label == nullptr) INTERNAL_ERROR("label is nullptr.");
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& label_map = generator.context.function_context->label_map;
+  auto& scopes = interpreter.context.scopes;
+  auto& label_map = interpreter.context.function_context->label_map;
 
   std::string label_name = scopes.back() + "$" + std::string(label->GetLabel());
 
@@ -29,16 +29,16 @@ void HandleLabel(Generator& generator, Ast::Label* label,
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
 }
 
-void HandleGoto(Generator& generator, Ast::Goto* label,
+void HandleGoto(Interpreter& interpreter, Ast::Goto* label,
                 std::vector<Bytecode>& code) {
   if (label == nullptr) LOGGING_ERROR("label is nullptr.");
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& label_map = generator.context.function_context->label_map;
-  auto& current_scope = generator.context.function_context->current_scope;
-  auto& goto_map = generator.context.function_context->goto_map;
-  auto& global_memory = generator.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& label_map = interpreter.context.function_context->label_map;
+  auto& current_scope = interpreter.context.function_context->current_scope;
+  auto& goto_map = interpreter.context.function_context->goto_map;
+  auto& global_memory = interpreter.global_memory;
 
   std::string label_name = std::string(label->GetLabel());
 
@@ -64,5 +64,5 @@ void HandleGoto(Generator& generator, Ast::Goto* label,
   }
 }
 
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq

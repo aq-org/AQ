@@ -2,7 +2,7 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "generator/declaration_generator.h"
+#include "interpreter/declaration_interpreter.h"
 
 #include <unordered_map>
 #include <vector>
@@ -10,31 +10,31 @@
 #include "aq.h"
 #include "ast/ast.h"
 #include "ast/type.h"
-#include "generator/bytecode.h"
-#include "generator/expression_generator.h"
-#include "generator/generator.h"
-#include "generator/memory.h"
-#include "generator/operator.h"
-#include "generator/statement_generator.h"
+#include "interpreter/bytecode.h"
+#include "interpreter/expression_interpreter.h"
+#include "interpreter/interpreter.h"
+#include "interpreter/memory.h"
+#include "interpreter/operator.h"
+#include "interpreter/statement_interpreter.h"
 #include "logging/logging.h"
 #include "parser/parser.h"
 
 
 namespace Aq {
-namespace Generator {
-std::unordered_map<std::string, Generator*> imports_map;
+namespace Interpreter {
+std::unordered_map<std::string, Interpreter*> imports_map;
 
-void HandleImport(Generator& generator, Ast::Import* statement) {
+void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // TODO: Handles from import.
   if (statement->IsFromImport()) INTERNAL_ERROR("Unsupported import type now.");
 
   // Gets the reference of context.
-  auto& main_class = generator.main_class;
-  auto& memory = generator.global_memory;
-  auto& variables = generator.context.variables;
-  auto& init_code = generator.init_code;
+  auto& main_class = interpreter.main_class;
+  auto& memory = interpreter.global_memory;
+  auto& variables = interpreter.context.variables;
+  auto& init_code = interpreter.init_code;
 
   // Gets the information from the import statement.
   std::string location = statement->GetImportLocation();
@@ -64,15 +64,15 @@ void HandleImport(Generator& generator, Ast::Import* statement) {
                memory.AddString("~" + location + "bc~.!__start")));
 }
 
-void HandleFunctionDeclaration(Generator& generator,
+void HandleFunctionDeclaration(Interpreter& interpreter,
                                Ast::FunctionDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
-  generator.context.function_context = new FunctionContext();
+  interpreter.context.function_context = new FunctionContext();
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& current_scope = generator.context.function_context->current_scope;
+  auto& scopes = interpreter.context.scopes;
+  auto& current_scope = interpreter.context.function_context->current_scope;
 
   // Gets the function statement and its parameters.
   Ast::Function* statement = declaration->GetFunctionStatement();
@@ -80,7 +80,7 @@ void HandleFunctionDeclaration(Generator& generator,
   std::vector<Bytecode> code;
 
   // Handles the function name with scopes.
-  std::string scope_name = GetFunctionNameWithScope(generator, declaration);
+  std::string scope_name = GetFunctionNameWithScope(interpreter, declaration);
   scopes.push_back(scope_name);
   current_scope = scopes.size() - 1;
 
@@ -95,40 +95,40 @@ void HandleFunctionDeclaration(Generator& generator,
 
   // Handles function parameters and return value.
   std::vector<std::size_t> parameters_index;
-  HandleReturnVariableInHandlingFunction(generator, declaration, scope_name,
+  HandleReturnVariableInHandlingFunction(interpreter, declaration, scope_name,
                                          parameters_index);
-  HandleFunctionArguments(generator, declaration, parameters_index, code);
+  HandleFunctionArguments(interpreter, declaration, parameters_index, code);
 
   LOGGING_INFO("Handling function body: " +
                std::string(statement->GetFunctionName()));
 
   // Handles function body.
-  HandleStatement(generator, declaration->GetFunctionBody(), code);
+  HandleStatement(interpreter, declaration->GetFunctionBody(), code);
 
   // Handles jump statements.
-  HandleReturnInHandlingFunction(generator, code);
-  HandleGotoInHandlingFunction(generator, current_scope, code);
+  HandleReturnInHandlingFunction(interpreter, code);
+  HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
-  AddFunctionIntoList(generator, declaration, parameters_index, code);
+  AddFunctionIntoList(interpreter, declaration, parameters_index, code);
 
   // Destroys temporary context.
   scopes.pop_back();
-  delete generator.context.function_context;
-  generator.context.function_context = nullptr;
+  delete interpreter.context.function_context;
+  interpreter.context.function_context = nullptr;
 }
 
-void HandleClassFunctionDeclaration(Generator& generator,
+void HandleClassFunctionDeclaration(Interpreter& interpreter,
                                     Ast::FunctionDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Creates temporary context.
-  generator.context.function_context = new FunctionContext();
+  interpreter.context.function_context = new FunctionContext();
 
   // Gets the reference of context.
-  auto& current_class = generator.context.current_class;
-  auto& label_map = generator.context.function_context->label_map;
-  auto& scopes = generator.context.scopes;
-  auto& current_scope = generator.context.function_context->current_scope;
+  auto& current_class = interpreter.context.current_class;
+  auto& label_map = interpreter.context.function_context->label_map;
+  auto& scopes = interpreter.context.scopes;
+  auto& current_scope = interpreter.context.function_context->current_scope;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
@@ -140,7 +140,7 @@ void HandleClassFunctionDeclaration(Generator& generator,
     // LOGGING_INFO("Handling class constructor AAAAAAAAAAAAAAAAAAAAAAAAAAAA: "
     // +
     //   std::string(current_class->GetClassDeclaration()->GetClassName()));
-    HandleClassConstructor(generator, declaration);
+    HandleClassConstructor(interpreter, declaration);
     return;
   } else {
     // LOGGING_INFO("Handling class function: " + name);
@@ -149,7 +149,7 @@ void HandleClassFunctionDeclaration(Generator& generator,
   }
 
   // Handles the function name with scopes.
-  std::string scope_name = GetFunctionNameWithScope(generator, declaration);
+  std::string scope_name = GetFunctionNameWithScope(interpreter, declaration);
   scopes.push_back(scope_name);
   current_scope = scopes.size() - 1;
 
@@ -167,45 +167,45 @@ void HandleClassFunctionDeclaration(Generator& generator,
 
   // Handles function parameters and return value.
   std::vector<std::size_t> parameters_index;
-  HandleReturnVariableInHandlingFunction(generator, declaration, scope_name,
+  HandleReturnVariableInHandlingFunction(interpreter, declaration, scope_name,
                                          parameters_index);
-  HandleFunctionArguments(generator, declaration, parameters_index, code);
+  HandleFunctionArguments(interpreter, declaration, parameters_index, code);
 
   // Handles function body.
-  HandleClassStatement(generator, declaration->GetFunctionBody(), code);
+  HandleClassStatement(interpreter, declaration->GetFunctionBody(), code);
 
   // Handles jump statements.
-  HandleReturnInHandlingFunction(generator, code);
-  HandleGotoInHandlingFunction(generator, current_scope, code);
+  HandleReturnInHandlingFunction(interpreter, code);
+  HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
-  AddClassFunctionIntoList(generator, declaration, parameters_index, code);
+  AddClassFunctionIntoList(interpreter, declaration, parameters_index, code);
 
   // Destroys temporary context.
   scopes.pop_back();
-  delete generator.context.function_context;
-  generator.context.function_context = nullptr;
+  delete interpreter.context.function_context;
+  interpreter.context.function_context = nullptr;
 }
 
-void HandleClassConstructor(Generator& generator,
+void HandleClassConstructor(Interpreter& interpreter,
                             Ast::FunctionDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   auto parameters_index =
-      HandleFactoryFunctionInHandlingConstructor(generator, declaration);
+      HandleFactoryFunctionInHandlingConstructor(interpreter, declaration);
 
-  HandleConstructorFunctionInHandlingConstructor(generator, declaration,
+  HandleConstructorFunctionInHandlingConstructor(interpreter, declaration,
                                                  parameters_index);
 }
 
-void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
+void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& classes = generator.context.classes;
-  auto& classes_list = generator.classes;
-  auto& current_class = generator.context.current_class;
-  auto& functions = generator.context.functions;
+  auto& scopes = interpreter.context.scopes;
+  auto& classes = interpreter.context.classes;
+  auto& classes_list = interpreter.classes;
+  auto& current_class = interpreter.context.current_class;
+  auto& functions = interpreter.context.functions;
 
   std::string class_name =
       scopes.back() + "." + std::string(declaration->GetClassName());
@@ -222,20 +222,20 @@ void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
   current_class->GetMemory().Add("@name");
   current_class->GetMemory().Add("@size");
 
-  HandleSubClassesInHandlingClass(generator, declaration);
+  HandleSubClassesInHandlingClass(interpreter, declaration);
 
   // Restores function context null caused by possible sub classes generation.
   current_class = classes[class_name];
 
-  HandleStaticMembersInHandlingClass(generator, declaration);
+  HandleStaticMembersInHandlingClass(interpreter, declaration);
 
-  HandleClassMembersInHandlingClass(generator, declaration);
+  HandleClassMembersInHandlingClass(interpreter, declaration);
 
-  HandleMethodsInHandlingClass(generator, declaration);
+  HandleMethodsInHandlingClass(interpreter, declaration);
 
   // Adds the void default constructor if the class doesn't have a constructor.
   if (functions.find(class_name) == functions.end())
-    AddVoidConstructorInHandlingClass(generator, declaration);
+    AddVoidConstructorInHandlingClass(interpreter, declaration);
 
   // Adds the class into the class list.
   classes_list.push_back(*current_class);
@@ -251,15 +251,15 @@ void HandleClassDeclaration(Generator& generator, Ast::Class* declaration) {
   current_class = nullptr;
 }
 
-std::size_t HandleVariableDeclaration(Generator& generator,
+std::size_t HandleVariableDeclaration(Interpreter& interpreter,
                                       Ast::Variable* declaration,
                                       std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
-  auto& variables = generator.context.variables;
+  auto& memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& variables = interpreter.context.variables;
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
   // const types, |vm_type| is the internal variable type excluding the const
@@ -280,13 +280,13 @@ std::size_t HandleVariableDeclaration(Generator& generator,
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, variable_index, code);
+    HandleClassInHandlingVariable(interpreter, declaration, variable_index, code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index =
-        HandleExpression(generator, declaration->GetVariableValue()[0], code);
+        HandleExpression(interpreter, declaration->GetVariableValue()[0], code);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -323,17 +323,17 @@ std::size_t HandleVariableDeclaration(Generator& generator,
   return variable_index;
 }
 
-std::size_t HandleGlobalVariableDeclaration(Generator& generator,
+std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
                                             Ast::Variable* declaration,
                                             std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& start_class = generator.main_class;
-  auto& variables = generator.context.variables;
+  auto& start_class = interpreter.main_class;
+  auto& variables = interpreter.context.variables;
   auto& class_variables = start_class.GetVariables();
   auto& memory = start_class.GetMemory();
-  auto& global_memory = generator.global_memory;
+  auto& global_memory = interpreter.global_memory;
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
   // const types, |vm_type| is the internal variable type excluding the const
@@ -359,14 +359,14 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, reference_index,
+    HandleClassInHandlingVariable(interpreter, declaration, reference_index,
                                   code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index =
-        HandleExpression(generator, declaration->GetVariableValue()[0], code);
+        HandleExpression(interpreter, declaration->GetVariableValue()[0], code);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -403,15 +403,15 @@ std::size_t HandleGlobalVariableDeclaration(Generator& generator,
   return reference_index;
 }
 
-std::size_t HandleStaticVariableDeclaration(Generator& generator,
+std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
                                             Ast::Variable* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
-  auto& global_code = generator.global_code;
-  auto& variables = generator.context.variables;
+  auto& global_memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& global_code = interpreter.global_code;
+  auto& variables = interpreter.context.variables;
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
   // const types, |vm_type| is the internal variable type excluding the const
@@ -432,14 +432,14 @@ std::size_t HandleStaticVariableDeclaration(Generator& generator,
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, variable_index,
+    HandleClassInHandlingVariable(interpreter, declaration, variable_index,
                                   global_code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index = HandleExpression(
-        generator, declaration->GetVariableValue()[0], global_code);
+        interpreter, declaration->GetVariableValue()[0], global_code);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -476,14 +476,14 @@ std::size_t HandleStaticVariableDeclaration(Generator& generator,
   return variable_index;
 }
 
-std::size_t HandleClassVariableDeclaration(Generator& generator,
+std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
                                            Ast::Variable* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& start_class = generator.main_class;
-  auto& global_memory = generator.global_memory;
-  auto& current_class = generator.context.current_class;
+  auto& start_class = interpreter.main_class;
+  auto& global_memory = interpreter.global_memory;
+  auto& current_class = interpreter.context.current_class;
   auto& memory = current_class->GetMemory();
   auto& variables = current_class->GetVariables();
   auto& code = current_class->GetCode();
@@ -511,14 +511,14 @@ std::size_t HandleClassVariableDeclaration(Generator& generator,
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(generator, declaration, reference_index,
+    HandleClassInHandlingVariable(interpreter, declaration, reference_index,
                                   code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index =
-        HandleExpression(generator, declaration->GetVariableValue()[0], code);
+        HandleExpression(interpreter, declaration->GetVariableValue()[0], code);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -552,15 +552,15 @@ std::size_t HandleClassVariableDeclaration(Generator& generator,
   variables[variable_name] = reference_index;
   return reference_index;
 }
-std::size_t HandleArrayDeclaration(Generator& generator,
+std::size_t HandleArrayDeclaration(Interpreter& interpreter,
                                    Ast::ArrayDeclaration* declaration,
                                    std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& variables = generator.context.variables;
-  auto& scopes = generator.context.scopes;
+  auto& global_memory = interpreter.global_memory;
+  auto& variables = interpreter.context.variables;
+  auto& scopes = interpreter.context.scopes;
 
   // Handles the array type.
   Ast::ArrayType* array_type =
@@ -583,7 +583,7 @@ std::size_t HandleArrayDeclaration(Generator& generator,
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name =
-        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -625,7 +625,7 @@ std::size_t HandleArrayDeclaration(Generator& generator,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index =
-          HandleExpression(generator, declaration->GetVariableValue()[i], code);
+          HandleExpression(interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
@@ -635,17 +635,17 @@ std::size_t HandleArrayDeclaration(Generator& generator,
   return array_index;
 }
 
-std::size_t HandleGlobalArrayDeclaration(Generator& generator,
+std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
                                          Ast::ArrayDeclaration* declaration,
                                          std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& variables = generator.context.variables;
-  auto& start_class = generator.main_class;
+  auto& global_memory = interpreter.global_memory;
+  auto& variables = interpreter.context.variables;
+  auto& start_class = interpreter.main_class;
   auto& class_variables = start_class.GetVariables();
-  auto& scopes = generator.context.scopes;
+  auto& scopes = interpreter.context.scopes;
   auto& memory = start_class.GetMemory();
 
   // Handles the array type.
@@ -672,7 +672,7 @@ std::size_t HandleGlobalArrayDeclaration(Generator& generator,
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name =
-        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -714,7 +714,7 @@ std::size_t HandleGlobalArrayDeclaration(Generator& generator,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index =
-          HandleExpression(generator, declaration->GetVariableValue()[i], code);
+          HandleExpression(interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
@@ -726,15 +726,15 @@ std::size_t HandleGlobalArrayDeclaration(Generator& generator,
   return array_index;
 }
 
-std::size_t HandleStaticArrayDeclaration(Generator& generator,
+std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
                                          Ast::ArrayDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& variables = generator.context.variables;
-  auto& scopes = generator.context.scopes;
-  auto& global_code = generator.global_code;
+  auto& global_memory = interpreter.global_memory;
+  auto& variables = interpreter.context.variables;
+  auto& scopes = interpreter.context.scopes;
+  auto& global_code = interpreter.global_code;
 
   // Handles the array type.
   Ast::ArrayType* array_type =
@@ -757,7 +757,7 @@ std::size_t HandleStaticArrayDeclaration(Generator& generator,
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name =
-        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -800,7 +800,7 @@ std::size_t HandleStaticArrayDeclaration(Generator& generator,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
-          generator, declaration->GetVariableValue()[i], global_code);
+          interpreter, declaration->GetVariableValue()[i], global_code);
       global_code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
@@ -810,13 +810,13 @@ std::size_t HandleStaticArrayDeclaration(Generator& generator,
   return array_index;
 }
 
-std::size_t HandleClassArrayDeclaration(Generator& generator,
+std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
                                         Ast::ArrayDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = generator.global_memory;
-  auto& current_class = generator.context.current_class;
+  auto& global_memory = interpreter.global_memory;
+  auto& current_class = interpreter.context.current_class;
   auto& memory = current_class->GetMemory();
   auto& variables = current_class->GetVariables();
   auto& code = current_class->GetCode();
@@ -845,7 +845,7 @@ std::size_t HandleClassArrayDeclaration(Generator& generator,
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name =
-        GetClassNameString(generator, dynamic_cast<Ast::ClassType*>(sub_type));
+        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -887,7 +887,7 @@ std::size_t HandleClassArrayDeclaration(Generator& generator,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index =
-          HandleExpression(generator, declaration->GetVariableValue()[i], code);
+          HandleExpression(interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
@@ -897,14 +897,14 @@ std::size_t HandleClassArrayDeclaration(Generator& generator,
   return array_index;
 }
 
-void HandleFunctionArguments(Generator& generator,
+void HandleFunctionArguments(Interpreter& interpreter,
                              Ast::FunctionDeclaration* declaration,
                              std::vector<std::size_t>& parameters_index,
                              std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& memory = generator.global_memory;
-  auto& variables = generator.context.variables;
+  auto& scopes = interpreter.context.scopes;
+  auto& memory = interpreter.global_memory;
+  auto& variables = interpreter.context.variables;
 
   // Gets the function statement and its parameters.
   Ast::Function* statement = declaration->GetFunctionStatement();
@@ -928,7 +928,7 @@ void HandleFunctionArguments(Generator& generator,
       std::string name = scopes.back() + "#" + declaration->GetVariableName();
 
       std::size_t index =
-          HandleVariableDeclaration(generator, declaration, code);
+          HandleVariableDeclaration(interpreter, declaration, code);
 
       // Adds index into |parameters_index| and |variables|.
       parameters_index.push_back(index);
@@ -939,7 +939,7 @@ void HandleFunctionArguments(Generator& generator,
       auto declaration = Ast::Cast<Ast::ArrayDeclaration>(parameters[i]);
       std::string name = scopes.back() + "#" + declaration->GetVariableName();
 
-      std::size_t index = HandleArrayDeclaration(generator, declaration, code);
+      std::size_t index = HandleArrayDeclaration(interpreter, declaration, code);
 
       // Adds index into |parameters_index| and |variables|.
       parameters_index.push_back(index);
@@ -961,11 +961,11 @@ void HandleFunctionArguments(Generator& generator,
   }
 }
 
-void HandleReturnInHandlingFunction(Generator& generator,
+void HandleReturnInHandlingFunction(Interpreter& interpreter,
                                     std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& exit_index = generator.context.function_context->exit_index;
-  auto& memory = generator.global_memory;
+  auto& exit_index = interpreter.context.function_context->exit_index;
+  auto& memory = interpreter.global_memory;
 
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t return_location = code.size();
@@ -974,14 +974,14 @@ void HandleReturnInHandlingFunction(Generator& generator,
   }
 }
 
-void HandleGotoInHandlingFunction(Generator& generator,
+void HandleGotoInHandlingFunction(Interpreter& interpreter,
                                   std::size_t current_scope,
                                   std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& goto_map = generator.context.function_context->goto_map;
-  auto& memory = generator.global_memory;
-  auto& scopes = generator.context.scopes;
-  auto& label_map = generator.context.function_context->label_map;
+  auto& goto_map = interpreter.context.function_context->goto_map;
+  auto& memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& label_map = interpreter.context.function_context->label_map;
 
   while (goto_map.size() > 0) {
     std::size_t goto_location = 0;
@@ -999,12 +999,12 @@ void HandleGotoInHandlingFunction(Generator& generator,
   }
 }
 
-void AddFunctionIntoList(Generator& generator,
+void AddFunctionIntoList(Interpreter& interpreter,
                          Ast::FunctionDeclaration* declaration,
                          std::vector<std::size_t>& parameters_index,
                          std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& function_list = generator.functions;
+  auto& function_list = interpreter.functions;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
@@ -1014,12 +1014,12 @@ void AddFunctionIntoList(Generator& generator,
   function_list.push_back(function);
 }
 
-void AddClassFunctionIntoList(Generator& generator,
+void AddClassFunctionIntoList(Interpreter& interpreter,
                               Ast::FunctionDeclaration* declaration,
                               std::vector<std::size_t>& parameters_index,
                               std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& function_list = generator.context.current_class->GetFunctionList();
+  auto& function_list = interpreter.context.current_class->GetFunctionList();
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
@@ -1031,10 +1031,10 @@ void AddClassFunctionIntoList(Generator& generator,
 }
 
 void AddClassConstructorFunctionIntoList(
-    Generator& generator, Ast::FunctionDeclaration* declaration,
+    Interpreter& interpreter, Ast::FunctionDeclaration* declaration,
     std::vector<std::size_t>& parameters_index, std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& function_list = generator.context.current_class->GetFunctionList();
+  auto& function_list = interpreter.context.current_class->GetFunctionList();
 
   Ast::Function* statement = declaration->GetFunctionStatement();
 
@@ -1045,11 +1045,11 @@ void AddClassConstructorFunctionIntoList(
 }
 
 void HandleReturnVariableInHandlingFunction(
-    Generator& generator, Ast::FunctionDeclaration* declaration,
+    Interpreter& interpreter, Ast::FunctionDeclaration* declaration,
     std::string scope_name, std::vector<std::size_t>& parameters_index) {
   // Gets the reference of context.
-  auto& variables = generator.context.variables;
-  auto& memory = generator.global_memory;
+  auto& variables = interpreter.context.variables;
+  auto& memory = interpreter.global_memory;
 
   std::vector<uint8_t> vm_type = declaration->GetReturnType()->GetVmType();
   variables[scope_name + "#!return"] = memory.AddWithType(vm_type);
@@ -1058,23 +1058,23 @@ void HandleReturnVariableInHandlingFunction(
 }
 
 std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
-    Generator& generator, Ast::FunctionDeclaration* declaration) {
+    Interpreter& interpreter, Ast::FunctionDeclaration* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Creates temporary context.
-  generator.context.function_context = new FunctionContext();
+  interpreter.context.function_context = new FunctionContext();
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& memory = generator.global_memory;
-  auto& functions = generator.context.functions;
+  auto& scopes = interpreter.context.scopes;
+  auto& memory = interpreter.global_memory;
+  auto& functions = interpreter.context.functions;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
   auto parameters = statement->GetParameters();
   std::vector<Bytecode> code;
 
-  name = GetFunctionNameWithScope(generator, declaration);
+  name = GetFunctionNameWithScope(interpreter, declaration);
   scopes.push_back(name);
 
   // Records the creation of the function.
@@ -1084,7 +1084,7 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   std::vector<std::size_t> parameters_index;
   std::size_t return_index = memory.Add(1);
   parameters_index.push_back(return_index);
-  HandleFunctionArguments(generator, declaration, parameters_index, code);
+  HandleFunctionArguments(interpreter, declaration, parameters_index, code);
 
   // Builds the main part of the factory function.
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_index,
@@ -1095,34 +1095,34 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
                             parameters_index.size()});
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_parameters));
 
-  AddFunctionIntoList(generator, declaration, parameters_index, code);
+  AddFunctionIntoList(interpreter, declaration, parameters_index, code);
 
   // Destroys temporary context.
   scopes.pop_back();
-  delete generator.context.function_context;
-  generator.context.function_context = nullptr;
+  delete interpreter.context.function_context;
+  interpreter.context.function_context = nullptr;
 
   return parameters_index;
 }
 
 void HandleConstructorFunctionInHandlingConstructor(
-    Generator& generator, Ast::FunctionDeclaration* declaration,
+    Interpreter& interpreter, Ast::FunctionDeclaration* declaration,
     std::vector<std::size_t>& parameters_index) {
   // Creates temporary context.
-  generator.context.function_context = new FunctionContext();
+  interpreter.context.function_context = new FunctionContext();
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& memory = generator.global_memory;
-  auto& functions = generator.context.functions;
-  auto& current_class = generator.context.current_class;
-  auto& current_scope = generator.context.function_context->current_scope;
+  auto& scopes = interpreter.context.scopes;
+  auto& memory = interpreter.global_memory;
+  auto& functions = interpreter.context.functions;
+  auto& current_class = interpreter.context.current_class;
+  auto& current_scope = interpreter.context.function_context->current_scope;
 
   // Creates the bytecode vector.
   std::vector<Bytecode> code;
 
   // Handles the function name with scopes.
-  std::string scope_name = GetFunctionNameWithScope(generator, declaration);
+  std::string scope_name = GetFunctionNameWithScope(interpreter, declaration);
   scopes.push_back(scope_name);
   current_scope = scopes.size() - 1;
 
@@ -1145,32 +1145,32 @@ void HandleConstructorFunctionInHandlingConstructor(
     return;
   }
 
-  HandleClassStatement(generator, declaration->GetFunctionBody(), code);
+  HandleClassStatement(interpreter, declaration->GetFunctionBody(), code);
 
-  HandleReturnInHandlingFunction(generator, code);
+  HandleReturnInHandlingFunction(interpreter, code);
 
-  HandleGotoInHandlingFunction(generator, current_scope, code);
+  HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
-  AddClassConstructorFunctionIntoList(generator, declaration, parameters_index,
+  AddClassConstructorFunctionIntoList(interpreter, declaration, parameters_index,
                                       code);
 
   // Destroys temporary context.
   scopes.pop_back();
-  delete generator.context.function_context;
-  generator.context.function_context = nullptr;
+  delete interpreter.context.function_context;
+  interpreter.context.function_context = nullptr;
 }
 
-void HandleSubClassesInHandlingClass(Generator& generator,
+void HandleSubClassesInHandlingClass(Interpreter& interpreter,
                                      Ast::Class* declaration) {
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& classes = generator.context.classes;
+  auto& scopes = interpreter.context.scopes;
+  auto& classes = interpreter.context.classes;
 
   for (std::size_t i = 0; i < declaration->GetSubClasses().size(); i++) {
     if (Ast::IsOfType<Ast::Class>(declaration->GetSubClasses()[i])) {
       // Handles the sub class declaration.
       auto sub_class = Ast::Cast<Ast::Class>(declaration->GetSubClasses()[i]);
-      HandleClassDeclaration(generator, sub_class);
+      HandleClassDeclaration(interpreter, sub_class);
 
     } else {
       INTERNAL_ERROR("Unexpected code.");
@@ -1178,30 +1178,30 @@ void HandleSubClassesInHandlingClass(Generator& generator,
   }
 
   // Restores class name.
-  auto& current_class = generator.context.current_class;
+  auto& current_class = interpreter.context.current_class;
   std::string class_name =
       scopes.back() + "." + std::string(declaration->GetClassName());
   current_class = classes[class_name];
 }
 
-void HandleStaticMembersInHandlingClass(Generator& generator,
+void HandleStaticMembersInHandlingClass(Interpreter& interpreter,
                                         Ast::Class* declaration) {
   for (std::size_t i = 0; i < declaration->GetStaticMembers().size(); i++) {
     auto member = declaration->GetStaticMembers()[i]->GetStaticDeclaration();
     if (Ast::IsOfType<Ast::Variable>(member)) {
       // Handles the static variable declaration.
       auto variable = Ast::Cast<Ast::Variable>(member);
-      HandleStaticVariableDeclaration(generator, variable);
+      HandleStaticVariableDeclaration(interpreter, variable);
 
     } else if (Ast::IsOfType<Ast::ArrayDeclaration>(member)) {
       // Handles the static array declaration.
       auto array = Ast::Cast<Ast::ArrayDeclaration>(member);
-      HandleStaticArrayDeclaration(generator, array);
+      HandleStaticArrayDeclaration(interpreter, array);
 
     } else if (Ast::IsOfType<Ast::FunctionDeclaration>(member)) {
       // Handles the static function declaration.
       auto function = Ast::Cast<Ast::FunctionDeclaration>(member);
-      HandleFunctionDeclaration(generator, function);
+      HandleFunctionDeclaration(interpreter, function);
 
     } else {
       INTERNAL_ERROR("Unexpected code.");
@@ -1209,10 +1209,10 @@ void HandleStaticMembersInHandlingClass(Generator& generator,
   }
 }
 
-void HandleClassMembersInHandlingClass(Generator& generator,
+void HandleClassMembersInHandlingClass(Interpreter& interpreter,
                                        Ast::Class* declaration) {
   // Gets the reference of context.
-  auto& current_class = generator.context.current_class;
+  auto& current_class = interpreter.context.current_class;
   auto& memory = current_class->GetMemory();
   auto& variables = current_class->GetVariables();
   auto& code = current_class->GetCode();
@@ -1223,12 +1223,12 @@ void HandleClassMembersInHandlingClass(Generator& generator,
     if (Ast::IsOfType<Ast::Variable>(member)) {
       // Handles the variable.
       auto variable = Ast::Cast<Ast::Variable>(member);
-      HandleClassVariableDeclaration(generator, variable);
+      HandleClassVariableDeclaration(interpreter, variable);
 
     } else if (Ast::IsOfType<Ast::ArrayDeclaration>(member)) {
       // Handles the array declaration.
       auto array = Ast::Cast<Ast::ArrayDeclaration>(member);
-      HandleClassArrayDeclaration(generator, array);
+      HandleClassArrayDeclaration(interpreter, array);
 
     } else {
       INTERNAL_ERROR("Unexpected code.");
@@ -1236,14 +1236,14 @@ void HandleClassMembersInHandlingClass(Generator& generator,
   }
 }
 
-void HandleMethodsInHandlingClass(Generator& generator,
+void HandleMethodsInHandlingClass(Interpreter& interpreter,
                                   Ast::Class* declaration) {
   for (std::size_t i = 0; i < declaration->GetMethods().size(); i++) {
     if (Ast::IsOfType<Ast::FunctionDeclaration>(declaration->GetMethods()[i])) {
       // Handles the class function declaration.
       auto function =
           Ast::Cast<Ast::FunctionDeclaration>(declaration->GetMethods()[i]);
-      HandleClassFunctionDeclaration(generator, function);
+      HandleClassFunctionDeclaration(interpreter, function);
 
     } else {
       INTERNAL_ERROR("Unexpected code.");
@@ -1251,32 +1251,32 @@ void HandleMethodsInHandlingClass(Generator& generator,
   }
 }
 
-void AddVoidConstructorInHandlingClass(Generator& generator,
+void AddVoidConstructorInHandlingClass(Interpreter& interpreter,
                                        Ast::Class* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   auto parameters_index =
-      HandleVoidFactoryFunctionInHandlingClass(generator, declaration);
+      HandleVoidFactoryFunctionInHandlingClass(interpreter, declaration);
 
-  HandleVoidConstructorFunctionInHandlingClass(generator, declaration,
+  HandleVoidConstructorFunctionInHandlingClass(interpreter, declaration,
                                                parameters_index);
 }
 std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
-    Generator& generator, Ast::Class* declaration) {
+    Interpreter& interpreter, Ast::Class* declaration) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Creates temporary context.
-  generator.context.function_context = new FunctionContext();
+  interpreter.context.function_context = new FunctionContext();
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& functions = generator.context.functions;
-  auto& current_class = generator.context.current_class;
-  auto& goto_map = generator.context.function_context->goto_map;
-  auto& variables = generator.context.variables;
-  auto& memory = generator.global_memory;
-  auto& function_list = generator.functions;
-  auto& exit_index = generator.context.function_context->exit_index;
+  auto& scopes = interpreter.context.scopes;
+  auto& functions = interpreter.context.functions;
+  auto& current_class = interpreter.context.current_class;
+  auto& goto_map = interpreter.context.function_context->goto_map;
+  auto& variables = interpreter.context.variables;
+  auto& memory = interpreter.global_memory;
+  auto& function_list = interpreter.functions;
+  auto& exit_index = interpreter.context.function_context->exit_index;
 
   // Handles the function name with scopes and the class name.
   std::string name = scopes.back();
@@ -1302,18 +1302,18 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
   function_list.push_back(factory);
 
   // Destroys temporary context.
-  delete generator.context.function_context;
-  generator.context.function_context = nullptr;
+  delete interpreter.context.function_context;
+  interpreter.context.function_context = nullptr;
   return parameters_index;
 }
 
 void HandleVoidConstructorFunctionInHandlingClass(
-    Generator& generator, Ast::Class* declaration,
+    Interpreter& interpreter, Ast::Class* declaration,
     std::vector<std::size_t>& parameters_index) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& current_class = generator.context.current_class;
+  auto& current_class = interpreter.context.current_class;
 
   // Records the creation of the function.
   current_class->GetFunctions().insert("@constructor");
@@ -1329,21 +1329,21 @@ void HandleVoidConstructorFunctionInHandlingClass(
   current_class->GetFunctionList().push_back(constructor);
 
   // Destroys temporary context.
-  delete generator.context.function_context;
-  generator.context.function_context = nullptr;
+  delete interpreter.context.function_context;
+  interpreter.context.function_context = nullptr;
 }
 
-void HandleClassInHandlingVariable(Generator& generator,
+void HandleClassInHandlingVariable(Interpreter& interpreter,
                                    Ast::Variable* declaration,
                                    std::size_t variable_index,
                                    std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& memory = generator.global_memory;
-  // auto& global_code = generator.global_code;
-  auto& scopes = generator.context.scopes;
-  auto& functions = generator.context.functions;
+  auto& memory = interpreter.global_memory;
+  // auto& global_code = interpreter.global_code;
+  auto& scopes = interpreter.context.scopes;
+  auto& functions = interpreter.context.functions;
 
   // Gets the class name, which is same as the function name.
   std::string name = std::string(
@@ -1382,10 +1382,10 @@ void HandleClassInHandlingVariable(Generator& generator,
                           reference_index));
 }
 
-std::string GetClassNameString(Generator& generator, Ast::ClassType* type) {
+std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& functions = generator.context.functions;
+  auto& scopes = interpreter.context.scopes;
+  auto& functions = interpreter.context.functions;
 
   std::string name = type->GetClassName();
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
@@ -1413,7 +1413,7 @@ std::string GetClassNameString(Generator& generator, Ast::ClassType* type) {
 }
 
 void GenerateBytecode(std::string import_location) {
-  Generator* generator = new Generator();
+  Interpreter* interpreter = new Interpreter();
   std::vector<char> code;
   Aq::ReadCodeFromFile(import_location.c_str(), code);
 
@@ -1424,18 +1424,18 @@ void GenerateBytecode(std::string import_location) {
   if (ast == nullptr) Aq::LOGGING_ERROR("ast is nullptr.");
 
   import_location += std::string("bc");
-  generator->Generate(ast, import_location.c_str());
+  interpreter->Generate(ast, import_location.c_str());
 
   Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
 
-  imports_map.insert(std::make_pair(import_location, generator));
+  imports_map.insert(std::make_pair(import_location, interpreter));
 }
 
-std::string GetFunctionNameWithScope(Generator& generator,
+std::string GetFunctionNameWithScope(Interpreter& interpreter,
                                      Ast::FunctionDeclaration* declaration) {
   // Gets the reference of context.
 
-  auto& scopes = generator.context.scopes;
+  auto& scopes = interpreter.context.scopes;
 
   // Gets the function statement and its parameters.
   Ast::Function* statement = declaration->GetFunctionStatement();
@@ -1482,5 +1482,5 @@ std::string GetFunctionNameWithScope(Generator& generator,
   return scope_name;
 }
 
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq

@@ -9,13 +9,13 @@
 #include <unordered_set>
 
 #include "ast/ast.h"
-#include "generator/bytecode.h"
-#include "generator/function.h"
-#include "generator/memory.h"
+#include "interpreter/bytecode.h"
+#include "interpreter/function.h"
+#include "interpreter/memory.h"
 #include "logging/logging.h"
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 class Class {
  public:
   Class() = default;
@@ -62,7 +62,7 @@ class Class {
   std::vector<Bytecode> code_;
   std::size_t name_index_ = 0;
 };
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

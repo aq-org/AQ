@@ -6,45 +6,45 @@
 #define AQ_GENERATOR_STATEMENT_GENERATOR_H_
 
 #include "ast/ast.h"
-#include "generator/generator.h"
+#include "interpreter/interpreter.h"
 
 namespace Aq {
-namespace Generator {
+namespace Interpreter {
 // Handles the statement, except for function declaration and class declaration.
-void HandleStatement(Generator& generator, Ast::Statement* statement,
+void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
                      std::vector<Bytecode>& code);
 
 // Handles the break statement.
-void HandleBreakStatement(Generator& generator, std::vector<Bytecode>& code);
+void HandleBreakStatement(Interpreter& interpreter, std::vector<Bytecode>& code);
 
 // Handles the statement in the class function body.
-void HandleClassStatement(Generator& generator, Ast::Statement* statement,
+void HandleClassStatement(Interpreter& interpreter, Ast::Statement* statement,
                           std::vector<Bytecode>& code);
 
 // Handles the return statement in the function body.
-void HandleReturnStatement(Generator& generator, Ast::Return* statement,
+void HandleReturnStatement(Interpreter& interpreter, Ast::Return* statement,
                            std::vector<Bytecode>& code);
 
 // Handles the compound statement in the function body.
-void HandleCompoundStatement(Generator& generator, Ast::Compound* statement,
+void HandleCompoundStatement(Interpreter& interpreter, Ast::Compound* statement,
                              std::vector<Bytecode>& code);
 
 // Handles the function invoke statement.
-void HandleIfStatement(Generator& generator, Ast::If* statement,
+void HandleIfStatement(Interpreter& interpreter, Ast::If* statement,
                        std::vector<Bytecode>& code);
 
 // Handles the while statement.
-void HandleWhileStatement(Generator& generator, Ast::While* statement,
+void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
                           std::vector<Bytecode>& code);
 
 // Handles the do-while statement.
-void HandleDowhileStatement(Generator& generator, Ast::DoWhile* statement,
+void HandleDowhileStatement(Interpreter& interpreter, Ast::DoWhile* statement,
                             std::vector<Bytecode>& code);
 
 // Handles the for statement.
-void HandleForStatement(Generator& generator, Ast::For* statement,
+void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
                         std::vector<Bytecode>& code);
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
 
 #endif

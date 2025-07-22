@@ -2,20 +2,20 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "generator/preprocesser.h"
+#include "interpreter/preprocesser.h"
 
 #include <string>
 #include <vector>
 
 #include "ast/ast.h"
-#include "generator/class.h"
-#include "generator/declaration_generator.h"
-#include "generator/generator.h"
+#include "interpreter/class.h"
+#include "interpreter/declaration_interpreter.h"
+#include "interpreter/interpreter.h"
 #include "logging/logging.h"
 
 namespace Aq {
-namespace Generator {
-void PreProcessDeclaration(Generator& generator, Ast::Compound* statements) {
+namespace Interpreter {
+void PreProcessDeclaration(Interpreter& interpreter, Ast::Compound* statements) {
   if (statements == nullptr) INTERNAL_ERROR("stmt is nullptr.");
 
   std::vector<Ast::Statement*> statements_buffer;
@@ -24,22 +24,22 @@ void PreProcessDeclaration(Generator& generator, Ast::Compound* statements) {
     Ast::Statement* statement = statements->GetStatements()[i];
 
     if (Ast::IsOfType<Ast::Class>(statement)) {
-      //PreProcessClassDeclaration(generator, Ast::Cast<Ast::Class>(statement));
+      //PreProcessClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement));
       statements_buffer.push_back(statement);
 
     } else if (Ast::IsOfType<Ast::FunctionDeclaration>(statement)) {
       PreProcessFunctionDeclaration(
-          generator, Ast::Cast<Ast::FunctionDeclaration>(statement));
+          interpreter, Ast::Cast<Ast::FunctionDeclaration>(statement));
 
     } else if (Ast::IsOfType<Ast::Import>(statement)) {
-      PreProcessImport(generator, Ast::Cast<Ast::Import>(statement));
+      PreProcessImport(interpreter, Ast::Cast<Ast::Import>(statement));
     }
   }
 
   for (std::size_t i = 0; i < statements_buffer.size(); i++) {
     switch (statements_buffer[i]->GetStatementType()) {
       case Ast::Statement::StatementType::kClass:
-        PreProcessClassDeclaration(generator,
+        PreProcessClassDeclaration(interpreter,
                                    Ast::Cast<Ast::Class>(statements_buffer[i]));
         break;
 
@@ -50,13 +50,13 @@ void PreProcessDeclaration(Generator& generator, Ast::Compound* statements) {
   }
 }
 
-void PreProcessFunctionDeclaration(Generator& generator,
+void PreProcessFunctionDeclaration(Interpreter& interpreter,
                                    Ast::FunctionDeclaration* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of the context.
-  auto& scopes = generator.context.scopes;
-  auto& functions = generator.context.functions;
+  auto& scopes = interpreter.context.scopes;
+  auto& functions = interpreter.context.functions;
 
   std::string function_name =
       statement->GetFunctionStatement()->GetFunctionName();
@@ -67,14 +67,14 @@ void PreProcessFunctionDeclaration(Generator& generator,
   functions.insert(full_name);
 }
 
-void PreProcessClassDeclaration(Generator& generator, Ast::Class* statement) {
+void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of the context.
-  auto& scopes = generator.context.scopes;
-  auto& classes = generator.context.classes;
-  auto& global_memory = generator.global_memory;
-  auto& functions = generator.context.functions;
+  auto& scopes = interpreter.context.scopes;
+  auto& classes = interpreter.context.classes;
+  auto& global_memory = interpreter.global_memory;
+  auto& functions = interpreter.context.functions;
 
   std::string class_name = static_cast<std::string>(statement->GetClassName());
   std::string full_name = scopes.back() + "." + class_name;
@@ -92,7 +92,7 @@ void PreProcessClassDeclaration(Generator& generator, Ast::Class* statement) {
   for (std::size_t i = 0; i < statement->GetSubClasses().size(); i++) {
     if (Ast::IsOfType<Ast::Class>(statement->GetSubClasses()[i])) {
       PreProcessClassDeclaration(
-          generator, Ast::Cast<Ast::Class>(statement->GetSubClasses()[i]));
+          interpreter, Ast::Cast<Ast::Class>(statement->GetSubClasses()[i]));
 
     } else {
       INTERNAL_ERROR("Unexpected statement type.");
@@ -105,7 +105,7 @@ void PreProcessClassDeclaration(Generator& generator, Ast::Class* statement) {
 
     if (Ast::IsOfType<Ast::FunctionDeclaration>(declaration)) {
       PreProcessFunctionDeclaration(
-          generator, Ast::Cast<Ast::FunctionDeclaration>(declaration));
+          interpreter, Ast::Cast<Ast::FunctionDeclaration>(declaration));
     }
 
     // Other declarations are handled by the PreProcessStaticDeclaration() in
@@ -116,15 +116,15 @@ void PreProcessClassDeclaration(Generator& generator, Ast::Class* statement) {
   scopes.pop_back();
 }
 
-void PreProcessStaticDeclaration(Generator& generator, Ast::Class* statement) {
+void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of the context.
-  auto& scopes = generator.context.scopes;
-  auto& classes = generator.context.classes;
-  auto& global_memory = generator.global_memory;
-  auto& functions = generator.context.functions;
-  auto& code = generator.global_code;
+  auto& scopes = interpreter.context.scopes;
+  auto& classes = interpreter.context.classes;
+  auto& global_memory = interpreter.global_memory;
+  auto& functions = interpreter.context.functions;
+  auto& code = interpreter.global_code;
 
   std::string class_name = static_cast<std::string>(statement->GetClassName());
   std::string full_name = scopes.back() + "." + class_name;
@@ -137,7 +137,7 @@ void PreProcessStaticDeclaration(Generator& generator, Ast::Class* statement) {
   for (std::size_t i = 0; i < statement->GetSubClasses().size(); i++) {
     if (Ast::IsOfType<Ast::Class>(statement->GetSubClasses()[i])) {
       PreProcessStaticDeclaration(
-          generator, Ast::Cast<Ast::Class>(statement->GetSubClasses()[i]));
+          interpreter, Ast::Cast<Ast::Class>(statement->GetSubClasses()[i]));
 
     } else {
       INTERNAL_ERROR("Unexpected code.");
@@ -147,12 +147,12 @@ void PreProcessStaticDeclaration(Generator& generator, Ast::Class* statement) {
   for (std::size_t i = 0; i < statement->GetStaticMembers().size(); i++) {
     Ast::Declaration* declaration = statement->GetStaticMembers()[i];
     if (Ast::IsOfType<Ast::Declaration>(declaration)) {
-      HandleVariableDeclaration(generator,
+      HandleVariableDeclaration(interpreter,
                                 Ast::Cast<Ast::Variable>(declaration), code);
 
     } else if (Ast::IsOfType<Ast::ArrayDeclaration>(declaration)) {
       HandleArrayDeclaration(
-          generator, Ast::Cast<Ast::ArrayDeclaration>(declaration), code);
+          interpreter, Ast::Cast<Ast::ArrayDeclaration>(declaration), code);
     }
   }
 
@@ -160,12 +160,12 @@ void PreProcessStaticDeclaration(Generator& generator, Ast::Class* statement) {
   scopes.pop_back();
 }
 
-void PreProcessImport(Generator& generator, Ast::Import* statement) {
+void PreProcessImport(Interpreter& interpreter, Ast::Import* statement) {
   if (statement == nullptr) INTERNAL_ERROR("stmt is nullptr.");
 
   // Gets the reference of the context.
-  auto& global_memory = generator.global_memory;
-  auto& variables = generator.context.variables;
+  auto& global_memory = interpreter.global_memory;
+  auto& variables = interpreter.context.variables;
 
   if (statement->IsFromImport()) {
     INTERNAL_ERROR("Unsupported import type now.");
@@ -177,5 +177,5 @@ void PreProcessImport(Generator& generator, Ast::Import* statement) {
     variables.emplace("#" + static_cast<std::string>(name), array_index);
   }
 }
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq

@@ -2,19 +2,19 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#include "generator/statement_generator.h"
+#include "interpreter/statement_interpreter.h"
 
 #include "ast/ast.h"
-#include "generator/declaration_generator.h"
-#include "generator/expression_generator.h"
-#include "generator/generator.h"
-#include "generator/goto_generator.h"
-#include "generator/operator.h"
+#include "interpreter/declaration_interpreter.h"
+#include "interpreter/expression_interpreter.h"
+#include "interpreter/interpreter.h"
+#include "interpreter/goto_interpreter.h"
+#include "interpreter/operator.h"
 #include "logging/logging.h"
 
 namespace Aq {
-namespace Generator {
-void HandleStatement(Generator& generator, Ast::Statement* statement,
+namespace Interpreter {
+void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
                      std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
@@ -27,79 +27,79 @@ void HandleStatement(Generator& generator, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kBreak:
-      HandleBreakStatement(generator, code);
+      HandleBreakStatement(interpreter, code);
       break;
 
     case Ast::Statement::StatementType::kCompound:
       LOGGING_INFO("Handling compound statement.");
-      HandleCompoundStatement(generator, Ast::Cast<Ast::Compound>(statement),
+      HandleCompoundStatement(interpreter, Ast::Cast<Ast::Compound>(statement),
                               code);
       break;
 
     case Ast::Statement::StatementType::kExpression:
-      HandleExpression(generator, Ast::Cast<Ast::Expression>(statement), code);
+      HandleExpression(interpreter, Ast::Cast<Ast::Expression>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kUnary:
-      HandleUnaryExpression(generator, Ast::Cast<Ast::Unary>(statement), code);
+      HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kBinary:
-      HandleBinaryExpression(generator, Ast::Cast<Ast::Binary>(statement),
+      HandleBinaryExpression(interpreter, Ast::Cast<Ast::Binary>(statement),
                              code);
       break;
 
     case Ast::Statement::StatementType::kIf:
-      HandleIfStatement(generator, Ast::Cast<Ast::If>(statement), code);
+      HandleIfStatement(interpreter, Ast::Cast<Ast::If>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kWhile:
-      HandleWhileStatement(generator, Ast::Cast<Ast::While>(statement), code);
+      HandleWhileStatement(interpreter, Ast::Cast<Ast::While>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kDowhile:
-      HandleDowhileStatement(generator, Ast::Cast<Ast::DoWhile>(statement),
+      HandleDowhileStatement(interpreter, Ast::Cast<Ast::DoWhile>(statement),
                              code);
       break;
 
     case Ast::Statement::StatementType::kFor:
-      HandleForStatement(generator, Ast::Cast<Ast::For>(statement), code);
+      HandleForStatement(interpreter, Ast::Cast<Ast::For>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kFunctionDeclaration:
-      HandleFunctionDeclaration(generator,
+      HandleFunctionDeclaration(interpreter,
                                 Ast::Cast<Ast::FunctionDeclaration>(statement));
       break;
 
     case Ast::Statement::StatementType::kVariable:
-      HandleVariableDeclaration(generator, Ast::Cast<Ast::Variable>(statement),
+      HandleVariableDeclaration(interpreter, Ast::Cast<Ast::Variable>(statement),
                                 code);
       break;
 
     case Ast::Statement::StatementType::kArrayDeclaration:
-      HandleArrayDeclaration(generator,
+      HandleArrayDeclaration(interpreter,
                              Ast::Cast<Ast::ArrayDeclaration>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kClass:
-      HandleClassDeclaration(generator, Ast::Cast<Ast::Class>(statement));
+      HandleClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement));
       break;
 
     case Ast::Statement::StatementType::kFunction:
-      HandleFunctionInvoke(generator, Ast::Cast<Ast::Function>(statement),
+      HandleFunctionInvoke(interpreter, Ast::Cast<Ast::Function>(statement),
                            code);
       break;
 
     case Ast::Statement::StatementType::kReturn:
-      HandleReturnStatement(generator, Ast::Cast<Ast::Return>(statement), code);
+      HandleReturnStatement(interpreter, Ast::Cast<Ast::Return>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kLabel:
-      HandleLabel(generator, Ast::Cast<Ast::Label>(statement), code);
+      HandleLabel(interpreter, Ast::Cast<Ast::Label>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kGoto:
-      HandleGoto(generator, Ast::Cast<Ast::Goto>(statement), code);
+      HandleGoto(interpreter, Ast::Cast<Ast::Goto>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kStatement:
@@ -111,89 +111,89 @@ void HandleStatement(Generator& generator, Ast::Statement* statement,
   }
 }
 
-void HandleBreakStatement(Generator& generator, std::vector<Bytecode>& code) {
+void HandleBreakStatement(Interpreter& interpreter, std::vector<Bytecode>& code) {
   std::size_t index = 0;
   code.push_back(
       Bytecode(_AQVM_OPERATOR_GOTO, 1,
-               generator.global_memory.AddUint64tWithoutValue(index)));
+               interpreter.global_memory.AddUint64tWithoutValue(index)));
 
-  generator.context.function_context->loop_break_index.push_back(index);
+  interpreter.context.function_context->loop_break_index.push_back(index);
 }
 
-void HandleClassStatement(Generator& generator, Ast::Statement* statement,
+void HandleClassStatement(Interpreter& interpreter, Ast::Statement* statement,
                           std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   switch (statement->GetStatementType()) {
     case Ast::Statement::StatementType::kCompound:
-      HandleCompoundStatement(generator, Ast::Cast<Ast::Compound>(statement),
+      HandleCompoundStatement(interpreter, Ast::Cast<Ast::Compound>(statement),
                               code);
       break;
 
     case Ast::Statement::StatementType::kExpression:
-      HandleExpression(generator, Ast::Cast<Ast::Expression>(statement), code);
+      HandleExpression(interpreter, Ast::Cast<Ast::Expression>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kUnary:
-      HandleUnaryExpression(generator, Ast::Cast<Ast::Unary>(statement), code);
+      HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kBinary:
-      HandleBinaryExpression(generator, Ast::Cast<Ast::Binary>(statement),
+      HandleBinaryExpression(interpreter, Ast::Cast<Ast::Binary>(statement),
                              code);
       break;
 
     case Ast::Statement::StatementType::kIf:
-      HandleIfStatement(generator, Ast::Cast<Ast::If>(statement), code);
+      HandleIfStatement(interpreter, Ast::Cast<Ast::If>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kWhile:
-      HandleWhileStatement(generator, Ast::Cast<Ast::While>(statement), code);
+      HandleWhileStatement(interpreter, Ast::Cast<Ast::While>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kDowhile:
-      HandleDowhileStatement(generator, Ast::Cast<Ast::DoWhile>(statement),
+      HandleDowhileStatement(interpreter, Ast::Cast<Ast::DoWhile>(statement),
                              code);
       break;
 
     case Ast::Statement::StatementType::kFor:
-      HandleForStatement(generator, Ast::Cast<Ast::For>(statement), code);
+      HandleForStatement(interpreter, Ast::Cast<Ast::For>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kFunctionDeclaration:
-      HandleFunctionDeclaration(generator,
+      HandleFunctionDeclaration(interpreter,
                                 Ast::Cast<Ast::FunctionDeclaration>(statement));
       break;
 
     case Ast::Statement::StatementType::kVariable:
-      HandleVariableDeclaration(generator, Ast::Cast<Ast::Variable>(statement),
+      HandleVariableDeclaration(interpreter, Ast::Cast<Ast::Variable>(statement),
                                 code);
       break;
 
     case Ast::Statement::StatementType::kArrayDeclaration:
-      HandleArrayDeclaration(generator,
+      HandleArrayDeclaration(interpreter,
                              Ast::Cast<Ast::ArrayDeclaration>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kClass:
-      HandleClassDeclaration(generator, Ast::Cast<Ast::Class>(statement));
+      HandleClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement));
       break;
 
     case Ast::Statement::StatementType::kFunction:
-      HandleFunctionInvoke(generator, Ast::Cast<Ast::Function>(statement),
+      HandleFunctionInvoke(interpreter, Ast::Cast<Ast::Function>(statement),
                            code);
       break;
 
     case Ast::Statement::StatementType::kReturn:
-      HandleReturnStatement(generator, Ast::Cast<Ast::Return>(statement), code);
+      HandleReturnStatement(interpreter, Ast::Cast<Ast::Return>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kLabel:
-      HandleLabel(generator, Ast::Cast<Ast::Label>(statement), code);
+      HandleLabel(interpreter, Ast::Cast<Ast::Label>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kGoto:
-      HandleGoto(generator, Ast::Cast<Ast::Goto>(statement), code);
+      HandleGoto(interpreter, Ast::Cast<Ast::Goto>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kStatement:
@@ -205,15 +205,15 @@ void HandleClassStatement(Generator& generator, Ast::Statement* statement,
   }
 }
 
-void HandleReturnStatement(Generator& generator, Ast::Return* statement,
+void HandleReturnStatement(Interpreter& interpreter, Ast::Return* statement,
                            std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of context.
-  auto& exit_index = generator.context.function_context->exit_index;
-  auto& variables = generator.context.variables;
-  auto& scopes = generator.context.scopes;
-  auto& current_scope = generator.context.function_context->current_scope;
+  auto& exit_index = interpreter.context.function_context->exit_index;
+  auto& variables = interpreter.context.variables;
+  auto& scopes = interpreter.context.scopes;
+  auto& current_scope = interpreter.context.function_context->current_scope;
 
   if (statement->GetExpression() == nullptr) {
     // Void return.
@@ -223,7 +223,7 @@ void HandleReturnStatement(Generator& generator, Ast::Return* statement,
   } else {
     // Gets return value.
     std::size_t return_value =
-        HandleExpression(generator, statement->GetExpression(), code);
+        HandleExpression(interpreter, statement->GetExpression(), code);
 
     // Gets the reference of the return variables.
     bool is_find = false;
@@ -249,7 +249,7 @@ void HandleReturnStatement(Generator& generator, Ast::Return* statement,
   }
 }
 
-void HandleCompoundStatement(Generator& generator, Ast::Compound* statement,
+void HandleCompoundStatement(Interpreter& interpreter, Ast::Compound* statement,
                              std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
@@ -258,21 +258,21 @@ void HandleCompoundStatement(Generator& generator, Ast::Compound* statement,
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
     LOGGING_INFO("Handling compound statement: " + std::to_string(i) + "/" +
                  std::to_string(statement->GetStatements().size()));
-    HandleStatement(generator, statement->GetStatements()[i], code);
+    HandleStatement(interpreter, statement->GetStatements()[i], code);
   }
 }
 
-void HandleIfStatement(Generator& generator, Ast::If* statement,
+void HandleIfStatement(Interpreter& interpreter, Ast::If* statement,
                        std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& undefined_count = generator.context.undefined_count;
-  auto& global_memory = generator.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& undefined_count = interpreter.context.undefined_count;
+  auto& global_memory = interpreter.global_memory;
 
   std::size_t condition_index =
-      HandleExpression(generator, statement->GetConditionExpression(), code);
+      HandleExpression(interpreter, statement->GetConditionExpression(), code);
 
   // Handles the if operator and its statements.
   std::size_t if_operator_index = code.size();
@@ -281,7 +281,7 @@ void HandleIfStatement(Generator& generator, Ast::If* statement,
   // Handles the true branch of the if statement.
   std::size_t true_operator_location = code.size();
   scopes.push_back(scopes.back() + "@@" + std::to_string(++undefined_count));
-  HandleStatement(generator, statement->GetIfBody(), code);
+  HandleStatement(interpreter, statement->GetIfBody(), code);
   scopes.pop_back();
 
   // Handles the goto operator for the true branch.
@@ -292,7 +292,7 @@ void HandleIfStatement(Generator& generator, Ast::If* statement,
   std::size_t false_operator_location = code.size();
   if (statement->GetElseBody() != nullptr) {
     scopes.push_back(scopes.back() + "@@" + std::to_string(++undefined_count));
-    HandleStatement(generator, statement->GetElseBody(), code);
+    HandleStatement(interpreter, statement->GetElseBody(), code);
     scopes.pop_back();
   }
 
@@ -312,15 +312,15 @@ void HandleIfStatement(Generator& generator, Ast::If* statement,
   code[goto_operator_location].SetArgs(goto_arguments);
 }
 
-void HandleWhileStatement(Generator& generator, Ast::While* statement,
+void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
                           std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& undefined_count = generator.context.undefined_count;
-  auto& global_memory = generator.global_memory;
-  auto& loop_break_index = generator.context.function_context->loop_break_index;
+  auto& scopes = interpreter.context.scopes;
+  auto& undefined_count = interpreter.context.undefined_count;
+  auto& global_memory = interpreter.global_memory;
+  auto& loop_break_index = interpreter.context.function_context->loop_break_index;
 
   // Adds -1 into loop_break_index as the start flag for the loop.
   loop_break_index.push_back(-1);
@@ -331,7 +331,7 @@ void HandleWhileStatement(Generator& generator, Ast::While* statement,
 
   // Handles the condition expression of the while statement.
   std::size_t condition_index =
-      HandleExpression(generator, statement->GetConditionExpression(), code);
+      HandleExpression(interpreter, statement->GetConditionExpression(), code);
 
   // Handles the if operator for the condition and its body.
   std::size_t if_location = code.size();
@@ -340,7 +340,7 @@ void HandleWhileStatement(Generator& generator, Ast::While* statement,
 
   // Handles the true branch of the while statement.
   scopes.push_back(scopes.back() + "@@" + std::to_string(++undefined_count));
-  HandleStatement(generator, statement->GetWhileBody(), code);
+  HandleStatement(interpreter, statement->GetWhileBody(), code);
   scopes.pop_back();
 
   // Handles the goto operator to jump back to the start of the loop.
@@ -365,15 +365,15 @@ void HandleWhileStatement(Generator& generator, Ast::While* statement,
   loop_break_index.pop_back();
 }
 
-void HandleDowhileStatement(Generator& generator, Ast::DoWhile* statement,
+void HandleDowhileStatement(Interpreter& interpreter, Ast::DoWhile* statement,
                             std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& undefined_count = generator.context.undefined_count;
-  auto& global_memory = generator.global_memory;
-  auto& loop_break_index = generator.context.function_context->loop_break_index;
+  auto& scopes = interpreter.context.scopes;
+  auto& undefined_count = interpreter.context.undefined_count;
+  auto& global_memory = interpreter.global_memory;
+  auto& loop_break_index = interpreter.context.function_context->loop_break_index;
 
   // Adds -1 into loop_break_index as the start flag for the loop.
   loop_break_index.push_back(-1);
@@ -385,12 +385,12 @@ void HandleDowhileStatement(Generator& generator, Ast::DoWhile* statement,
 
   // Handles the body of the do-while statement.
   scopes.push_back(scopes.back() + "@@" + std::to_string(++undefined_count));
-  HandleStatement(generator, statement->GetDoWhileBody(), code);
+  HandleStatement(interpreter, statement->GetDoWhileBody(), code);
   scopes.pop_back();
 
   // Handles the condition expression of the do-while statement.
   std::size_t condition_index =
-      HandleExpression(generator, statement->GetConditionExpression(), code);
+      HandleExpression(interpreter, statement->GetConditionExpression(), code);
   std::size_t if_location = code.size();
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
 
@@ -412,15 +412,15 @@ void HandleDowhileStatement(Generator& generator, Ast::DoWhile* statement,
   loop_break_index.pop_back();
 }
 
-void HandleForStatement(Generator& generator, Ast::For* statement,
+void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
                         std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of context.
-  auto& scopes = generator.context.scopes;
-  auto& undefined_count = generator.context.undefined_count;
-  auto& global_memory = generator.global_memory;
-  auto& loop_break_index = generator.context.function_context->loop_break_index;
+  auto& scopes = interpreter.context.scopes;
+  auto& undefined_count = interpreter.context.undefined_count;
+  auto& global_memory = interpreter.global_memory;
+  auto& loop_break_index = interpreter.context.function_context->loop_break_index;
 
   // Adds -1 into loop_break_index as the start flag for the loop.
   loop_break_index.push_back(-1);
@@ -428,7 +428,7 @@ void HandleForStatement(Generator& generator, Ast::For* statement,
   // LOGGING_INFO("1");
   //  Initializes the loop with the start expression.
   scopes.push_back(scopes.back() + "@@" + std::to_string(++undefined_count));
-  HandleStatement(generator, statement->GetStartExpression(), code);
+  HandleStatement(interpreter, statement->GetStartExpression(), code);
 
   // Adds a NOP operator to mark the start of the loop.
   // This is necessary to ensure the loop can be run correctly.
@@ -441,7 +441,7 @@ void HandleForStatement(Generator& generator, Ast::For* statement,
   Ast::Expression* ex = statement->GetConditionExpression();
   if (ex == nullptr) LOGGING_ERROR("Condition expression is nullptr.");
   // LOGGING_INFO("0X010110100110010101");
-  std::size_t condition_index = HandleExpression(generator, ex, code);
+  std::size_t condition_index = HandleExpression(interpreter, ex, code);
   // LOGGING_INFO("0X010110100110010101");
   // LOGGING_INFO("1");
   //  Handles the judgment of the for statement.
@@ -450,10 +450,10 @@ void HandleForStatement(Generator& generator, Ast::For* statement,
 
   // Handles the body branch and post-expression of the for statement.
   std::size_t body_location = code.size();
-  HandleStatement(generator, statement->GetForBody(), code);
+  HandleStatement(interpreter, statement->GetForBody(), code);
   if (!statement->GetEndExpression())
     LOGGING_ERROR("End expression is nullptr.");
-  HandleExpression(generator, statement->GetEndExpression(), code);
+  HandleExpression(interpreter, statement->GetEndExpression(), code);
   scopes.pop_back();
 
   // LOGGING_INFO("1");
@@ -478,5 +478,5 @@ void HandleForStatement(Generator& generator, Ast::For* statement,
 
   loop_break_index.pop_back();
 }
-}  // namespace Generator
+}  // namespace Interpreter
 }  // namespace Aq
