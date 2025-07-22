@@ -3,7 +3,7 @@
 # the root directory.
 
 cmake_minimum_required(VERSION 3.10)
-project(AQ C CXX)
+project(AQ CXX)
 
 set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_STANDARD 20)
@@ -15,35 +15,22 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
-set(COMPILER_SOURCES ${PROJECT_SOURCE_DIR}/src/compiler/compiler.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/ast/ast.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/ast/type.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/lexer/lexer.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/parser/parser.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/parser/declaration_parser.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/parser/expression_parser.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/token/token.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/token/tokenmap.cc 
-${PROJECT_SOURCE_DIR}/src/compiler/generator/generator.cc
-${PROJECT_SOURCE_DIR}/src/compiler/generator/builtin.cc
-${PROJECT_SOURCE_DIR}/src/compiler/generator/declaration_generator.cc
-${PROJECT_SOURCE_DIR}/src/compiler/generator/expression_generator.cc
-${PROJECT_SOURCE_DIR}/src/compiler/generator/goto_generator.cc
-${PROJECT_SOURCE_DIR}/src/compiler/generator/memory.cc
-${PROJECT_SOURCE_DIR}/src/compiler/generator/preprocesser.cc
-${PROJECT_SOURCE_DIR}/src/compiler/generator/statement_generator.cc)
+set(SOURCES ${PROJECT_SOURCE_DIR}/src/aq.cc 
+${PROJECT_SOURCE_DIR}/src/ast/ast.cc 
+${PROJECT_SOURCE_DIR}/src/ast/type.cc 
+${PROJECT_SOURCE_DIR}/src/lexer/lexer.cc 
+${PROJECT_SOURCE_DIR}/src/parser/parser.cc 
+${PROJECT_SOURCE_DIR}/src/parser/declaration_parser.cc 
+${PROJECT_SOURCE_DIR}/src/parser/expression_parser.cc 
+${PROJECT_SOURCE_DIR}/src/token/token.cc 
+${PROJECT_SOURCE_DIR}/src/token/tokenmap.cc 
+${PROJECT_SOURCE_DIR}/src/generator/generator.cc
+${PROJECT_SOURCE_DIR}/src/generator/builtin.cc
+${PROJECT_SOURCE_DIR}/src/generator/declaration_generator.cc
+${PROJECT_SOURCE_DIR}/src/generator/expression_generator.cc
+${PROJECT_SOURCE_DIR}/src/generator/goto_generator.cc
+${PROJECT_SOURCE_DIR}/src/generator/memory.cc
+${PROJECT_SOURCE_DIR}/src/generator/preprocesser.cc
+${PROJECT_SOURCE_DIR}/src/generator/statement_generator.cc)
 
-set(VM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/vm/vm.cc
-${CMAKE_CURRENT_SOURCE_DIR}/src/vm/builtin/builtin.cc
-${CMAKE_CURRENT_SOURCE_DIR}/src/vm/bytecode/bytecode.cc
-${CMAKE_CURRENT_SOURCE_DIR}/src/vm/memory/memory.cc
-${CMAKE_CURRENT_SOURCE_DIR}/src/vm/operator/operator.cc
-)
-
-add_executable(aq_compiler ${COMPILER_SOURCES})
-add_executable(aq_vm ${VM_SOURCES})
-
-if(UNIX)
-TARGET_LINK_LIBRARIES(aq_vm m)
-TARGET_LINK_LIBRARIES(aq_vm ncurses)
-endif()
+add_executable(aq ${SOURCES})

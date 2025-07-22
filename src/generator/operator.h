@@ -1,0 +1,38 @@
+// Copyright 2025 AQ author, All Rights Reserved.
+// This program is licensed under the AQ License. You can find the AQ license in
+// the root directory.
+
+#ifndef AQ_GENERATOR_OPERATOR_H_
+#define AQ_GENERATOR_OPERATOR_H_
+
+#define _AQVM_OPERATOR_NOP 0x00
+#define _AQVM_OPERATOR_LOAD 0x01
+#define _AQVM_OPERATOR_STORE 0x02
+#define _AQVM_OPERATOR_NEW 0x03
+#define _AQVM_OPERATOR_ARRAY 0x04
+#define _AQVM_OPERATOR_PTR 0x05
+#define _AQVM_OPERATOR_ADD 0x06
+#define _AQVM_OPERATOR_SUB 0x07
+#define _AQVM_OPERATOR_MUL 0x08
+#define _AQVM_OPERATOR_DIV 0x09
+#define _AQVM_OPERATOR_REM 0x0A
+#define _AQVM_OPERATOR_NEG 0x0B
+#define _AQVM_OPERATOR_SHL 0x0C
+#define _AQVM_OPERATOR_SHR 0x0D
+#define _AQVM_OPERATOR_REFER 0x0E
+#define _AQVM_OPERATOR_IF 0x0F
+#define _AQVM_OPERATOR_AND 0x10
+#define _AQVM_OPERATOR_OR 0x11
+#define _AQVM_OPERATOR_XOR 0x12
+#define _AQVM_OPERATOR_CMP 0x13
+#define _AQVM_OPERATOR_INVOKE 0x14
+#define _AQVM_OPERATOR_EQUAL 0x15
+#define _AQVM_OPERATOR_GOTO 0x16
+#define _AQVM_OPERATOR_LOAD_CONST 0x17
+#define _AQVM_OPERATOR_CONVERT 0x18
+#define _AQVM_OPERATOR_CONST 0x19
+#define _AQVM_OPERATOR_INVOKE_METHOD 0x1A
+#define _AQVM_OPERATOR_LOAD_MEMBER 0x1B
+#define _AQVM_OPERATOR_WIDE 0xFF
+
+#endif
