@@ -2,8 +2,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_GENERATOR_CLASS_H_
-#define AQ_GENERATOR_CLASS_H_
+#ifndef AQ_INTERPRETER_CLASS_H_
+#define AQ_INTERPRETER_CLASS_H_
 
 #include <unordered_map>
 #include <unordered_set>
@@ -27,10 +27,10 @@ class Class {
     class_ = class_declaration;
   }
 
-  bool GetVariable(std::string name, std::size_t& index) {
-    if (variables_.find(name) == variables_.end()) return false;
+  bool GetVariable(std::string name, Object& object) {
+    if (members_.GetMembers().find(name) == members_.GetMembers().end()) return false;
 
-    index = variables_[name];
+    object = members_.GetMembers()[name];
     return true;
   }
 
@@ -38,13 +38,9 @@ class Class {
 
   std::vector<Function>& GetFunctionList() { return function_list_; }
 
-  ClassMemory& GetMemory() { return memory_; }
+  ClassMemory& GetMembers() { return members_; }
 
   std::vector<Bytecode>& GetCode() { return code_; }
-
-  std::unordered_map<std::string, std::size_t>& GetVariables() {
-    return variables_;
-  }
 
   Ast::Class* GetClassDeclaration() { return class_; }
 
@@ -56,9 +52,8 @@ class Class {
   std::string name_;
   Ast::Class* class_;
   std::unordered_set<std::string> functions_;
-  std::unordered_map<std::string, std::size_t> variables_;
   std::vector<Function> function_list_;
-  ClassMemory memory_;
+  ClassMemory members_;
   std::vector<Bytecode> code_;
   std::size_t name_index_ = 0;
 };

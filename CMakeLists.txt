@@ -24,13 +24,13 @@ ${PROJECT_SOURCE_DIR}/src/parser/declaration_parser.cc
 ${PROJECT_SOURCE_DIR}/src/parser/expression_parser.cc 
 ${PROJECT_SOURCE_DIR}/src/token/token.cc 
 ${PROJECT_SOURCE_DIR}/src/token/tokenmap.cc 
-${PROJECT_SOURCE_DIR}/src/generator/generator.cc
-${PROJECT_SOURCE_DIR}/src/generator/builtin.cc
-${PROJECT_SOURCE_DIR}/src/generator/declaration_generator.cc
-${PROJECT_SOURCE_DIR}/src/generator/expression_generator.cc
-${PROJECT_SOURCE_DIR}/src/generator/goto_generator.cc
-${PROJECT_SOURCE_DIR}/src/generator/memory.cc
-${PROJECT_SOURCE_DIR}/src/generator/preprocesser.cc
-${PROJECT_SOURCE_DIR}/src/generator/statement_generator.cc)
+${PROJECT_SOURCE_DIR}/src/interpreter/interpreter.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/builtin.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/declaration_interpreter.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/expression_interpreter.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/goto_interpreter.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/memory.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/preprocesser.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/statement_interpreter.cc)
 
 add_executable(aq ${SOURCES})

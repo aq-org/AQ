@@ -2,8 +2,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_GENERATOR_STATEMENT_GENERATOR_H_
-#define AQ_GENERATOR_STATEMENT_GENERATOR_H_
+#ifndef AQ_INTERPRETER_STATEMENT_INTERPRETER_H_
+#define AQ_INTERPRETER_STATEMENT_INTERPRETER_H_
 
 #include "ast/ast.h"
 #include "interpreter/interpreter.h"

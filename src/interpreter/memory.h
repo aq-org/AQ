@@ -2,27 +2,33 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_GENERATOR_MEMORY_H_
-#define AQ_GENERATOR_MEMORY_H_
+#ifndef AQ_INTERPRETER_MEMORY_H_
+#define AQ_INTERPRETER_MEMORY_H_
 
-#include <sys/types.h>
-#include <string>
-#include <cstring>
 #include <cstdint>
-
-#include "interpreter/bytecode.h"
+#include <cstring>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <vector>
+#include <functional>
 
 namespace Aq {
 namespace Interpreter {
+struct Object {
+  std::vector<uint8_t> type;
+  std::variant<int8_t, int64_t, double, uint64_t, std::string, void*,
+               std::shared_ptr<struct Object>,
+               std::reference_wrapper<struct Object>>
+      data;
+  bool constant;
+};
+
 class Memory {
  public:
-  Memory() {
-    uint16_t test_data = 0x0011;
-    is_big_endian_ = *(uint8_t*)&test_data == 0x00;
-  }
+  Memory() = default;
   virtual ~Memory() = default;
-
-  void SetCode(std::vector<Bytecode>* code) { init_code_ = code; }
 
   // Adds the value into the memory and returns the index of the value.
   // The value is added to the end of the memory.
@@ -32,57 +38,34 @@ class Memory {
   std::size_t AddLong(int64_t value);
   std::size_t AddDouble(double value);
   std::size_t AddUint64t(uint64_t value);
-  std::size_t AddUint64tWithoutValue(std::size_t& code);
-  void SetUint64tValue(std::size_t code, uint64_t value);
+  void SetUint64tValue(std::size_t index, uint64_t value);
   std::size_t AddString(std::string value);
 
-  std::vector<uint8_t>& GetMemoryType() { return memory_type_; }
-
-  std::vector<uint8_t>& GetConstTable() { return constant_table_; }
-
-  std::size_t& GetConstTableSize() { return constant_table_size_; }
-
-  std::size_t GetMemorySize() { return memory_size_; }
+  std::shared_ptr<std::vector<Object>> GetMemory() { return memory_; }
 
  protected:
-  bool is_big_endian_ = false;
-  std::vector<Bytecode>* init_code_;
-  std::vector<uint8_t> constant_table_;
-  std::size_t constant_table_size_ = 0;
-  std::vector<uint8_t> memory_type_;
-  std::size_t memory_size_ = 0;
+  std::shared_ptr<std::vector<Object>> memory_;
 };
 
-class ClassMemory : public Memory {
+class ClassMemory {
  public:
-  ClassMemory() {
-    uint16_t test_data = 0x0011;
-    is_big_endian_ = *(uint8_t*)&test_data == 0x00;
-  }
+  ClassMemory() = default;
   virtual ~ClassMemory() = default;
-
-  void SetGlobalMemory(Memory* global_memory) {
-    global_memory_ = global_memory;
-  }
 
   // Adds the value into the class memory with the name and returns the index of
   // the value in the class memory. The value is added to the end of the memory.
-  std::size_t Add(std::string name);
-  std::size_t AddWithType(std::string name, std::vector<uint8_t> type);
-  std::size_t AddByte(std::string name, int8_t value);
-  std::size_t AddLong(std::string name, int64_t value);
-  std::size_t AddDouble(std::string name, double value);
-  std::size_t AddUint64t(std::string name, uint64_t value);
-  std::size_t AddString(std::string name, std::string value);
+  void Add(std::string name);
+  void AddWithType(std::string name, std::vector<uint8_t> type);
+  void AddByte(std::string name, int8_t value);
+  void AddLong(std::string name, int64_t value);
+  void AddDouble(std::string name, double value);
+  void AddUint64t(std::string name, uint64_t value);
+  void AddString(std::string name, std::string value);
 
-  std::vector<std::string>& GetVarName() { return variable_name_; }
-
-  std::vector<uint8_t>& GetMemoryInfo() { return memory_info_; }
+  auto& GetMembers() { return members_; }
 
  private:
-  Memory* global_memory_ = nullptr;
-  std::vector<std::string> variable_name_;
-  std::vector<uint8_t> memory_info_;
+  std::unordered_map<std::string, Object> members_;
 };
 
 // Swaps the byte order of a 64-bit integer.

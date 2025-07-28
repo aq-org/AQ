@@ -7,10 +7,11 @@
 #include "ast/ast.h"
 #include "interpreter/declaration_interpreter.h"
 #include "interpreter/expression_interpreter.h"
-#include "interpreter/interpreter.h"
 #include "interpreter/goto_interpreter.h"
+#include "interpreter/interpreter.h"
 #include "interpreter/operator.h"
 #include "logging/logging.h"
+
 
 namespace Aq {
 namespace Interpreter {
@@ -37,11 +38,13 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kExpression:
-      HandleExpression(interpreter, Ast::Cast<Ast::Expression>(statement), code);
+      HandleExpression(interpreter, Ast::Cast<Ast::Expression>(statement),
+                       code);
       break;
 
     case Ast::Statement::StatementType::kUnary:
-      HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(statement), code);
+      HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(statement),
+                            code);
       break;
 
     case Ast::Statement::StatementType::kBinary:
@@ -72,8 +75,8 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kVariable:
-      HandleVariableDeclaration(interpreter, Ast::Cast<Ast::Variable>(statement),
-                                code);
+      HandleVariableDeclaration(interpreter,
+                                Ast::Cast<Ast::Variable>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kArrayDeclaration:
@@ -91,7 +94,8 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kReturn:
-      HandleReturnStatement(interpreter, Ast::Cast<Ast::Return>(statement), code);
+      HandleReturnStatement(interpreter, Ast::Cast<Ast::Return>(statement),
+                            code);
       break;
 
     case Ast::Statement::StatementType::kLabel:
@@ -111,11 +115,10 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
   }
 }
 
-void HandleBreakStatement(Interpreter& interpreter, std::vector<Bytecode>& code) {
-  std::size_t index = 0;
-  code.push_back(
-      Bytecode(_AQVM_OPERATOR_GOTO, 1,
-               interpreter.global_memory.AddUint64tWithoutValue(index)));
+void HandleBreakStatement(Interpreter& interpreter,
+                          std::vector<Bytecode>& code) {
+  std::size_t index = interpreter.global_memory.AddUint64t(0);
+  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, index));
 
   interpreter.context.function_context->loop_break_index.push_back(index);
 }
@@ -131,11 +134,13 @@ void HandleClassStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kExpression:
-      HandleExpression(interpreter, Ast::Cast<Ast::Expression>(statement), code);
+      HandleExpression(interpreter, Ast::Cast<Ast::Expression>(statement),
+                       code);
       break;
 
     case Ast::Statement::StatementType::kUnary:
-      HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(statement), code);
+      HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(statement),
+                            code);
       break;
 
     case Ast::Statement::StatementType::kBinary:
@@ -166,8 +171,8 @@ void HandleClassStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kVariable:
-      HandleVariableDeclaration(interpreter, Ast::Cast<Ast::Variable>(statement),
-                                code);
+      HandleVariableDeclaration(interpreter,
+                                Ast::Cast<Ast::Variable>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kArrayDeclaration:
@@ -185,7 +190,8 @@ void HandleClassStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kReturn:
-      HandleReturnStatement(interpreter, Ast::Cast<Ast::Return>(statement), code);
+      HandleReturnStatement(interpreter, Ast::Cast<Ast::Return>(statement),
+                            code);
       break;
 
     case Ast::Statement::StatementType::kLabel:
@@ -320,7 +326,8 @@ void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
   auto& scopes = interpreter.context.scopes;
   auto& undefined_count = interpreter.context.undefined_count;
   auto& global_memory = interpreter.global_memory;
-  auto& loop_break_index = interpreter.context.function_context->loop_break_index;
+  auto& loop_break_index =
+      interpreter.context.function_context->loop_break_index;
 
   // Adds -1 into loop_break_index as the start flag for the loop.
   loop_break_index.push_back(-1);
@@ -373,7 +380,8 @@ void HandleDowhileStatement(Interpreter& interpreter, Ast::DoWhile* statement,
   auto& scopes = interpreter.context.scopes;
   auto& undefined_count = interpreter.context.undefined_count;
   auto& global_memory = interpreter.global_memory;
-  auto& loop_break_index = interpreter.context.function_context->loop_break_index;
+  auto& loop_break_index =
+      interpreter.context.function_context->loop_break_index;
 
   // Adds -1 into loop_break_index as the start flag for the loop.
   loop_break_index.push_back(-1);
@@ -420,7 +428,8 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
   auto& scopes = interpreter.context.scopes;
   auto& undefined_count = interpreter.context.undefined_count;
   auto& global_memory = interpreter.global_memory;
-  auto& loop_break_index = interpreter.context.function_context->loop_break_index;
+  auto& loop_break_index =
+      interpreter.context.function_context->loop_break_index;
 
   // Adds -1 into loop_break_index as the start flag for the loop.
   loop_break_index.push_back(-1);

@@ -19,7 +19,6 @@
 #include "logging/logging.h"
 #include "parser/parser.h"
 
-
 namespace Aq {
 namespace Interpreter {
 std::unordered_map<std::string, Interpreter*> imports_map;
@@ -52,9 +51,6 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
 
   // Gets index from import preprocessing.
   std::size_t index = variables["#" + name];
-
-  // Adds the import bytecode into the main class memory and variables.
-  main_class.GetVariables()[name] = main_class.GetMemory().Add(name);
 
   // Loads and initializes the import bytecode.
   init_code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, index, 2,
@@ -219,8 +215,8 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   current_class = classes[class_name];
 
   // Adds the special variable into class memory.
-  current_class->GetMemory().Add("@name");
-  current_class->GetMemory().Add("@size");
+  current_class->GetMembers().Add("@name");
+  current_class->GetMembers().Add("@size");
 
   HandleSubClassesInHandlingClass(interpreter, declaration);
 
@@ -280,7 +276,8 @@ std::size_t HandleVariableDeclaration(Interpreter& interpreter,
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(interpreter, declaration, variable_index, code);
+    HandleClassInHandlingVariable(interpreter, declaration, variable_index,
+                                  code);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -331,8 +328,8 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
   // Gets the reference of context.
   auto& start_class = interpreter.main_class;
   auto& variables = interpreter.context.variables;
-  auto& class_variables = start_class.GetVariables();
-  auto& memory = start_class.GetMemory();
+  auto& class_variables = start_class.GetMembers();
+  auto& memory = start_class.GetMembers();
   auto& global_memory = interpreter.global_memory;
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
@@ -351,7 +348,7 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
 
   // |variable_index| is the original variable index in the main class memory,
   // |reference_index| is a reference of the variable in the global memory.
-  std::size_t variable_index = memory.AddWithType(variable_name, return_type);
+  memory.AddWithType(variable_name, return_type);
 
   std::size_t reference_index = global_memory.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
@@ -397,7 +394,6 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
         "deprecated.");
   }
 
-  class_variables[variable_name] = variable_index;
   variables[variable_name] = reference_index;
 
   return reference_index;
@@ -484,8 +480,7 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
   auto& start_class = interpreter.main_class;
   auto& global_memory = interpreter.global_memory;
   auto& current_class = interpreter.context.current_class;
-  auto& memory = current_class->GetMemory();
-  auto& variables = current_class->GetVariables();
+  auto& memory = current_class->GetMembers();
   auto& code = current_class->GetCode();
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
@@ -504,7 +499,7 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
 
   // |variable_index| is the original variable index in the main class memory,
   // |reference_index| is a reference of the variable in the global memory.
-  std::size_t variable_index = memory.AddWithType(variable_name, return_type);
+  memory.AddWithType(variable_name, return_type);
   std::size_t reference_index = global_memory.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
                           global_memory.AddString(variable_name)));
@@ -549,7 +544,6 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
         "deprecated.");
   }
 
-  variables[variable_name] = reference_index;
   return reference_index;
 }
 std::size_t HandleArrayDeclaration(Interpreter& interpreter,
@@ -582,8 +576,8 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
 
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::string class_name =
-        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
+    std::string class_name = GetClassNameString(
+        interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -624,8 +618,8 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
-      std::size_t value_index =
-          HandleExpression(interpreter, declaration->GetVariableValue()[i], code);
+      std::size_t value_index = HandleExpression(
+          interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
@@ -644,9 +638,8 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   auto& global_memory = interpreter.global_memory;
   auto& variables = interpreter.context.variables;
   auto& start_class = interpreter.main_class;
-  auto& class_variables = start_class.GetVariables();
   auto& scopes = interpreter.context.scopes;
-  auto& memory = start_class.GetMemory();
+  auto& memory = start_class.GetMembers();
 
   // Handles the array type.
   Ast::ArrayType* array_type =
@@ -658,8 +651,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   std::string variable_name = declaration->GetVariableName();
 
   // Adds the array index and the type index.
-  std::size_t original_array_index =
-      memory.AddWithType(variable_name, array_type->GetVmType());
+  memory.AddWithType(variable_name, array_type->GetVmType());
   std::size_t array_index = global_memory.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 2,
                           global_memory.AddString(variable_name)));
@@ -671,8 +663,8 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
 
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::string class_name =
-        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
+    std::string class_name = GetClassNameString(
+        interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -713,14 +705,13 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
-      std::size_t value_index =
-          HandleExpression(interpreter, declaration->GetVariableValue()[i], code);
+      std::size_t value_index = HandleExpression(
+          interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
   }
 
-  class_variables[variable_name] = original_array_index;
   variables[variable_name] = array_index;
 
   return array_index;
@@ -756,8 +747,8 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
 
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::string class_name =
-        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
+    std::string class_name = GetClassNameString(
+        interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -817,8 +808,7 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // Gets the reference of context.
   auto& global_memory = interpreter.global_memory;
   auto& current_class = interpreter.context.current_class;
-  auto& memory = current_class->GetMemory();
-  auto& variables = current_class->GetVariables();
+  auto& memory = current_class->GetMembers();
   auto& code = current_class->GetCode();
 
   // Handles the array type.
@@ -831,8 +821,7 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   std::string variable_name = declaration->GetVariableName();
 
   // Adds the array index and the type index.
-  std::size_t original_array_index =
-      memory.AddWithType(variable_name, array_type->GetVmType());
+  memory.AddWithType(variable_name, array_type->GetVmType());
   std::size_t array_index = global_memory.Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 2,
                           global_memory.AddString(variable_name)));
@@ -844,8 +833,8 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
 
   // If the sub type is a class type, it needs to be handled specially.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::string class_name =
-        GetClassNameString(interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
+    std::string class_name = GetClassNameString(
+        interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
     array_type_index = global_memory.AddString(class_name);
 
   } else {
@@ -886,14 +875,13 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
-      std::size_t value_index =
-          HandleExpression(interpreter, declaration->GetVariableValue()[i], code);
+      std::size_t value_index = HandleExpression(
+          interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
           Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
     }
   }
 
-  variables[variable_name] = array_index;
   return array_index;
 }
 
@@ -939,7 +927,8 @@ void HandleFunctionArguments(Interpreter& interpreter,
       auto declaration = Ast::Cast<Ast::ArrayDeclaration>(parameters[i]);
       std::string name = scopes.back() + "#" + declaration->GetVariableName();
 
-      std::size_t index = HandleArrayDeclaration(interpreter, declaration, code);
+      std::size_t index =
+          HandleArrayDeclaration(interpreter, declaration, code);
 
       // Adds index into |parameters_index| and |variables|.
       parameters_index.push_back(index);
@@ -1151,8 +1140,8 @@ void HandleConstructorFunctionInHandlingConstructor(
 
   HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
-  AddClassConstructorFunctionIntoList(interpreter, declaration, parameters_index,
-                                      code);
+  AddClassConstructorFunctionIntoList(interpreter, declaration,
+                                      parameters_index, code);
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -1213,8 +1202,7 @@ void HandleClassMembersInHandlingClass(Interpreter& interpreter,
                                        Ast::Class* declaration) {
   // Gets the reference of context.
   auto& current_class = interpreter.context.current_class;
-  auto& memory = current_class->GetMemory();
-  auto& variables = current_class->GetVariables();
+  auto& memory = current_class->GetMembers();
   auto& code = current_class->GetCode();
 
   for (std::size_t i = 0; i < declaration->GetMembers().size(); i++) {

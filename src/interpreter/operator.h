@@ -2,8 +2,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_GENERATOR_OPERATOR_H_
-#define AQ_GENERATOR_OPERATOR_H_
+#ifndef AQ_INTERPRETER_OPERATOR_H_
+#define AQ_INTERPRETER_OPERATOR_H_
 
 #define _AQVM_OPERATOR_NOP 0x00
 #define _AQVM_OPERATOR_LOAD 0x01

@@ -2,8 +2,8 @@
 // This program is licensed under the AQ License. You can find the AQ license in
 // the root directory.
 
-#ifndef AQ_GENERATOR_PREPROCESSER_H_
-#define AQ_GENERATOR_PREPROCESSER_H_
+#ifndef AQ_INTERPRETER_PREPROCESSER_H_
+#define AQ_INTERPRETER_PREPROCESSER_H_
 
 #include "ast/ast.h"
 

@@ -84,9 +84,6 @@ void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement)
   current_class->SetName(full_name);
   current_class->SetClass(statement);
 
-  current_class->GetMemory().SetCode(&current_class->GetCode());
-  current_class->GetMemory().SetGlobalMemory(&global_memory);
-
   classes[full_name] = current_class;
 
   for (std::size_t i = 0; i < statement->GetSubClasses().size(); i++) {

@@ -582,14 +582,14 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
 
   switch (expression->GetStatementType()) {
     case Ast::Statement::StatementType::kIdentifier: {
-      std::size_t index = 0;
-
       std::string variable_name =
           std::string(*Ast::Cast<Ast::Identifier>(expression));
 
+      Object temp;
+
       // Check if the current class has the variable.
       if (current_class != nullptr &&
-          current_class->GetVariable(variable_name, index)) {
+          current_class->GetVariable(variable_name, temp)) {
         // Gets the reference of the variable index.
         std::size_t return_index = global_memory.Add(1);
         code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_index, 0,
