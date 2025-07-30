@@ -198,7 +198,7 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
 
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
-  auto& classes = interpreter.context.classes;
+  auto& classes = interpreter.classes;
   auto& classes_list = interpreter.classes;
   auto& current_class = interpreter.context.current_class;
   auto& functions = interpreter.context.functions;
@@ -212,7 +212,7 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   // Check if there are any errors in the preprocessing.
   if (classes.find(class_name) == classes.end())
     INTERNAL_ERROR("Not found class declaration.");
-  current_class = classes[class_name];
+  current_class = &classes[class_name];
 
   // Adds the special variable into class memory.
   current_class->GetMembers().Add("@name");
@@ -221,7 +221,7 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   HandleSubClassesInHandlingClass(interpreter, declaration);
 
   // Restores function context null caused by possible sub classes generation.
-  current_class = classes[class_name];
+  current_class = &classes[class_name];
 
   HandleStaticMembersInHandlingClass(interpreter, declaration);
 
@@ -232,9 +232,6 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   // Adds the void default constructor if the class doesn't have a constructor.
   if (functions.find(class_name) == functions.end())
     AddVoidConstructorInHandlingClass(interpreter, declaration);
-
-  // Adds the class into the class list.
-  classes_list.push_back(*current_class);
 
   // Destroys temporary context.
   if (scopes.size() <= 0) {
@@ -1142,7 +1139,7 @@ void HandleSubClassesInHandlingClass(Interpreter& interpreter,
                                      Ast::Class* declaration) {
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
-  auto& classes = interpreter.context.classes;
+  auto& classes = interpreter.classes;
 
   for (std::size_t i = 0; i < declaration->GetSubClasses().size(); i++) {
     if (Ast::IsOfType<Ast::Class>(declaration->GetSubClasses()[i])) {
@@ -1159,7 +1156,7 @@ void HandleSubClassesInHandlingClass(Interpreter& interpreter,
   auto& current_class = interpreter.context.current_class;
   std::string class_name =
       scopes.back() + "." + std::string(declaration->GetClassName());
-  current_class = classes[class_name];
+  current_class = &classes[class_name];
 }
 
 void HandleStaticMembersInHandlingClass(Interpreter& interpreter,

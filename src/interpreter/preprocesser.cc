@@ -72,7 +72,7 @@ void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement)
 
   // Gets the reference of the context.
   auto& scopes = interpreter.context.scopes;
-  auto& classes = interpreter.context.classes;
+  auto& classes = interpreter.classes;
   auto& global_memory = interpreter.global_memory;
   auto& functions = interpreter.context.functions;
 
@@ -80,9 +80,9 @@ void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement)
   std::string full_name = scopes.back() + "." + class_name;
   scopes.push_back(full_name);
 
-  Class* current_class = new Class();
-  current_class->SetName(full_name);
-  current_class->SetClass(statement);
+  Class current_class;
+  current_class.SetName(full_name);
+  current_class.SetClass(statement);
 
   classes[full_name] = current_class;
 
@@ -118,7 +118,7 @@ void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement
 
   // Gets the reference of the context.
   auto& scopes = interpreter.context.scopes;
-  auto& classes = interpreter.context.classes;
+  auto& classes = interpreter.classes;
   auto& global_memory = interpreter.global_memory;
   auto& functions = interpreter.context.functions;
   auto& code = interpreter.global_code;
@@ -129,7 +129,7 @@ void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement
 
   if (classes.find(class_name) == classes.end())
     INTERNAL_ERROR("Not found class declaration.");
-  Class* current_class = classes[class_name];
+  Class& current_class = classes[class_name];
 
   for (std::size_t i = 0; i < statement->GetSubClasses().size(); i++) {
     if (Ast::IsOfType<Ast::Class>(statement->GetSubClasses()[i])) {

@@ -189,7 +189,9 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
   Run();
 }
 
-void Interpreter::Run() { is_run = true; }
+void Interpreter::Run() { is_run = true; 
+
+}
 
 }  // namespace Interpreter
 }  // namespace Aq

@@ -19,7 +19,7 @@ struct Interpreter;
 struct Context {
   std::unordered_set<std::string> functions;
   std::unordered_map<std::string, std::size_t> variables;
-  std::unordered_map<std::string, Class*> classes;
+  // std::unordered_map<std::string, Class*> classes;
 
   FunctionContext* function_context = nullptr;
   std::vector<std::string> scopes;
@@ -45,7 +45,7 @@ struct Interpreter {
   Context context;
 
   std::vector<Function> functions;
-  std::vector<Class> classes;
+  std::unordered_map<std::string, Class> classes;
   Memory global_memory;
   std::vector<Bytecode> init_code;
   std::vector<Bytecode> global_code;
