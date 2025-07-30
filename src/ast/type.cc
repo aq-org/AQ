@@ -101,10 +101,11 @@ std::vector<uint8_t> Type::GetVmType() {
     } else if (type->GetTypeCategory() == Type::TypeCategory::kReference) {
       vm_type.push_back(0x07);
       type = dynamic_cast<ReferenceType*>(type)->GetSubType();
-    } else if (type->GetTypeCategory() == Type::TypeCategory::kConst) {
+    } /*else if (type->GetTypeCategory() == Type::TypeCategory::kConst) {
       vm_type.push_back(0x08);
       type = dynamic_cast<ConstType*>(type)->GetSubType();
-    } else if (type->GetTypeCategory() == Type::TypeCategory::kClass) {
+    }*/
+    else if (type->GetTypeCategory() == Type::TypeCategory::kClass) {
       vm_type.push_back(0x09);
       is_end = true;
     }

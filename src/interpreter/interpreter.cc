@@ -12,8 +12,8 @@
 #include "interpreter/operator.h"
 #include "interpreter/preprocesser.h"
 #include "interpreter/statement_interpreter.h"
-#include "interpreter/uleb128.h"
 #include "logging/logging.h"
+#include "memory.h"
 
 namespace Aq {
 namespace Interpreter {
@@ -189,7 +189,7 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
   Run();
 }
 
-void Interpreter::Run() {}
+void Interpreter::Run() { is_run = true; }
 
 }  // namespace Interpreter
 }  // namespace Aq
