@@ -49,7 +49,7 @@ void HandleGoto(Interpreter& interpreter, Ast::Goto* label,
     // it will be replaced with the address of the label.
     if (iterator != label_map.end()) {
       code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1,
-                              global_memory.AddUint64t(iterator->second)));
+                              global_memory->AddUint64t(iterator->second)));
       return;
     }
 

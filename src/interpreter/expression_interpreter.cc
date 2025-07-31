@@ -11,7 +11,8 @@
 
 namespace Aq {
 namespace Interpreter {
-std::size_t HandleExpression(Interpreter& interpreter, Ast::Expression* expression,
+std::size_t HandleExpression(Interpreter& interpreter,
+                             Ast::Expression* expression,
                              std::vector<Bytecode>& code) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
@@ -20,24 +21,25 @@ std::size_t HandleExpression(Interpreter& interpreter, Ast::Expression* expressi
     return HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(expression),
                                  code);
   } else if (Ast::IsOfType<Ast::Binary>(expression)) {
-    return HandleBinaryExpression(interpreter, Ast::Cast<Ast::Binary>(expression),
-                                  code);
+    return HandleBinaryExpression(interpreter,
+                                  Ast::Cast<Ast::Binary>(expression), code);
   }
 
   return GetIndex(interpreter, expression, code);
 }
 
-std::size_t HandleUnaryExpression(Interpreter& interpreter, Ast::Unary* expression,
+std::size_t HandleUnaryExpression(Interpreter& interpreter,
+                                  Ast::Unary* expression,
                                   std::vector<Bytecode>& code) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
 
   std::size_t sub_expression =
       HandleExpression(interpreter, expression->GetExpression(), code);
-  std::size_t new_index = global_memory.Add(1);
+  std::size_t new_index = global_memory->Add(1);
 
   switch (expression->GetOperator()) {
     case Ast::Unary::Operator::kPostInc: {  // ++ (postfix)
@@ -102,7 +104,7 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
 
   // Gets the reference of expressions.
   Ast::Expression* right_expression = expression->GetRightExpression();
@@ -119,7 +121,7 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
     // LOGGING_INFO("message");
   }
 
-  std::size_t result = global_memory.Add(1);
+  std::size_t result = global_memory->Add(1);
   switch (expression->GetOperator()) {
     case Ast::Binary::Operator::kAdd:  // +
       code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, result, left, right));
@@ -266,9 +268,9 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
   LOGGING_INFO("Period expression: ");
 
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
   auto& variables = interpreter.context.variables;
 
   Ast::Expression* handle_expr = expression;
@@ -331,7 +333,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
 
           // Adds the function name, return value and its reference into the
           // global memory.
-          std::size_t name_index = global_memory.AddString(full_name);
+          std::size_t name_index = global_memory->AddString(full_name);
           std::size_t return_value_index =
               HandleFunctionReturnValue(interpreter, code);
 
@@ -378,7 +380,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       // Handles the class and function name.
       std::size_t class_index =
           HandleExpression(interpreter, expression->GetLeftExpression(), code);
-      std::size_t function_name_index = global_memory.AddString(
+      std::size_t function_name_index = global_memory->AddString(
           Ast::Cast<Ast::Function>(right_expression)->GetFunctionName());
 
       // Handles the function return value.
@@ -403,12 +405,12 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
     }
 
     case Ast::Statement::StatementType::kIdentifier: {
-      std::size_t return_value_index = global_memory.Add(1);
+      std::size_t return_value_index = global_memory->Add(1);
 
       // Handles the class and variable name.
       std::size_t class_index =
           HandleExpression(interpreter, expression->GetLeftExpression(), code);
-      std::size_t variable_name_index = global_memory.AddString(std::string(
+      std::size_t variable_name_index = global_memory->AddString(std::string(
           *Ast::Cast<Ast::Identifier>(expression->GetRightExpression())));
 
       code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_value_index,
@@ -423,14 +425,15 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
   return 0;
 }
 
-std::size_t HandleFunctionInvoke(Interpreter& interpreter, Ast::Function* function,
+std::size_t HandleFunctionInvoke(Interpreter& interpreter,
+                                 Ast::Function* function,
                                  std::vector<Bytecode>& code) {
   if (function == nullptr) INTERNAL_ERROR("function is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
 
   std::string function_name = function->GetFunctionName();
   auto arguments = function->GetParameters();
@@ -455,7 +458,7 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter, Ast::Function* functi
 
   // Handles the arguments of the functions.
   std::vector<std::size_t> vm_arguments{
-      2, global_memory.AddString(function_name), arguments.size() + 1,
+      2, global_memory->AddString(function_name), arguments.size() + 1,
       return_value_index};
   for (std::size_t i = 0; i < arguments.size(); i++)
     vm_arguments.push_back(HandleExpression(interpreter, arguments[i], code));
@@ -466,16 +469,16 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter, Ast::Function* functi
 }
 
 std::size_t AddConstInt8t(Interpreter& interpreter, int8_t value) {
-  return interpreter.global_memory.AddByte(value);
+  return interpreter.global_memory->AddByte(value);
 }
 
 std::size_t HandleFunctionReturnValue(Interpreter& interpreter,
                                       std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
 
-  std::size_t return_value_index = global_memory.Add(1);
-  std::size_t return_value_reference_index = global_memory.Add(1);
+  std::size_t return_value_index = global_memory->Add(1);
+  std::size_t return_value_reference_index = global_memory->Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, return_value_reference_index,
                           return_value_index));
 
@@ -487,7 +490,7 @@ std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
   auto& variables = interpreter.context.variables;
   auto& current_scope = interpreter.context.function_context->current_scope;
@@ -526,29 +529,29 @@ std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
       switch (vm_type) {
         case 0x01: {
           int8_t value = Ast::Cast<Ast::Value>(expression)->GetByteValue();
-          return global_memory.AddByte(value);
+          return global_memory->AddByte(value);
           break;
         }
 
         case 0x02: {
           int64_t value = Ast::Cast<Ast::Value>(expression)->GetLongValue();
-          return global_memory.AddLong(value);
+          return global_memory->AddLong(value);
         }
 
         case 0x03: {
           double value = Ast::Cast<Ast::Value>(expression)->GetDoubleValue();
-          return global_memory.AddDouble(value);
+          return global_memory->AddDouble(value);
         }
 
         case 0x04: {
           uint64_t value = Ast::Cast<Ast::Value>(expression)->GetUInt64Value();
-          return global_memory.AddUint64t(value);
+          return global_memory->AddUint64t(value);
         }
 
         case 0x05: {
           std::string value =
               Ast::Cast<Ast::Value>(expression)->GetStringValue();
-          std::size_t str_index = global_memory.AddString(value);
+          std::size_t str_index = global_memory->AddString(value);
           return str_index;
         }
 
@@ -574,7 +577,7 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
   auto& variables = interpreter.context.variables;
   auto& current_scope = interpreter.context.function_context->current_scope;
@@ -591,9 +594,9 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
       if (current_class != nullptr &&
           current_class->GetVariable(variable_name, temp)) {
         // Gets the reference of the variable index.
-        std::size_t return_index = global_memory.Add(1);
+        std::size_t return_index = global_memory->Add(1);
         code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_index, 0,
-                                global_memory.AddString(variable_name)));
+                                global_memory->AddString(variable_name)));
         return return_index;
       }
 
@@ -616,29 +619,29 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
       switch (vm_type) {
         case 0x01: {
           int8_t value = Ast::Cast<Ast::Value>(expression)->GetByteValue();
-          return global_memory.AddByte(value);
+          return global_memory->AddByte(value);
           break;
         }
 
         case 0x02: {
           int64_t value = Ast::Cast<Ast::Value>(expression)->GetLongValue();
-          return global_memory.AddLong(value);
+          return global_memory->AddLong(value);
         }
 
         case 0x03: {
           double value = Ast::Cast<Ast::Value>(expression)->GetDoubleValue();
-          return global_memory.AddDouble(value);
+          return global_memory->AddDouble(value);
         }
 
         case 0x04: {
           uint64_t value = Ast::Cast<Ast::Value>(expression)->GetUInt64Value();
-          return global_memory.AddUint64t(value);
+          return global_memory->AddUint64t(value);
         }
 
         case 0x05: {
           std::string value =
               Ast::Cast<Ast::Value>(expression)->GetStringValue();
-          std::size_t str_index = global_memory.AddString(value);
+          std::size_t str_index = global_memory->AddString(value);
           return str_index;
         }
 

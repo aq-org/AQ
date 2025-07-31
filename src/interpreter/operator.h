@@ -45,99 +45,98 @@ namespace Interpreter {
 
 int NOP();
 
-int LOAD(Memory memory, std::size_t ptr, std::size_t operand);
+int LOAD(std::shared_ptr<Memory> memory, std::size_t ptr, std::size_t operand);
 
-int STORE(Memory memory, std::size_t ptr, std::size_t operand);
+int STORE(std::shared_ptr<Memory> memory, std::size_t ptr, std::size_t operand);
 
-int NEW(Memory memory, std::string& current_bytecode_file,
-        std::unordered_map<std::string, Class> classes, std::size_t ptr,
-        std::size_t size, std::size_t type,
+int NEW(std::shared_ptr<Memory> memory, std::unordered_map<std::string, Class> classes,
+        std::size_t ptr, std::size_t size, std::size_t type,
         std::unordered_map<
-            std::string, std::function<int(Memory, std::vector<std::size_t>)>>&
+            std::string, std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
             builtin_functions);
 
-int CrossMemoryNew(Memory memory,
+int CrossMemoryNew(std::shared_ptr<Memory> memory,
                    std::unordered_map<std::string, Class> classes,
                    std::size_t ptr, std::size_t size, std::size_t type);
 
 int ARRAY(
-    Memory memory, std::size_t result, std::size_t ptr, std::size_t index,
+    std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr, std::size_t index,
     std::unordered_map<std::string, Class>& classes,
     std::unordered_map<std::string,
-                       std::function<int(Memory, std::vector<std::size_t>)>>&
+                       std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
     std::string& current_bytecode_file);
 
-int PTR(Memory memory, std::size_t index, std::size_t ptr);
+int PTR(std::shared_ptr<Memory> memory, std::size_t index, std::size_t ptr);
 
-int ADD(Memory memory, std::size_t result, std::size_t operand1,
+int ADD(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
-int SUB(Memory memory, std::size_t result, std::size_t operand1,
+int SUB(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
-int MUL(Memory memory, std::size_t result, std::size_t operand1,
+int MUL(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
-int DIV(Memory memory, std::size_t result, std::size_t operand1,
+int DIV(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
-int REM(Memory memory, std::size_t result, std::size_t operand1,
+int REM(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
-int NEG(Memory memory, std::size_t result, std::size_t operand1);
+int NEG(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
 
-int SHL(Memory memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
-
-int SHR(Memory memory, std::size_t result, std::size_t operand1,
+int SHL(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
-int REFER(Memory memory, std::size_t result, std::size_t operand1);
+int SHR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-size_t IF(Memory memory, std::size_t condition, std::size_t true_branche,
+int REFER(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
+
+size_t IF(std::shared_ptr<Memory> memory, std::size_t condition, std::size_t true_branche,
           std::size_t false_branche);
 
-int AND(Memory memory, std::size_t result, std::size_t operand1,
+int AND(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
-int OR(Memory memory, std::size_t result, std::size_t operand1,
+int OR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
        std::size_t operand2);
 
-int XOR(Memory memory, std::size_t result, std::size_t operand1,
+int XOR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
-int CMP(Memory memory, std::size_t result, std::size_t opcode,
+int CMP(std::shared_ptr<Memory> memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2);
 
 int INVOKE(
-    Memory memory,
+    std::shared_ptr<Memory> memory,
     std::unordered_map<std::string,
-                       std::function<int(Memory, std::vector<std::size_t>)>>&
+                       std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<std::size_t> arguments,
     std::unordered_map<std::string, Class>& classes,
     std::string& current_bytecode_file);
-int EQUAL(Memory memory, std::size_t result, std::size_t value);
+int EQUAL(std::shared_ptr<Memory> memory, std::size_t result, std::size_t value);
 
-int CrossMemoryEqual(Memory result_heap, std::size_t result, Memory value_heap,
+int CrossMemoryEqual(std::shared_ptr<Memory> result_heap, std::size_t result, std::shared_ptr<Memory> value_heap,
                      std::size_t value);
 
-size_t GOTO(Memory memory, std::size_t location);
-int LOAD_CONST(Memory memory, Memory constant_pool, std::size_t object,
+size_t GOTO(std::shared_ptr<Memory> memory, std::size_t location);
+int LOAD_CONST(std::shared_ptr<Memory> memory, std::shared_ptr<Memory> constant_pool, std::size_t object,
                std::size_t const_object);
 
-int CONVERT(Memory memory, std::size_t result, std::size_t operand1);
-int CONST(Memory memory, std::size_t result, std::size_t operand1);
+int CONVERT(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
+int CONST(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
 
 int INVOKE_METHOD(
-    Memory memory, std::string& current_bytecode_file,
+    std::shared_ptr<Memory> memory, std::string& current_bytecode_file,
     std::unordered_map<std::string, Class>& classes,
     std::unordered_map<std::string,
-                       std::function<int(Memory, std::vector<std::size_t>)>>&
+                       std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<size_t> arguments);
 
-int LOAD_MEMBER(Memory memory, std::unordered_map<std::string, Class>& classes,
+int LOAD_MEMBER(std::shared_ptr<Memory> memory, std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand);
 

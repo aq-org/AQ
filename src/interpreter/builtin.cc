@@ -11,7 +11,7 @@
 namespace Aq {
 namespace Interpreter {
 void AddBuiltInFunctionDeclaration(Interpreter& interpreter, std::string name) {
-  interpreter.context.functions.insert(name);
+  interpreter.functions[name] = Function();
 }
 
 void InitBuiltInFunctionDeclaration(Interpreter& interpreter) {

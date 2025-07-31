@@ -66,20 +66,78 @@ std::size_t Memory::AddString(std::string value, bool is_constant_data) {
   return memory_.size() - 1;
 }
 
-std::size_t Memory::AddReference(Memory& memory, std::size_t index,
-                                 bool is_constant_data) {
+std::size_t Memory::AddReference(std::shared_ptr<Memory> memory,
+                                 std::size_t index, bool is_constant_data) {
   if (is_run) INTERNAL_ERROR("Memory is running, cannot add new memory.");
-  ObjectReference reference = {std::ref(memory), index};
+  ObjectReference reference = {memory, index};
   memory_.push_back({{0x07, 0x00}, reference, true, is_constant_data});
   return memory_.size() - 1;
 }
 
-std::size_t Memory::AddReference(ClassMemory& memory, std::string index,
-                                 bool is_constant_data) {
+std::size_t Memory::AddReference(std::shared_ptr<ClassMemory> memory,
+                                 std::string index, bool is_constant_data) {
   if (is_run) INTERNAL_ERROR("Memory is running, cannot add new memory.");
-  ObjectReference reference = {std::ref(memory), index};
+  ObjectReference reference = {memory, index};
   memory_.push_back({{0x07, 0x00}, reference, true, is_constant_data});
   return memory_.size() - 1;
+}
+
+Object Memory::GetOriginData(std::size_t index) {
+  if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
+  Object object = memory_[index];
+  if (object.type.empty()) INTERNAL_ERROR("Object type is empty.");
+
+  while (object.type[0] == 0x07) {
+    auto reference = std::get<ObjectReference>(object.data);
+    if (std::holds_alternative<std::shared_ptr<Memory>>(reference.memory)) {
+      object = std::get<std::shared_ptr<Memory>>(reference.memory)
+                   ->GetMemory()[std::get<std::size_t>(reference.index)];
+    } else {
+      object = std::get<std::shared_ptr<ClassMemory>>(reference.memory)
+                   ->GetMembers()[std::get<std::string>(reference.index)];
+    }
+  }
+
+  return object;
+}
+
+uint64_t Memory::GetUint64tData(std::size_t index) {
+  if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
+
+  Object object = GetOriginData(index);
+
+  switch (object.type[0]) {
+    case 0x01:
+      return std::get<int8_t>(object.data);
+
+    case 0x02:
+      return std::get<int64_t>(object.data);
+
+    case 0x03:
+      LOGGING_WARNING("Implicit conversion may changes value.");
+      return std::get<double>(object.data);
+
+    case 0x04:
+      return std::get<uint64_t>(object.data);
+
+    default:
+      LOGGING_ERROR("Unsupported data type.");
+      return 0;
+  }
+}
+
+std::string Memory::GetStringData(std::size_t index) {
+  if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
+
+  Object object = GetOriginData(index);
+
+  if (object.type[0] != 0x05) {
+    LOGGING_ERROR("Expected string type, but got: " +
+                  std::to_string(object.type[0]));
+    return "";
+  }
+
+  return std::get<std::string>(object.data);
 }
 
 void ClassMemory::Add(std::string name, bool is_constant_data) {
@@ -123,18 +181,39 @@ void ClassMemory::AddString(std::string name, std::string value,
   members_[name] = {{0x05}, value, true, is_constant_data};
 }
 
-void ClassMemory::AddReference(std::string name, Memory& memory,
+void ClassMemory::AddReference(std::string name, std::shared_ptr<Memory> memory,
                                std::size_t index, bool is_constant_data) {
   if (is_run) INTERNAL_ERROR("Memory is running, cannot add new memory.");
-  ObjectReference reference = {std::ref(memory), index};
+  ObjectReference reference = {memory, index};
   members_[name] = {{0x07, 0x00}, reference, true, is_constant_data};
 }
 
-void ClassMemory::AddReference(std::string name, ClassMemory& memory,
+void ClassMemory::AddReference(std::string name,
+                               std::shared_ptr<ClassMemory> memory,
                                std::string index, bool is_constant_data) {
   if (is_run) INTERNAL_ERROR("Memory is running, cannot add new memory.");
-  ObjectReference reference = {std::ref(memory), index};
+  ObjectReference reference = {memory, index};
   members_[name] = {{0x07, 0x00}, reference, true, is_constant_data};
+}
+
+Object ClassMemory::GetOriginData(std::string index) {
+  if (members_.find(index) == members_.end())
+    LOGGING_ERROR("Class member not found: " + index);
+  Object object = members_[index];
+  if (object.type.empty()) INTERNAL_ERROR("Object type is empty.");
+
+  while (object.type[0] == 0x07) {
+    auto reference = std::get<ObjectReference>(object.data);
+    if (std::holds_alternative<std::shared_ptr<Memory>>(reference.memory)) {
+      object = std::get<std::shared_ptr<Memory>>(reference.memory)
+                   ->GetMemory()[std::get<std::size_t>(reference.index)];
+    } else {
+      object = std::get<std::shared_ptr<ClassMemory>>(reference.memory)
+                   ->GetMembers()[std::get<std::string>(reference.index)];
+    }
+  }
+
+  return object;
 }
 
 }  // namespace Interpreter

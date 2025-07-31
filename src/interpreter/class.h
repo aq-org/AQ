@@ -18,7 +18,10 @@ namespace Aq {
 namespace Interpreter {
 class Class {
  public:
-  Class() = default;
+  Class() {
+    members_ = std::make_shared<ClassMemory>();
+    class_ = nullptr;
+  }
   ~Class() = default;
 
   void SetClass(Ast::Class* class_declaration) {
@@ -28,9 +31,10 @@ class Class {
   }
 
   bool GetVariable(std::string name, Object& object) {
-    if (members_.GetMembers().find(name) == members_.GetMembers().end()) return false;
+    if (members_->GetMembers().find(name) == members_->GetMembers().end())
+      return false;
 
-    object = members_.GetMembers()[name];
+    object = members_->GetMembers()[name];
     return true;
   }
 
@@ -38,7 +42,7 @@ class Class {
 
   std::vector<Function>& GetFunctionList() { return function_list_; }
 
-  ClassMemory& GetMembers() { return members_; }
+  std::shared_ptr<ClassMemory> GetMembers() { return members_; }
 
   std::vector<Bytecode>& GetCode() { return code_; }
 
@@ -53,7 +57,7 @@ class Class {
   Ast::Class* class_;
   std::unordered_set<std::string> functions_;
   std::vector<Function> function_list_;
-  ClassMemory members_;
+  std::shared_ptr<ClassMemory> members_;
   std::vector<Bytecode> code_;
   std::size_t name_index_ = 0;
 };

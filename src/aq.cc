@@ -18,9 +18,9 @@
 int main(int argc, char* argv[]) {
   // TODO(command-line arguments): Add more command-line arguments and
   // related-functions for the compiler.
-  if (argc < 3) {
+  if (argc < 2) {
     Aq::LOGGING_ERROR("Usage: " + std::string(argv[0]) +
-                                " <code> <output>");
+                                " <code>");
     return -1;
   }
 
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
 
   // Generates the bytecode from the AST.
   Aq::Interpreter::Interpreter interpreter;
-  interpreter.Generate(ast, argv[2]);
+  interpreter.Generate(ast);
 
   Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
 

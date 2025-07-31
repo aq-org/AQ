@@ -15,6 +15,7 @@ namespace Aq {
 namespace Interpreter {
 class Function {
  public:
+  Function() = default;
   Function(std::string name, std::vector<std::size_t> parameters,
            std::vector<Bytecode> code) {
     name_ = name;

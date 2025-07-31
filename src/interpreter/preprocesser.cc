@@ -56,7 +56,7 @@ void PreProcessFunctionDeclaration(Interpreter& interpreter,
 
   // Gets the reference of the context.
   auto& scopes = interpreter.context.scopes;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
 
   std::string function_name =
       statement->GetFunctionStatement()->GetFunctionName();
@@ -64,7 +64,7 @@ void PreProcessFunctionDeclaration(Interpreter& interpreter,
   // The function name with the scopes.
   std::string full_name = scopes.back() + "." + function_name;
 
-  functions.insert(full_name);
+  functions[full_name] = Function();
 }
 
 void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement) {
@@ -74,7 +74,7 @@ void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement)
   auto& scopes = interpreter.context.scopes;
   auto& classes = interpreter.classes;
   auto& global_memory = interpreter.global_memory;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
 
   std::string class_name = static_cast<std::string>(statement->GetClassName());
   std::string full_name = scopes.back() + "." + class_name;
@@ -109,7 +109,7 @@ void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement)
     // PreProcessDeclaration().
   }
 
-  functions.insert(scopes.back());
+  functions[scopes.back()] = Function();
   scopes.pop_back();
 }
 
@@ -120,7 +120,7 @@ void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement
   auto& scopes = interpreter.context.scopes;
   auto& classes = interpreter.classes;
   auto& global_memory = interpreter.global_memory;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
   auto& code = interpreter.global_code;
 
   std::string class_name = static_cast<std::string>(statement->GetClassName());
@@ -153,7 +153,7 @@ void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement
     }
   }
 
-  functions.insert(scopes.back());
+  functions[scopes.back()] = Function();
   scopes.pop_back();
 }
 
@@ -170,7 +170,7 @@ void PreProcessImport(Interpreter& interpreter, Ast::Import* statement) {
     std::string import_location = statement->GetImportLocation();
     std::string name = statement->GetName();
 
-    std::size_t array_index = global_memory.Add(1);
+    std::size_t array_index = global_memory->Add(1);
     variables.emplace("#" + static_cast<std::string>(name), array_index);
   }
 }

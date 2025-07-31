@@ -25,6 +25,7 @@ ${PROJECT_SOURCE_DIR}/src/parser/expression_parser.cc
 ${PROJECT_SOURCE_DIR}/src/token/token.cc 
 ${PROJECT_SOURCE_DIR}/src/token/tokenmap.cc 
 ${PROJECT_SOURCE_DIR}/src/interpreter/interpreter.cc
+${PROJECT_SOURCE_DIR}/src/interpreter/operator.cc
 ${PROJECT_SOURCE_DIR}/src/interpreter/builtin.cc
 ${PROJECT_SOURCE_DIR}/src/interpreter/declaration_interpreter.cc
 ${PROJECT_SOURCE_DIR}/src/interpreter/expression_interpreter.cc

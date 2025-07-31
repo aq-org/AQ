@@ -117,7 +117,7 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
 
 void HandleBreakStatement(Interpreter& interpreter,
                           std::vector<Bytecode>& code) {
-  std::size_t index = interpreter.global_memory.AddUint64t(0);
+  std::size_t index = interpreter.global_memory->AddUint64t(0);
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, index));
 
   interpreter.context.function_context->loop_break_index.push_back(index);
@@ -311,7 +311,7 @@ void HandleIfStatement(Interpreter& interpreter, Ast::If* statement,
   std::vector<std::size_t> if_arguments{condition_index, true_operator_location,
                                         false_operator_location};
   std::vector<std::size_t> goto_arguments{
-      global_memory.AddUint64t(exit_branch)};
+      global_memory->AddUint64t(exit_branch)};
 
   // Updates the if and goto operators with the arguments.
   code[if_operator_index].SetArgs(if_arguments);
@@ -352,7 +352,7 @@ void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
 
   // Handles the goto operator to jump back to the start of the loop.
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1,
-                          global_memory.AddUint64t(start_location)));
+                          global_memory->AddUint64t(start_location)));
 
   // Handles the exit branch of the while statement.
   std::size_t exit_location = code.size();
@@ -365,7 +365,7 @@ void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
 
   // Sets the exit location for the loop break statements.
   while (loop_break_index.back() != -1) {
-    global_memory.SetUint64tValue(loop_break_index.back(), exit_location);
+    global_memory->SetUint64tValue(loop_break_index.back(), exit_location);
     loop_break_index.pop_back();
   }
 
@@ -413,7 +413,7 @@ void HandleDowhileStatement(Interpreter& interpreter, Ast::DoWhile* statement,
 
   // Sets the exit location for the loop break statements.
   while (loop_break_index.back() != -1) {
-    global_memory.SetUint64tValue(loop_break_index.back(), exit_location);
+    global_memory->SetUint64tValue(loop_break_index.back(), exit_location);
     loop_break_index.pop_back();
   }
 
@@ -468,7 +468,7 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
   // LOGGING_INFO("1");
   //  Makes the for statement loop automatically.
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1,
-                          global_memory.AddUint64t(start_location)));
+                          global_memory->AddUint64t(start_location)));
 
   // Handles the exit branch of the for statement.
   std::size_t exit_location = code.size();
@@ -481,7 +481,7 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
 
   // Sets the exit location for the loop break statements.
   while (loop_break_index.back() != -1) {
-    global_memory.SetUint64tValue(loop_break_index.back(), exit_location);
+    global_memory->SetUint64tValue(loop_break_index.back(), exit_location);
     loop_break_index.pop_back();
   }
 

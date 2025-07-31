@@ -17,7 +17,7 @@ namespace Interpreter {
 struct Interpreter;
 
 struct Context {
-  std::unordered_set<std::string> functions;
+  //std::unordered_set<std::string> functions;
   std::unordered_map<std::string, std::size_t> variables;
   // std::unordered_map<std::string, Class*> classes;
 
@@ -30,23 +30,21 @@ struct Context {
 struct Interpreter {
   Interpreter() {
     InitBuiltInFunctionDeclaration(*this);
-    uint16_t test_data = 0x0011;
-    is_big_endian = *(uint8_t*)&test_data == 0x00;
+    global_memory = std::make_shared<Memory>();
   }
   virtual ~Interpreter() = default;
 
-  void Generate(Ast::Compound* statement, const char* output_file);
+  void Generate(Ast::Compound* statement);
 
   void Run();
 
-  bool is_big_endian = false;
   Class main_class;
 
   Context context;
 
-  std::vector<Function> functions;
+  std::unordered_map<std::string, Function> functions;
   std::unordered_map<std::string, Class> classes;
-  Memory global_memory;
+  std::shared_ptr<Memory> global_memory;
   std::vector<Bytecode> init_code;
   std::vector<Bytecode> global_code;
 };

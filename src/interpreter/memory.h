@@ -14,14 +14,16 @@
 #include <variant>
 #include <vector>
 
+#include "logging/logging.h"
+
 namespace Aq {
 namespace Interpreter {
 class Memory;
 class ClassMemory;
 
 struct ObjectReference {
-  std::variant<std::reference_wrapper<Memory>,
-               std::reference_wrapper<ClassMemory>>
+  std::variant<std::shared_ptr<Memory>,
+               std::shared_ptr<ClassMemory>>
       memory;
   std::variant<std::size_t, std::string> index;
 };
@@ -35,7 +37,7 @@ struct Object {
                std::string,              // 0x05 (string)
                std::shared_ptr<Memory>,  // 0x06 (array)
                ObjectReference,          // 0x07 (reference)
-               // [[DEPRECATED]] 0x08 (const)
+               // [[deprecated]] 0x08 (const)
                std::shared_ptr<ClassMemory>,  // 0x09 (class)
                void*                          // [[UNUSED]] 0x0A (pointer)
                >
@@ -77,10 +79,14 @@ class Memory {
   void SetUint64tValue(std::size_t index, uint64_t value,
                        bool is_constant_data = false);
   std::size_t AddString(std::string value, bool is_constant_data = false);
-  std::size_t AddReference(Memory& memory, std::size_t index,
+  std::size_t AddReference(std::shared_ptr<Memory> memory, std::size_t index,
                            bool is_constant_data = false);
-  std::size_t AddReference(ClassMemory& memory, std::string index,
+  std::size_t AddReference(std::shared_ptr<ClassMemory> memory, std::string index,
                            bool is_constant_data = false);
+
+  Object GetOriginData(std::size_t index);
+  uint64_t GetUint64tData(std::size_t index);
+  std::string GetStringData(std::size_t index);
 
   std::vector<Object>& GetMemory() { return memory_; }
 
@@ -105,10 +111,12 @@ class ClassMemory {
                   bool is_constant_data = false);
   void AddString(std::string name, std::string value,
                  bool is_constant_data = false);
-  void AddReference(std::string name, Memory& memory, std::size_t index,
+  void AddReference(std::string name, std::shared_ptr<Memory> memory, std::size_t index,
                     bool is_constant_data = false);
-  void AddReference(std::string name, ClassMemory& memory, std::string index,
+  void AddReference(std::string name, std::shared_ptr<ClassMemory> memory, std::string index,
                     bool is_constant_data = false);
+
+  Object GetOriginData(std::string index);
 
   std::unordered_map<std::string, Object>& GetMembers() { return members_; }
 

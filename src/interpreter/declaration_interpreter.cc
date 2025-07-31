@@ -54,10 +54,10 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
 
   // Loads and initializes the import bytecode.
   init_code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, index, 2,
-                               memory.AddString(name)));
+                               memory->AddString(name)));
   init_code.push_back(
-      Bytecode(_AQVM_OPERATOR_NEW, 3, index, memory.AddUint64t(0),
-               memory.AddString("~" + location + "bc~.!__start")));
+      Bytecode(_AQVM_OPERATOR_NEW, 3, index, memory->AddUint64t(0),
+               memory->AddString("~" + location + "bc~.!__start")));
 }
 
 void HandleFunctionDeclaration(Interpreter& interpreter,
@@ -199,9 +199,8 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
   auto& classes = interpreter.classes;
-  auto& classes_list = interpreter.classes;
   auto& current_class = interpreter.context.current_class;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
 
   std::string class_name =
       scopes.back() + "." + std::string(declaration->GetClassName());
@@ -215,8 +214,7 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   current_class = &classes[class_name];
 
   // Adds the special variable into class memory.
-  current_class->GetMembers().Add("@name");
-  current_class->GetMembers().Add("@size");
+  current_class->GetMembers()->AddString("@name", class_name);
 
   HandleSubClassesInHandlingClass(interpreter, declaration);
 
@@ -271,12 +269,12 @@ std::size_t HandleVariableDeclaration(Interpreter& interpreter,
 
   std::size_t variable_index = 0;
   if (category == Ast::Type::TypeCategory::kConst) {
-    variable_index = memory.AddWithType(vm_type, true);
+    variable_index = memory->AddWithType(vm_type, true);
     category = dynamic_cast<Ast::ConstType*>(declaration->GetVariableType())
                    ->GetSubType()
                    ->GetTypeCategory();
   } else {
-    variable_index = memory.AddWithType(vm_type);
+    variable_index = memory->AddWithType(vm_type);
   }
 
   // If the variable value isn't nullptr, it means that the variable is
@@ -319,8 +317,7 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
   // Gets the reference of context.
   auto& start_class = interpreter.main_class;
   auto& variables = interpreter.context.variables;
-  auto& class_variables = start_class.GetMembers();
-  auto& memory = start_class.GetMembers();
+  auto memory = start_class.GetMembers();
   auto& global_memory = interpreter.global_memory;
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
@@ -342,17 +339,17 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
 
   if (category == Ast::Type::TypeCategory::kConst) {
     // If the variable is a const type, it needs to be handled specially.
-    memory.AddWithType(variable_name, return_type, true);
+    memory->AddWithType(variable_name, return_type, true);
     category = dynamic_cast<Ast::ConstType*>(declaration->GetVariableType())
                    ->GetSubType()
                    ->GetTypeCategory();
 
   } else {
-    memory.AddWithType(variable_name, return_type);
+    memory->AddWithType(variable_name, return_type);
   }
 
   std::size_t reference_index =
-      global_memory.AddReference(memory, variable_name);
+      global_memory->AddReference(memory, variable_name);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -414,12 +411,12 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
 
   std::size_t variable_index = 0;
   if (category == Ast::Type::TypeCategory::kConst) {
-    variable_index = global_memory.AddWithType(vm_type, true);
+    variable_index = global_memory->AddWithType(vm_type, true);
     category = dynamic_cast<Ast::ConstType*>(declaration->GetVariableType())
                    ->GetSubType()
                    ->GetTypeCategory();
   } else {
-    variable_index = global_memory.AddWithType(vm_type);
+    variable_index = global_memory->AddWithType(vm_type);
   }
 
   // If the variable is a class type, it needs to be handled specially.
@@ -463,7 +460,7 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
   auto& start_class = interpreter.main_class;
   auto& global_memory = interpreter.global_memory;
   auto& current_class = interpreter.context.current_class;
-  auto& memory = current_class->GetMembers();
+  auto memory = current_class->GetMembers();
   auto& code = current_class->GetCode();
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
@@ -484,16 +481,16 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
   std::reference_wrapper<Object> object = temp;
   if (category == Ast::Type::TypeCategory::kConst) {
     // If the variable is a const type, it needs to be handled specially.
-    memory.AddWithType(variable_name, return_type, true);
+    memory->AddWithType(variable_name, return_type, true);
     category = dynamic_cast<Ast::ConstType*>(declaration->GetVariableType())
                    ->GetSubType()
                    ->GetTypeCategory();
 
   } else {
-    memory.AddWithType(variable_name, return_type);
+    memory->AddWithType(variable_name, return_type);
   }
   std::size_t reference_index =
-      global_memory.AddReference(memory, variable_name);
+      global_memory->AddReference(memory, variable_name);
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
@@ -532,7 +529,7 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
-  auto& global_memory = interpreter.global_memory;
+  auto global_memory = interpreter.global_memory;
   auto& variables = interpreter.context.variables;
   auto& scopes = interpreter.context.scopes;
 
@@ -547,7 +544,7 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
       scopes.back() + "#" + declaration->GetVariableName();
 
   // Adds the array index and the type index.
-  std::size_t array_index = global_memory.AddWithType(array_type->GetVmType());
+  std::size_t array_index = global_memory->AddWithType(array_type->GetVmType());
   std::size_t array_type_index = 0;
 
   // Gets the sub type of the array type and its category.
@@ -558,14 +555,14 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name = GetClassNameString(
         interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
-    array_type_index = global_memory.AddString(class_name);
+    array_type_index = global_memory->AddString(class_name);
 
   } else {
     // If the vm type of the sub type isn't 0x00 (auto type), it means that
     // the sub type is a primitive type, so we can add it into the global
     // memory.
     if (sub_type->GetVmType()[0] != 0x00)
-      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
+      array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 
   // Handles the array creation bytecode.
@@ -574,28 +571,28 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
   // actually determined based on the actual number of initialization lists
   // given.
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                          global_memory.AddByte(1), array_type_index));
+                          global_memory->AddByte(1), array_type_index));
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
   // because it is smaller than the array size, it will not be automatically
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::size_t current_index = global_memory.AddReference(
-        *std::get<std::shared_ptr<Memory>>(
-            global_memory.GetMemory()[array_index].data),
+    std::size_t current_index = global_memory->AddReference(
+        std::get<std::shared_ptr<Memory>>(
+            global_memory->GetMemory()[array_index].data),
         0);
     code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
-                            global_memory.AddString("@constructor"), 1, 0));
+                            global_memory->AddString("@constructor"), 1, 0));
   }
 
   // Handles the array initialization with the initialization lists.
   if (!declaration->GetVariableValue().empty()) {
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
-      std::size_t current_index = global_memory.AddReference(
-          *std::get<std::shared_ptr<Memory>>(
-              global_memory.GetMemory()[array_index].data),
+      std::size_t current_index = global_memory->AddReference(
+          std::get<std::shared_ptr<Memory>>(
+              global_memory->GetMemory()[array_index].data),
           i);
 
       // Gets the value of the initialization list and assigns value to
@@ -621,7 +618,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   auto& variables = interpreter.context.variables;
   auto& start_class = interpreter.main_class;
   auto& scopes = interpreter.context.scopes;
-  auto& memory = start_class.GetMembers();
+  auto memory = start_class.GetMembers();
 
   // Handles the array type.
   Ast::ArrayType* array_type =
@@ -633,8 +630,8 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   std::string variable_name = declaration->GetVariableName();
 
   // Adds the array index and the type index.
-  memory.AddWithType(variable_name, array_type->GetVmType());
-  std::size_t array_index = global_memory.AddReference(memory, variable_name);
+  memory->AddWithType(variable_name, array_type->GetVmType());
+  std::size_t array_index = global_memory->AddReference(memory, variable_name);
   std::size_t array_type_index = 0;
 
   // Gets the sub type of the array type and its category.
@@ -645,14 +642,14 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name = GetClassNameString(
         interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
-    array_type_index = global_memory.AddString(class_name);
+    array_type_index = global_memory->AddString(class_name);
 
   } else {
     // If the vm type of the sub type isn't 0x00 (auto type), it means that
     // the sub type is a primitive type, so we can add it into the global
     // memory.
     if (sub_type->GetVmType()[0] != 0x00)
-      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
+      array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 
   // Handles the array creation bytecode.
@@ -661,28 +658,28 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   // actually determined based on the actual number of initialization lists
   // given.
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                          global_memory.AddByte(1), array_type_index));
+                          global_memory->AddByte(1), array_type_index));
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
   // because it is smaller than the array size, it will not be automatically
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::size_t current_index = global_memory.AddReference(
-        *std::get<std::shared_ptr<Memory>>(
-            global_memory.GetMemory()[array_index].data),
+    std::size_t current_index = global_memory->AddReference(
+        std::get<std::shared_ptr<Memory>>(
+            global_memory->GetMemory()[array_index].data),
         0);
     code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
-                            global_memory.AddString("@constructor"), 1, 0));
+                            global_memory->AddString("@constructor"), 1, 0));
   }
 
   // Handles the array initialization with the initialization lists.
   if (!declaration->GetVariableValue().empty()) {
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
-      std::size_t current_index = global_memory.AddReference(
-          *std::get<std::shared_ptr<Memory>>(
-              global_memory.GetMemory()[array_index].data),
+      std::size_t current_index = global_memory->AddReference(
+          std::get<std::shared_ptr<Memory>>(
+              global_memory->GetMemory()[array_index].data),
           i);
 
       // Gets the value of the initialization list and assigns value to
@@ -720,7 +717,7 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
       scopes.back() + "." + declaration->GetVariableName();
 
   // Adds the array index and the type index.
-  std::size_t array_index = global_memory.AddWithType(array_type->GetVmType());
+  std::size_t array_index = global_memory->AddWithType(array_type->GetVmType());
   std::size_t array_type_index = 0;
 
   // Gets the sub type of the array type and its category.
@@ -731,14 +728,14 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name = GetClassNameString(
         interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
-    array_type_index = global_memory.AddString(class_name);
+    array_type_index = global_memory->AddString(class_name);
 
   } else {
     // If the vm type of the sub type isn't 0x00 (auto type), it means that
     // the sub type is a primitive type, so we can add it into the global
     // memory.
     if (sub_type->GetVmType()[0] != 0x00)
-      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
+      array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 
   // Handles the array creation bytecode.
@@ -747,29 +744,29 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
   // actually determined based on the actual number of initialization lists
   // given.
   global_code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                                 global_memory.AddByte(1), array_type_index));
+                                 global_memory->AddByte(1), array_type_index));
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
   // because it is smaller than the array size, it will not be automatically
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::size_t current_index = global_memory.AddReference(
-        *std::get<std::shared_ptr<Memory>>(
-            global_memory.GetMemory()[array_index].data),
+    std::size_t current_index = global_memory->AddReference(
+        std::get<std::shared_ptr<Memory>>(
+            global_memory->GetMemory()[array_index].data),
         0);
     global_code.push_back(
         Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
-                 global_memory.AddString("@constructor"), 1, 0));
+                 global_memory->AddString("@constructor"), 1, 0));
   }
 
   // Handles the array initialization with the initialization lists.
   if (!declaration->GetVariableValue().empty()) {
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
-      std::size_t current_index = global_memory.AddReference(
-          *std::get<std::shared_ptr<Memory>>(
-              global_memory.GetMemory()[array_index].data),
+      std::size_t current_index = global_memory->AddReference(
+          std::get<std::shared_ptr<Memory>>(
+              global_memory->GetMemory()[array_index].data),
           i);
 
       // Gets the value of the initialization list and assigns value to
@@ -792,7 +789,7 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // Gets the reference of context.
   auto& global_memory = interpreter.global_memory;
   auto& current_class = interpreter.context.current_class;
-  auto& memory = current_class->GetMembers();
+  auto memory = current_class->GetMembers();
   auto& code = current_class->GetCode();
 
   // Handles the array type.
@@ -805,10 +802,10 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   std::string variable_name = declaration->GetVariableName();
 
   // Adds the array index and the type index.
-  memory.AddWithType(variable_name, array_type->GetVmType());
-  std::size_t array_index = global_memory.Add(1);
+  memory->AddWithType(variable_name, array_type->GetVmType());
+  std::size_t array_index = global_memory->Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 2,
-                          global_memory.AddString(variable_name)));
+                          global_memory->AddString(variable_name)));
   std::size_t array_type_index = 0;
 
   // Gets the sub type of the array type and its category.
@@ -819,14 +816,14 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::string class_name = GetClassNameString(
         interpreter, dynamic_cast<Ast::ClassType*>(sub_type));
-    array_type_index = global_memory.AddString(class_name);
+    array_type_index = global_memory->AddString(class_name);
 
   } else {
     // If the vm type of the sub type isn't 0x00 (auto type), it means that
     // the sub type is a primitive type, so we can add it into the global
     // memory.
     if (sub_type->GetVmType()[0] != 0x00)
-      array_type_index = global_memory.AddWithType(sub_type->GetVmType());
+      array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 
   // Handles the array creation bytecode.
@@ -835,28 +832,28 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // actually determined based on the actual number of initialization lists
   // given.
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                          global_memory.AddByte(1), array_type_index));
+                          global_memory->AddByte(1), array_type_index));
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
   // because it is smaller than the array size, it will not be automatically
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
-    std::size_t current_index = global_memory.AddReference(
-        *std::get<std::shared_ptr<Memory>>(
-            global_memory.GetMemory()[array_index].data),
+    std::size_t current_index = global_memory->AddReference(
+        std::get<std::shared_ptr<Memory>>(
+            global_memory->GetMemory()[array_index].data),
         0);
     code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
-                            global_memory.AddString("@constructor"), 1, 0));
+                            global_memory->AddString("@constructor"), 1, 0));
   }
 
   // Handles the array initialization with the initialization lists.
   if (!declaration->GetVariableValue().empty()) {
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
-      std::size_t current_index = global_memory.AddReference(
-          *std::get<std::shared_ptr<Memory>>(
-              global_memory.GetMemory()[array_index].data),
+      std::size_t current_index = global_memory->AddReference(
+          std::get<std::shared_ptr<Memory>>(
+              global_memory->GetMemory()[array_index].data),
           i);
 
       // Gets the value of the initialization list and assigns value to
@@ -886,7 +883,7 @@ void HandleFunctionArguments(Interpreter& interpreter,
 
   // Handles functions that only contain variable parameters.
   if (parameters.size() == 0 && statement->IsVariadic()) {
-    std::size_t index = memory.Add(1);
+    std::size_t index = memory->Add(1);
 
     // Adds index into |parameters_index| and |variables|.
     parameters_index.push_back(index);
@@ -927,7 +924,7 @@ void HandleFunctionArguments(Interpreter& interpreter,
 
     // Handles variable parameters if have.
     if (i == parameters.size() - 1 && statement->IsVariadic()) {
-      std::size_t index = memory.Add(1);
+      std::size_t index = memory->Add(1);
 
       // Adds index into |parameters_index| and |variables|.
       parameters_index.push_back(index);
@@ -945,7 +942,7 @@ void HandleReturnInHandlingFunction(Interpreter& interpreter,
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t return_location = code.size();
   for (std::size_t i = 0; i < exit_index.size(); i++) {
-    code[exit_index[i]].SetArgs(1, memory.AddUint64t(return_location));
+    code[exit_index[i]].SetArgs(1, memory->AddUint64t(return_location));
   }
 }
 
@@ -969,7 +966,7 @@ void HandleGotoInHandlingFunction(Interpreter& interpreter,
       if (i == current_scope) LOGGING_ERROR("Label not found.");
     }
 
-    code[goto_map.back().second].SetArgs(1, memory.AddUint64t(goto_location));
+    code[goto_map.back().second].SetArgs(1, memory->AddUint64t(goto_location));
     goto_map.pop_back();
   }
 }
@@ -986,7 +983,7 @@ void AddFunctionIntoList(Interpreter& interpreter,
 
   Function function(name, parameters_index, code);
   if (statement->IsVariadic()) function.EnableVariadic();
-  function_list.push_back(function);
+  function_list[name] = function;
 }
 
 void AddClassFunctionIntoList(Interpreter& interpreter,
@@ -1027,8 +1024,8 @@ void HandleReturnVariableInHandlingFunction(
   auto& memory = interpreter.global_memory;
 
   std::vector<uint8_t> vm_type = declaration->GetReturnType()->GetVmType();
-  variables[scope_name + "#!return"] = memory.AddWithType(vm_type);
-  variables[scope_name + "#!return_reference"] = memory.Add(1);
+  variables[scope_name + "#!return"] = memory->AddWithType(vm_type);
+  variables[scope_name + "#!return_reference"] = memory->Add(1);
   parameters_index.push_back(variables[scope_name + "#!return_reference"]);
 }
 
@@ -1042,7 +1039,7 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
   auto& memory = interpreter.global_memory;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
@@ -1053,20 +1050,20 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   scopes.push_back(name);
 
   // Records the creation of the function.
-  functions.insert(name);
+  functions[name] = Function();
 
   // Handles the return value and parameters.
   std::vector<std::size_t> parameters_index;
-  std::size_t return_index = memory.Add(1);
+  std::size_t return_index = memory->Add(1);
   parameters_index.push_back(return_index);
   HandleFunctionArguments(interpreter, declaration, parameters_index, code);
 
   // Builds the main part of the factory function.
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_index,
-                          memory.AddUint64t(0), memory.AddString(name)));
+                          memory->AddUint64t(0), memory->AddString(name)));
   std::vector<std::size_t> method_parameters = parameters_index;
   method_parameters.insert(method_parameters.begin(),
-                           {return_index, memory.AddString("@constructor"),
+                           {return_index, memory->AddString("@constructor"),
                             parameters_index.size()});
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_parameters));
 
@@ -1089,7 +1086,7 @@ void HandleConstructorFunctionInHandlingConstructor(
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
   auto& memory = interpreter.global_memory;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
   auto& current_class = interpreter.context.current_class;
   auto& current_scope = interpreter.context.function_context->current_scope;
 
@@ -1188,7 +1185,7 @@ void HandleClassMembersInHandlingClass(Interpreter& interpreter,
                                        Ast::Class* declaration) {
   // Gets the reference of context.
   auto& current_class = interpreter.context.current_class;
-  auto& memory = current_class->GetMembers();
+  auto memory = current_class->GetMembers();
   auto& code = current_class->GetCode();
 
   for (std::size_t i = 0; i < declaration->GetMembers().size(); i++) {
@@ -1244,12 +1241,11 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
 
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
   auto& current_class = interpreter.context.current_class;
   auto& goto_map = interpreter.context.function_context->goto_map;
   auto& variables = interpreter.context.variables;
   auto& memory = interpreter.global_memory;
-  auto& function_list = interpreter.functions;
   auto& exit_index = interpreter.context.function_context->exit_index;
 
   // Handles the function name with scopes and the class name.
@@ -1258,22 +1254,23 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
 
   // Handles the parameters.
   std::vector<std::size_t> parameters_index;
-  std::size_t return_index = memory.Add(1);
+  std::size_t return_index = memory->Add(1);
   parameters_index.push_back(return_index);
 
   // Records the creation of the function.
-  functions.insert(name);
+  functions[name] = Function();
 
   // Builds the main part of the factory function.
   std::vector<Bytecode> code;
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_index,
-                          memory.AddUint64t(0), memory.AddString(class_name)));
+                          memory->AddUint64t(0),
+                          memory->AddString(class_name)));
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, return_index,
-                          memory.AddString("@constructor"), 1, return_index));
+                          memory->AddString("@constructor"), 1, return_index));
 
   // Adds the function into function list.
   Function factory(name, parameters_index, code);
-  function_list.push_back(factory);
+  functions[name] = factory;
 
   // Destroys temporary context.
   delete interpreter.context.function_context;
@@ -1317,7 +1314,7 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   auto& memory = interpreter.global_memory;
   // auto& global_code = interpreter.global_code;
   auto& scopes = interpreter.context.scopes;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
 
   // Gets the class name, which is same as the function name.
   std::string name = std::string(
@@ -1344,22 +1341,22 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   }
 
   // Adds the class into global memory.
-  std::size_t reference_index = memory.Add(1);
+  std::size_t reference_index = memory->Add(1);
   code.push_back(
       Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, variable_index));
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, reference_index,
-                          memory.AddByte(0), memory.AddString(name)));
+                          memory->AddByte(0), memory->AddString(name)));
 
   // Classes without initialization requires default initialization.
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, reference_index,
-                          memory.AddString("@constructor"), 1,
+                          memory->AddString("@constructor"), 1,
                           reference_index));
 }
 
 std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
-  auto& functions = interpreter.context.functions;
+  auto& functions = interpreter.functions;
 
   std::string name = type->GetClassName();
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
@@ -1386,7 +1383,7 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   return name;
 }
 
-void GenerateBytecode(std::string import_location) {
+[[deprecated]] void GenerateBytecode(std::string import_location) {
   Interpreter* interpreter = new Interpreter();
   std::vector<char> code;
   Aq::ReadCodeFromFile(import_location.c_str(), code);
@@ -1397,8 +1394,7 @@ void GenerateBytecode(std::string import_location) {
   Aq::Ast::Compound* ast = Aq::Parser::Parse(token);
   if (ast == nullptr) Aq::LOGGING_ERROR("ast is nullptr.");
 
-  import_location += std::string("bc");
-  interpreter->Generate(ast, import_location.c_str());
+  interpreter->Generate(ast);
 
   Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
 

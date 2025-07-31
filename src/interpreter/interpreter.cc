@@ -17,7 +17,7 @@
 
 namespace Aq {
 namespace Interpreter {
-void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
+void Interpreter::Generate(Ast::Compound* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Adds the function context for the main function.
@@ -25,14 +25,14 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
   context.function_context = function_context;
 
   // Main program return value and its reference.
-  global_memory.Add(1);
-  global_memory.Add(1);
+  global_memory->Add(1);
+  global_memory->Add(1);
 
   // Bytecode Running class.
   std::vector<uint8_t> bytecodeclass_vm_type{0x09};
-  global_memory.AddWithType(bytecodeclass_vm_type);
+  global_memory->AddWithType(bytecodeclass_vm_type);
   global_code.push_back(
-      Bytecode(_AQVM_OPERATOR_EQUAL, 2, 0, global_memory.AddString("(void)")));
+      Bytecode(_AQVM_OPERATOR_EQUAL, 2, 0, global_memory->AddString("(void)")));
   global_code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, 1, 0));
 
   // Sets the scope information.
@@ -41,15 +41,14 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
 
   // Sets the initialize function.
   global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, 2,
-                                 global_memory.AddString(".!__init"), 1,
-                                 global_memory.Add(1)));
+                                 global_memory->AddString(".!__init"), 1,
+                                 global_memory->Add(1)));
 
   // Sets the current class.
   Class* start_class = &this->main_class;
   context.current_class = start_class;
   start_class->SetName(".__start");
-  start_class->GetMembers().Add("@name");
-  start_class->GetMembers().Add("@size");
+  start_class->GetMembers()->AddString("@name", ".__start");
 
   // Preprocesses the declaration statements.
   PreProcessDeclaration(*this, statement);
@@ -140,7 +139,7 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
     }
 
     global_code[context.function_context->goto_map.back().second].SetArgs(
-        1, global_memory.AddUint64t(goto_location));
+        1, global_memory->AddUint64t(goto_location));
     context.function_context->goto_map.pop_back();
   }
 
@@ -150,8 +149,8 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
   // Generates the bytecode for the main function.
   std::vector<std::size_t> constructor_args;
   std::vector<Bytecode> start_code;
-  constructor_args.push_back(global_memory.Add(1));
-  std::size_t start_function_name = global_memory.AddString(".!__start");
+  constructor_args.push_back(global_memory->Add(1));
+  std::size_t start_function_name = global_memory->AddString(".!__start");
 
   // Adds the start function name into the constructor arguments. And makes the
   // invoke for the start function.
@@ -162,19 +161,19 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
 
   // Makes the constructor function for the start function.
   Function constructor_func("@constructor", constructor_args, start_code);
-  functions.push_back(constructor_func);
+  functions["@constructor"] = constructor_func;
 
   // Adds the start function into the global memory.
   std::vector<std::size_t> arguments;
   arguments.push_back(1);
 
   // Adds the main function invoke into the global code.
-  std::size_t main_func = global_memory.AddString(".main");
+  std::size_t main_func = global_memory->AddString(".main");
   std::vector<std::size_t> invoke_main_arguments = {2, main_func, 1, 1};
   global_code.push_back(
       Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_main_arguments));
   Function start_func(".!__start", arguments, global_code);
-  functions.push_back(start_func);
+  functions[".!__start"] = start_func;
 
   // Checks if the break statement is used outside of loops or switches.
   if (context.function_context->loop_break_index.size() != 0)
@@ -182,16 +181,14 @@ void Interpreter::Generate(Ast::Compound* statement, const char* output_file) {
 
   // Generates the bytecode for the initialization function.
   std::vector<std::size_t> memory_init_args;
-  memory_init_args.push_back(global_memory.Add(1));
+  memory_init_args.push_back(global_memory->Add(1));
   Function memory_init_func(".!__init", memory_init_args, init_code);
-  functions.push_back(memory_init_func);
+  functions[".!__init"] = memory_init_func;
 
   Run();
 }
 
-void Interpreter::Run() { is_run = true; 
-
-}
+void Interpreter::Run() { is_run = true; }
 
 }  // namespace Interpreter
 }  // namespace Aq
