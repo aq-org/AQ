@@ -5,7 +5,7 @@
 #ifndef AQ_INTERPRETER_OPERATOR_H_
 #define AQ_INTERPRETER_OPERATOR_H_
 
-#include <vector>
+#include <functional>
 
 #include "src/interpreter/class.h"
 #include "src/interpreter/memory.h"
@@ -49,98 +49,137 @@ int LOAD(std::shared_ptr<Memory> memory, std::size_t ptr, std::size_t operand);
 
 int STORE(std::shared_ptr<Memory> memory, std::size_t ptr, std::size_t operand);
 
-int NEW(std::shared_ptr<Memory> memory, std::unordered_map<std::string, Class> classes,
-        std::size_t ptr, std::size_t size, std::size_t type,
-        std::unordered_map<
-            std::string, std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
-            builtin_functions);
+int NEW(
+    std::shared_ptr<Memory> memory,
+    std::unordered_map<std::string, Class> classes, std::size_t ptr,
+    std::size_t size, std::size_t type,
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        builtin_functions);
 
 int CrossMemoryNew(std::shared_ptr<Memory> memory,
                    std::unordered_map<std::string, Class> classes,
                    std::size_t ptr, std::size_t size, std::size_t type);
 
 int ARRAY(
-    std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr, std::size_t index,
-    std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<std::string,
-                       std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
-        builtin_functions,
-    std::string& current_bytecode_file);
+    std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr,
+    std::size_t index, std::unordered_map<std::string, Class>& classes,
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        builtin_functions);
 
 int PTR(std::shared_ptr<Memory> memory, std::size_t index, std::size_t ptr);
 
-int ADD(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int ADD(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
-int SUB(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int SUB(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
-int MUL(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int MUL(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
-int DIV(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int DIV(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
-int REM(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
-int NEG(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
+int REM(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
+int NEG(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1);
 
-int SHL(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int SHL(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
-int SHR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int SHR(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
-int REFER(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
+int REFER(std::shared_ptr<Memory> memory, std::size_t result,
+          std::size_t operand1);
 
-size_t IF(std::shared_ptr<Memory> memory, std::size_t condition, std::size_t true_branche,
-          std::size_t false_branche);
+size_t IF(std::shared_ptr<Memory> memory, std::size_t condition,
+          std::size_t true_branche, std::size_t false_branche);
 
-int AND(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int AND(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
 int OR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
        std::size_t operand2);
 
-int XOR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);
+int XOR(std::shared_ptr<Memory> memory, std::size_t result,
+        std::size_t operand1, std::size_t operand2);
 
 int CMP(std::shared_ptr<Memory> memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2);
 
 int INVOKE(
     std::shared_ptr<Memory> memory,
-    std::unordered_map<std::string,
-                       std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<std::size_t> arguments,
-    std::unordered_map<std::string, Class>& classes,
-    std::string& current_bytecode_file);
-int EQUAL(std::shared_ptr<Memory> memory, std::size_t result, std::size_t value);
+    std::unordered_map<std::string, Class>& classes);
+int EQUAL(std::shared_ptr<Memory> memory, std::size_t result,
+          std::size_t value);
 
-int CrossMemoryEqual(std::shared_ptr<Memory> result_heap, std::size_t result, std::shared_ptr<Memory> value_heap,
-                     std::size_t value);
+int CrossMemoryEqual(std::shared_ptr<Memory> result_heap, std::size_t result,
+                     std::shared_ptr<Memory> value_heap, std::size_t value);
 
 size_t GOTO(std::shared_ptr<Memory> memory, std::size_t location);
-int LOAD_CONST(std::shared_ptr<Memory> memory, std::shared_ptr<Memory> constant_pool, std::size_t object,
+int LOAD_CONST(std::shared_ptr<Memory> memory,
+               std::shared_ptr<Memory> constant_pool, std::size_t object,
                std::size_t const_object);
 
-int CONVERT(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
-int CONST(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1);
+int CONVERT(std::shared_ptr<Memory> memory, std::size_t result,
+            std::size_t operand1);
+int CONST(std::shared_ptr<Memory> memory, std::size_t result,
+          std::size_t operand1);
 
 int INVOKE_METHOD(
-    std::shared_ptr<Memory> memory, std::string& current_bytecode_file,
+    std::shared_ptr<Memory> memory,
     std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<std::string,
-                       std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<size_t> arguments);
 
-int LOAD_MEMBER(std::shared_ptr<Memory> memory, std::unordered_map<std::string, Class>& classes,
+int LOAD_MEMBER(std::shared_ptr<Memory> memory,
+                std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand);
 
 int WIDE();
+
+int8_t GetByte(Object& object);
+
+void SetByte(Object& object, int8_t data);
+
+int64_t GetLong(Object& object);
+
+void SetLong(Object& object, int64_t data);
+
+double GetDouble(Object& object);
+
+void SetDouble(Object& object, double data);
+
+uint64_t GetUint64(Object& object);
+
+void SetUint64(Object& object, uint64_t data);
+
+std::string GetString(Object& object);
+
+void SetString(Object& object, const std::string& data);
+
+std::shared_ptr<Memory> GetArray(Object& object);
+
+void SetArray(Object& object, std::vector<Object> memory);
+
+std::shared_ptr<ClassMemory> GetObject(Object& object);
+
+void SetObject(Object& object, std::shared_ptr<ClassMemory> data);
 }  // namespace Interpreter
 }  // namespace Aq
 

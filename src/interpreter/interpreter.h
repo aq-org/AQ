@@ -5,7 +5,6 @@
 #ifndef AQ_INTERPRETER_INTERPRETER_H_
 #define AQ_INTERPRETER_INTERPRETER_H_
 
-#include <cstdint>
 #include <unordered_map>
 
 #include "ast/ast.h"

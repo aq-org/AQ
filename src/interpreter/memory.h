@@ -7,14 +7,11 @@
 
 #include <cstdint>
 #include <cstring>
-#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
-
-#include "logging/logging.h"
 
 namespace Aq {
 namespace Interpreter {
@@ -22,9 +19,7 @@ class Memory;
 class ClassMemory;
 
 struct ObjectReference {
-  std::variant<std::shared_ptr<Memory>,
-               std::shared_ptr<ClassMemory>>
-      memory;
+  std::variant<std::shared_ptr<Memory>, std::shared_ptr<ClassMemory>> memory;
   std::variant<std::size_t, std::string> index;
 };
 
@@ -47,10 +42,10 @@ struct Object {
 
   // |guard_tag| is used to inline cache tag types during execution to ensure
   // the validity of the types used in the operator. Among them, the value 0x00
-  // indicates that no inline cache tag has been executed or that the object is
-  // a reference. The values 0x01~0x0A indicate that it is a basic type. If the
-  // value exceeds 0x0A, it indicates that it is a class and a specific type is
-  // defined within the class.
+  // indicates that no inline cache tag has been executed. The values 0x01~0x0A
+  // indicate that it is a basic type (0x07 is an exception, indicating that it
+  // is a reference type). If the value exceeds 0x0A, it indicates that it is a
+  // class and a specific type is defined within the class.
   uint64_t guard_tag = 0;
 
   // |guard_ptr| is used to cache data pointers (or object pointers if
@@ -81,14 +76,20 @@ class Memory {
   std::size_t AddString(std::string value, bool is_constant_data = false);
   std::size_t AddReference(std::shared_ptr<Memory> memory, std::size_t index,
                            bool is_constant_data = false);
-  std::size_t AddReference(std::shared_ptr<ClassMemory> memory, std::string index,
-                           bool is_constant_data = false);
+  std::size_t AddReference(std::shared_ptr<ClassMemory> memory,
+                           std::string index, bool is_constant_data = false);
 
-  Object GetOriginData(std::size_t index);
+  void InitObjectData(std::size_t index, std::shared_ptr<ClassMemory> object);
+  void SetObjectData(std::size_t index, std::shared_ptr<ClassMemory> object);
+  void SetArrayData(std::size_t index, std::shared_ptr<Memory> object);
+
+  Object& GetOriginData(std::size_t index);
+  void GetLastReference(ObjectReference& object);
   uint64_t GetUint64tData(std::size_t index);
   std::string GetStringData(std::size_t index);
 
   std::vector<Object>& GetMemory() { return memory_; }
+  void SetMemory(std::vector<Object>& memory) { memory_ = std::move(memory); }
 
  private:
   std::vector<Object> memory_;
@@ -111,20 +112,18 @@ class ClassMemory {
                   bool is_constant_data = false);
   void AddString(std::string name, std::string value,
                  bool is_constant_data = false);
-  void AddReference(std::string name, std::shared_ptr<Memory> memory, std::size_t index,
-                    bool is_constant_data = false);
-  void AddReference(std::string name, std::shared_ptr<ClassMemory> memory, std::string index,
-                    bool is_constant_data = false);
+  void AddReference(std::string name, std::shared_ptr<Memory> memory,
+                    std::size_t index, bool is_constant_data = false);
+  void AddReference(std::string name, std::shared_ptr<ClassMemory> memory,
+                    std::string index, bool is_constant_data = false);
 
-  Object GetOriginData(std::string index);
+  Object& GetOriginData(std::string index);
 
   std::unordered_map<std::string, Object>& GetMembers() { return members_; }
 
  private:
   std::unordered_map<std::string, Object> members_;
 };
-
-extern bool is_run;
 
 }  // namespace Interpreter
 }  // namespace Aq

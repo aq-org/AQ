@@ -188,7 +188,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
   Run();
 }
 
-void Interpreter::Run() { is_run = true; }
+void Interpreter::Run() {}
 
 }  // namespace Interpreter
 }  // namespace Aq
