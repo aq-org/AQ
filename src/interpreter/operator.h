@@ -65,11 +65,7 @@ int CrossMemoryNew(std::shared_ptr<Memory> memory,
 
 int ARRAY(
     std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr,
-    std::size_t index, std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<
-        std::string,
-        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
-        builtin_functions);
+    std::size_t index, std::unordered_map<std::string, Class>& classes);
 
 int PTR(std::shared_ptr<Memory> memory, std::size_t index, std::size_t ptr);
 
@@ -191,7 +187,7 @@ void SetString(Object& object, const std::string& data);
 
 std::shared_ptr<Memory> GetArray(Object& object);
 
-void SetArray(Object& object, std::vector<Object> memory);
+void SetArray(Object& object, std::vector<Object>& memory);
 
 std::shared_ptr<ClassMemory> GetObject(Object& object);
 

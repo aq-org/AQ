@@ -7,6 +7,7 @@
 #include <memory>
 #include <variant>
 
+#include "logging/logging.h"
 #include "memory.h"
 
 namespace Aq {
@@ -115,64 +116,71 @@ int ARRAY(
         std::string,
         std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions) {
-  ObjectReference origin_data(memory, result);
+  ObjectReference origin_data{memory, result};
   memory->GetLastReference(origin_data);
-  std::reference_wrapper<Object> origin_reference =
-      memory->GetOriginData(result);
-
-  if (std::holds_alternative<std::shared_ptr<Memory>>(
-          origin_reference.get().data)) {
-    origin_reference =
-        std::ref(std::get<std::shared_ptr<Memory>>(origin_data.memory)
-                     ->GetMemory()[std::get<std::size_t>(origin_data.index)]);
-  } else {
-    origin_reference =
-        std::ref(std::get<std::shared_ptr<ClassMemory>>(origin_data.memory)
-                     ->GetMembers()[std::get<std::string>(origin_data.index)]);
-  }
+  Object& origin_reference =
+      std::get<std::shared_ptr<Memory>>(origin_data.memory)
+          ->GetMemory()[std::get<std::size_t>(origin_data.index)];
 
   auto array_object = memory->GetOriginData(ptr);
   auto array = std::get<std::shared_ptr<Memory>>(array_object.data);
 
-  if (origin_reference.get().constant_type) {
+  if (index >= array->GetMemory().size()) array->GetMemory().resize(index + 1);
+  if (array->GetMemory()[index].type.empty()) {
+    if (array->GetMemory()[0].constant_type) {
+      array->GetMemory()[index].constant_type = true;
+      array->GetMemory()[index].type = array->GetMemory()[0].type;
+
+      // Class Type.
+      if (array->GetMemory()[0].type[0] == 0x09) {
+        std::string class_name = GetString(
+            std::get<std::shared_ptr<ClassMemory>>(array->GetMemory()[0].data)
+                ->GetMembers()["@name"]);
+        if (classes.find(class_name) == classes.end())
+          LOGGING_ERROR("class not found.");
+
+        Class& class_data = classes[class_name];
+        array->GetMemory()[index].data = std::make_shared<ClassMemory>();
+        *std::get<std::shared_ptr<ClassMemory>>(
+            array->GetMemory()[index].data) = *class_data.GetMembers();
+      }
+    } else {
+      array->GetMemory()[index].type.push_back(0x00);
+      array->GetMemory()[index].constant_type = false;
+      array->GetMemory()[index].constant_data = false;
+    }
+  }
+
+  if (origin_reference.constant_type) {
     if (array->GetMemory()[index].constant_type)
       LOGGING_ERROR("Cannot change constant data type memory.");
 
-    if (origin_reference.get().type.empty() ||
-        origin_reference.get().type[0] != 0x07)
+    if (origin_reference.type.empty() || origin_reference.type[0] != 0x07)
       LOGGING_ERROR(
           "Cannot change constant data type memory and unexpected type.");
-    bool is_type_ok = false;
-    for (std::size_t i = 1, j = 0; i < origin_reference.get().type.size() &&
-                                   j < array->GetMemory()[index].type.size();
-         i++, j++) {
-      while (array->GetMemory()[index].type[j] == 0x07) j++;
-      while (origin_reference.get().type[i] == 0x07) i++;
-      if (origin_reference.get().type[i] == 0x00) {
-        is_type_ok = true;
-        break;
-      }
-      if (origin_reference.get().type[i] != array->GetMemory()[index].type[j])
+
+    if (origin_reference.type.size() - 1 !=
+            array->GetMemory()[index].type.size() &&
+        origin_reference.type.back() != 0x07)
+      LOGGING_ERROR(
+          "Cannot change constant data type memory and unexpected type.");
+
+    for (std::size_t i = 0; i < origin_reference.type.size(); i++) {
+      if (origin_reference.type[i + 1] == 0x00) break;
+
+      if (origin_reference.type[i + 1] != array->GetMemory()[index].type[i])
         LOGGING_ERROR(
             "Cannot change constant data type memory and unexpected type.");
-      if (i == origin_reference.get().type.size() - 1 &&
-          j == array->GetMemory()[index].type.size() - 1)
-        is_type_ok = true;
     }
 
-    if (!is_type_ok)
-      LOGGING_ERROR(
-          "Cannot change constant data type memory and unexpected "
-          "type.");
-
-    origin_reference.get().data = ObjectReference(array, index);
+    origin_reference.data = ObjectReference{array, index};
   } else {
-    origin_reference.get().type = {0x07, 0x00};
-    origin_reference.get().data = ObjectReference(array, index);
+    origin_reference.type = {0x07, 0x00};
+    origin_reference.data = ObjectReference{array, index};
   }
 
-  origin_reference.get().guard_tag = 0x07;
-  origin_reference.get().guard_ptr = nullptr;
+  origin_reference.guard_tag = 0x07;
+  origin_reference.guard_ptr = nullptr;
 
   return 0;
 }
@@ -391,8 +399,7 @@ int REM(std::shared_ptr<Memory> memory, std::size_t result,
               GetLong(operand1_data) % GetLong(operand2_data));
       break;
     case 0x03:
-      SetDouble(result_reference,
-                std::fmod(GetDouble(operand1_data), GetDouble(operand2_data)));
+      LOGGING_ERROR("Cannot calculate remainder for doubles.");
       break;
     case 0x04:
       SetUint64(result_reference,
@@ -471,8 +478,7 @@ int SHL(std::shared_ptr<Memory> memory, std::size_t result,
                                     << GetLong(operand2_data));
       break;
     case 0x03:
-      SetDouble(result_reference, GetDouble(operand1_data) *
-                                      std::pow(2, GetDouble(operand2_data)));
+      LOGGING_ERROR("Cannot shift doubles. Use multiplication for shifting.");
       break;
     case 0x04:
       SetUint64(result_reference, GetUint64(operand1_data)
@@ -515,8 +521,7 @@ int SHR(std::shared_ptr<Memory> memory, std::size_t result,
               GetLong(operand1_data) >> GetLong(operand2_data));
       break;
     case 0x03:
-      SetDouble(result_reference, GetDouble(operand1_data) /
-                                      std::pow(2, GetDouble(operand2_data)));
+      LOGGING_ERROR("Cannot shift doubles. Use multiplication for shifting.");
       break;
     case 0x04:
       SetUint64(result_reference,
@@ -547,7 +552,7 @@ int REFER(std::shared_ptr<Memory> memory, std::size_t result,
 
   Object& object = memory->GetOriginData(result);
 
-  auto reference = ObjectReference(memory, operand1);
+  auto reference = ObjectReference{memory, operand1};
   memory->GetLastReference(reference);
 
   std::reference_wrapper<Object> operand1_reference =
@@ -1115,7 +1120,7 @@ int InvokeClassMethod(
     auto& argument_object = memory->GetMemory()[function_arguments[i]];
 
     if (argument_object.type[0] == 0x07) {
-      argument_object.data = ObjectReference(memory, arguments[i]);
+      argument_object.data = ObjectReference{memory, arguments[i]};
 
     } else {
       if (argument_object.constant_type) {
@@ -1196,9 +1201,13 @@ int InvokeClassMethod(
     }
   }
 
+  auto origin_class_data = memory->GetMemory()[2].data;
+  memory->GetMemory()[2].data = class_object.data;
+
   auto instructions = method.GetCode();
 
-  for (auto& instruction : instructions) {
+  for (int64_t i = 0; i < instructions.size(); i++) {
+    auto instruction = instructions[i];
     auto arguments = instruction.GetArgs();
     switch (instruction.GetOper()) {
       case _AQVM_OPERATOR_NOP:
@@ -1249,7 +1258,8 @@ int InvokeClassMethod(
         REFER(memory, arguments[0], arguments[1]);
         break;
       case _AQVM_OPERATOR_IF:
-        IF(memory, arguments[0], arguments[1], arguments[2]);
+        i = IF(memory, arguments[0], arguments[1], arguments[2]);
+        i--;
         break;
       case _AQVM_OPERATOR_AND:
         AND(memory, arguments[0], arguments[1], arguments[2]);
@@ -1270,7 +1280,8 @@ int InvokeClassMethod(
         EQUAL(memory, arguments[0], arguments[1]);
         break;
       case _AQVM_OPERATOR_GOTO:
-        return GOTO(memory, arguments[0]);
+        i = GOTO(memory, arguments[0]);
+        i--;
         break;
       case _AQVM_OPERATOR_LOAD_CONST:
         LOAD_CONST(memory, memory, arguments[0], arguments[1]);
@@ -1285,7 +1296,12 @@ int InvokeClassMethod(
         INVOKE_METHOD(memory, classes, builtin_functions, arguments);
         break;
       case _AQVM_OPERATOR_LOAD_MEMBER:
-        LOAD_MEMBER(memory, classes, arguments[0], arguments[1], arguments[2]);
+        if (arguments[1] == 0) {
+          LOAD_MEMBER(memory, classes, arguments[0], 2, arguments[2]);
+        } else {
+          LOAD_MEMBER(memory, classes, arguments[0], arguments[1],
+                      arguments[2]);
+        }
         break;
       case _AQVM_OPERATOR_WIDE:
         WIDE();
@@ -1296,6 +1312,8 @@ int InvokeClassMethod(
         break;
     }
   }
+
+  memory->GetMemory()[2].data = origin_class_data;
 
   return 0;
 }
@@ -1434,8 +1452,8 @@ int LOAD_MEMBER(std::shared_ptr<Memory> memory,
   result_reference.guard_tag = 0x07;
   result_reference.guard_ptr = nullptr;
   result_reference.data =
-      ObjectReference(std::get<std::shared_ptr<ClassMemory>>(class_object.data),
-                      GetString(member_name_object));
+      ObjectReference{std::get<std::shared_ptr<ClassMemory>>(class_object.data),
+                      GetString(member_name_object)};
 
   return 0;
 }

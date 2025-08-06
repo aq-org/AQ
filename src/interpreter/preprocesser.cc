@@ -15,7 +15,8 @@
 
 namespace Aq {
 namespace Interpreter {
-void PreProcessDeclaration(Interpreter& interpreter, Ast::Compound* statements) {
+void PreProcessDeclaration(Interpreter& interpreter,
+                           Ast::Compound* statements) {
   if (statements == nullptr) INTERNAL_ERROR("stmt is nullptr.");
 
   std::vector<Ast::Statement*> statements_buffer;
@@ -24,7 +25,8 @@ void PreProcessDeclaration(Interpreter& interpreter, Ast::Compound* statements) 
     Ast::Statement* statement = statements->GetStatements()[i];
 
     if (Ast::IsOfType<Ast::Class>(statement)) {
-      //PreProcessClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement));
+      // PreProcessClassDeclaration(interpreter,
+      // Ast::Cast<Ast::Class>(statement));
       statements_buffer.push_back(statement);
 
     } else if (Ast::IsOfType<Ast::FunctionDeclaration>(statement)) {
@@ -64,10 +66,11 @@ void PreProcessFunctionDeclaration(Interpreter& interpreter,
   // The function name with the scopes.
   std::string full_name = scopes.back() + "." + function_name;
 
-  functions[full_name] = Function();
+  functions[full_name].push_back(Function());
 }
 
-void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement) {
+void PreProcessClassDeclaration(Interpreter& interpreter,
+                                Ast::Class* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of the context.
@@ -109,11 +112,12 @@ void PreProcessClassDeclaration(Interpreter& interpreter, Ast::Class* statement)
     // PreProcessDeclaration().
   }
 
-  functions[scopes.back()] = Function();
+  functions[scopes.back()].push_back(Function());
   scopes.pop_back();
 }
 
-void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement) {
+void PreProcessStaticDeclaration(Interpreter& interpreter,
+                                 Ast::Class* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
   // Gets the reference of the context.
@@ -153,7 +157,7 @@ void PreProcessStaticDeclaration(Interpreter& interpreter, Ast::Class* statement
     }
   }
 
-  functions[scopes.back()] = Function();
+  functions[scopes.back()].push_back(Function());
   scopes.pop_back();
 }
 

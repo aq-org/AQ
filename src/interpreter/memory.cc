@@ -201,15 +201,14 @@ void Memory::GetLastReference(ObjectReference& object) {
       temp = std::get<std::shared_ptr<Memory>>(object.memory)
                  ->GetMemory()[std::get<std::size_t>(object.index)];
       if (temp.type[0] == 0x07) return;
-      object = ObjectReference(std::get<std::shared_ptr<Memory>>(object.memory),
-                               std::get<std::size_t>(object.index));
+      object = ObjectReference{std::get<std::shared_ptr<Memory>>(object.memory),
+                               std::get<std::size_t>(object.index)};
     } else {
       temp = std::get<std::shared_ptr<ClassMemory>>(object.memory)
                  ->GetMembers()[std::get<std::string>(object.index)];
       if (temp.type[0] == 0x07) return;
-      object =
-          ObjectReference(std::get<std::shared_ptr<ClassMemory>>(object.memory),
-                          std::get<std::string>(object.index));
+      object = ObjectReference{std::get<std::shared_ptr<ClassMemory>>(object.memory),
+                               std::get<std::string>(object.index)};
     }
   }
 }
