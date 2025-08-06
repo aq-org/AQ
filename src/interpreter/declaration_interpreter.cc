@@ -151,7 +151,7 @@ void HandleClassFunctionDeclaration(Interpreter& interpreter,
   current_scope = scopes.size() - 1;
 
   // Records the creation of the function.
-  current_class->GetFunctions().insert(name);
+  current_class->GetMethods()[name].push_back(Function());
 
   // DEPRECATED: Keep this implementation for adaptation to previous versions.
   // In principle, it will no longer be used.
@@ -981,7 +981,7 @@ void AddFunctionIntoList(Interpreter& interpreter,
 
   Function function(name, parameters_index, code);
   if (statement->IsVariadic()) function.EnableVariadic();
-  function_list[name] = function;
+  function_list[name].push_back(function);
 }
 
 void AddClassFunctionIntoList(Interpreter& interpreter,
@@ -989,7 +989,7 @@ void AddClassFunctionIntoList(Interpreter& interpreter,
                               std::vector<std::size_t>& parameters_index,
                               std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& function_list = interpreter.context.current_class->GetFunctionList();
+  auto& methods = interpreter.context.current_class->GetMethods();
 
   Ast::Function* statement = declaration->GetFunctionStatement();
   std::string name = statement->GetFunctionName();
@@ -997,21 +997,21 @@ void AddClassFunctionIntoList(Interpreter& interpreter,
   // Adds function into class function list.
   Function function(name, parameters_index, code);
   if (statement->IsVariadic()) function.EnableVariadic();
-  function_list.push_back(function);
+  methods[name].push_back(function);
 }
 
 void AddClassConstructorFunctionIntoList(
     Interpreter& interpreter, Ast::FunctionDeclaration* declaration,
     std::vector<std::size_t>& parameters_index, std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& function_list = interpreter.context.current_class->GetFunctionList();
+  auto& methods = interpreter.context.current_class->GetMethods();
 
   Ast::Function* statement = declaration->GetFunctionStatement();
 
   // Adds function into class function list.
   Function function("@constructor", parameters_index, code);
   if (statement->IsVariadic()) function.EnableVariadic();
-  function_list.push_back(function);
+  methods["@constructor"].push_back(function);
 }
 
 void HandleReturnVariableInHandlingFunction(
@@ -1048,7 +1048,7 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   scopes.push_back(name);
 
   // Records the creation of the function.
-  functions[name] = Function();
+  functions[name].push_back(Function());
 
   // Handles the return value and parameters.
   std::vector<std::size_t> parameters_index;
@@ -1097,7 +1097,7 @@ void HandleConstructorFunctionInHandlingConstructor(
   current_scope = scopes.size() - 1;
 
   // Records the creation of the function.
-  current_class->GetFunctions().insert("@constructor");
+  current_class->GetMethods()["@constructor"].push_back(Function());
 
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
 
@@ -1256,7 +1256,7 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
   parameters_index.push_back(return_index);
 
   // Records the creation of the function.
-  functions[name] = Function();
+  functions[name].push_back(Function());
 
   // Builds the main part of the factory function.
   std::vector<Bytecode> code;
@@ -1268,7 +1268,7 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
 
   // Adds the function into function list.
   Function factory(name, parameters_index, code);
-  functions[name] = factory;
+  functions[name].push_back(factory);
 
   // Destroys temporary context.
   delete interpreter.context.function_context;
@@ -1285,7 +1285,7 @@ void HandleVoidConstructorFunctionInHandlingClass(
   auto& current_class = interpreter.context.current_class;
 
   // Records the creation of the function.
-  current_class->GetFunctions().insert("@constructor");
+  current_class->GetMethods()["@constructor"].push_back(Function());
 
   // Handles the class init.
   std::vector<Bytecode> code;
@@ -1295,7 +1295,7 @@ void HandleVoidConstructorFunctionInHandlingClass(
 
   // Adds function into class function list.
   Function constructor("@constructor", parameters_index, code);
-  current_class->GetFunctionList().push_back(constructor);
+  current_class->GetMethods()["@constructor"].push_back(constructor);
 
   // Destroys temporary context.
   delete interpreter.context.function_context;

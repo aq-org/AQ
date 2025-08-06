@@ -7,6 +7,7 @@
 
 #include <functional>
 
+#include "interpreter/function.h"
 #include "src/interpreter/class.h"
 #include "src/interpreter/memory.h"
 
@@ -144,7 +145,22 @@ int INVOKE_METHOD(
         std::string,
         std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
-    std::vector<size_t> arguments);
+    std::vector<std::size_t> arguments);
+
+int InvokeClassMethod(
+    std::shared_ptr<Memory> memory, Object& class_object,
+    Object& method_name_object, std::vector<std::size_t> arguments,
+    std::unordered_map<std::string, Class>& classes,
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        builtin_functions);
+Function SelectBestFunction(std::shared_ptr<Memory> memory,
+                            std::vector<Function>& functions,
+                            std::vector<std::size_t>& arguments);
+int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
+                                 Function& function,
+                                 std::vector<std::size_t>& arguments);
 
 int LOAD_MEMBER(std::shared_ptr<Memory> memory,
                 std::unordered_map<std::string, Class>& classes,

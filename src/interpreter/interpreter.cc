@@ -161,7 +161,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
 
   // Makes the constructor function for the start function.
   Function constructor_func("@constructor", constructor_args, start_code);
-  functions["@constructor"] = constructor_func;
+  functions["@constructor"].push_back(constructor_func);
 
   // Adds the start function into the global memory.
   std::vector<std::size_t> arguments;
@@ -173,7 +173,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
   global_code.push_back(
       Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_main_arguments));
   Function start_func(".!__start", arguments, global_code);
-  functions[".!__start"] = start_func;
+  functions[".!__start"].push_back(start_func);
 
   // Checks if the break statement is used outside of loops or switches.
   if (context.function_context->loop_break_index.size() != 0)
@@ -183,12 +183,18 @@ void Interpreter::Generate(Ast::Compound* statement) {
   std::vector<std::size_t> memory_init_args;
   memory_init_args.push_back(global_memory->Add(1));
   Function memory_init_func(".!__init", memory_init_args, init_code);
-  functions[".!__init"] = memory_init_func;
+  functions[".!__init"].push_back(memory_init_func);
 
   Run();
 }
 
-void Interpreter::Run() {}
+void Interpreter::Run() {
+  global_memory->GetMemory()[2].data = context.current_class->GetMembers();
+  Object method_name_object{{0x05}, ".!__start", false, false, 0x00, nullptr};
+  std::vector<size_t> arguments = {1};
+  InvokeClassMethod(global_memory, global_memory->GetMemory()[2],
+                    method_name_object, arguments, classes, builtin_functions);
+}
 
 }  // namespace Interpreter
 }  // namespace Aq

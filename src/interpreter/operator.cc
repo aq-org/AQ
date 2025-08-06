@@ -4,6 +4,7 @@
 
 #include "interpreter/operator.h"
 
+#include <memory>
 #include <variant>
 
 #include "memory.h"
@@ -23,12 +24,14 @@ int NOP() { return 0; }
   return 0;
 }
 
-int NEW(std::shared_ptr<Memory> memory,
-        std::unordered_map<std::string, Class> classes, std::size_t ptr,
-        std::size_t size, std::size_t type,
-        std::unordered_map<
-            std::string, std::function<int(Memory, std::vector<std::size_t>)>>&
-            builtin_functions) {
+int NEW(
+    std::shared_ptr<Memory> memory,
+    std::unordered_map<std::string, Class> classes, std::size_t ptr,
+    std::size_t size, std::size_t type,
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        builtin_functions) {
   Object type_data = memory->GetOriginData(type);
 
   std::size_t size_value = memory->GetUint64tData(size);
@@ -108,8 +111,9 @@ int NEW(std::shared_ptr<Memory> memory,
 int ARRAY(
     std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr,
     std::size_t index, std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<std::string,
-                       std::function<int(Memory, std::vector<std::size_t>)>>&
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions) {
   ObjectReference origin_data(memory, result);
   memory->GetLastReference(origin_data);
@@ -980,8 +984,9 @@ int CMP(std::shared_ptr<Memory> memory, std::size_t result, std::size_t opcode,
 
 [[deprecated]] int INVOKE(
     std::shared_ptr<Memory> memory,
-    std::unordered_map<std::string,
-                       std::function<int(Memory, std::vector<std::size_t>)>>&
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<std::size_t> arguments,
     std::unordered_map<std::string, Class>& classes) {
@@ -1052,8 +1057,9 @@ std::size_t GOTO(std::shared_ptr<Memory> memory, std::size_t location) {
 int INVOKE_METHOD(
     std::shared_ptr<Memory> memory,
     std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<std::string,
-                       std::function<int(Memory, std::vector<std::size_t>)>>&
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<size_t> arguments) {
   if (arguments.size() < 3) INTERNAL_ERROR("Invalid arguments.");
@@ -1070,17 +1076,369 @@ int INVOKE_METHOD(
 
   auto invoke_function = builtin_functions.find(GetString(method_name_object));
   if (invoke_function != builtin_functions.end()) {
-    return invoke_function->second(*memory, arguments);
+    return invoke_function->second(memory, arguments);
   }
 
-  // TODO
-  // return InvokeClassFunction
+  return InvokeClassMethod(memory, class_object, method_name_object, arguments,
+                           classes, builtin_functions);
+}
+
+int InvokeClassMethod(
+    std::shared_ptr<Memory> memory, Object& class_object,
+    Object& method_name_object, std::vector<size_t> arguments,
+    std::unordered_map<std::string, Class>& classes,
+    std::unordered_map<
+        std::string,
+        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        builtin_functions) {
+  std::string class_name =
+      GetString(GetObject(class_object)->GetMembers()["@name"]);
+  std::string method_name = GetString(method_name_object);
+
+  auto class_it = classes.find(class_name);
+  if (class_it == classes.end()) {
+    LOGGING_ERROR("Class not found: " + class_name);
+    return -1;
+  }
+
+  auto method_it = class_it->second.GetMethods().find(method_name);
+  if (method_it == class_it->second.GetMethods().end()) {
+    LOGGING_ERROR("Method not found: " + method_name);
+    return -1;
+  }
+
+  Function method = SelectBestFunction(memory, method_it->second, arguments);
+
+  auto function_arguments = method.GetParameters();
+
+  for (std::size_t i = 0; i < function_arguments.size(); i++) {
+    auto& argument_object = memory->GetMemory()[function_arguments[i]];
+
+    if (argument_object.type[0] == 0x07) {
+      argument_object.data = ObjectReference(memory, arguments[i]);
+
+    } else {
+      if (argument_object.constant_type) {
+        switch (argument_object.type[0]) {
+          case 0x01:
+            SetByte(argument_object,
+                    GetByte(memory->GetOriginData(arguments[i])));
+            break;
+          case 0x02:
+            SetLong(argument_object,
+                    GetLong(memory->GetOriginData(arguments[i])));
+            break;
+          case 0x03:
+            SetDouble(argument_object,
+                      GetDouble(memory->GetOriginData(arguments[i])));
+            break;
+          case 0x04:
+            SetUint64(argument_object,
+                      GetUint64(memory->GetOriginData(arguments[i])));
+            break;
+          case 0x05:
+            SetString(argument_object,
+                      GetString(memory->GetOriginData(arguments[i])));
+            break;
+          case 0x06:
+            SetArray(
+                argument_object,
+                GetArray(memory->GetOriginData(arguments[i]))->GetMemory());
+            break;
+          case 0x09:
+            SetObject(argument_object,
+                      GetObject(memory->GetOriginData(arguments[i])));
+            break;
+          default:
+            LOGGING_ERROR("Unsupported data type for function argument: " +
+                          std::to_string(argument_object.type[0]));
+            return -1;
+        }
+      } else {
+        auto& reference = memory->GetOriginData(arguments[i]);
+        switch (reference.guard_tag) {
+          case 0x01:
+            SetByte(argument_object, GetByte(reference));
+            break;
+          case 0x02:
+            SetLong(argument_object, GetLong(reference));
+            break;
+          case 0x03:
+            SetDouble(argument_object, GetDouble(reference));
+            break;
+          case 0x04:
+            SetUint64(argument_object, GetUint64(reference));
+            break;
+          case 0x05:
+            SetString(argument_object, GetString(reference));
+            break;
+          case 0x06:
+            SetArray(argument_object, GetArray(reference)->GetMemory());
+            break;
+          case 0x09:
+            SetObject(argument_object, GetObject(reference));
+            break;
+          default:
+            LOGGING_ERROR("Unsupported data type for function argument: " +
+                          std::to_string(reference.guard_tag));
+            return -1;
+        }
+      }
+    }
+  }
+
+  if (method.IsVariadic()) {
+    auto array = std::make_shared<Memory>();
+    memory->GetMemory()[function_arguments.back()].data = array;
+    for (std::size_t i = function_arguments.size() - 2; i < arguments.size();
+         i++) {
+      array->GetMemory().push_back(memory->GetOriginData(arguments[i]));
+    }
+  }
+
+  auto instructions = method.GetCode();
+
+  for (auto& instruction : instructions) {
+    auto arguments = instruction.GetArgs();
+    switch (instruction.GetOper()) {
+      case _AQVM_OPERATOR_NOP:
+        NOP();
+        break;
+      case _AQVM_OPERATOR_LOAD:
+        LOAD(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_STORE:
+        STORE(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_NEW:
+        NEW(memory, classes, arguments[0], arguments[1], arguments[2],
+            builtin_functions);
+        break;
+      case _AQVM_OPERATOR_ARRAY:
+        ARRAY(memory, arguments[0], arguments[1], arguments[2], classes,
+              builtin_functions);
+        break;
+      case _AQVM_OPERATOR_PTR:
+        PTR(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_ADD:
+        ADD(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_SUB:
+        SUB(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_MUL:
+        MUL(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_DIV:
+        DIV(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_REM:
+        REM(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_NEG:
+        NEG(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_SHL:
+        SHL(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_SHR:
+        SHR(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_REFER:
+        REFER(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_IF:
+        IF(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_AND:
+        AND(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_OR:
+        OR(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_XOR:
+        XOR(memory, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_CMP:
+        CMP(memory, arguments[0], arguments[1], arguments[2], arguments[3]);
+        break;
+      case _AQVM_OPERATOR_INVOKE:
+        INVOKE(memory, builtin_functions, arguments, classes);
+        break;
+      case _AQVM_OPERATOR_EQUAL:
+        EQUAL(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_GOTO:
+        return GOTO(memory, arguments[0]);
+        break;
+      case _AQVM_OPERATOR_LOAD_CONST:
+        LOAD_CONST(memory, memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_CONVERT:
+        CONVERT(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_CONST:
+        CONST(memory, arguments[0], arguments[1]);
+        break;
+      case _AQVM_OPERATOR_INVOKE_METHOD:
+        INVOKE_METHOD(memory, classes, builtin_functions, arguments);
+        break;
+      case _AQVM_OPERATOR_LOAD_MEMBER:
+        LOAD_MEMBER(memory, classes, arguments[0], arguments[1], arguments[2]);
+        break;
+      case _AQVM_OPERATOR_WIDE:
+        WIDE();
+        break;
+      default:
+        LOGGING_ERROR("Unknown operator: " +
+                      std::to_string(instruction.GetOper()));
+        break;
+    }
+  }
+
+  return 0;
+}
+Function SelectBestFunction(std::shared_ptr<Memory> memory,
+                            std::vector<Function>& functions,
+                            std::vector<std::size_t>& arguments) {
+  int64_t value = -1;
+  Function best_function;
+  bool has_same_value_function = false;
+  for (auto& function : functions) {
+    int64_t function_value =
+        GetFunctionOverloadValue(memory, function, arguments);
+    if (function_value > value) {
+      best_function = function;
+      value = function_value;
+      has_same_value_function = false;
+    } else if (function_value == value) {
+      has_same_value_function = true;
+    }
+  }
+
+  if (value == -1)
+    LOGGING_ERROR("No function was found that matches the parameters.");
+  if (has_same_value_function)
+    LOGGING_WARNING(
+        "There is a function overload conflict where multiple functions have "
+        "parameters that meet the requirements and cannot be automatically "
+        "implicitly determined.");
+
+  return best_function;
+}
+
+int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
+                                 Function& function,
+                                 std::vector<std::size_t>& arguments) {
+  int64_t value = 0;
+  if (function.IsVariadic()) {
+    if (arguments.size() < function.GetParameters().size() - 1) {
+      LOGGING_ERROR("Not enough arguments for variadic function.");
+      return -1;
+    }
+  } else {
+    if (arguments.size() != function.GetParameters().size()) {
+      LOGGING_ERROR("Incorrect number of arguments for function.");
+      return -1;
+    }
+  }
+
+  for (std::size_t i = 0; i < function.GetParameters().size(); i++) {
+    Object& argument = memory->GetOriginData(arguments[i]);
+    Object& function_param = memory->GetOriginData(function.GetParameters()[i]);
+
+    bool is_number = argument.guard_tag >= 0x01 && argument.guard_tag <= 0x04 &&
+                     function_param.guard_tag >= 0x01 &&
+                     function_param.guard_tag <= 0x04;
+
+    // Conversion rules:
+    // 1. The higher the return value, the more suitable it is for the
+    // original type.
+    // 2. 0x00 represents the worst value and is generally applicable to
+    // automatic types.
+    // 3. 0x01-0x04 indicates downgrade conversion, which may result in loss
+    // of exact values.
+    // 4. 0x05-0x08 indicates upgrade conversion, but for converting double to
+    // uint64_t, the exact value may be lost.
+    // 5. 0x09 represents the original same type.
+    if (function_param.constant_type) {
+      if (function_param.guard_tag == argument.guard_tag) {
+        // Array type.
+        if (function_param.guard_tag == 0x06) {
+          if (argument.type != argument.type) return -1;
+
+          // Class Type.
+        } else if (function_param.guard_tag == 0x09) {
+          if (GetString(std::get<std::shared_ptr<ClassMemory>>(argument.data)
+                            ->GetMembers()["@name"]) !=
+              GetString(
+                  std::get<std::shared_ptr<ClassMemory>>(function_param.data)
+                      ->GetMembers()["@name"]))
+            return -1;
+        }
+
+        value += 0x09;
+      } else if (function_param.guard_tag > argument.guard_tag && is_number) {
+        value += 9 - (function_param.guard_tag - argument.guard_tag);
+      } else if (function_param.guard_tag < argument.guard_tag && is_number) {
+        value += 4 - (argument.guard_tag - function_param.guard_tag);
+      } else {
+        return -1;
+      }
+    } else if (memory->GetMemory()[function.GetParameters()[i]].type[0] ==
+               0x07) {
+      if (memory->GetMemory()[function.GetParameters()[i]].type.back() !=
+          0x00) {
+        if (memory->GetMemory()[function.GetParameters()[i]].type.size() - 1 !=
+            argument.type.size())
+          return -1;
+
+        for (std::size_t j = 0; j < argument.type.size(); j++) {
+          if (argument.type[j] !=
+              memory->GetMemory()[function.GetParameters()[i]].type[j + 1]) {
+            return -1;
+          }
+        }
+
+        value += 0x07;
+      }
+    }
+  }
+
+  // Used to avoid situations where the indefinite parameter function and the
+  // objective function obtain the same value when all other parameters are
+  // met.
+  if (!function.IsVariadic()) value += 1;
+
+  return value;
 }
 
 int LOAD_MEMBER(std::shared_ptr<Memory> memory,
                 std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
-                std::size_t operand) {}
+                std::size_t operand) {
+  auto& result_reference = memory->GetOriginData(result);
+  auto& class_object = memory->GetOriginData(class_index);
+
+  if (class_object.guard_tag != 0x09)
+    LOGGING_ERROR("LOAD_MEMBER: class_index is not a class object.");
+
+  auto& member_name_object = memory->GetOriginData(operand);
+  if (member_name_object.guard_tag != 0x05)
+    LOGGING_ERROR("LOAD_MEMBER: operand is not a string.");
+
+  result_reference.type = {0x07, 0x00};
+  result_reference.constant_type = true;
+  result_reference.constant_data = false;
+  result_reference.guard_tag = 0x07;
+  result_reference.guard_ptr = nullptr;
+  result_reference.data =
+      ObjectReference(std::get<std::shared_ptr<ClassMemory>>(class_object.data),
+                      GetString(member_name_object));
+
+  return 0;
+}
 
 [[deprecated]] int WIDE() { return 0; }
 

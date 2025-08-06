@@ -38,9 +38,9 @@ class Class {
     return true;
   }
 
-  std::unordered_set<std::string>& GetFunctions() { return functions_; }
-
-  std::vector<Function>& GetFunctionList() { return function_list_; }
+  std::unordered_map<std::string, std::vector<Function>>& GetMethods() {
+    return methods_;
+  }
 
   std::shared_ptr<ClassMemory> GetMembers() { return members_; }
 
@@ -55,8 +55,7 @@ class Class {
  private:
   std::string name_;
   Ast::Class* class_;
-  std::unordered_set<std::string> functions_;
-  std::vector<Function> function_list_;
+  std::unordered_map<std::string, std::vector<Function>> methods_;
   std::shared_ptr<ClassMemory> members_;
   std::vector<Bytecode> code_;
   std::size_t name_index_ = 0;

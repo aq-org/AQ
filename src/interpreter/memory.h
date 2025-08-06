@@ -75,9 +75,12 @@ class Memory {
                        bool is_constant_data = false);
   std::size_t AddString(std::string value, bool is_constant_data = false);
   std::size_t AddReference(std::shared_ptr<Memory> memory, std::size_t index,
+                           std::vector<uint8_t> type = {0x07, 0x00},
                            bool is_constant_data = false);
   std::size_t AddReference(std::shared_ptr<ClassMemory> memory,
-                           std::string index, bool is_constant_data = false);
+                           std::string index,
+                           std::vector<uint8_t> type = {0x07, 0x00},
+                           bool is_constant_data = false);
 
   void InitObjectData(std::size_t index, std::shared_ptr<ClassMemory> object);
   void SetObjectData(std::size_t index, std::shared_ptr<ClassMemory> object);
@@ -113,9 +116,11 @@ class ClassMemory {
   void AddString(std::string name, std::string value,
                  bool is_constant_data = false);
   void AddReference(std::string name, std::shared_ptr<Memory> memory,
-                    std::size_t index, bool is_constant_data = false);
+                    std::size_t index, std::vector<uint8_t> type = {0x07, 0x00},
+                    bool is_constant_data = false);
   void AddReference(std::string name, std::shared_ptr<ClassMemory> memory,
-                    std::string index, bool is_constant_data = false);
+                    std::string index, std::vector<uint8_t> type = {0x07, 0x00},
+                    bool is_constant_data = false);
 
   Object& GetOriginData(std::string index);
 

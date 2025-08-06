@@ -56,16 +56,18 @@ std::size_t Memory::AddString(std::string value, bool is_constant_data) {
 }
 
 std::size_t Memory::AddReference(std::shared_ptr<Memory> memory,
-                                 std::size_t index, bool is_constant_data) {
+                                 std::size_t index, std::vector<uint8_t> type,
+                                 bool is_constant_data) {
   ObjectReference reference = {memory, index};
-  memory_.push_back({{0x07, 0x00}, reference, true, is_constant_data});
+  memory_.push_back({type, reference, true, is_constant_data});
   return memory_.size() - 1;
 }
 
 std::size_t Memory::AddReference(std::shared_ptr<ClassMemory> memory,
-                                 std::string index, bool is_constant_data) {
+                                 std::string index, std::vector<uint8_t> type,
+                                 bool is_constant_data) {
   ObjectReference reference = {memory, index};
-  memory_.push_back({{0x07, 0x00}, reference, true, is_constant_data});
+  memory_.push_back({type, reference, true, is_constant_data});
   return memory_.size() - 1;
 }
 
@@ -286,16 +288,18 @@ void ClassMemory::AddString(std::string name, std::string value,
 }
 
 void ClassMemory::AddReference(std::string name, std::shared_ptr<Memory> memory,
-                               std::size_t index, bool is_constant_data) {
+                               std::size_t index, std::vector<uint8_t> type,
+                               bool is_constant_data) {
   ObjectReference reference = {memory, index};
-  members_[name] = {{0x07, 0x00}, reference, true, is_constant_data};
+  members_[name] = {type, reference, true, is_constant_data};
 }
 
 void ClassMemory::AddReference(std::string name,
                                std::shared_ptr<ClassMemory> memory,
-                               std::string index, bool is_constant_data) {
+                               std::string index, std::vector<uint8_t> type,
+                               bool is_constant_data) {
   ObjectReference reference = {memory, index};
-  members_[name] = {{0x07, 0x00}, reference, true, is_constant_data};
+  members_[name] = {type, reference, true, is_constant_data};
 }
 
 Object& ClassMemory::GetOriginData(std::string index) {
