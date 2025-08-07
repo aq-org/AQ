@@ -992,7 +992,7 @@ void AddFunctionIntoList(Interpreter& interpreter,
                          std::vector<std::size_t> parameters_index,
                          std::vector<Bytecode>& code) {
   // Gets the reference of context.
-  auto& function_list = interpreter.functions;
+  auto& functions = interpreter.functions;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
 
@@ -1000,7 +1000,7 @@ void AddFunctionIntoList(Interpreter& interpreter,
   LOGGING_INFO("Add function args size: " +
                std::to_string(parameters_index.size()));
   if (statement->IsVariadic()) function.EnableVariadic();
-  function_list[name].push_back(function);
+  functions[name].push_back(function);
   LOGGING_INFO("Add function: " + name + " into function list.");
 }
 
@@ -1064,11 +1064,13 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   auto parameters = statement->GetParameters();
   std::vector<Bytecode> code;
 
-  name = GetFunctionNameWithScope(interpreter, declaration);
+  // name = GetFunctionNameWithScope(interpreter, declaration);
+  name = scopes.back();
   scopes.push_back(name);
 
   // Records the creation of the function.
   functions[name].push_back(Function());
+  LOGGING_INFO("Add function: " + name + " into function list.");
 
   // Handles the return value and parameters.
   std::vector<std::size_t> parameters_index;
@@ -1080,12 +1082,14 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_index,
                           memory->AddUint64t(0), memory->AddString(name)));
   std::vector<std::size_t> method_parameters = parameters_index;
-  method_parameters.insert(method_parameters.begin(),
-                           {return_index, memory->AddString("@constructor"),
-                            parameters_index.size()});
+  method_parameters.erase(method_parameters.begin());
+  method_parameters.insert(
+      method_parameters.begin(),
+      {return_index, memory->AddString("@constructor"), memory->Add(1)});
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_parameters));
 
   AddFunctionIntoList(interpreter, declaration, name, parameters_index, code);
+  LOGGING_INFO("Add function: " + name + " into function list.");
 
   // Destroys temporary context.
   scopes.pop_back();

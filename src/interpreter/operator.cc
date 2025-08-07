@@ -976,7 +976,11 @@ int EQUAL(std::shared_ptr<Memory> memory, std::size_t result,
   LOGGING_INFO("EQUAL operation on memory at index: " + std::to_string(result) +
                " with value: " + std::to_string(value));
   auto& result_reference = memory->GetOriginData(result);
+  LOGGING_INFO("a1");
   auto& value_data = memory->GetOriginData(value);
+  LOGGING_INFO("a2");
+
+  LOGGING_INFO("value_data.guard_tag: " + std::to_string(value_data.guard_tag));
   switch (value_data.guard_tag) {
     case 0x01:
       SetByte(result_reference, GetByte(value_data));
@@ -1101,11 +1105,11 @@ int InvokeClassMethod(
   memory->GetMemory()[function_arguments[0]].constant_data = false;
   memory->GetMemory()[function_arguments[0]].data =
       ObjectReference{memory, arguments[0]};
-  LOGGING_INFO("Function arg index:"+ std::to_string(function_arguments[0]) +
+  LOGGING_INFO("Function arg index:" + std::to_string(function_arguments[0]) +
                " data: " + std::to_string(arguments[0]));
 
   for (std::size_t i = 1; i < function_arguments.size(); i++) {
-    LOGGING_INFO("Function arg index:"+ std::to_string(function_arguments[i]) +
+    LOGGING_INFO("Function arg index:" + std::to_string(function_arguments[i]) +
                  " data: " + std::to_string(arguments[i]));
 
     auto& argument_object = memory->GetMemory()[function_arguments[i]];
@@ -1358,7 +1362,7 @@ int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
     }
   }
 
-  for (std::size_t i = 0; i < function.GetParameters().size(); i++) {
+  for (std::size_t i = 1; i < function.GetParameters().size(); i++) {
     Object& argument = memory->GetOriginData(arguments[i]);
     Object& function_param = memory->GetOriginData(function.GetParameters()[i]);
 
@@ -1765,19 +1769,12 @@ std::string GetString(Object& object) {
 
 void SetString(Object& object, const std::string& data) {
   if (object.guard_tag == 0x05) {
-    std::get<std::string>(object.data) = data;
+    object.data = data;
     return;
   }
 
   if (object.constant_type) {
-    switch (object.guard_tag) {
-      case 0x05:
-        std::get<std::string>(object.data) = data;
-        break;
-      default:
-        LOGGING_ERROR("Unsupported data type: " +
-                      std::to_string(object.guard_tag));
-    }
+    LOGGING_ERROR("Unsupported data type: " + std::to_string(object.guard_tag));
   } else {
     object.type = {0x05};
     object.data = data;
@@ -1863,7 +1860,7 @@ std::shared_ptr<ClassMemory> GetObject(Object& object) {
 
 void SetObject(Object& object, std::shared_ptr<ClassMemory> data) {
   if (object.guard_tag == 0x09) {
-    std::get<std::shared_ptr<ClassMemory>>(object.data) = data;
+    object.data = data;
     return;
   }
 
@@ -1912,8 +1909,7 @@ void CreateCacheGuard(Object& object) {
       object.guard_ptr = nullptr;
       break;
     default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.type[0]));
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object.type[0]));
   }
 }
 }  // namespace Interpreter

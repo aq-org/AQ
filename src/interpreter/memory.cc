@@ -170,16 +170,9 @@ Object& Memory::GetOriginData(std::size_t index) {
             static_cast<void*>(&std::get<uint64_t>(object.get().data));
         break;
       case 0x05:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<std::string>(object.get().data));
-        break;
       case 0x06:
-        object.get().guard_ptr = static_cast<void*>(
-            &std::get<std::shared_ptr<Memory>>(object.get().data));
-        break;
       case 0x09:
-        object.get().guard_ptr = static_cast<void*>(
-            &std::get<std::shared_ptr<ClassMemory>>(object.get().data));
+        object.get().guard_ptr = nullptr;
         break;
       default:
         LOGGING_ERROR("Unexpected object type guard tag: " +

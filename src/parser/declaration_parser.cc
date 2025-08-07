@@ -249,7 +249,7 @@ bool Parser::DeclarationParser::HasTypeBeforeExpression(Token* token,
 bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
     Token* token, std::size_t length, std::size_t index) {
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
-  if (index + 2 >= length) INTERNAL_ERROR("index is out of range.");
+  if (index + 2 >= length) return false;
 
   // Skips the scopes if has.
   while (index < length) {

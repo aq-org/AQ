@@ -458,9 +458,8 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
 
   // Handles the arguments of the functions.
   std::vector<std::size_t> vm_arguments{
-      2, global_memory->AddString(function_name), arguments.size() + 1,
-      return_value_index};
-  for (std::size_t i = 0; i < arguments.size(); i++)
+      2, global_memory->AddString(function_name), return_value_index};
+  for (std::size_t i = 1; i < arguments.size(); i++)
     vm_arguments.push_back(HandleExpression(interpreter, arguments[i], code));
 
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, vm_arguments));
