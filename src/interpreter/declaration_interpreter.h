@@ -90,7 +90,8 @@ void HandleGotoInHandlingFunction(Interpreter& interpreter,
 // Handles the return statement in handling function.
 void AddFunctionIntoList(Interpreter& interpreter,
                          Ast::FunctionDeclaration* declaration,
-                         std::vector<std::size_t>& parameters_index,
+                         std::string name,
+                         std::vector<std::size_t> parameters_index,
                          std::vector<Bytecode>& code);
 
 // Handles the class function declaration.

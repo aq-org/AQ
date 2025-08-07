@@ -106,7 +106,16 @@ void HandleFunctionDeclaration(Interpreter& interpreter,
   HandleReturnInHandlingFunction(interpreter, code);
   HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
-  AddFunctionIntoList(interpreter, declaration, parameters_index, code);
+  AddFunctionIntoList(interpreter, declaration, scope_name, parameters_index,
+                      code);
+
+  LOGGING_INFO("Function " + scope_name +
+               " ,args size: " + std::to_string(parameters_index.size()));
+
+  LOGGING_INFO(
+      "Main function args size: " +
+      std::to_string(
+          interpreter.functions[".main"].back().GetParameters().size()));
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -176,6 +185,14 @@ void HandleClassFunctionDeclaration(Interpreter& interpreter,
   HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
   AddClassFunctionIntoList(interpreter, declaration, parameters_index, code);
+
+  LOGGING_INFO("Function " + name +
+               " ,args size: " + std::to_string(parameters_index.size()));
+
+  LOGGING_INFO(
+      "Main function args size: " +
+      std::to_string(
+          interpreter.functions[".main"].back().GetParameters().size()));
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -971,17 +988,20 @@ void HandleGotoInHandlingFunction(Interpreter& interpreter,
 
 void AddFunctionIntoList(Interpreter& interpreter,
                          Ast::FunctionDeclaration* declaration,
-                         std::vector<std::size_t>& parameters_index,
+                         std::string name,
+                         std::vector<std::size_t> parameters_index,
                          std::vector<Bytecode>& code) {
   // Gets the reference of context.
   auto& function_list = interpreter.functions;
 
   Ast::Function* statement = declaration->GetFunctionStatement();
-  std::string name = statement->GetFunctionName();
 
   Function function(name, parameters_index, code);
+  LOGGING_INFO("Add function args size: " +
+               std::to_string(parameters_index.size()));
   if (statement->IsVariadic()) function.EnableVariadic();
   function_list[name].push_back(function);
+  LOGGING_INFO("Add function: " + name + " into function list.");
 }
 
 void AddClassFunctionIntoList(Interpreter& interpreter,
@@ -1065,7 +1085,7 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
                             parameters_index.size()});
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_parameters));
 
-  AddFunctionIntoList(interpreter, declaration, parameters_index, code);
+  AddFunctionIntoList(interpreter, declaration, name, parameters_index, code);
 
   // Destroys temporary context.
   scopes.pop_back();

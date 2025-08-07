@@ -20,7 +20,8 @@ std::size_t Memory::Add(std::size_t size, bool is_constant_data) {
 
 std::size_t Memory::AddWithType(std::vector<uint8_t> type,
                                 bool is_constant_data) {
-  memory_.push_back({type, static_cast<int64_t>(0), true, is_constant_data});
+  memory_.push_back(
+      {type, static_cast<int64_t>(0), type[0] != 0x00, is_constant_data});
 
   return memory_.size() - 1;
 }
@@ -149,6 +150,9 @@ Object& Memory::GetOriginData(std::size_t index) {
   if (object.get().guard_tag == 0x00) {
     object.get().guard_tag = object.get().type[0];
     switch (object.get().guard_tag) {
+      case 0x00:
+        object.get().guard_ptr = nullptr;
+        break;
       case 0x01:
         object.get().guard_ptr =
             static_cast<void*>(&std::get<int8_t>(object.get().data));
@@ -207,8 +211,9 @@ void Memory::GetLastReference(ObjectReference& object) {
       temp = std::get<std::shared_ptr<ClassMemory>>(object.memory)
                  ->GetMembers()[std::get<std::string>(object.index)];
       if (temp.type[0] == 0x07) return;
-      object = ObjectReference{std::get<std::shared_ptr<ClassMemory>>(object.memory),
-                               std::get<std::string>(object.index)};
+      object =
+          ObjectReference{std::get<std::shared_ptr<ClassMemory>>(object.memory),
+                          std::get<std::string>(object.index)};
     }
   }
 }
@@ -258,7 +263,8 @@ void ClassMemory::Add(std::string name, bool is_constant_data) {
 
 void ClassMemory::AddWithType(std::string name, std::vector<uint8_t> type,
                               bool is_constant_data) {
-  members_[name] = {type, static_cast<int64_t>(0), true, is_constant_data};
+  members_[name] = {type, static_cast<int64_t>(0), type[0] != 0x00,
+                    is_constant_data};
 }
 
 void ClassMemory::AddByte(std::string name, int8_t value,
@@ -323,6 +329,9 @@ Object& ClassMemory::GetOriginData(std::string index) {
   if (object.get().guard_tag == 0x00) {
     object.get().guard_tag = object.get().type[0];
     switch (object.get().guard_tag) {
+      case 0x00:
+        object.get().guard_ptr = nullptr;
+        break;
       case 0x01:
         object.get().guard_ptr =
             static_cast<void*>(&std::get<int8_t>(object.get().data));

@@ -63,9 +63,8 @@ int CrossMemoryNew(std::shared_ptr<Memory> memory,
                    std::unordered_map<std::string, Class> classes,
                    std::size_t ptr, std::size_t size, std::size_t type);
 
-int ARRAY(
-    std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr,
-    std::size_t index, std::unordered_map<std::string, Class>& classes);
+int ARRAY(std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr,
+          std::size_t index, std::unordered_map<std::string, Class>& classes);
 
 int PTR(std::shared_ptr<Memory> memory, std::size_t index, std::size_t ptr);
 
@@ -192,6 +191,8 @@ void SetArray(Object& object, std::vector<Object>& memory);
 std::shared_ptr<ClassMemory> GetObject(Object& object);
 
 void SetObject(Object& object, std::shared_ptr<ClassMemory> data);
+
+void CreateCacheGuard(Object& object);
 }  // namespace Interpreter
 }  // namespace Aq
 

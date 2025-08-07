@@ -550,61 +550,35 @@ int REFER(std::shared_ptr<Memory> memory, std::size_t result,
           std::size_t operand1) {
   if (result >= memory->GetMemory().size()) INTERNAL_ERROR("Out of memory.");
 
-  Object& object = memory->GetOriginData(result);
-
-  auto reference = ObjectReference{memory, operand1};
-  memory->GetLastReference(reference);
-
-  std::reference_wrapper<Object> operand1_reference =
-      memory->GetOriginData(operand1);
-
-  if (std::holds_alternative<std::shared_ptr<Memory>>(
-          operand1_reference.get().data)) {
-    operand1_reference =
-        std::ref(std::get<std::shared_ptr<Memory>>(reference.memory)
-                     ->GetMemory()[std::get<std::size_t>(reference.index)]);
-  } else {
-    operand1_reference =
-        std::ref(std::get<std::shared_ptr<ClassMemory>>(reference.memory)
-                     ->GetMembers()[std::get<std::string>(reference.index)]);
-  }
-
+  LOGGING_INFO("result: " + std::to_string(result) +
+               " operand1: " + std::to_string(operand1));
+  Object& object = memory->GetMemory()[result];
+  LOGGING_INFO("object.guard_tag: " + std::to_string(object.guard_tag));
   if (object.constant_type) {
-    bool is_type_ok = false;
-    if (!operand1_reference.get().constant_type)
-      LOGGING_ERROR(
-          "Cannot change constant data type memory and unexpected type.");
+    if (memory->GetMemory()[operand1].constant_type)
+      LOGGING_ERROR("Cannot change constant data type memory.");
 
     if (object.type.empty() || object.type[0] != 0x07)
       LOGGING_ERROR(
           "Cannot change constant data type memory and unexpected type.");
 
-    for (std::size_t i = 1, j = 0;
-         i < object.type.size() && j < operand1_reference.get().type.size();
-         i++, j++) {
-      while (operand1_reference.get().type[j] == 0x07) j++;
-      while (object.type[i] == 0x07) i++;
-      if (object.type[i] == 0x00) {
-        is_type_ok = true;
-        break;
-      }
-      if (object.type[i] != operand1_reference.get().type[j])
+    if (object.type.size() - 1 != memory->GetMemory()[operand1].type.size() &&
+        object.type.back() != 0x07)
+      LOGGING_ERROR(
+          "Cannot change constant data type memory and unexpected type.");
+
+    for (std::size_t i = 0; i < object.type.size(); i++) {
+      if (object.type[i + 1] == 0x00) break;
+
+      if (object.type[i + 1] != memory->GetMemory()[operand1].type[i])
         LOGGING_ERROR(
             "Cannot change constant data type memory and unexpected type.");
-      if (i == object.type.size() - 1 &&
-          j == operand1_reference.get().type.size() - 1)
-        is_type_ok = true;
     }
 
-    if (!is_type_ok)
-      LOGGING_ERROR(
-          "Cannot change constant data type memory and unexpected "
-          "type.");
-
-    object.data = reference;
+    object.data = ObjectReference{memory, operand1};
   } else {
     object.type = {0x07, 0x00};
-    object.data = reference;
+    object.data = ObjectReference{memory, operand1};
   }
 
   object.guard_tag = 0x07;
@@ -999,6 +973,8 @@ int CMP(std::shared_ptr<Memory> memory, std::size_t result, std::size_t opcode,
 }
 int EQUAL(std::shared_ptr<Memory> memory, std::size_t result,
           std::size_t value) {
+  LOGGING_INFO("EQUAL operation on memory at index: " + std::to_string(result) +
+               " with value: " + std::to_string(value));
   auto& result_reference = memory->GetOriginData(result);
   auto& value_data = memory->GetOriginData(value);
   switch (value_data.guard_tag) {
@@ -1099,6 +1075,7 @@ int InvokeClassMethod(
   std::string class_name =
       GetString(GetObject(class_object)->GetMembers()["@name"]);
   std::string method_name = GetString(method_name_object);
+  LOGGING_INFO("Invoking method: " + method_name + " on class: " + class_name);
 
   auto class_it = classes.find(class_name);
   if (class_it == classes.end()) {
@@ -1116,7 +1093,21 @@ int InvokeClassMethod(
 
   auto function_arguments = method.GetParameters();
 
-  for (std::size_t i = 0; i < function_arguments.size(); i++) {
+  // Return value.
+  memory->GetMemory()[function_arguments[0]].type = {0x07, 0x00};
+  memory->GetMemory()[function_arguments[0]].guard_tag = 0x07;
+  memory->GetMemory()[function_arguments[0]].guard_ptr = nullptr;
+  memory->GetMemory()[function_arguments[0]].constant_type = true;
+  memory->GetMemory()[function_arguments[0]].constant_data = false;
+  memory->GetMemory()[function_arguments[0]].data =
+      ObjectReference{memory, arguments[0]};
+  LOGGING_INFO("Function arg index:"+ std::to_string(function_arguments[0]) +
+               " data: " + std::to_string(arguments[0]));
+
+  for (std::size_t i = 1; i < function_arguments.size(); i++) {
+    LOGGING_INFO("Function arg index:"+ std::to_string(function_arguments[i]) +
+                 " data: " + std::to_string(arguments[i]));
+
     auto& argument_object = memory->GetMemory()[function_arguments[i]];
 
     if (argument_object.type[0] == 0x07) {
@@ -1161,7 +1152,7 @@ int InvokeClassMethod(
         }
       } else {
         auto& reference = memory->GetOriginData(arguments[i]);
-        switch (reference.guard_tag) {
+        switch (reference.type[0]) {
           case 0x01:
             SetByte(argument_object, GetByte(reference));
             break;
@@ -1207,6 +1198,11 @@ int InvokeClassMethod(
   auto instructions = method.GetCode();
 
   for (int64_t i = 0; i < instructions.size(); i++) {
+    LOGGING_INFO("Executing instruction " + std::to_string(i) + "/" +
+                 std::to_string(instructions.size() - 1));
+    LOGGING_INFO(
+        "Instruction: " + std::to_string(instructions[i].GetOper()) +
+        " | Memory size: " + std::to_string(memory->GetMemory().size()));
     auto instruction = instructions[i];
     auto arguments = instruction.GetArgs();
     switch (instruction.GetOper()) {
@@ -1351,13 +1347,13 @@ int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
                                  std::vector<std::size_t>& arguments) {
   int64_t value = 0;
   if (function.IsVariadic()) {
-    if (arguments.size() < function.GetParameters().size() - 1) {
-      LOGGING_ERROR("Not enough arguments for variadic function.");
-      return -1;
-    }
+    if (arguments.size() < function.GetParameters().size() - 1) return -1;
+
   } else {
     if (arguments.size() != function.GetParameters().size()) {
-      LOGGING_ERROR("Incorrect number of arguments for function.");
+      LOGGING_INFO("Arg size: " + std::to_string(arguments.size()) +
+                   " Func param size: " +
+                   std::to_string(function.GetParameters().size()));
       return -1;
     }
   }
@@ -1462,6 +1458,9 @@ int LOAD_MEMBER(std::shared_ptr<Memory> memory,
 
 int8_t GetByte(Object& object) {
   switch (object.guard_tag) {
+    case 0x00:
+      CreateCacheGuard(object);
+      return GetByte(object);
     case 0x01:
       return *static_cast<int8_t*>(object.guard_ptr);
     case 0x02:
@@ -1527,6 +1526,9 @@ void SetByte(Object& object, int8_t data) {
 
 int64_t GetLong(Object& object) {
   switch (object.guard_tag) {
+    case 0x00:
+      CreateCacheGuard(object);
+      return GetLong(object);
     case 0x01:
       return static_cast<int64_t>(*static_cast<int8_t*>(object.guard_ptr));
     case 0x02:
@@ -1564,6 +1566,10 @@ void SetLong(Object& object, int64_t data) {
 
   if (object.constant_type) {
     switch (object.guard_tag) {
+      case 0x00:
+        CreateCacheGuard(object);
+        SetLong(object, data);
+        return;
       case 0x01:
         *static_cast<int8_t*>(object.guard_ptr) = data;
         break;
@@ -1591,6 +1597,9 @@ void SetLong(Object& object, int64_t data) {
 
 double GetDouble(Object& object) {
   switch (object.guard_tag) {
+    case 0x00:
+      CreateCacheGuard(object);
+      return GetDouble(object);
     case 0x01:
       return static_cast<double>(*static_cast<int8_t*>(object.guard_ptr));
     case 0x02:
@@ -1656,6 +1665,9 @@ void SetDouble(Object& object, double data) {
 
 uint64_t GetUint64(Object& object) {
   switch (object.guard_tag) {
+    case 0x00:
+      CreateCacheGuard(object);
+      return GetUint64(object);
     case 0x01:
       return static_cast<uint64_t>(*static_cast<int8_t*>(object.guard_ptr));
     case 0x02:
@@ -1721,6 +1733,9 @@ void SetUint64(Object& object, uint64_t data) {
 
 std::string GetString(Object& object) {
   switch (object.guard_tag) {
+    case 0x00:
+      CreateCacheGuard(object);
+      return GetString(object);
     case 0x01:
       LOGGING_ERROR("Cannot get string from byte.");
     case 0x02:
@@ -1772,7 +1787,7 @@ void SetString(Object& object, const std::string& data) {
 }
 
 std::shared_ptr<Memory> GetArray(Object& object) {
-  switch (object.guard_tag) {
+  switch (object.type[0]) {
     case 0x01:
       LOGGING_ERROR("Cannot get array from byte.");
     case 0x02:
@@ -1813,12 +1828,12 @@ void SetArray(Object& object, std::vector<Object>& data) {
     object.data = std::make_shared<Memory>();
     std::get<std::shared_ptr<Memory>>(object.data)->SetMemory(data);
     object.guard_tag = 0x06;
-    object.guard_ptr = static_cast<void*>(&object.data);
+    object.guard_ptr = nullptr;
   }
 }
 
 std::shared_ptr<ClassMemory> GetObject(Object& object) {
-  switch (object.guard_tag) {
+  switch (object.type[0]) {
     case 0x01:
       LOGGING_ERROR("Cannot get object from byte.");
     case 0x02:
@@ -1858,7 +1873,47 @@ void SetObject(Object& object, std::shared_ptr<ClassMemory> data) {
     object.type = {0x09};
     object.data = data;
     object.guard_tag = 0x09;
-    object.guard_ptr = static_cast<void*>(&object.data);
+    object.guard_ptr = nullptr;
+  }
+}
+
+void CreateCacheGuard(Object& object) {
+  switch (object.type[0]) {
+    case 0x01:
+      object.guard_tag = 0x01;
+      object.guard_ptr = static_cast<void*>(&object.data);
+      break;
+    case 0x02:
+      object.guard_tag = 0x02;
+      object.guard_ptr = static_cast<void*>(&object.data);
+      break;
+    case 0x03:
+      object.guard_tag = 0x03;
+      object.guard_ptr = static_cast<void*>(&object.data);
+      break;
+    case 0x04:
+      object.guard_tag = 0x04;
+      object.guard_ptr = static_cast<void*>(&object.data);
+      break;
+    case 0x05:
+      object.guard_tag = 0x05;
+      object.guard_ptr = static_cast<void*>(&object.data);
+      break;
+    case 0x06:
+      object.guard_tag = 0x06;
+      object.guard_ptr = nullptr;
+      break;
+    case 0x07:
+      object.guard_tag = 0x07;
+      object.guard_ptr = nullptr;
+      break;
+    case 0x09:
+      object.guard_tag = 0x09;
+      object.guard_ptr = nullptr;
+      break;
+    default:
+      LOGGING_ERROR("Unsupported data type: " +
+                    std::to_string(object.type[0]));
   }
 }
 }  // namespace Interpreter

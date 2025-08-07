@@ -40,15 +40,15 @@ void Interpreter::Generate(Ast::Compound* statement) {
   context.function_context->current_scope = context.scopes.size() - 1;
 
   // Sets the initialize function.
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, 2,
-                                 global_memory->AddString(".!__init"), 1,
+  global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, 2,
+                                 global_memory->AddString(".!__init"),
                                  global_memory->Add(1)));
 
   // Sets the current class.
   Class* start_class = &this->main_class;
   context.current_class = start_class;
-  start_class->SetName(".__start");
-  start_class->GetMembers()->AddString("@name", ".__start");
+  start_class->SetName(".!__start");
+  start_class->GetMembers()->AddString("@name", ".!__start");
 
   // Preprocesses the declaration statements.
   PreProcessDeclaration(*this, statement);
@@ -169,7 +169,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
 
   // Adds the main function invoke into the global code.
   std::size_t main_func = global_memory->AddString(".main");
-  std::vector<std::size_t> invoke_main_arguments = {2, main_func, 1, 1};
+  std::vector<std::size_t> invoke_main_arguments = {2, main_func, 1};
   global_code.push_back(
       Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_main_arguments));
   Function start_func(".!__start", arguments, global_code);
@@ -185,10 +185,21 @@ void Interpreter::Generate(Ast::Compound* statement) {
   Function memory_init_func(".!__init", memory_init_args, init_code);
   functions[".!__init"].push_back(memory_init_func);
 
+  // Adds the main class into the classes.
+  classes[".!__start"] = *start_class;
+  classes[".!__start"].GetMethods() = functions;
+
+  LOGGING_INFO("Main function args size: " +
+               std::to_string(functions[".main"].back().GetParameters().size()));
+
   Run();
 }
 
 void Interpreter::Run() {
+  global_memory->GetMemory()[2].type = {0x09};
+  global_memory->GetMemory()[2].constant_type = true;
+  global_memory->GetMemory()[2].guard_tag = 0x00;
+  global_memory->GetMemory()[2].guard_ptr = nullptr;
   global_memory->GetMemory()[2].data = context.current_class->GetMembers();
   Object method_name_object{{0x05}, ".!__start", false, false, 0x00, nullptr};
   std::vector<size_t> arguments = {1};
