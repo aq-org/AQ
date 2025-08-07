@@ -1363,16 +1363,13 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   }
 
   // Adds the class into global memory.
-  std::size_t reference_index = memory->Add(1);
-  code.push_back(
-      Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, variable_index));
+  std::size_t reference_index = memory->AddReference(memory, variable_index);
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, reference_index,
                           memory->AddByte(0), memory->AddString(name)));
 
   // Classes without initialization requires default initialization.
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, reference_index,
-                          memory->AddString("@constructor"), 1,
-                          reference_index));
+                          memory->AddString("@constructor"), memory->Add(1)));
 }
 
 std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {

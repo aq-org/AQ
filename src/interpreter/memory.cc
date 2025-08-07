@@ -79,14 +79,13 @@ void Memory::InitObjectData(std::size_t index,
   auto& origin_data = GetOriginData(index);
 
   if (origin_data.constant_type &&
-      (origin_data.type.empty() || origin_data.type[0] != 0x07))
+      (origin_data.type.empty() || origin_data.type[0] != 0x09))
     LOGGING_ERROR("Cannot set data to constant type memory.");
 
   origin_data.type = {0x09};
   origin_data.data = object;
   origin_data.guard_tag = 0x09;
-  origin_data.guard_ptr = static_cast<void*>(static_cast<void*>(
-      &std::get<std::shared_ptr<ClassMemory>>(origin_data.data)));
+  origin_data.guard_ptr = nullptr;
 }
 
 void Memory::SetObjectData(std::size_t index,
@@ -98,14 +97,13 @@ void Memory::SetObjectData(std::size_t index,
   auto& origin_data = GetOriginData(index);
 
   if (origin_data.constant_type &&
-      (origin_data.type.empty() || origin_data.type[0] != 0x07))
+      (origin_data.type.empty() || origin_data.type[0] != 0x09))
     LOGGING_ERROR("Cannot set data to constant type memory.");
 
   origin_data.type = {0x09};
   origin_data.data = object;
   origin_data.guard_tag = 0x09;
-  origin_data.guard_ptr = static_cast<void*>(static_cast<void*>(
-      &std::get<std::shared_ptr<ClassMemory>>(origin_data.data)));
+  origin_data.guard_ptr = nullptr;
 }
 
 void Memory::SetArrayData(std::size_t index, std::shared_ptr<Memory> object) {
