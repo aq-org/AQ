@@ -154,8 +154,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
 
   // Adds the start function name into the constructor arguments. And makes the
   // invoke for the start function.
-  std::vector<std::size_t> invoke_start_arguments = {2, start_function_name, 1,
-                                                     1};
+  std::vector<std::size_t> invoke_start_arguments = {2, start_function_name, 1};
   start_code.push_back(
       Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_start_arguments));
 

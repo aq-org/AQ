@@ -508,7 +508,7 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
     memory->AddWithType(variable_name, return_type);
   }
   std::size_t reference_index = global_memory->Add(1);
-  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 2,
+  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 0,
                           global_memory->AddString(variable_name)));
 
   // If the variable is a class type, it needs to be handled specially.
@@ -598,10 +598,11 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, current_index, 2,
-                            global_memory->AddString(variable_name)));
-    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
-                            global_memory->AddString("@constructor"), 1, 0));
+    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
+                            global_memory->GetUint64tData(0)));
+    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, current_index,
+                            global_memory->AddString("@constructor"),
+                            global_memory->Add(1)));
   }
 
   // Handles the array initialization with the initialization lists.
@@ -609,8 +610,8 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
       std::size_t current_index = global_memory->Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, current_index, 2,
-                              global_memory->AddString(variable_name)));
+      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory->GetUint64tData(i)));
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
@@ -821,7 +822,7 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // Adds the array index and the type index.
   memory->AddWithType(variable_name, array_type->GetVmType());
   std::size_t array_index = global_memory->Add(1);
-  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 2,
+  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 0,
                           global_memory->AddString(variable_name)));
   std::size_t array_type_index = 0;
 
@@ -857,10 +858,11 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, current_index, 2,
-                            global_memory->AddString(variable_name)));
+    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
+                            global_memory->AddUint64t(0)));
     code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, current_index,
-                            global_memory->AddString("@constructor"), 1, 0));
+                            global_memory->AddString("@constructor"),
+                            global_memory->Add(1)));
   }
 
   // Handles the array initialization with the initialization lists.
@@ -868,8 +870,8 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
       std::size_t current_index = global_memory->Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, current_index, 2,
-                              global_memory->AddString(variable_name)));
+      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
+                              array_index, global_memory->AddUint64t(i)));
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
@@ -1368,7 +1370,7 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
                           memory->AddByte(0), memory->AddString(name)));
 
   // Classes without initialization requires default initialization.
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 4, reference_index,
+  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, reference_index,
                           memory->AddString("@constructor"), memory->Add(1)));
 }
 

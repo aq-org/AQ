@@ -51,6 +51,8 @@ struct Interpreter {
   std::unordered_map<std::string, std::function<int(std::shared_ptr<Memory>,
                                                     std::vector<std::size_t>)>>
       builtin_functions;
+
+  std::size_t current_class_index = 0;
 };
 
 }  // namespace Interpreter

@@ -342,8 +342,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
           std::size_t arguments_size = arguments.size();
 
           // Handles the invocation of the function.
-          std::vector<std::size_t> invoke_arguments = {
-              2, name_index, arguments_size + 1, return_value_index};
+          std::vector<std::size_t> invoke_arguments = {2, name_index,
+                                                       return_value_index};
           for (std::size_t i = 0; i < arguments_size; i++)
             invoke_arguments.push_back(
                 HandleExpression(interpreter, arguments[i], code));
@@ -394,8 +394,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
 
       // Handles the invocation of the function.
       std::vector<std::size_t> invoke_arguments{
-          class_index, function_name_index, arguments_size + 1,
-          return_value_index};
+          class_index, function_name_index, return_value_index};
       for (std::size_t i = 0; i < arguments_size; i++)
         invoke_arguments.push_back(
             HandleExpression(interpreter, arguments[i], code));

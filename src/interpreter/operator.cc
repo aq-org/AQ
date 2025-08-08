@@ -12,6 +12,7 @@
 
 namespace Aq {
 namespace Interpreter {
+std::size_t current_class_index = 2;
 
 int NOP() { return 0; }
 
@@ -124,6 +125,9 @@ int ARRAY(
 
   auto array_object = memory->GetOriginData(ptr);
   auto array = std::get<std::shared_ptr<Memory>>(array_object.data);
+
+  auto index_object = memory->GetOriginData(index);
+  index = GetUint64(index_object);
 
   if (index >= array->GetMemory().size()) array->GetMemory().resize(index + 1);
   if (array->GetMemory()[index].type.empty()) {
@@ -1196,9 +1200,6 @@ int InvokeClassMethod(
     }
   }
 
-  auto origin_class_data = memory->GetMemory()[2].data;
-  memory->GetMemory()[2].data = class_object.data;
-
   auto instructions = method.GetCode();
 
   for (int64_t i = 0; i < instructions.size(); i++) {
@@ -1292,12 +1293,17 @@ int InvokeClassMethod(
       case _AQVM_OPERATOR_CONST:
         CONST(memory, arguments[0], arguments[1]);
         break;
-      case _AQVM_OPERATOR_INVOKE_METHOD:
+      case _AQVM_OPERATOR_INVOKE_METHOD:{
+        auto origin_class_index = current_class_index;
+        current_class_index = arguments[0];
         INVOKE_METHOD(memory, classes, builtin_functions, arguments);
+        current_class_index = origin_class_index;
+      }
         break;
       case _AQVM_OPERATOR_LOAD_MEMBER:
         if (arguments[1] == 0) {
-          LOAD_MEMBER(memory, classes, arguments[0], 2, arguments[2]);
+          LOAD_MEMBER(memory, classes, arguments[0], current_class_index,
+                      arguments[2]);
         } else {
           LOAD_MEMBER(memory, classes, arguments[0], arguments[1],
                       arguments[2]);
@@ -1312,8 +1318,6 @@ int InvokeClassMethod(
         break;
     }
   }
-
-  memory->GetMemory()[2].data = origin_class_data;
 
   return 0;
 }
