@@ -132,7 +132,11 @@ Object& Memory::GetOriginData(std::size_t index) {
   std::reference_wrapper<Object> object = memory_[index];
   if (object.get().type.empty()) INTERNAL_ERROR("Object type is empty.");
 
-  while (object.get().type[0] == 0x07) {
+  int reference_depth = 0;
+  while (object.get().type[0] == 0x07 && reference_depth < 100) {
+    LOGGING_INFO("Get reference object.");
+    reference_depth++;
+
     auto reference = std::get<ObjectReference>(object.get().data);
     if (std::holds_alternative<std::shared_ptr<Memory>>(reference.memory)) {
       object =
@@ -143,6 +147,9 @@ Object& Memory::GetOriginData(std::size_t index) {
           std::ref(std::get<std::shared_ptr<ClassMemory>>(reference.memory)
                        ->GetMembers()[std::get<std::string>(reference.index)]);
     }
+  }
+  if (reference_depth >= 100) {
+    INTERNAL_ERROR("Circular reference detected in GetOriginData");
   }
 
   if (object.get().guard_tag == 0x00) {

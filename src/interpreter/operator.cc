@@ -156,23 +156,14 @@ int ARRAY(
   }
 
   if (origin_reference.constant_type) {
-    if (array->GetMemory()[index].constant_type)
-      LOGGING_ERROR("Cannot change constant data type memory.");
-
     if (origin_reference.type.empty() || origin_reference.type[0] != 0x07)
-      LOGGING_ERROR(
-          "Cannot change constant data type memory and unexpected type.");
-
-    if (origin_reference.type.size() - 1 !=
-            array->GetMemory()[index].type.size() &&
-        origin_reference.type.back() != 0x07)
       LOGGING_ERROR(
           "Cannot change constant data type memory and unexpected type.");
 
     for (std::size_t i = 0; i < origin_reference.type.size(); i++) {
       if (origin_reference.type[i + 1] == 0x00) break;
 
-      if (origin_reference.type[i + 1] != array->GetMemory()[index].type[i])
+      if (origin_reference.type[i + 1] != memory->GetOriginData(index).type[i])
         LOGGING_ERROR(
             "Cannot change constant data type memory and unexpected type.");
     }
@@ -559,22 +550,14 @@ int REFER(std::shared_ptr<Memory> memory, std::size_t result,
   Object& object = memory->GetMemory()[result];
   LOGGING_INFO("object.guard_tag: " + std::to_string(object.guard_tag));
   if (object.constant_type) {
-    if (memory->GetMemory()[operand1].constant_type)
-      LOGGING_ERROR("Cannot change constant data type memory.");
-
     if (object.type.empty() || object.type[0] != 0x07)
-      LOGGING_ERROR(
-          "Cannot change constant data type memory and unexpected type.");
-
-    if (object.type.size() - 1 != memory->GetMemory()[operand1].type.size() &&
-        object.type.back() != 0x07)
       LOGGING_ERROR(
           "Cannot change constant data type memory and unexpected type.");
 
     for (std::size_t i = 0; i < object.type.size(); i++) {
       if (object.type[i + 1] == 0x00) break;
 
-      if (object.type[i + 1] != memory->GetMemory()[operand1].type[i])
+      if (object.type[i + 1] != memory->GetOriginData(operand1).type[i])
         LOGGING_ERROR(
             "Cannot change constant data type memory and unexpected type.");
     }
@@ -1293,13 +1276,13 @@ int InvokeClassMethod(
       case _AQVM_OPERATOR_CONST:
         CONST(memory, arguments[0], arguments[1]);
         break;
-      case _AQVM_OPERATOR_INVOKE_METHOD:{
+      case _AQVM_OPERATOR_INVOKE_METHOD: {
         auto origin_class_index = current_class_index;
         current_class_index = arguments[0];
         INVOKE_METHOD(memory, classes, builtin_functions, arguments);
         current_class_index = origin_class_index;
-      }
         break;
+      }
       case _AQVM_OPERATOR_LOAD_MEMBER:
         if (arguments[1] == 0) {
           LOAD_MEMBER(memory, classes, arguments[0], current_class_index,
@@ -1440,7 +1423,7 @@ int LOAD_MEMBER(std::shared_ptr<Memory> memory,
                 std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand) {
-  auto& result_reference = memory->GetOriginData(result);
+  auto& result_reference = memory->GetMemory()[result];
   auto& class_object = memory->GetOriginData(class_index);
 
   if (class_object.guard_tag != 0x09)
