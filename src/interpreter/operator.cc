@@ -34,7 +34,7 @@ int NEW(
         std::string,
         std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
         builtin_functions) {
-  Object type_data = memory->GetOriginData(type);
+  Object type_data = memory->GetMemory()[type];
 
   std::size_t size_value = memory->GetUint64tData(size);
 
@@ -50,8 +50,7 @@ int NEW(
 
   // Auto/Dynamic type.
   if (type == 0) {
-    data[0].type.push_back(0x00);
-    data[0].constant_type = false;
+    data.push_back({{0x00}, type_data.data, false, false});
 
   } else {
     // Class type.
@@ -70,9 +69,6 @@ int NEW(
       } else {
         // Class array type.
         for (size_t i = 0; i < size_value; i++) {
-          data[i].type.push_back(0x09);
-          data[i].constant_type = true;
-
           std::string class_name = memory->GetStringData(type);
           if (classes.find(class_name) == classes.end())
             LOGGING_ERROR("class not found.");
@@ -80,15 +76,16 @@ int NEW(
 
           auto class_memory = std::make_shared<ClassMemory>();
           *class_memory = *class_data.GetMembers();
-          data[i].data = class_memory;
+
+          data.push_back({{0x09}, class_memory, true, false});
         }
       }
 
     } else {
       // Array type.
-      for (size_t i = 0; i < 1; i++) {
-        data[i].type = type_data.type;
-        data[i].constant_type = true;
+      for (size_t i = 0; i < size_value; i++) {
+        data.push_back(
+            {type_data.type, type_data.data, type_data.type[0] != 0x00, false});
       }
     }
   }
