@@ -379,10 +379,7 @@ void Lexer::LexGeneralEscapeCharacter(Token& token, char*& current_location) {
                     std::string(current_escape_str) + "'.");
       break;
   }
-  current_location++;
-  memmove(current_location, current_location + 1,
-          code_end_ - current_location - 1);
-  code_end_--;
+  current_location += 2;
 }
 
 void Lexer::LexSignedNumbersAtTheStart(Token& token, char*& current_location,
@@ -575,6 +572,7 @@ bool Lexer::LexDefault(Token& token) {
 
 void Lexer::HandleFinalToken(Token& token, char*& current_location) {
   char* location = code_ptr_;
+  LOGGING_INFO(location);
   std::size_t length = current_location - code_ptr_;
   code_ptr_ = current_location;
 
@@ -608,8 +606,11 @@ void Lexer::HandleFinalToken(Token& token, char*& current_location) {
       token.value.oper =
           token_map_.GetOperatorValue(std::string(location, length));
       while (token.value.oper == Token::OperatorType::NONE && length > 1) {
+        LOGGING_INFO("Trying to shorten the operator: " +
+                     std::string(location, length));
         length--;
         code_ptr_--;
+        current_location--;
         token.value.oper =
             token_map_.GetOperatorValue(std::string(location, length));
       }

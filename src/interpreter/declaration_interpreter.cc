@@ -81,6 +81,9 @@ void HandleFunctionDeclaration(Interpreter& interpreter,
   scopes.push_back(scope_name);
   current_scope = scopes.size() - 1;
 
+  std::string function_name =
+      scopes[scopes.size() - 2] + "." + statement->GetFunctionName();
+
   // DEPRECATED: Keep this implementation for adaptation to previous versions.
   // In principle, it will no longer be used.
   if (declaration->GetFunctionBody() == nullptr) {
@@ -106,10 +109,10 @@ void HandleFunctionDeclaration(Interpreter& interpreter,
   HandleReturnInHandlingFunction(interpreter, code);
   HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
-  AddFunctionIntoList(interpreter, declaration, scope_name, parameters_index,
+  AddFunctionIntoList(interpreter, declaration, function_name, parameters_index,
                       code);
 
-  LOGGING_INFO("Function " + scope_name +
+  LOGGING_INFO("Function " + function_name +
                " ,args size: " + std::to_string(parameters_index.size()));
 
   LOGGING_INFO(
@@ -1083,9 +1086,12 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   name = scopes.back();
   scopes.push_back(name);
 
+  std::string function_name =
+      scopes[scopes.size() - 2] + "." + statement->GetFunctionName();
+
   // Records the creation of the function.
   functions[name].push_back(Function());
-  LOGGING_INFO("Add function: " + name + " into function list.");
+  LOGGING_INFO("Add function: " + function_name + " into function list.");
 
   // Handles the return value and parameters.
   std::vector<std::size_t> parameters_index;
@@ -1103,8 +1109,9 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
       {return_index, memory->AddString("@constructor"), memory->Add(1)});
   code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_parameters));
 
-  AddFunctionIntoList(interpreter, declaration, name, parameters_index, code);
-  LOGGING_INFO("Add function: " + name + " into function list.");
+  AddFunctionIntoList(interpreter, declaration, function_name, parameters_index,
+                      code);
+  LOGGING_INFO("Add function: " + function_name + " into function list.");
 
   // Destroys temporary context.
   scopes.pop_back();

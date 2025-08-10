@@ -198,6 +198,8 @@ void Interpreter::Generate(Ast::Compound* statement) {
 }
 
 void Interpreter::Run() {
+  LOGGING_INFO("Running interpreter...");
+
   global_memory->GetMemory()[2].type = {0x09};
   global_memory->GetMemory()[2].constant_type = true;
   global_memory->GetMemory()[2].guard_tag = 0x00;

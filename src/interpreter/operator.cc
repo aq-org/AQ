@@ -957,6 +957,11 @@ int EQUAL(std::shared_ptr<Memory> memory, std::size_t result,
           std::size_t value) {
   LOGGING_INFO("EQUAL operation on memory at index: " + std::to_string(result) +
                " with value: " + std::to_string(value));
+  if (memory->GetMemory()[result].type[0] == 0x07 &&
+      !std::holds_alternative<std::shared_ptr<Memory>>(
+          memory->GetMemory()[result].data))
+    return REFER(memory, result, value);
+
   auto& result_reference = memory->GetOriginData(result);
   LOGGING_INFO("a1");
   auto& value_data = memory->GetOriginData(value);
@@ -1043,6 +1048,7 @@ int INVOKE_METHOD(
 
   auto invoke_function = builtin_functions.find(GetString(method_name_object));
   if (invoke_function != builtin_functions.end()) {
+    LOGGING_INFO("INVOKE BUILTIN FUNCTION.");
     return invoke_function->second(memory, arguments);
   }
 
@@ -1334,6 +1340,7 @@ int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
   int64_t value = 0;
   if (function.IsVariadic()) {
     if (arguments.size() < function.GetParameters().size() - 1) return -1;
+    return 0;
 
   } else {
     if (arguments.size() != function.GetParameters().size()) {
