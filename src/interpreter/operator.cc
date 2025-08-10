@@ -68,17 +68,15 @@ int NEW(
 
       } else {
         // Class array type.
-        for (size_t i = 0; i < size_value; i++) {
-          std::string class_name = memory->GetStringData(type);
-          if (classes.find(class_name) == classes.end())
-            LOGGING_ERROR("class not found.");
-          Class& class_data = classes[class_name];
+        std::string class_name = memory->GetStringData(type);
+        if (classes.find(class_name) == classes.end())
+          LOGGING_ERROR("class not found.");
+        Class& class_data = classes[class_name];
 
-          auto class_memory = std::make_shared<ClassMemory>();
-          *class_memory = *class_data.GetMembers();
+        auto class_memory = std::make_shared<ClassMemory>();
+        *class_memory = *class_data.GetMembers();
 
-          data.push_back({{0x09}, class_memory, true, false});
-        }
+        data.push_back({{0x09}, class_memory, true, false});
       }
 
     } else {

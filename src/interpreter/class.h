@@ -6,7 +6,6 @@
 #define AQ_INTERPRETER_CLASS_H_
 
 #include <unordered_map>
-#include <unordered_set>
 
 #include "ast/ast.h"
 #include "interpreter/bytecode.h"
