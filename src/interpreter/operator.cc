@@ -1180,6 +1180,11 @@ int InvokeClassMethod(
 
   if (method.IsVariadic()) {
     auto array = std::make_shared<Memory>();
+    memory->GetMemory()[function_arguments.back()].type = {0x06, 0x00};
+    memory->GetMemory()[function_arguments.back()].guard_tag = 0x06;
+    memory->GetMemory()[function_arguments.back()].guard_ptr = nullptr;
+    memory->GetMemory()[function_arguments.back()].constant_type = true;
+    memory->GetMemory()[function_arguments.back()].constant_data = false;
     memory->GetMemory()[function_arguments.back()].data = array;
     for (std::size_t i = function_arguments.size(); i < arguments.size(); i++) {
       LOGGING_INFO("Adding variadic argument: " + std::to_string(arguments[i]));
@@ -1904,5 +1909,65 @@ void CreateCacheGuard(Object& object) {
       LOGGING_ERROR("Unsupported data type: " + std::to_string(object.type[0]));
   }
 }
+
+Object& GetOrigin(Object& data) {
+  std::reference_wrapper<Object> object = data;
+
+  while (object.get().type[0] == 0x07) {
+    auto reference = std::get<ObjectReference>(object.get().data);
+    if (std::holds_alternative<std::shared_ptr<Memory>>(reference.memory)) {
+      object =
+          std::ref(std::get<std::shared_ptr<Memory>>(reference.memory)
+                       ->GetMemory()[std::get<std::size_t>(reference.index)]);
+    } else {
+      object =
+          std::ref(std::get<std::shared_ptr<ClassMemory>>(reference.memory)
+                       ->GetMembers()[std::get<std::string>(reference.index)]);
+    }
+  }
+
+  if (object.get().guard_tag == 0x00) {
+    object.get().guard_tag = object.get().type[0];
+    switch (object.get().guard_tag) {
+      case 0x00:
+        object.get().guard_ptr = nullptr;
+        break;
+      case 0x01:
+        object.get().guard_ptr =
+            static_cast<void*>(&std::get<int8_t>(object.get().data));
+        break;
+      case 0x02:
+        object.get().guard_ptr =
+            static_cast<void*>(&std::get<int64_t>(object.get().data));
+        break;
+      case 0x03:
+        object.get().guard_ptr =
+            static_cast<void*>(&std::get<double>(object.get().data));
+        break;
+      case 0x04:
+        object.get().guard_ptr =
+            static_cast<void*>(&std::get<uint64_t>(object.get().data));
+        break;
+      case 0x05:
+        object.get().guard_ptr =
+            static_cast<void*>(&std::get<std::string>(object.get().data));
+        break;
+      case 0x06:
+        object.get().guard_ptr = static_cast<void*>(
+            &std::get<std::shared_ptr<Memory>>(object.get().data));
+        break;
+      case 0x09:
+        object.get().guard_ptr = static_cast<void*>(
+            &std::get<std::shared_ptr<ClassMemory>>(object.get().data));
+        break;
+      default:
+        LOGGING_ERROR("Unexpected object type guard tag: " +
+                      std::to_string(object.get().guard_tag));
+    }
+  }
+
+  return object;
+}
+
 }  // namespace Interpreter
 }  // namespace Aq

@@ -284,10 +284,10 @@ std::size_t Lexer::GetHexEscapeCharacterLength(char* current_location) {
 }
 
 void Lexer::LexHexEscapeCharacter(Token& token, char*& current_location) {
-  std::size_t length = GetHexEscapeCharacterLength(current_location + 1) + 1;
+  std::size_t length = GetHexEscapeCharacterLength(current_location + 2) + 1;
   std::vector<char> hex_str(length);
   for (std::size_t i = 0; i < length; ++i) {
-    hex_str[i] = *(current_location + 1 + i);
+    hex_str[i] = *(current_location + 2 + i);
   }
   hex_str.push_back('\0');
 
@@ -379,7 +379,11 @@ void Lexer::LexGeneralEscapeCharacter(Token& token, char*& current_location) {
                     std::string(current_escape_str) + "'.");
       break;
   }
-  current_location += 2;
+
+  memmove(current_location + 1, current_location + 2,
+          code_end_ - current_location - 2);
+
+  current_location++;
 }
 
 void Lexer::LexSignedNumbersAtTheStart(Token& token, char*& current_location,

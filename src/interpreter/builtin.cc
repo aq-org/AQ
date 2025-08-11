@@ -23,7 +23,7 @@ void InitBuiltInFunctionDeclaration(Interpreter& interpreter) {
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_print",
                                 __builtin_print);
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_vaprint",
-                                __builtin_void);
+                                __builtin_vaprint);
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_abs", __builtin_void);
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_open", __builtin_void);
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_close", __builtin_void);
@@ -99,34 +99,67 @@ int __builtin_print(std::shared_ptr<Memory> memory,
     return -1;
   }
 
-  LOGGING_INFO("Calling __builtin_print with " +
-               std::to_string(arguments.size()) + " arguments.");
-
-  std::size_t index = arguments[0];
-  auto& return_object = memory->GetOriginData(index);
   arguments.erase(arguments.begin());
 
   for (const auto& argument : arguments) {
     auto& object = memory->GetOriginData(argument);
     switch (object.type[0]) {
       case 0x01:
-        SetLong(return_object, printf("%d", GetByte(object)));
+        printf("%d", GetByte(object));
         break;
       case 0x02:
-        SetLong(return_object, printf("%lld", GetLong(object)));
+        printf("%lld", GetLong(object));
         break;
       case 0x03:
-        SetLong(return_object, printf("%g", GetDouble(object)));
+        printf("%g", GetDouble(object));
         break;
       case 0x04:
-        SetLong(return_object, printf("%llu", GetUint64(object)));
+        printf("%llu", GetUint64(object));
         break;
       case 0x05:
-        SetLong(return_object, printf("%s", GetString(object).c_str()));
+        printf("%s", GetString(object).c_str());
         break;
       default:
         LOGGING_ERROR("Unsupported object type in __builtin_print: " +
                       std::to_string(object.type[0]));
+        return -1;
+    }
+  }
+
+  return 0;
+}
+
+int __builtin_vaprint(std::shared_ptr<Memory> memory,
+                      std::vector<std::size_t> arguments) {
+  if (arguments.size() != 2)
+    LOGGING_ERROR(
+        "Invalid number of arguments for __builtin_vaprint. Expected 2, got " +
+        std::to_string(arguments.size()));
+
+  std::size_t value_index = arguments[1];
+  auto& value_object = memory->GetOriginData(value_index);
+
+  for (auto argument : GetArray(value_object)->GetMemory()) {
+    argument = GetOrigin(argument);
+    switch (argument.type[0]) {
+      case 0x01:
+        printf("%d", GetByte(argument));
+        break;
+      case 0x02:
+        printf("%lld", GetLong(argument));
+        break;
+      case 0x03:
+        printf("%g", GetDouble(argument));
+        break;
+      case 0x04:
+        printf("%llu", GetUint64(argument));
+        break;
+      case 0x05:
+        printf("%s", GetString(argument).c_str());
+        break;
+      default:
+        LOGGING_ERROR("Unsupported object type in __builtin_vaprint: " +
+                      std::to_string(argument.type[0]));
         return -1;
     }
   }

@@ -30,6 +30,9 @@ int __builtin_void(std::shared_ptr<Memory> memory,
 
 int __builtin_print(std::shared_ptr<Memory> memory,
                     std::vector<std::size_t> arguments);
+
+int __builtin_vaprint(std::shared_ptr<Memory> memory,
+                      std::vector<std::size_t> arguments);
 }  // namespace Interpreter
 }  // namespace Aq
 

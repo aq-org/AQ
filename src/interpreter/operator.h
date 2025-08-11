@@ -193,6 +193,8 @@ std::shared_ptr<ClassMemory> GetObject(Object& object);
 void SetObject(Object& object, std::shared_ptr<ClassMemory> data);
 
 void CreateCacheGuard(Object& object);
+
+Object& GetOrigin(Object& data);
 }  // namespace Interpreter
 }  // namespace Aq
 
