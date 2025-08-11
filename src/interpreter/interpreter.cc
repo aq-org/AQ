@@ -59,8 +59,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
   // Initialize the statements that need to be preprocessed for the parts that
   // have not been preprocessed in the preprocessor.
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
-    LOGGING_INFO("Preprocessing global statement: " +
-                 std::to_string(i) + "/" +
+    LOGGING_INFO("Preprocessing global statement: " + std::to_string(i) + "/" +
                  std::to_string(statement->GetStatements().size()));
     Ast::Statement* sub_statement = statement->GetStatements()[i];
     switch (sub_statement->GetStatementType()) {
@@ -108,6 +107,10 @@ void Interpreter::Generate(Ast::Compound* statement) {
   }
 
   for (std::size_t i = 0; i < statements.size(); i++) {
+    // Restores function context null caused by possible function generation.
+    context.function_context = function_context;
+    context.current_class = start_class;
+
     switch (statements[i]->GetStatementType()) {
       case Ast::Statement::StatementType::kGoto:
         HandleGoto(*this, Ast::Cast<Ast::Goto>(statements[i]), global_code);
@@ -191,8 +194,9 @@ void Interpreter::Generate(Ast::Compound* statement) {
   classes[".!__start"] = *start_class;
   classes[".!__start"].GetMethods() = functions;
 
-  LOGGING_INFO("Main function args size: " +
-               std::to_string(functions[".main"].back().GetParameters().size()));
+  LOGGING_INFO(
+      "Main function args size: " +
+      std::to_string(functions[".main"].back().GetParameters().size()));
 
   Run();
 }
