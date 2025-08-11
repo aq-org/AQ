@@ -1096,7 +1096,10 @@ int InvokeClassMethod(
   LOGGING_INFO("Function arg index:" + std::to_string(function_arguments[0]) +
                " data: " + std::to_string(arguments[0]));
 
-  for (std::size_t i = 1; i < function_arguments.size(); i++) {
+  for (std::size_t i = 1;
+       i < (method.IsVariadic() ? function_arguments.size() - 1
+                                : function_arguments.size());
+       i++) {
     LOGGING_INFO("Function arg index:" + std::to_string(function_arguments[i]) +
                  " data: " + std::to_string(arguments[i]));
 
@@ -1178,8 +1181,8 @@ int InvokeClassMethod(
   if (method.IsVariadic()) {
     auto array = std::make_shared<Memory>();
     memory->GetMemory()[function_arguments.back()].data = array;
-    for (std::size_t i = function_arguments.size() - 2; i < arguments.size();
-         i++) {
+    for (std::size_t i = function_arguments.size(); i < arguments.size(); i++) {
+      LOGGING_INFO("Adding variadic argument: " + std::to_string(arguments[i]));
       array->GetMemory().push_back(memory->GetOriginData(arguments[i]));
     }
   }

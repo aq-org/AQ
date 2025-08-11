@@ -513,10 +513,9 @@ std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
           // Use the technique of reprocessing names to prevent scope overflow.
           return iterator->second;
         }
-
-        LOGGING_ERROR("Identifier not found.");
-        break;
       }
+      LOGGING_ERROR("Identifier not found.");
+      break;
     }
 
     case Ast::Statement::StatementType::kValue: {
