@@ -99,6 +99,9 @@ int __builtin_print(std::shared_ptr<Memory> memory,
     return -1;
   }
 
+  LOGGING_INFO("Calling __builtin_print with " +
+               std::to_string(arguments.size()) + " arguments.");
+
   std::size_t index = arguments[0];
   auto& return_object = memory->GetOriginData(index);
   arguments.erase(arguments.begin());
