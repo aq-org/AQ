@@ -40,8 +40,6 @@ int main(int argc, char* argv[]) {
     Aq::Interpreter::Interpreter interpreter;
     interpreter.Generate(ast);
 
-    Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
-
     return 0;
   } catch (const std::exception& e) {
     Aq::LOGGING_ERROR("Exception: " + std::string(e.what()));

@@ -99,9 +99,6 @@ void HandleFunctionDeclaration(Interpreter& interpreter,
                                          parameters_index);
   HandleFunctionArguments(interpreter, declaration, parameters_index, code);
 
-  LOGGING_INFO("Handling function body: " +
-               std::string(statement->GetFunctionName()));
-
   // Handles function body.
   HandleStatement(interpreter, declaration->GetFunctionBody(), code);
 
@@ -111,14 +108,6 @@ void HandleFunctionDeclaration(Interpreter& interpreter,
 
   AddFunctionIntoList(interpreter, declaration, function_name, parameters_index,
                       code);
-
-  LOGGING_INFO("Function " + function_name +
-               " ,args size: " + std::to_string(parameters_index.size()));
-
-  LOGGING_INFO(
-      "Main function args size: " +
-      std::to_string(
-          interpreter.functions[".main"].back().GetParameters().size()));
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -152,7 +141,7 @@ void HandleClassFunctionDeclaration(Interpreter& interpreter,
     HandleClassConstructor(interpreter, declaration);
     return;
   } else {
-    // LOGGING_INFO("Handling class function: " + name);
+    // 
     // LOGGING_INFO("Class: " +
     //     std::string(current_class->GetClassDeclaration()->GetClassName()));
   }
@@ -188,14 +177,6 @@ void HandleClassFunctionDeclaration(Interpreter& interpreter,
   HandleGotoInHandlingFunction(interpreter, current_scope, code);
 
   AddClassFunctionIntoList(interpreter, declaration, parameters_index, code);
-
-  LOGGING_INFO("Function " + name +
-               " ,args size: " + std::to_string(parameters_index.size()));
-
-  LOGGING_INFO(
-      "Main function args size: " +
-      std::to_string(
-          interpreter.functions[".main"].back().GetParameters().size()));
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -634,9 +615,6 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
                                          std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
-  LOGGING_INFO("Handling global array declaration: " +
-               declaration->GetVariableName());
-
   // Gets the reference of context.
   auto& global_memory = interpreter.global_memory;
   auto& variables = interpreter.context.variables;
@@ -644,7 +622,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   auto& scopes = interpreter.context.scopes;
   auto memory = start_class.GetMembers();
 
-  LOGGING_INFO("DP");
+  
 
   // Handles the array type.
   Ast::ArrayType* array_type =
@@ -660,7 +638,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   std::size_t array_index = global_memory->AddReference(memory, variable_name);
   std::size_t array_type_index = 0;
 
-  LOGGING_INFO("DP");
+  
 
   // Gets the sub type of the array type and its category.
   Ast::Type* sub_type = array_type->GetSubType();
@@ -680,7 +658,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
       array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 
-  LOGGING_INFO("DP");
+  
 
   // Handles the array creation bytecode.
   // The array is created with the size of 1, and the type of the sub type.
@@ -690,7 +668,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
                           global_memory->AddByte(1), array_type_index));
 
-  LOGGING_INFO("DP");
+  
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
@@ -705,7 +683,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
                             global_memory->Add(1)));
   }
 
-  LOGGING_INFO("DP");
+  
 
   // Handles the array initialization with the initialization lists.
   if (!declaration->GetVariableValue().empty()) {
@@ -724,7 +702,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
     }
   }
 
-  LOGGING_INFO("DP");
+  
 
   variables[variable_name] = array_index;
 
@@ -1015,11 +993,9 @@ void AddFunctionIntoList(Interpreter& interpreter,
   Ast::Function* statement = declaration->GetFunctionStatement();
 
   Function function(name, parameters_index, code);
-  LOGGING_INFO("Add function args size: " +
-               std::to_string(parameters_index.size()));
   if (statement->IsVariadic()) function.EnableVariadic();
   functions[name].push_back(function);
-  LOGGING_INFO("Add function: " + name + " into function list.");
+  
 }
 
 void AddClassFunctionIntoList(Interpreter& interpreter,
@@ -1091,7 +1067,7 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
 
   // Records the creation of the function.
   functions[name].push_back(Function());
-  LOGGING_INFO("Add function: " + function_name + " into function list.");
+  
 
   // Handles the return value and parameters.
   std::vector<std::size_t> parameters_index;
@@ -1111,7 +1087,7 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
 
   AddFunctionIntoList(interpreter, declaration, function_name, parameters_index,
                       code);
-  LOGGING_INFO("Add function: " + function_name + " into function list.");
+  
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -1436,8 +1412,6 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   if (ast == nullptr) Aq::LOGGING_ERROR("ast is nullptr.");
 
   interpreter->Generate(ast);
-
-  Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
 
   imports_map.insert(std::make_pair(import_location, interpreter));
 }

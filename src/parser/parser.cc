@@ -389,7 +389,7 @@ Ast::Declaration* Parser::ParseDeclaration(Token* token, std::size_t length,
 Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
                                                    std::size_t length,
                                                    std::size_t& index) {
-  // LOGGING_INFO(std::to_string(index));
+  // 
   switch (token[index].value.oper) {
     // Null statement.
     case Token::OperatorType::semi:
@@ -397,7 +397,7 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
       return new Ast::Statement();
 
     case Token::OperatorType::l_brace: {
-      // LOGGING_INFO("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
+      // 
       index++;
       std::vector<Ast::Statement*> statements;
 
@@ -428,7 +428,7 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
     }
 
     default:
-      // LOGGING_INFO("000000000000000000000X");
+      // 
       Ast::Statement* statement =
           ExpressionParser::ParseExpression(token, length, index);
       if (token[index] == Token::OperatorType::semi) index++;

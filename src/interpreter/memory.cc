@@ -134,7 +134,7 @@ Object& Memory::GetOriginData(std::size_t index) {
 
   int reference_depth = 0;
   while (object.get().type[0] == 0x07 && reference_depth < 100) {
-    LOGGING_INFO("Get reference object.");
+    
     reference_depth++;
 
     auto reference = std::get<ObjectReference>(object.get().data);
