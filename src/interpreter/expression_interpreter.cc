@@ -114,11 +114,11 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
   std::size_t left = 0;
   std::size_t right = 0;
   if (expression->GetOperator() != Ast::Binary::Operator::kMember) {
-    // 
+    // LOGGING_INFO("message");
     right = HandleExpression(interpreter, right_expression, code);
-    // 
+    // LOGGING_INFO("message");
     left = HandleExpression(interpreter, left_expression, code);
-    // 
+    // LOGGING_INFO("message");
   }
 
   std::size_t result = global_memory->Add(1);
@@ -265,7 +265,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
   if (expression->GetOperator() != Ast::Binary::Operator::kMember)
     INTERNAL_ERROR("The expression isn't a period expression.");
 
-  
+  LOGGING_INFO("Period expression: ");
 
   // Gets the reference of context.
   auto global_memory = interpreter.global_memory;
@@ -498,7 +498,7 @@ std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
 
   switch (expression->GetStatementType()) {
     case Ast::Statement::StatementType::kIdentifier: {
-      
+      LOGGING_INFO(std::string(*Ast::Cast<Ast::Identifier>(expression)));
       for (int64_t i = scopes.size() - 1; i >= -1; i--) {
         auto iterator = variables.find(
             std::string(*Ast::Cast<Ast::Identifier>(expression)));

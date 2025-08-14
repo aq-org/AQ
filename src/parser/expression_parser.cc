@@ -396,12 +396,12 @@ Ast::Expression* Parser::ExpressionParser::ParseBinaryExpressionWithoutComma(
       }
 
       default:
-        // 
+        // LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO1OOOOOOOOOOOOOOOO");
         return expr;
     }
   }
 
-  // 
+  // LOGGING_INFO("OOOOOOOOOOOOOOOOOOOO2OOOOOOOOOOOOOOOO");
 
   return expr;
 }
@@ -465,7 +465,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
 
-  
+  LOGGING_INFO("Parsing primary expression.");
 
   enum class State { kPreOper, kPostOper, kEnd };
   State state = State::kPreOper;
@@ -475,6 +475,8 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
 
   while (state != State::kEnd && index < length) {
     if (token[index] == Token::Type::OPERATOR) {
+      LOGGING_INFO("Parsing operator: " +
+                   std::to_string(static_cast<int>(token[index].value.oper)));
       switch (token[index].value.oper) {
         case Token::OperatorType::plus:  // +
           if (state == State::kPreOper) {
@@ -548,7 +550,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
             state = State::kPostOper;
 
           } else if (state == State::kPostOper) {
-            
+            LOGGING_INFO("Parsing function call expression.");
             ParseFunctionCallExpression(token, length, index, full_expression,
                                         main_expression,
                                         pre_operator_expression);
@@ -633,7 +635,7 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
       if (!(token[index] == Token::OperatorType::period)) {
         state = State::kPostOper;
       } else {
-        
+        LOGGING_INFO("DEBUG POINT 1");
       }
 
     } else if (token[index] == Token::Type::NUMBER ||
@@ -753,7 +755,7 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
     Token* token, std::size_t length, std::size_t& index,
     Ast::Expression*& full_expression, Ast::Expression*& main_expression,
     Ast::Expression*& pre_operator_expression) {
-  
+  LOGGING_INFO("Parsing function call expression.");
 
   index++;
 
@@ -800,7 +802,7 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
   Ast::Function* function = nullptr;
   if (main_expression != nullptr &&
       *main_expression == Ast::Statement::StatementType::kBinary) {
-    
+    LOGGING_INFO("Handling function with scopes.");
     // Handles the function with scopes.
     Ast::Binary* old_expression = Ast::Cast<Ast::Binary>(main_expression);
     function = new Ast::Function(old_expression->GetRightExpression(),

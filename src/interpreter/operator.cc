@@ -540,8 +540,10 @@ int REFER(std::shared_ptr<Memory> memory, std::size_t result,
           std::size_t operand1) {
   if (result >= memory->GetMemory().size()) INTERNAL_ERROR("Out of memory.");
 
+  LOGGING_INFO("result: " + std::to_string(result) +
+               " operand1: " + std::to_string(operand1));
   Object& object = memory->GetMemory()[result];
-  
+  LOGGING_INFO("object.guard_tag: " + std::to_string(object.guard_tag));
   if (object.constant_type) {
     if (object.type.empty() || object.type[0] != 0x07)
       LOGGING_ERROR(
@@ -953,17 +955,19 @@ int CMP(std::shared_ptr<Memory> memory, std::size_t result, std::size_t opcode,
 }
 int EQUAL(std::shared_ptr<Memory> memory, std::size_t result,
           std::size_t value) {
+  LOGGING_INFO("EQUAL operation on memory at index: " + std::to_string(result) +
+               " with value: " + std::to_string(value));
   if (memory->GetMemory()[result].type[0] == 0x07 &&
       !std::holds_alternative<std::shared_ptr<Memory>>(
           memory->GetMemory()[result].data))
     return REFER(memory, result, value);
 
   auto& result_reference = memory->GetOriginData(result);
-  
+  LOGGING_INFO("a1");
   auto& value_data = memory->GetOriginData(value);
-  
+  LOGGING_INFO("a2");
 
-  
+  LOGGING_INFO("value_data.guard_tag: " + std::to_string(value_data.guard_tag));
   switch (value_data.guard_tag) {
     case 0x01:
       SetByte(result_reference, GetByte(value_data));
@@ -1044,7 +1048,7 @@ int INVOKE_METHOD(
 
   auto invoke_function = builtin_functions.find(GetString(method_name_object));
   if (invoke_function != builtin_functions.end()) {
-    
+    LOGGING_INFO("INVOKE BUILTIN FUNCTION.");
     return invoke_function->second(memory, arguments);
   }
 
@@ -1063,7 +1067,7 @@ int InvokeClassMethod(
   std::string class_name =
       GetString(GetObject(class_object)->GetMembers()["@name"]);
   std::string method_name = GetString(method_name_object);
-  
+  LOGGING_INFO("Invoking method: " + method_name + " on class: " + class_name);
 
   auto class_it = classes.find(class_name);
   if (class_it == classes.end()) {
@@ -1089,11 +1093,15 @@ int InvokeClassMethod(
   memory->GetMemory()[function_arguments[0]].constant_data = false;
   memory->GetMemory()[function_arguments[0]].data =
       ObjectReference{memory, arguments[0]};
+  LOGGING_INFO("Function arg index:" + std::to_string(function_arguments[0]) +
+               " data: " + std::to_string(arguments[0]));
 
   for (std::size_t i = 1;
        i < (method.IsVariadic() ? function_arguments.size() - 1
                                 : function_arguments.size());
        i++) {
+    LOGGING_INFO("Function arg index:" + std::to_string(function_arguments[i]) +
+                 " data: " + std::to_string(arguments[i]));
 
     auto& argument_object = memory->GetMemory()[function_arguments[i]];
 
@@ -1179,6 +1187,7 @@ int InvokeClassMethod(
     memory->GetMemory()[function_arguments.back()].constant_data = false;
     memory->GetMemory()[function_arguments.back()].data = array;
     for (std::size_t i = function_arguments.size(); i < arguments.size(); i++) {
+      LOGGING_INFO("Adding variadic argument: " + std::to_string(arguments[i]));
       array->GetMemory().push_back(memory->GetOriginData(arguments[i]));
     }
   }
@@ -1186,6 +1195,11 @@ int InvokeClassMethod(
   auto instructions = method.GetCode();
 
   for (int64_t i = 0; i < instructions.size(); i++) {
+    LOGGING_INFO("Executing instruction " + std::to_string(i) + "/" +
+                 std::to_string(instructions.size() - 1));
+    LOGGING_INFO(
+        "Instruction: " + std::to_string(instructions[i].GetOper()) +
+        " | Memory size: " + std::to_string(memory->GetMemory().size()));
     auto instruction = instructions[i];
     auto arguments = instruction.GetArgs();
     switch (instruction.GetOper()) {
@@ -1338,6 +1352,9 @@ int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
 
   } else {
     if (arguments.size() != function.GetParameters().size()) {
+      LOGGING_INFO("Arg size: " + std::to_string(arguments.size()) +
+                   " Func param size: " +
+                   std::to_string(function.GetParameters().size()));
       return -1;
     }
   }

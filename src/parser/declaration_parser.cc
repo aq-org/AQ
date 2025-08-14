@@ -276,7 +276,7 @@ bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
 Ast::ArrayDeclaration* Parser::DeclarationParser::ParseArrayDeclaration(
     Ast::Type* type, Ast::Expression* name, Token* token, std::size_t length,
     std::size_t& index) {
-  
+  LOGGING_INFO("Parsing array declaration.");
 
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
@@ -289,7 +289,7 @@ Ast::ArrayDeclaration* Parser::DeclarationParser::ParseArrayDeclaration(
         token[index].value.oper == Token::OperatorType::l_brace) {
       std::vector<Ast::Expression*> values;
       while (true) {
-        
+        LOGGING_INFO("Parsing array initialization list value.");
         // Skip the l_brace or comma.
         values.push_back(ExpressionParser::ParseExpressionWithoutComma(
             token, length, ++index));

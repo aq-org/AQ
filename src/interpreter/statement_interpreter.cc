@@ -19,6 +19,9 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
                      std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
+  LOGGING_INFO("Handling statement: " +
+               std::to_string(static_cast<int>(statement->GetStatementType())));
+
   switch (statement->GetStatementType()) {
     case Ast::Statement::StatementType::kImport:
       LOGGING_WARNING("Unexpected import statement in the code.");
@@ -29,7 +32,7 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kCompound:
-      
+      LOGGING_INFO("Handling compound statement.");
       HandleCompoundStatement(interpreter, Ast::Cast<Ast::Compound>(statement),
                               code);
       break;
@@ -256,9 +259,11 @@ void HandleCompoundStatement(Interpreter& interpreter, Ast::Compound* statement,
                              std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
-  
+  LOGGING_INFO("message");
 
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
+    LOGGING_INFO("Handling compound statement: " + std::to_string(i) + "/" +
+                 std::to_string(statement->GetStatements().size()));
     HandleStatement(interpreter, statement->GetStatements()[i], code);
   }
 }
@@ -429,7 +434,7 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
   // Adds -1 into loop_break_index as the start flag for the loop.
   loop_break_index.push_back(-1);
 
-  // 
+  // LOGGING_INFO("1");
   //  Initializes the loop with the start expression.
   scopes.push_back(scopes.back() + "@@" + std::to_string(++undefined_count));
   HandleStatement(interpreter, statement->GetStartExpression(), code);
@@ -439,15 +444,15 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
   code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
   std::size_t start_location = code.size();
 
-  // 
+  // LOGGING_INFO("1");
 
   // Handles the condition expression of the for statement.
   Ast::Expression* ex = statement->GetConditionExpression();
   if (ex == nullptr) LOGGING_ERROR("Condition expression is nullptr.");
-  // 
+  // LOGGING_INFO("0X010110100110010101");
   std::size_t condition_index = HandleExpression(interpreter, ex, code);
-  // 
-  // 
+  // LOGGING_INFO("0X010110100110010101");
+  // LOGGING_INFO("1");
   //  Handles the judgment of the for statement.
   std::size_t if_location = code.size();
   code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
@@ -460,7 +465,7 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
   HandleExpression(interpreter, statement->GetEndExpression(), code);
   scopes.pop_back();
 
-  // 
+  // LOGGING_INFO("1");
   //  Makes the for statement loop automatically.
   code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1,
                           global_memory->AddUint64t(start_location)));
