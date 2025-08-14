@@ -16,23 +16,13 @@ std::size_t current_class_index = 2;
 
 int NOP() { return 0; }
 
-[[deprecated]] int LOAD(std::shared_ptr<Memory> memory, std::size_t ptr,
-                        std::size_t operand) {
-  return 0;
-}
-
-[[deprecated]] int STORE(std::shared_ptr<Memory> memory, std::size_t ptr,
-                         std::size_t operand) {
-  return 0;
-}
-
 int NEW(
-    std::shared_ptr<Memory> memory,
+    Memory* memory,
     std::unordered_map<std::string, Class> classes, std::size_t ptr,
     std::size_t size, std::size_t type,
     std::unordered_map<
         std::string,
-        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions) {
   Object type_data = memory->GetMemory()[type];
 
@@ -43,8 +33,8 @@ int NEW(
       size_value == 0)
     size_value = 1;
 
-  std::shared_ptr<Memory> array_memory = std::make_shared<Memory>();
-  std::shared_ptr<ClassMemory> class_memory = std::make_shared<ClassMemory>();
+  Memory* array_memory = std::make_shared<Memory>();
+  ClassMemory* class_memory = std::make_shared<ClassMemory>();
 
   auto& data = array_memory->GetMemory();
 
@@ -98,28 +88,21 @@ int NEW(
   return 0;
 }
 
-[[deprecated]] int CrossMemoryNew(
-    std::shared_ptr<Memory> memory,
-    std::unordered_map<std::string, Class> classes, std::size_t ptr,
-    std::size_t size, std::size_t type) {
-  return 0;
-}
-
 int ARRAY(
-    std::shared_ptr<Memory> memory, std::size_t result, std::size_t ptr,
+    Memory* memory, std::size_t result, std::size_t ptr,
     std::size_t index, std::unordered_map<std::string, Class>& classes,
     std::unordered_map<
         std::string,
-        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions) {
   ObjectReference origin_data{memory, result};
   memory->GetLastReference(origin_data);
   Object& origin_reference =
-      std::get<std::shared_ptr<Memory>>(origin_data.memory)
+      std::get<Memory*>(origin_data.memory)
           ->GetMemory()[std::get<std::size_t>(origin_data.index)];
 
   auto array_object = memory->GetOriginData(ptr);
-  auto array = std::get<std::shared_ptr<Memory>>(array_object.data);
+  auto array = std::get<Memory*>(array_object.data);
 
   auto index_object = memory->GetOriginData(index);
   index = GetUint64(index_object);
@@ -133,14 +116,14 @@ int ARRAY(
       // Class Type.
       if (array->GetMemory()[0].type[0] == 0x09) {
         std::string class_name = GetString(
-            std::get<std::shared_ptr<ClassMemory>>(array->GetMemory()[0].data)
+            std::get<ClassMemory*>(array->GetMemory()[0].data)
                 ->GetMembers()["@name"]);
         if (classes.find(class_name) == classes.end())
           LOGGING_ERROR("class not found.");
 
         Class& class_data = classes[class_name];
         array->GetMemory()[index].data = std::make_shared<ClassMemory>();
-        *std::get<std::shared_ptr<ClassMemory>>(
+        *std::get<ClassMemory*>(
             array->GetMemory()[index].data) = *class_data.GetMembers();
       }
     } else {
@@ -175,12 +158,7 @@ int ARRAY(
   return 0;
 }
 
-[[deprecated]] int PTR(std::shared_ptr<Memory> memory, std::size_t index,
-                       std::size_t ptr) {
-  return 0;
-}
-
-int ADD(std::shared_ptr<Memory> memory, std::size_t result,
+int ADD(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
 
@@ -236,7 +214,7 @@ int ADD(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int SUB(std::shared_ptr<Memory> memory, std::size_t result,
+int SUB(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
 
@@ -283,7 +261,7 @@ int SUB(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int MUL(std::shared_ptr<Memory> memory, std::size_t result,
+int MUL(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -327,7 +305,7 @@ int MUL(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int DIV(std::shared_ptr<Memory> memory, std::size_t result,
+int DIV(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -371,7 +349,7 @@ int DIV(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int REM(std::shared_ptr<Memory> memory, std::size_t result,
+int REM(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -413,7 +391,7 @@ int REM(std::shared_ptr<Memory> memory, std::size_t result,
   }
   return 0;
 }
-int NEG(std::shared_ptr<Memory> memory, std::size_t result,
+int NEG(Memory* memory, std::size_t result,
         std::size_t operand1) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -450,7 +428,7 @@ int NEG(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int SHL(std::shared_ptr<Memory> memory, std::size_t result,
+int SHL(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -493,7 +471,7 @@ int SHL(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int SHR(std::shared_ptr<Memory> memory, std::size_t result,
+int SHR(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -536,7 +514,7 @@ int SHR(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int REFER(std::shared_ptr<Memory> memory, std::size_t result,
+int REFER(Memory* memory, std::size_t result,
           std::size_t operand1) {
   if (result >= memory->GetMemory().size()) INTERNAL_ERROR("Out of memory.");
 
@@ -569,7 +547,7 @@ int REFER(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-std::size_t IF(std::shared_ptr<Memory> memory, std::size_t condition,
+std::size_t IF(Memory* memory, std::size_t condition,
                std::size_t true_branche, std::size_t false_branche) {
   auto condition_data = GetByte(memory->GetOriginData(condition));
 
@@ -578,7 +556,7 @@ std::size_t IF(std::shared_ptr<Memory> memory, std::size_t condition,
   return false_branche;
 }
 
-int AND(std::shared_ptr<Memory> memory, std::size_t result,
+int AND(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -623,7 +601,7 @@ int AND(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int OR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
+int OR(Memory* memory, std::size_t result, std::size_t operand1,
        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -668,7 +646,7 @@ int OR(std::shared_ptr<Memory> memory, std::size_t result, std::size_t operand1,
   return 0;
 }
 
-int XOR(std::shared_ptr<Memory> memory, std::size_t result,
+int XOR(Memory* memory, std::size_t result,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -714,7 +692,7 @@ int XOR(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-int CMP(std::shared_ptr<Memory> memory, std::size_t result, std::size_t opcode,
+int CMP(Memory* memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -943,22 +921,12 @@ int CMP(std::shared_ptr<Memory> memory, std::size_t result, std::size_t opcode,
   return -1;
 }
 
-[[deprecated]] int INVOKE(
-    std::shared_ptr<Memory> memory,
-    std::unordered_map<
-        std::string,
-        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
-        builtin_functions,
-    std::vector<std::size_t> arguments,
-    std::unordered_map<std::string, Class>& classes) {
-  return 0;
-}
-int EQUAL(std::shared_ptr<Memory> memory, std::size_t result,
+int EQUAL(Memory* memory, std::size_t result,
           std::size_t value) {
   LOGGING_INFO("EQUAL operation on memory at index: " + std::to_string(result) +
                " with value: " + std::to_string(value));
   if (memory->GetMemory()[result].type[0] == 0x07 &&
-      !std::holds_alternative<std::shared_ptr<Memory>>(
+      !std::holds_alternative<Memory*>(
           memory->GetMemory()[result].data))
     return REFER(memory, result, value);
 
@@ -999,39 +967,17 @@ int EQUAL(std::shared_ptr<Memory> memory, std::size_t result,
   return 0;
 }
 
-[[deprecated]] int CrossMemoryEqual(std::shared_ptr<Memory> result_heap,
-                                    std::size_t result,
-                                    std::shared_ptr<Memory> value_heap,
-                                    std::size_t value) {
-  return 0;
-}
-
-std::size_t GOTO(std::shared_ptr<Memory> memory, std::size_t location) {
+std::size_t GOTO(Memory* memory, std::size_t location) {
   Object& object = memory->GetOriginData(location);
   return GetUint64(object);
 }
 
-[[deprecated]] int LOAD_CONST(std::shared_ptr<Memory> memory,
-                              std::shared_ptr<Memory> constant_pool,
-                              std::size_t object, std::size_t const_object) {
-  return 0;
-}
-
-[[deprecated]] int CONVERT(std::shared_ptr<Memory> memory, std::size_t result,
-                           std::size_t operand1) {
-  return 0;
-}
-[[deprecated]] int CONST(std::shared_ptr<Memory> memory, std::size_t result,
-                         std::size_t operand1) {
-  return 0;
-}
-
 int INVOKE_METHOD(
-    std::shared_ptr<Memory> memory,
+    Memory* memory,
     std::unordered_map<std::string, Class>& classes,
     std::unordered_map<
         std::string,
-        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<size_t> arguments) {
   if (arguments.size() < 3) INTERNAL_ERROR("Invalid arguments.");
@@ -1057,12 +1003,12 @@ int INVOKE_METHOD(
 }
 
 int InvokeClassMethod(
-    std::shared_ptr<Memory> memory, Object& class_object,
+    Memory* memory, Object& class_object,
     Object& method_name_object, std::vector<size_t> arguments,
     std::unordered_map<std::string, Class>& classes,
     std::unordered_map<
         std::string,
-        std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>>&
+        std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions) {
   std::string class_name =
       GetString(GetObject(class_object)->GetMembers()["@name"]);
@@ -1313,7 +1259,7 @@ int InvokeClassMethod(
 
   return 0;
 }
-Function SelectBestFunction(std::shared_ptr<Memory> memory,
+Function SelectBestFunction(Memory* memory,
                             std::vector<Function>& functions,
                             std::vector<std::size_t>& arguments) {
   int64_t value = -1;
@@ -1342,7 +1288,7 @@ Function SelectBestFunction(std::shared_ptr<Memory> memory,
   return best_function;
 }
 
-int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
+int64_t GetFunctionOverloadValue(Memory* memory,
                                  Function& function,
                                  std::vector<std::size_t>& arguments) {
   int64_t value = 0;
@@ -1385,10 +1331,10 @@ int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
 
           // Class Type.
         } else if (function_param.guard_tag == 0x09) {
-          if (GetString(std::get<std::shared_ptr<ClassMemory>>(argument.data)
+          if (GetString(std::get<ClassMemory*>(argument.data)
                             ->GetMembers()["@name"]) !=
               GetString(
-                  std::get<std::shared_ptr<ClassMemory>>(function_param.data)
+                  std::get<ClassMemory*>(function_param.data)
                       ->GetMembers()["@name"]))
             return -1;
         }
@@ -1429,7 +1375,7 @@ int64_t GetFunctionOverloadValue(std::shared_ptr<Memory> memory,
   return value;
 }
 
-int LOAD_MEMBER(std::shared_ptr<Memory> memory,
+int LOAD_MEMBER(Memory* memory,
                 std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand) {
@@ -1449,13 +1395,11 @@ int LOAD_MEMBER(std::shared_ptr<Memory> memory,
   result_reference.guard_tag = 0x07;
   result_reference.guard_ptr = nullptr;
   result_reference.data =
-      ObjectReference{std::get<std::shared_ptr<ClassMemory>>(class_object.data),
+      ObjectReference{std::get<ClassMemory*>(class_object.data),
                       GetString(member_name_object)};
 
   return 0;
 }
-
-[[deprecated]] int WIDE() { return 0; }
 
 int8_t GetByte(Object& object) {
   switch (object.guard_tag) {
@@ -1780,7 +1724,7 @@ void SetString(Object& object, const std::string& data) {
   }
 }
 
-std::shared_ptr<Memory> GetArray(Object& object) {
+Memory* GetArray(Object& object) {
   switch (object.type[0]) {
     case 0x01:
       LOGGING_ERROR("Cannot get array from byte.");
@@ -1793,7 +1737,7 @@ std::shared_ptr<Memory> GetArray(Object& object) {
     case 0x05:
       LOGGING_ERROR("Cannot get array from string.");
     case 0x06:
-      return std::get<std::shared_ptr<Memory>>(object.data);
+      return std::get<Memory*>(object.data);
     case 0x07:
       LOGGING_ERROR("Cannot get array from reference.");
     case 0x09:
@@ -1811,7 +1755,7 @@ std::shared_ptr<Memory> GetArray(Object& object) {
 
 void SetArray(Object& object, std::vector<Object>& data) {
   if (object.guard_tag == 0x06) {
-    std::get<std::shared_ptr<Memory>>(object.data)->SetMemory(data);
+    std::get<Memory*>(object.data)->SetMemory(data);
     return;
   }
 
@@ -1820,13 +1764,13 @@ void SetArray(Object& object, std::vector<Object>& data) {
   } else {
     object.type = {0x06};
     object.data = std::make_shared<Memory>();
-    std::get<std::shared_ptr<Memory>>(object.data)->SetMemory(data);
+    std::get<Memory*>(object.data)->SetMemory(data);
     object.guard_tag = 0x06;
     object.guard_ptr = nullptr;
   }
 }
 
-std::shared_ptr<ClassMemory> GetObject(Object& object) {
+ClassMemory* GetObject(Object& object) {
   switch (object.type[0]) {
     case 0x01:
       LOGGING_ERROR("Cannot get object from byte.");
@@ -1841,9 +1785,9 @@ std::shared_ptr<ClassMemory> GetObject(Object& object) {
     case 0x06:
       LOGGING_ERROR("Cannot get object from array.");
     case 0x07:
-      return std::get<std::shared_ptr<ClassMemory>>(object.data);
+      return std::get<ClassMemory*>(object.data);
     case 0x09:
-      return std::get<std::shared_ptr<ClassMemory>>(object.data);
+      return std::get<ClassMemory*>(object.data);
     case 0x0A:
       LOGGING_ERROR("Cannot get object from pointer.");
     default:
@@ -1855,7 +1799,7 @@ std::shared_ptr<ClassMemory> GetObject(Object& object) {
   return nullptr;
 }
 
-void SetObject(Object& object, std::shared_ptr<ClassMemory> data) {
+void SetObject(Object& object, ClassMemory* data) {
   if (object.guard_tag == 0x09) {
     object.data = data;
     return;
@@ -1915,13 +1859,13 @@ Object& GetOrigin(Object& data) {
 
   while (object.get().type[0] == 0x07) {
     auto reference = std::get<ObjectReference>(object.get().data);
-    if (std::holds_alternative<std::shared_ptr<Memory>>(reference.memory)) {
+    if (std::holds_alternative<Memory*>(reference.memory)) {
       object =
-          std::ref(std::get<std::shared_ptr<Memory>>(reference.memory)
+          std::ref(std::get<Memory*>(reference.memory)
                        ->GetMemory()[std::get<std::size_t>(reference.index)]);
     } else {
       object =
-          std::ref(std::get<std::shared_ptr<ClassMemory>>(reference.memory)
+          std::ref(std::get<ClassMemory*>(reference.memory)
                        ->GetMembers()[std::get<std::string>(reference.index)]);
     }
   }
@@ -1954,11 +1898,11 @@ Object& GetOrigin(Object& data) {
         break;
       case 0x06:
         object.get().guard_ptr = static_cast<void*>(
-            &std::get<std::shared_ptr<Memory>>(object.get().data));
+            &std::get<Memory*>(object.get().data));
         break;
       case 0x09:
         object.get().guard_ptr = static_cast<void*>(
-            &std::get<std::shared_ptr<ClassMemory>>(object.get().data));
+            &std::get<ClassMemory*>(object.get().data));
         break;
       default:
         LOGGING_ERROR("Unexpected object type guard tag: " +

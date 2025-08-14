@@ -13,7 +13,7 @@ namespace Aq {
 namespace Interpreter {
 void AddBuiltInFunctionDeclaration(
     Interpreter& interpreter, std::string name,
-    std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>
+    std::function<int(Memory*, std::vector<std::size_t>)>
         function) {
   interpreter.functions[name].push_back(Function());
   interpreter.builtin_functions[name] = function;
@@ -82,7 +82,7 @@ void InitBuiltInFunctionDeclaration(Interpreter& interpreter) {
                                 __builtin_void);
 }
 
-int __builtin_void(std::shared_ptr<Memory> memory,
+int __builtin_void(Memory* memory,
                    std::vector<std::size_t> arguments) {
   // This function is intentionally left empty.
   // It can be used to indicate that a function does not return a value.
@@ -92,7 +92,7 @@ int __builtin_void(std::shared_ptr<Memory> memory,
   return 0;
 }
 
-int __builtin_print(std::shared_ptr<Memory> memory,
+int __builtin_print(Memory* memory,
                     std::vector<std::size_t> arguments) {
   if (arguments.size() < 1) {
     LOGGING_ERROR("Not enough arguments for __builtin_print.");
@@ -103,7 +103,7 @@ int __builtin_print(std::shared_ptr<Memory> memory,
 
   for (const auto& argument : arguments) {
     auto& object = memory->GetOriginData(argument);
-    switch (object.type[0]) {
+    switch (object.type) {
       case 0x01:
         printf("%d", GetByte(object));
         break;
@@ -121,7 +121,7 @@ int __builtin_print(std::shared_ptr<Memory> memory,
         break;
       default:
         LOGGING_ERROR("Unsupported object type in __builtin_print: " +
-                      std::to_string(object.type[0]));
+                      std::to_string(object.type));
         return -1;
     }
   }
@@ -129,7 +129,7 @@ int __builtin_print(std::shared_ptr<Memory> memory,
   return 0;
 }
 
-int __builtin_vaprint(std::shared_ptr<Memory> memory,
+int __builtin_vaprint(Memory* memory,
                       std::vector<std::size_t> arguments) {
   if (arguments.size() != 2)
     LOGGING_ERROR(
@@ -141,7 +141,7 @@ int __builtin_vaprint(std::shared_ptr<Memory> memory,
 
   for (auto argument : GetArray(value_object)->GetMemory()) {
     argument = GetOrigin(argument);
-    switch (argument.type[0]) {
+    switch (argument.type) {
       case 0x01:
         printf("%d", GetByte(argument));
         break;
@@ -159,7 +159,7 @@ int __builtin_vaprint(std::shared_ptr<Memory> memory,
         break;
       default:
         LOGGING_ERROR("Unsupported object type in __builtin_vaprint: " +
-                      std::to_string(argument.type[0]));
+                      std::to_string(argument.type));
         return -1;
     }
   }

@@ -66,7 +66,7 @@ class Type {
   static Type* CreateDoubleType();
 
   // Returns the vm type of the Type object as a vector of uint8_t.
-  std::vector<uint8_t> GetVmType();
+  uint8_t GetVmType();
 
   virtual operator std::string() {
     LOGGING_WARNING("Unexpected Type std::string.");

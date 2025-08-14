@@ -19,19 +19,19 @@ struct Interpreter;
 // Adds built-in functions to the interpreter.
 void AddBuiltInFunctionDeclaration(
     Interpreter& interpreter, std::string name,
-    std::function<int(std::shared_ptr<Memory>, std::vector<std::size_t>)>
+    std::function<int(Memory*, std::vector<std::size_t>)>
         function);
 
 // Initializes built-in function declarations.
 void InitBuiltInFunctionDeclaration(Interpreter& interpreter);
 
-int __builtin_void(std::shared_ptr<Memory> memory,
+int __builtin_void(Memory* memory,
                    std::vector<std::size_t> arguments);
 
-int __builtin_print(std::shared_ptr<Memory> memory,
+int __builtin_print(Memory* memory,
                     std::vector<std::size_t> arguments);
 
-int __builtin_vaprint(std::shared_ptr<Memory> memory,
+int __builtin_vaprint(Memory* memory,
                       std::vector<std::size_t> arguments);
 }  // namespace Interpreter
 }  // namespace Aq

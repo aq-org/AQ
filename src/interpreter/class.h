@@ -18,7 +18,7 @@ namespace Interpreter {
 class Class {
  public:
   Class() {
-    members_ = std::make_shared<ClassMemory>();
+    members_ = new ClassMemory();
     class_ = nullptr;
   }
   ~Class() = default;
@@ -41,7 +41,7 @@ class Class {
     return methods_;
   }
 
-  std::shared_ptr<ClassMemory> GetMembers() { return members_; }
+  ClassMemory* GetMembers() { return members_; }
 
   std::vector<Bytecode>& GetCode() { return code_; }
 
@@ -55,7 +55,7 @@ class Class {
   std::string name_;
   Ast::Class* class_;
   std::unordered_map<std::string, std::vector<Function>> methods_;
-  std::shared_ptr<ClassMemory> members_;
+  ClassMemory* members_;
   std::vector<Bytecode> code_;
   std::size_t name_index_ = 0;
 };
