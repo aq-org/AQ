@@ -413,15 +413,7 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
   std::string variable_name =
       scopes.back() + "." + declaration->GetVariableName();
 
-  std::size_t variable_index = 0;
-  if (category == Ast::Type::TypeCategory::kConst) {
-    variable_index = global_memory->AddWithType(vm_type, true);
-    category = dynamic_cast<Ast::ConstType*>(declaration->GetVariableType())
-                   ->GetSubType()
-                   ->GetTypeCategory();
-  } else {
-    variable_index = global_memory->AddWithType(vm_type);
-  }
+  std::size_t variable_index = global_memory->AddWithType(vm_type);
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
@@ -483,16 +475,9 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
 
   Object temp;
   std::reference_wrapper<Object> object = temp;
-  if (category == Ast::Type::TypeCategory::kConst) {
-    // If the variable is a const type, it needs to be handled specially.
-    memory->AddWithType(variable_name, return_type, true);
-    category = dynamic_cast<Ast::ConstType*>(declaration->GetVariableType())
-                   ->GetSubType()
-                   ->GetTypeCategory();
 
-  } else {
-    memory->AddWithType(variable_name, return_type);
-  }
+  memory->AddWithType(variable_name, return_type);
+
   std::size_t reference_index = global_memory->Add(1);
   code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 0,
                           global_memory->AddString(variable_name)));
@@ -566,7 +551,7 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
     // If the vm type of the sub type isn't 0x00 (auto type), it means that
     // the sub type is a primitive type, so we can add it into the global
     // memory.
-    if (sub_type->GetVmType()[0] != 0x00)
+    if (sub_type->GetVmType() != 0x00)
       array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 
@@ -640,8 +625,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
 
   // Adds the array index and the type index.
   memory->AddWithType(variable_name, array_type->GetVmType());
-  std::size_t array_index =
-      global_memory->AddReference(memory, new std::string(variable_name));
+  std::size_t array_index = global_memory->AddReference(memory, variable_name);
   std::size_t array_type_index = 0;
 
   LOGGING_INFO("DP");
@@ -753,7 +737,7 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
     // If the vm type of the sub type isn't 0x00 (auto type), it means that
     // the sub type is a primitive type, so we can add it into the global
     // memory.
-    if (sub_type->GetVmType()[0] != 0x00)
+    if (sub_type->GetVmType() != 0x00)
       array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 
@@ -840,7 +824,7 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
     // If the vm type of the sub type isn't 0x00 (auto type), it means that
     // the sub type is a primitive type, so we can add it into the global
     // memory.
-    if (sub_type->GetVmType()[0] != 0x00)
+    if (sub_type->GetVmType() != 0x00)
       array_type_index = global_memory->AddWithType(sub_type->GetVmType());
   }
 

@@ -102,111 +102,53 @@ std::size_t Memory::AddReference(ClassMemory* memory, std::string index) {
 }
 
 void Memory::InitObjectData(std::size_t index, ClassMemory* object) {
-  // TODO
   if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
 
   auto& origin_data = GetOriginData(index);
 
-  if (origin_data.constant_type &&
-      (origin_data.type.empty() || origin_data.type[0] != 0x09))
+  if (origin_data.constant_type && origin_data.type != 0x09)
     LOGGING_ERROR("Cannot set data to constant type memory.");
 
   origin_data.type = {0x09};
-  origin_data.data = object;
-  origin_data.guard_tag = 0x09;
-  origin_data.guard_ptr = nullptr;
+  origin_data.data.class_data = object;
 }
 
 void Memory::SetObjectData(std::size_t index, ClassMemory* object) {
-  // TODO
   if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
-  if (memory_[index].constant_data)
-    LOGGING_ERROR("Cannot set data to constant memory.");
 
   auto& origin_data = GetOriginData(index);
 
-  if (origin_data.constant_type &&
-      (origin_data.type.empty() || origin_data.type[0] != 0x09))
+  if (origin_data.constant_type && origin_data.type != 0x09)
     LOGGING_ERROR("Cannot set data to constant type memory.");
 
   origin_data.type = {0x09};
-  origin_data.data = object;
-  origin_data.guard_tag = 0x09;
-  origin_data.guard_ptr = nullptr;
+  origin_data.data.class_data = object;
 }
 
 void Memory::SetArrayData(std::size_t index, Memory* object) {
-  // TODO
   if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
-  if (memory_[index].constant_data)
-    LOGGING_ERROR("Cannot set data to constant memory.");
 
   auto& origin_data = GetOriginData(index);
 
-  if (origin_data.constant_type) {
-    if (origin_data.type.empty() || origin_data.type[0] != 0x06)
-      LOGGING_ERROR("Cannot set data to constant type memory.");
+  if (origin_data.constant_type && origin_data.type != 0x06)
+    LOGGING_ERROR("Cannot set data to constant type memory.");
 
-  } else {
-    origin_data.type = {0x06, 0x00};
-  }
-
-  origin_data.data = object;
-  origin_data.guard_tag = 0x06;
-  origin_data.guard_ptr = static_cast<void*>(
-      static_cast<void*>(&std::get<Memory*>(origin_data.data)));
+  origin_data.type = 0x06;
+  origin_data.data.array_data = object;
 }
 
 Object& Memory::GetOriginData(std::size_t index) {
-  // TODO
   if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
   std::reference_wrapper<Object> object = memory_[index];
-  if (object.get().type.empty()) INTERNAL_ERROR("Object type is empty.");
 
-  while (object.get().type[0] == 0x07) {
-    LOGGING_INFO("Get reference object.");
-    auto reference = std::get<ObjectReference>(object.get().data);
-    if (std::holds_alternative<Memory*>(reference.memory)) {
-      object =
-          std::ref(std::get<Memory*>(reference.memory)
-                       ->GetMemory()[std::get<std::size_t>(reference.index)]);
+  while (object.get().type == 0x07) {
+    auto reference = object.get().data.reference_data;
+    if (reference->is_class) {
+      object = std::ref(reference->memory.class_memory
+                            ->GetMembers()[*reference->index.variable_name]);
     } else {
-      object =
-          std::ref(std::get<ClassMemory*>(reference.memory)
-                       ->GetMembers()[std::get<std::string>(reference.index)]);
-    }
-  }
-
-  if (object.get().guard_tag == 0x00) {
-    object.get().guard_tag = object.get().type[0];
-    switch (object.get().guard_tag) {
-      case 0x00:
-        object.get().guard_ptr = nullptr;
-        break;
-      case 0x01:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<int8_t>(object.get().data));
-        break;
-      case 0x02:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<int64_t>(object.get().data));
-        break;
-      case 0x03:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<double>(object.get().data));
-        break;
-      case 0x04:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<uint64_t>(object.get().data));
-        break;
-      case 0x05:
-      case 0x06:
-      case 0x09:
-        object.get().guard_ptr = nullptr;
-        break;
-      default:
-        LOGGING_ERROR("Unexpected object type guard tag: " +
-                      std::to_string(object.get().guard_tag));
+      object = std::ref(
+          reference->memory.memory->GetMemory()[reference->index.index]);
     }
   }
 
@@ -214,52 +156,46 @@ Object& Memory::GetOriginData(std::size_t index) {
 }
 
 void Memory::GetLastReference(ObjectReference& object) {
-  // TODO
   Object temp;
-  if (std::holds_alternative<Memory*>(object.memory)) {
-    temp = std::get<Memory*>(object.memory)
-               ->GetMemory()[std::get<std::size_t>(object.index)];
+  if (object.is_class) {
+    temp =
+        object.memory.class_memory->GetMembers()[*object.index.variable_name];
   } else {
-    temp = std::get<ClassMemory*>(object.memory)
-               ->GetMembers()[std::get<std::string>(object.index)];
+    temp = object.memory.memory->GetMemory()[object.index.index];
   }
 
-  while (temp.type[0] == 0x07) {
-    if (std::holds_alternative<Memory*>(object.memory)) {
-      temp = std::get<Memory*>(object.memory)
-                 ->GetMemory()[std::get<std::size_t>(object.index)];
-      if (temp.type[0] == 0x07) return;
-      object = ObjectReference{std::get<Memory*>(object.memory),
-                               std::get<std::size_t>(object.index)};
+  while (temp.type == 0x07) {
+    if (object.is_class) {
+      temp =
+          object.memory.class_memory->GetMembers()[*object.index.variable_name];
+      if (temp.type != 0x07) return;
+      object = ObjectReference(temp.data.reference_data);
     } else {
-      temp = std::get<ClassMemory*>(object.memory)
-                 ->GetMembers()[std::get<std::string>(object.index)];
-      if (temp.type[0] == 0x07) return;
-      object = ObjectReference{std::get<ClassMemory*>(object.memory),
-                               std::get<std::string>(object.index)};
+      temp = object.memory.memory->GetMemory()[object.index.index];
+      if (temp.type != 0x07) return;
+      object = ObjectReference(temp.data.reference_data);
     }
   }
 }
 
 uint64_t Memory::GetUint64tData(std::size_t index) {
-  // TODO
   if (index >= memory_.size()) INTERNAL_ERROR("Out of memory.");
 
   Object object = GetOriginData(index);
 
-  switch (object.type[0]) {
+  switch (object.type) {
     case 0x01:
-      return std::get<int8_t>(object.data);
+      return object.data.byte_data;
 
     case 0x02:
-      return std::get<int64_t>(object.data);
+      return object.data.int_data;
 
     case 0x03:
       LOGGING_WARNING("Implicit conversion may changes value.");
-      return std::get<double>(object.data);
+      return object.data.float_data;
 
     case 0x04:
-      return std::get<uint64_t>(object.data);
+      return object.data.uint64t_data;
 
     default:
       LOGGING_ERROR("Unsupported data type.");
@@ -273,13 +209,13 @@ std::string Memory::GetStringData(std::size_t index) {
 
   Object object = GetOriginData(index);
 
-  if (object.type[0] != 0x05) {
+  if (object.type != 0x05) {
     LOGGING_ERROR("Expected string type, but got: " +
-                  std::to_string(object.type[0]));
+                  std::to_string(object.type));
     return "";
   }
 
-  return std::get<std::string>(object.data);
+  return *object.data.string_data;
 }
 
 void ClassMemory::Add(std::string name) { members_[name] = {0x00, 0, false}; }
@@ -329,7 +265,11 @@ void ClassMemory::AddString(std::string name, std::string value) {
 
 void ClassMemory::AddReference(std::string name, Memory* memory,
                                std::size_t index) {
-  ObjectReference reference = new ObjectReference{memory, index};
+  ObjectReference* reference = new ObjectReference();
+  reference->is_class = false;
+  reference->memory.memory = memory;
+  reference->index.index = index;
+
   Object object;
   object.type = 0x07;
   object.data.reference_data = reference;
@@ -339,7 +279,7 @@ void ClassMemory::AddReference(std::string name, Memory* memory,
 
 void ClassMemory::AddReference(std::string name, ClassMemory* memory,
                                std::string index) {
-  ObjectReference reference = new ObjectReference();
+  ObjectReference* reference = new ObjectReference();
   reference->is_class = true;
   reference->memory.class_memory = memory;
   reference->index.variable_name = new std::string(index);
@@ -352,62 +292,18 @@ void ClassMemory::AddReference(std::string name, ClassMemory* memory,
 }
 
 Object& ClassMemory::GetOriginData(std::string index) {
-  // TODO
   if (members_.find(index) == members_.end())
     LOGGING_ERROR("Class member not found: " + index);
   std::reference_wrapper<Object> object = members_[index];
-  if (object.get().type.empty()) INTERNAL_ERROR("Object type is empty.");
 
-  while (object.get().type[0] == 0x07) {
-    auto reference = std::get<ObjectReference>(object.get().data);
-    if (std::holds_alternative<Memory*>(reference.memory)) {
-      object =
-          std::ref(std::get<Memory*>(reference.memory)
-                       ->GetMemory()[std::get<std::size_t>(reference.index)]);
+  while (object.get().type == 0x07) {
+    auto reference = object.get().data.reference_data;
+    if (reference->is_class) {
+      object = std::ref(reference->memory.class_memory
+                            ->GetMembers()[*reference->index.variable_name]);
     } else {
-      object =
-          std::ref(std::get<ClassMemory*>(reference.memory)
-                       ->GetMembers()[std::get<std::string>(reference.index)]);
-    }
-  }
-
-  if (object.get().guard_tag == 0x00) {
-    object.get().guard_tag = object.get().type[0];
-    switch (object.get().guard_tag) {
-      case 0x00:
-        object.get().guard_ptr = nullptr;
-        break;
-      case 0x01:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<int8_t>(object.get().data));
-        break;
-      case 0x02:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<int64_t>(object.get().data));
-        break;
-      case 0x03:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<double>(object.get().data));
-        break;
-      case 0x04:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<uint64_t>(object.get().data));
-        break;
-      case 0x05:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<std::string>(object.get().data));
-        break;
-      case 0x06:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<Memory*>(object.get().data));
-        break;
-      case 0x09:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<ClassMemory*>(object.get().data));
-        break;
-      default:
-        LOGGING_ERROR("Unexpected object type guard tag: " +
-                      std::to_string(object.get().guard_tag));
+      object = std::ref(
+          reference->memory.memory->GetMemory()[reference->index.index]);
     }
   }
 

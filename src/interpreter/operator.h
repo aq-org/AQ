@@ -133,37 +133,6 @@ int LOAD_MEMBER(Memory* memory,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand);
 
-int8_t GetByte(Object& object);
-
-void SetByte(Object& object, int8_t data);
-
-int64_t GetLong(Object& object);
-
-void SetLong(Object& object, int64_t data);
-
-double GetDouble(Object& object);
-
-void SetDouble(Object& object, double data);
-
-uint64_t GetUint64(Object& object);
-
-void SetUint64(Object& object, uint64_t data);
-
-std::string GetString(Object& object);
-
-void SetString(Object& object, const std::string& data);
-
-Memory* GetArray(Object& object);
-
-void SetArray(Object& object, std::vector<Object>& memory);
-
-ClassMemory* GetObject(Object& object);
-
-void SetObject(Object& object, ClassMemory* data);
-
-void CreateCacheGuard(Object& object);
-
-Object& GetOrigin(Object& data);
 }  // namespace Interpreter
 }  // namespace Aq
 

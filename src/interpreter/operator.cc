@@ -16,14 +16,11 @@ std::size_t current_class_index = 2;
 
 int NOP() { return 0; }
 
-int NEW(
-    Memory* memory,
-    std::unordered_map<std::string, Class> classes, std::size_t ptr,
-    std::size_t size, std::size_t type,
-    std::unordered_map<
-        std::string,
-        std::function<int(Memory*, std::vector<std::size_t>)>>&
-        builtin_functions) {
+int NEW(Memory* memory, std::unordered_map<std::string, Class> classes,
+        std::size_t ptr, std::size_t size, std::size_t type,
+        std::unordered_map<
+            std::string, std::function<int(Memory*, std::vector<std::size_t>)>>&
+            builtin_functions) {
   Object type_data = memory->GetMemory()[type];
 
   std::size_t size_value = memory->GetUint64tData(size);
@@ -89,77 +86,28 @@ int NEW(
 }
 
 int ARRAY(
-    Memory* memory, std::size_t result, std::size_t ptr,
-    std::size_t index, std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<
-        std::string,
-        std::function<int(Memory*, std::vector<std::size_t>)>>&
+    Memory* memory, std::size_t result, std::size_t ptr, std::size_t index,
+    std::unordered_map<std::string, Class>& classes,
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions) {
-  ObjectReference origin_data{memory, result};
-  memory->GetLastReference(origin_data);
-  Object& origin_reference =
-      std::get<Memory*>(origin_data.memory)
-          ->GetMemory()[std::get<std::size_t>(origin_data.index)];
-
   auto array_object = memory->GetOriginData(ptr);
-  auto array = std::get<Memory*>(array_object.data);
+  auto array = array_object.data.array_data;
 
   auto index_object = memory->GetOriginData(index);
   index = GetUint64(index_object);
 
   if (index >= array->GetMemory().size()) array->GetMemory().resize(index + 1);
-  if (array->GetMemory()[index].type.empty()) {
-    if (array->GetMemory()[0].constant_type) {
-      array->GetMemory()[index].constant_type = true;
-      array->GetMemory()[index].type = array->GetMemory()[0].type;
 
-      // Class Type.
-      if (array->GetMemory()[0].type[0] == 0x09) {
-        std::string class_name = GetString(
-            std::get<ClassMemory*>(array->GetMemory()[0].data)
-                ->GetMembers()["@name"]);
-        if (classes.find(class_name) == classes.end())
-          LOGGING_ERROR("class not found.");
-
-        Class& class_data = classes[class_name];
-        array->GetMemory()[index].data = std::make_shared<ClassMemory>();
-        *std::get<ClassMemory*>(
-            array->GetMemory()[index].data) = *class_data.GetMembers();
-      }
-    } else {
-      array->GetMemory()[index].type.push_back(0x00);
-      array->GetMemory()[index].constant_type = false;
-      array->GetMemory()[index].constant_data = false;
-    }
-  }
-
-  if (origin_reference.constant_type) {
-    if (origin_reference.type.empty() || origin_reference.type[0] != 0x07)
-      LOGGING_ERROR(
-          "Cannot change constant data type memory and unexpected type.");
-
-    for (std::size_t i = 0; i < origin_reference.type.size(); i++) {
-      if (origin_reference.type[i + 1] == 0x00) break;
-
-      if (origin_reference.type[i + 1] != memory->GetOriginData(index).type[i])
-        LOGGING_ERROR(
-            "Cannot change constant data type memory and unexpected type.");
-    }
-
-    origin_reference.data = ObjectReference{array, index};
-  } else {
-    origin_reference.type = {0x07, 0x00};
-    origin_reference.data = ObjectReference{array, index};
-  }
-
-  origin_reference.guard_tag = 0x07;
-  origin_reference.guard_ptr = nullptr;
+  memory->GetMemory()[result].type = 0x07;
+  memory->GetMemory()[result].data.reference_data =
+      new ObjectReference{false, array, index};
 
   return 0;
 }
 
-int ADD(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int ADD(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
 
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -214,8 +162,8 @@ int ADD(Memory* memory, std::size_t result,
   return 0;
 }
 
-int SUB(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int SUB(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
 
   auto& operand1_data = memory->GetOriginData(operand1);
@@ -261,8 +209,8 @@ int SUB(Memory* memory, std::size_t result,
   return 0;
 }
 
-int MUL(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int MUL(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   auto& operand2_data = memory->GetOriginData(operand2);
@@ -305,8 +253,8 @@ int MUL(Memory* memory, std::size_t result,
   return 0;
 }
 
-int DIV(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int DIV(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   auto& operand2_data = memory->GetOriginData(operand2);
@@ -349,8 +297,8 @@ int DIV(Memory* memory, std::size_t result,
   return 0;
 }
 
-int REM(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int REM(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   auto& operand2_data = memory->GetOriginData(operand2);
@@ -391,8 +339,7 @@ int REM(Memory* memory, std::size_t result,
   }
   return 0;
 }
-int NEG(Memory* memory, std::size_t result,
-        std::size_t operand1) {
+int NEG(Memory* memory, std::size_t result, std::size_t operand1) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   std::size_t type = operand1_data.guard_tag;
@@ -428,8 +375,8 @@ int NEG(Memory* memory, std::size_t result,
   return 0;
 }
 
-int SHL(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int SHL(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   auto& operand2_data = memory->GetOriginData(operand2);
@@ -471,8 +418,8 @@ int SHL(Memory* memory, std::size_t result,
   return 0;
 }
 
-int SHR(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int SHR(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   auto& operand2_data = memory->GetOriginData(operand2);
@@ -514,8 +461,7 @@ int SHR(Memory* memory, std::size_t result,
   return 0;
 }
 
-int REFER(Memory* memory, std::size_t result,
-          std::size_t operand1) {
+int REFER(Memory* memory, std::size_t result, std::size_t operand1) {
   if (result >= memory->GetMemory().size()) INTERNAL_ERROR("Out of memory.");
 
   LOGGING_INFO("result: " + std::to_string(result) +
@@ -547,8 +493,8 @@ int REFER(Memory* memory, std::size_t result,
   return 0;
 }
 
-std::size_t IF(Memory* memory, std::size_t condition,
-               std::size_t true_branche, std::size_t false_branche) {
+std::size_t IF(Memory* memory, std::size_t condition, std::size_t true_branche,
+               std::size_t false_branche) {
   auto condition_data = GetByte(memory->GetOriginData(condition));
 
   if (condition_data != 0) return true_branche;
@@ -556,8 +502,8 @@ std::size_t IF(Memory* memory, std::size_t condition,
   return false_branche;
 }
 
-int AND(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int AND(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   auto& operand2_data = memory->GetOriginData(operand2);
@@ -646,8 +592,8 @@ int OR(Memory* memory, std::size_t result, std::size_t operand1,
   return 0;
 }
 
-int XOR(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2) {
+int XOR(Memory* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2) {
   auto& result_reference = memory->GetOriginData(result);
   auto& operand1_data = memory->GetOriginData(operand1);
   auto& operand2_data = memory->GetOriginData(operand2);
@@ -921,13 +867,11 @@ int CMP(Memory* memory, std::size_t result, std::size_t opcode,
   return -1;
 }
 
-int EQUAL(Memory* memory, std::size_t result,
-          std::size_t value) {
+int EQUAL(Memory* memory, std::size_t result, std::size_t value) {
   LOGGING_INFO("EQUAL operation on memory at index: " + std::to_string(result) +
                " with value: " + std::to_string(value));
   if (memory->GetMemory()[result].type[0] == 0x07 &&
-      !std::holds_alternative<Memory*>(
-          memory->GetMemory()[result].data))
+      !std::holds_alternative<Memory*>(memory->GetMemory()[result].data))
     return REFER(memory, result, value);
 
   auto& result_reference = memory->GetOriginData(result);
@@ -973,11 +917,9 @@ std::size_t GOTO(Memory* memory, std::size_t location) {
 }
 
 int INVOKE_METHOD(
-    Memory* memory,
-    std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<
-        std::string,
-        std::function<int(Memory*, std::vector<std::size_t>)>>&
+    Memory* memory, std::unordered_map<std::string, Class>& classes,
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<size_t> arguments) {
   if (arguments.size() < 3) INTERNAL_ERROR("Invalid arguments.");
@@ -1003,12 +945,11 @@ int INVOKE_METHOD(
 }
 
 int InvokeClassMethod(
-    Memory* memory, Object& class_object,
-    Object& method_name_object, std::vector<size_t> arguments,
+    Memory* memory, Object& class_object, Object& method_name_object,
+    std::vector<size_t> arguments,
     std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<
-        std::string,
-        std::function<int(Memory*, std::vector<std::size_t>)>>&
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions) {
   std::string class_name =
       GetString(GetObject(class_object)->GetMembers()["@name"]);
@@ -1259,8 +1200,7 @@ int InvokeClassMethod(
 
   return 0;
 }
-Function SelectBestFunction(Memory* memory,
-                            std::vector<Function>& functions,
+Function SelectBestFunction(Memory* memory, std::vector<Function>& functions,
                             std::vector<std::size_t>& arguments) {
   int64_t value = -1;
   Function best_function;
@@ -1288,8 +1228,7 @@ Function SelectBestFunction(Memory* memory,
   return best_function;
 }
 
-int64_t GetFunctionOverloadValue(Memory* memory,
-                                 Function& function,
+int64_t GetFunctionOverloadValue(Memory* memory, Function& function,
                                  std::vector<std::size_t>& arguments) {
   int64_t value = 0;
   if (function.IsVariadic()) {
@@ -1333,9 +1272,8 @@ int64_t GetFunctionOverloadValue(Memory* memory,
         } else if (function_param.guard_tag == 0x09) {
           if (GetString(std::get<ClassMemory*>(argument.data)
                             ->GetMembers()["@name"]) !=
-              GetString(
-                  std::get<ClassMemory*>(function_param.data)
-                      ->GetMembers()["@name"]))
+              GetString(std::get<ClassMemory*>(function_param.data)
+                            ->GetMembers()["@name"]))
             return -1;
         }
 
@@ -1375,8 +1313,7 @@ int64_t GetFunctionOverloadValue(Memory* memory,
   return value;
 }
 
-int LOAD_MEMBER(Memory* memory,
-                std::unordered_map<std::string, Class>& classes,
+int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand) {
   auto& result_reference = memory->GetMemory()[result];
@@ -1394,523 +1331,10 @@ int LOAD_MEMBER(Memory* memory,
   result_reference.constant_data = false;
   result_reference.guard_tag = 0x07;
   result_reference.guard_ptr = nullptr;
-  result_reference.data =
-      ObjectReference{std::get<ClassMemory*>(class_object.data),
-                      GetString(member_name_object)};
+  result_reference.data = ObjectReference{
+      std::get<ClassMemory*>(class_object.data), GetString(member_name_object)};
 
   return 0;
-}
-
-int8_t GetByte(Object& object) {
-  switch (object.guard_tag) {
-    case 0x00:
-      CreateCacheGuard(object);
-      return GetByte(object);
-    case 0x01:
-      return *static_cast<int8_t*>(object.guard_ptr);
-    case 0x02:
-      LOGGING_WARNING("Implicit conversion may changes value.");
-      return static_cast<int8_t>(*static_cast<int64_t*>(object.guard_ptr));
-    case 0x03:
-      LOGGING_WARNING("Implicit conversion may changes value.");
-      return static_cast<int8_t>(*static_cast<double*>(object.guard_ptr));
-    case 0x04:
-      LOGGING_WARNING("Implicit conversion may changes value.");
-      return static_cast<int8_t>(*static_cast<uint64_t*>(object.guard_ptr));
-    case 0x05:
-      LOGGING_ERROR("Cannot get byte from string.");
-    case 0x06:
-      LOGGING_ERROR("Cannot get byte from array.");
-    case 0x07:
-      LOGGING_ERROR("Cannot get byte from reference.");
-    case 0x09:
-      LOGGING_ERROR("Cannot get byte from class.");
-    case 0x0A:
-      LOGGING_ERROR("Cannot get byte from pointer.");
-    default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.guard_tag));
-      break;
-  }
-
-  return 0;
-}
-
-void SetByte(Object& object, int8_t data) {
-  if (object.guard_tag == 0x01) {
-    *static_cast<int8_t*>(object.guard_ptr) = data;
-    return;
-  }
-
-  if (object.constant_type) {
-    switch (object.guard_tag) {
-      case 0x01:
-        *static_cast<int8_t*>(object.guard_ptr) = data;
-        break;
-      case 0x02:
-        *static_cast<int64_t*>(object.guard_ptr) = data;
-        break;
-      case 0x03:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<double*>(object.guard_ptr) = data;
-        break;
-      case 0x04:
-        *static_cast<uint64_t*>(object.guard_ptr) = data;
-        break;
-      default:
-        LOGGING_ERROR("Unsupported data type: " +
-                      std::to_string(object.guard_tag));
-    }
-  } else {
-    object.type = {0x01};
-    object.data = data;
-    object.guard_tag = 0x01;
-    object.guard_ptr = static_cast<void*>(&object.data);
-  }
-}
-
-int64_t GetLong(Object& object) {
-  switch (object.guard_tag) {
-    case 0x00:
-      CreateCacheGuard(object);
-      return GetLong(object);
-    case 0x01:
-      return static_cast<int64_t>(*static_cast<int8_t*>(object.guard_ptr));
-    case 0x02:
-      return *static_cast<int64_t*>(object.guard_ptr);
-    case 0x03:
-      LOGGING_WARNING("Implicit conversion may changes value.");
-      return static_cast<int64_t>(*static_cast<double*>(object.guard_ptr));
-    case 0x04:
-      LOGGING_WARNING("Implicit conversion may changes value.");
-      return static_cast<int64_t>(*static_cast<uint64_t*>(object.guard_ptr));
-    case 0x05:
-      LOGGING_ERROR("Cannot get long from string.");
-    case 0x06:
-      LOGGING_ERROR("Cannot get long from array.");
-    case 0x07:
-      LOGGING_ERROR("Cannot get long from reference.");
-    case 0x09:
-      LOGGING_ERROR("Cannot get long from class.");
-    case 0x0A:
-      LOGGING_ERROR("Cannot get long from pointer.");
-    default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.guard_tag));
-      break;
-  }
-
-  return 0;
-}
-
-void SetLong(Object& object, int64_t data) {
-  if (object.guard_tag == 0x02) {
-    *static_cast<int64_t*>(object.guard_ptr) = data;
-    return;
-  }
-
-  if (object.constant_type) {
-    switch (object.guard_tag) {
-      case 0x00:
-        CreateCacheGuard(object);
-        SetLong(object, data);
-        return;
-      case 0x01:
-        *static_cast<int8_t*>(object.guard_ptr) = data;
-        break;
-      case 0x02:
-        *static_cast<int64_t*>(object.guard_ptr) = data;
-        break;
-      case 0x03:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<double*>(object.guard_ptr) = data;
-        break;
-      case 0x04:
-        *static_cast<uint64_t*>(object.guard_ptr) = data;
-        break;
-      default:
-        LOGGING_ERROR("Unsupported data type: " +
-                      std::to_string(object.guard_tag));
-    }
-  } else {
-    object.type = {0x02};
-    object.data = data;
-    object.guard_tag = 0x02;
-    object.guard_ptr = static_cast<void*>(&object.data);
-  }
-}
-
-double GetDouble(Object& object) {
-  switch (object.guard_tag) {
-    case 0x00:
-      CreateCacheGuard(object);
-      return GetDouble(object);
-    case 0x01:
-      return static_cast<double>(*static_cast<int8_t*>(object.guard_ptr));
-    case 0x02:
-      return static_cast<double>(*static_cast<int64_t*>(object.guard_ptr));
-    case 0x03:
-      return *static_cast<double*>(object.guard_ptr);
-    case 0x04:
-      LOGGING_WARNING("Implicit conversion may changes value.");
-      return static_cast<double>(*static_cast<uint64_t*>(object.guard_ptr));
-    case 0x05:
-      LOGGING_ERROR("Cannot get double from string.");
-    case 0x06:
-      LOGGING_ERROR("Cannot get double from array.");
-    case 0x07:
-      LOGGING_ERROR("Cannot get double from reference.");
-    case 0x09:
-      LOGGING_ERROR("Cannot get double from class.");
-    case 0x0A:
-      LOGGING_ERROR("Cannot get double from pointer.");
-    default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.guard_tag));
-      break;
-  }
-
-  return 0.0;
-}
-
-void SetDouble(Object& object, double data) {
-  if (object.guard_tag == 0x03) {
-    *static_cast<double*>(object.guard_ptr) = data;
-    return;
-  }
-
-  if (object.constant_type) {
-    switch (object.guard_tag) {
-      case 0x01:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<int8_t*>(object.guard_ptr) = data;
-        break;
-      case 0x02:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<int64_t*>(object.guard_ptr) = data;
-        break;
-      case 0x03:
-        *static_cast<double*>(object.guard_ptr) = data;
-        break;
-      case 0x04:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<uint64_t*>(object.guard_ptr) = data;
-        break;
-      default:
-        LOGGING_ERROR("Unsupported data type: " +
-                      std::to_string(object.guard_tag));
-    }
-  } else {
-    object.type = {0x03};
-    object.data = data;
-    object.guard_tag = 0x03;
-    object.guard_ptr = static_cast<void*>(&object.data);
-  }
-}
-
-uint64_t GetUint64(Object& object) {
-  switch (object.guard_tag) {
-    case 0x00:
-      CreateCacheGuard(object);
-      return GetUint64(object);
-    case 0x01:
-      return static_cast<uint64_t>(*static_cast<int8_t*>(object.guard_ptr));
-    case 0x02:
-      return static_cast<uint64_t>(*static_cast<int64_t*>(object.guard_ptr));
-    case 0x03:
-      LOGGING_WARNING("Implicit conversion may changes value.");
-      return static_cast<uint64_t>(*static_cast<double*>(object.guard_ptr));
-    case 0x04:
-      return *static_cast<uint64_t*>(object.guard_ptr);
-    case 0x05:
-      LOGGING_ERROR("Cannot get uint64 from string.");
-    case 0x06:
-      LOGGING_ERROR("Cannot get uint64 from array.");
-    case 0x07:
-      LOGGING_ERROR("Cannot get uint64 from reference.");
-    case 0x09:
-      LOGGING_ERROR("Cannot get uint64 from class.");
-    case 0x0A:
-      LOGGING_ERROR("Cannot get uint64 from pointer.");
-    default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.guard_tag));
-      break;
-  }
-
-  return 0;
-}
-
-void SetUint64(Object& object, uint64_t data) {
-  if (object.guard_tag == 0x04) {
-    *static_cast<uint64_t*>(object.guard_ptr) = data;
-    return;
-  }
-
-  if (object.constant_type) {
-    switch (object.guard_tag) {
-      case 0x01:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<int8_t*>(object.guard_ptr) = data;
-        break;
-      case 0x02:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<int64_t*>(object.guard_ptr) = data;
-        break;
-      case 0x03:
-        LOGGING_WARNING("Implicit conversion may changes value.");
-        *static_cast<double*>(object.guard_ptr) = data;
-        break;
-      case 0x04:
-        *static_cast<uint64_t*>(object.guard_ptr) = data;
-        break;
-      default:
-        LOGGING_ERROR("Unsupported data type: " +
-                      std::to_string(object.guard_tag));
-    }
-  } else {
-    object.type = {0x04};
-    object.data = data;
-    object.guard_tag = 0x04;
-    object.guard_ptr = static_cast<void*>(&object.data);
-  }
-}
-
-std::string GetString(Object& object) {
-  switch (object.guard_tag) {
-    case 0x00:
-      CreateCacheGuard(object);
-      return GetString(object);
-    case 0x01:
-      LOGGING_ERROR("Cannot get string from byte.");
-    case 0x02:
-      LOGGING_ERROR("Cannot get string from long.");
-    case 0x03:
-      LOGGING_ERROR("Cannot get string from double.");
-    case 0x04:
-      LOGGING_ERROR("Cannot get string from uint64.");
-    case 0x05:
-      return std::get<std::string>(object.data);
-    case 0x06:
-      LOGGING_ERROR("Cannot get string from array.");
-    case 0x07:
-      LOGGING_ERROR("Cannot get string from reference.");
-    case 0x09:
-      LOGGING_ERROR("Cannot get string from class.");
-    case 0x0A:
-      LOGGING_ERROR("Cannot get string from pointer.");
-    default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.guard_tag));
-      break;
-  }
-
-  return "";
-}
-
-void SetString(Object& object, const std::string& data) {
-  if (object.guard_tag == 0x05) {
-    object.data = data;
-    return;
-  }
-
-  if (object.constant_type) {
-    LOGGING_ERROR("Unsupported data type: " + std::to_string(object.guard_tag));
-  } else {
-    object.type = {0x05};
-    object.data = data;
-    object.guard_tag = 0x05;
-    object.guard_ptr = static_cast<void*>(&object.data);
-  }
-}
-
-Memory* GetArray(Object& object) {
-  switch (object.type[0]) {
-    case 0x01:
-      LOGGING_ERROR("Cannot get array from byte.");
-    case 0x02:
-      LOGGING_ERROR("Cannot get array from long.");
-    case 0x03:
-      LOGGING_ERROR("Cannot get array from double.");
-    case 0x04:
-      LOGGING_ERROR("Cannot get array from uint64.");
-    case 0x05:
-      LOGGING_ERROR("Cannot get array from string.");
-    case 0x06:
-      return std::get<Memory*>(object.data);
-    case 0x07:
-      LOGGING_ERROR("Cannot get array from reference.");
-    case 0x09:
-      LOGGING_ERROR("Cannot get array from class.");
-    case 0x0A:
-      LOGGING_ERROR("Cannot get array from pointer.");
-    default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.guard_tag));
-      break;
-  }
-
-  return nullptr;
-}
-
-void SetArray(Object& object, std::vector<Object>& data) {
-  if (object.guard_tag == 0x06) {
-    std::get<Memory*>(object.data)->SetMemory(data);
-    return;
-  }
-
-  if (object.constant_type) {
-    LOGGING_ERROR("Cannot set array to constant type memory.");
-  } else {
-    object.type = {0x06};
-    object.data = std::make_shared<Memory>();
-    std::get<Memory*>(object.data)->SetMemory(data);
-    object.guard_tag = 0x06;
-    object.guard_ptr = nullptr;
-  }
-}
-
-ClassMemory* GetObject(Object& object) {
-  switch (object.type[0]) {
-    case 0x01:
-      LOGGING_ERROR("Cannot get object from byte.");
-    case 0x02:
-      LOGGING_ERROR("Cannot get object from long.");
-    case 0x03:
-      LOGGING_ERROR("Cannot get object from double.");
-    case 0x04:
-      LOGGING_ERROR("Cannot get object from uint64.");
-    case 0x05:
-      LOGGING_ERROR("Cannot get object from string.");
-    case 0x06:
-      LOGGING_ERROR("Cannot get object from array.");
-    case 0x07:
-      return std::get<ClassMemory*>(object.data);
-    case 0x09:
-      return std::get<ClassMemory*>(object.data);
-    case 0x0A:
-      LOGGING_ERROR("Cannot get object from pointer.");
-    default:
-      LOGGING_ERROR("Unsupported data type: " +
-                    std::to_string(object.guard_tag));
-      break;
-  }
-
-  return nullptr;
-}
-
-void SetObject(Object& object, ClassMemory* data) {
-  if (object.guard_tag == 0x09) {
-    object.data = data;
-    return;
-  }
-
-  if (object.constant_type) {
-    LOGGING_ERROR("Cannot set object to constant type memory.");
-  } else {
-    object.type = {0x09};
-    object.data = data;
-    object.guard_tag = 0x09;
-    object.guard_ptr = nullptr;
-  }
-}
-
-void CreateCacheGuard(Object& object) {
-  switch (object.type[0]) {
-    case 0x01:
-      object.guard_tag = 0x01;
-      object.guard_ptr = static_cast<void*>(&object.data);
-      break;
-    case 0x02:
-      object.guard_tag = 0x02;
-      object.guard_ptr = static_cast<void*>(&object.data);
-      break;
-    case 0x03:
-      object.guard_tag = 0x03;
-      object.guard_ptr = static_cast<void*>(&object.data);
-      break;
-    case 0x04:
-      object.guard_tag = 0x04;
-      object.guard_ptr = static_cast<void*>(&object.data);
-      break;
-    case 0x05:
-      object.guard_tag = 0x05;
-      object.guard_ptr = static_cast<void*>(&object.data);
-      break;
-    case 0x06:
-      object.guard_tag = 0x06;
-      object.guard_ptr = nullptr;
-      break;
-    case 0x07:
-      object.guard_tag = 0x07;
-      object.guard_ptr = nullptr;
-      break;
-    case 0x09:
-      object.guard_tag = 0x09;
-      object.guard_ptr = nullptr;
-      break;
-    default:
-      LOGGING_ERROR("Unsupported data type: " + std::to_string(object.type[0]));
-  }
-}
-
-Object& GetOrigin(Object& data) {
-  std::reference_wrapper<Object> object = data;
-
-  while (object.get().type[0] == 0x07) {
-    auto reference = std::get<ObjectReference>(object.get().data);
-    if (std::holds_alternative<Memory*>(reference.memory)) {
-      object =
-          std::ref(std::get<Memory*>(reference.memory)
-                       ->GetMemory()[std::get<std::size_t>(reference.index)]);
-    } else {
-      object =
-          std::ref(std::get<ClassMemory*>(reference.memory)
-                       ->GetMembers()[std::get<std::string>(reference.index)]);
-    }
-  }
-
-  if (object.get().guard_tag == 0x00) {
-    object.get().guard_tag = object.get().type[0];
-    switch (object.get().guard_tag) {
-      case 0x00:
-        object.get().guard_ptr = nullptr;
-        break;
-      case 0x01:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<int8_t>(object.get().data));
-        break;
-      case 0x02:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<int64_t>(object.get().data));
-        break;
-      case 0x03:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<double>(object.get().data));
-        break;
-      case 0x04:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<uint64_t>(object.get().data));
-        break;
-      case 0x05:
-        object.get().guard_ptr =
-            static_cast<void*>(&std::get<std::string>(object.get().data));
-        break;
-      case 0x06:
-        object.get().guard_ptr = static_cast<void*>(
-            &std::get<Memory*>(object.get().data));
-        break;
-      case 0x09:
-        object.get().guard_ptr = static_cast<void*>(
-            &std::get<ClassMemory*>(object.get().data));
-        break;
-      default:
-        LOGGING_ERROR("Unexpected object type guard tag: " +
-                      std::to_string(object.get().guard_tag));
-    }
-  }
-
-  return object;
 }
 
 }  // namespace Interpreter
