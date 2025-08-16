@@ -4,6 +4,8 @@
 
 #include "interpreter/memory.h"
 
+#include <functional>
+
 #include "logging/logging.h"
 
 namespace Aq {
@@ -21,7 +23,7 @@ std::size_t Memory::AddWithType(uint8_t type) {
   LOGGING_WARNING(
       "This method has been deprecated and there may be risks associated with "
       "its use.");
-  memory_.push_back({type, 0, true});
+  memory_.push_back({type, 0, type != 0x00});
 
   return memory_.size() - 1;
 }
@@ -169,11 +171,11 @@ void Memory::GetLastReference(ObjectReference& object) {
       temp =
           object.memory.class_memory->GetMembers()[*object.index.variable_name];
       if (temp.type != 0x07) return;
-      object = ObjectReference(temp.data.reference_data);
+      object = ObjectReference(*temp.data.reference_data);
     } else {
       temp = object.memory.memory->GetMemory()[object.index.index];
       if (temp.type != 0x07) return;
-      object = ObjectReference(temp.data.reference_data);
+      object = ObjectReference(*temp.data.reference_data);
     }
   }
 }
@@ -224,7 +226,7 @@ void ClassMemory::AddWithType(std::string name, uint8_t type) {
   LOGGING_WARNING(
       "This method has been deprecated and there may be risks associated with "
       "its use.");
-  members_[name] = {type, 0, true};
+  members_[name] = {type, 0, type != 0x00};
 }
 
 void ClassMemory::AddByte(std::string name, int8_t value) {

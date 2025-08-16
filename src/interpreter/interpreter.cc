@@ -29,8 +29,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
   global_memory->Add(1);
 
   // Bytecode Running class.
-  std::vector<uint8_t> bytecodeclass_vm_type{0x09};
-  global_memory->AddWithType(bytecodeclass_vm_type);
+  global_memory->AddWithType(0x09);
   global_code.push_back(
       Bytecode(_AQVM_OPERATOR_EQUAL, 2, 0, global_memory->AddString("(void)")));
   global_code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, 1, 0));
@@ -204,14 +203,15 @@ void Interpreter::Generate(Ast::Compound* statement) {
 void Interpreter::Run() {
   LOGGING_INFO("Running interpreter...");
 
-  global_memory->GetMemory()[2].type = {0x09};
+  global_memory->GetMemory()[2].type = 0x09;
   global_memory->GetMemory()[2].constant_type = true;
-  global_memory->GetMemory()[2].guard_tag = 0x00;
-  global_memory->GetMemory()[2].guard_ptr = nullptr;
-  global_memory->GetMemory()[2].data = context.current_class->GetMembers();
-  Object method_name_object{{0x05}, ".!__start", false, false, 0x00, nullptr};
+  global_memory->GetMemory()[2].data.class_data =
+      context.current_class->GetMembers();
+
+  std::size_t method_name_object = global_memory->AddString(".!__start");
+
   std::vector<size_t> arguments = {1};
-  InvokeClassMethod(global_memory, global_memory->GetMemory()[2],
+  InvokeClassMethod(global_memory, 2,
                     method_name_object, arguments, classes, builtin_functions);
 }
 

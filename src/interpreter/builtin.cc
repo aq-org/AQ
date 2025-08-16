@@ -13,8 +13,7 @@ namespace Aq {
 namespace Interpreter {
 void AddBuiltInFunctionDeclaration(
     Interpreter& interpreter, std::string name,
-    std::function<int(Memory*, std::vector<std::size_t>)>
-        function) {
+    std::function<int(Memory*, std::vector<std::size_t>)> function) {
   interpreter.functions[name].push_back(Function());
   interpreter.builtin_functions[name] = function;
 }
@@ -82,8 +81,7 @@ void InitBuiltInFunctionDeclaration(Interpreter& interpreter) {
                                 __builtin_void);
 }
 
-int __builtin_void(Memory* memory,
-                   std::vector<std::size_t> arguments) {
+int __builtin_void(Memory* memory, std::vector<std::size_t> arguments) {
   // This function is intentionally left empty.
   // It can be used to indicate that a function does not return a value.
   LOGGING_WARNING(
@@ -92,12 +90,13 @@ int __builtin_void(Memory* memory,
   return 0;
 }
 
-int __builtin_print(Memory* memory,
-                    std::vector<std::size_t> arguments) {
+int __builtin_print(Memory* memory, std::vector<std::size_t> arguments) {
   if (arguments.size() < 1) {
     LOGGING_ERROR("Not enough arguments for __builtin_print.");
     return -1;
   }
+
+  auto memory_ptr = memory->GetMemory().data();
 
   arguments.erase(arguments.begin());
 
@@ -105,19 +104,19 @@ int __builtin_print(Memory* memory,
     auto& object = memory->GetOriginData(argument);
     switch (object.type) {
       case 0x01:
-        printf("%d", GetByte(object));
+        printf("%d", GetByte(memory_ptr, argument));
         break;
       case 0x02:
-        printf("%lld", GetLong(object));
+        printf("%lld", GetLong(memory_ptr, argument));
         break;
       case 0x03:
-        printf("%g", GetDouble(object));
+        printf("%g", GetDouble(memory_ptr, argument));
         break;
       case 0x04:
-        printf("%llu", GetUint64(object));
+        printf("%llu", GetUint64(memory_ptr, argument));
         break;
       case 0x05:
-        printf("%s", GetString(object).c_str());
+        printf("%s", GetString(memory_ptr, argument).c_str());
         break;
       default:
         LOGGING_ERROR("Unsupported object type in __builtin_print: " +
@@ -129,37 +128,39 @@ int __builtin_print(Memory* memory,
   return 0;
 }
 
-int __builtin_vaprint(Memory* memory,
-                      std::vector<std::size_t> arguments) {
+int __builtin_vaprint(Memory* memory, std::vector<std::size_t> arguments) {
   if (arguments.size() != 2)
     LOGGING_ERROR(
         "Invalid number of arguments for __builtin_vaprint. Expected 2, got " +
         std::to_string(arguments.size()));
 
+  auto memory_ptr = memory->GetMemory().data();
+
   std::size_t value_index = arguments[1];
   auto& value_object = memory->GetOriginData(value_index);
+  auto array_ptr = GetArray(memory_ptr, value_index)->GetMemory().data();
 
-  for (auto argument : GetArray(value_object)->GetMemory()) {
-    argument = GetOrigin(argument);
-    switch (argument.type) {
+  for (std::size_t i = 0;
+       i < GetArray(memory_ptr, value_index)->GetMemory().size(); i++) {
+    switch (array_ptr[i].type) {
       case 0x01:
-        printf("%d", GetByte(argument));
+        printf("%d", GetByte(array_ptr, i));
         break;
       case 0x02:
-        printf("%lld", GetLong(argument));
+        printf("%lld", GetLong(array_ptr, i));
         break;
       case 0x03:
-        printf("%g", GetDouble(argument));
+        printf("%g", GetDouble(array_ptr, i));
         break;
       case 0x04:
-        printf("%llu", GetUint64(argument));
+        printf("%llu", GetUint64(array_ptr, i));
         break;
       case 0x05:
-        printf("%s", GetString(argument).c_str());
+        printf("%s", GetString(array_ptr, i).c_str());
         break;
       default:
         LOGGING_ERROR("Unsupported object type in __builtin_vaprint: " +
-                      std::to_string(argument.type));
+                      std::to_string(array_ptr[i].type));
         return -1;
     }
   }

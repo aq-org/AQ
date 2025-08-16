@@ -43,93 +43,80 @@
 
 namespace Aq {
 namespace Interpreter {
-
 int NOP();
 
-int NEW(
-    Memory* memory,
-    std::unordered_map<std::string, Class> classes, std::size_t ptr,
-    std::size_t size, std::size_t type,
-    std::unordered_map<
-        std::string,
-        std::function<int(Memory*, std::vector<std::size_t>)>>&
-        builtin_functions);
+int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
+        std::size_t ptr, std::size_t size, std::size_t type,
+        std::unordered_map<
+            std::string, std::function<int(Memory*, std::vector<std::size_t>)>>&
+            builtin_functions);
 
-int ARRAY(Memory* memory, std::size_t result, std::size_t ptr,
+int ARRAY(Object* memory, std::size_t result, std::size_t ptr,
           std::size_t index, std::unordered_map<std::string, Class>& classes);
 
-int ADD(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
+int ADD(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-int SUB(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
+int SUB(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-int MUL(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
+int MUL(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-int DIV(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
+int DIV(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-int REM(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
-int NEG(Memory* memory, std::size_t result,
-        std::size_t operand1);
+int REM(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
+int NEG(Object* memory, std::size_t result, std::size_t operand1);
 
-int SHL(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
+int SHL(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-int SHR(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
+int SHR(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-int REFER(Memory* memory, std::size_t result,
-          std::size_t operand1);
+int REFER(Memory* memory, std::size_t result, std::size_t operand1);
 
-size_t IF(Memory* memory, std::size_t condition,
-          std::size_t true_branche, std::size_t false_branche);
+size_t IF(Object* memory, std::size_t condition, std::size_t true_branche,
+          std::size_t false_branche);
 
-int AND(Memory* memory, std::size_t result,
-        std::size_t operand1, std::size_t operand2);
+int AND(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
 
-int OR(Memory* memory, std::size_t result, std::size_t operand1,
+int OR(Object* memory, std::size_t result, std::size_t operand1,
        std::size_t operand2);
 
-int XOR(Memory* memory, std::size_t result,
+int XOR(Object* memory, std::size_t result, std::size_t operand1,
+        std::size_t operand2);
+
+int CMP(Object* memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2);
 
-int CMP(Memory* memory, std::size_t result, std::size_t opcode,
-        std::size_t operand1, std::size_t operand2);
+int EQUAL(Object* memory, std::size_t result, std::size_t value);
 
-int EQUAL(Memory* memory, std::size_t result,
-          std::size_t value);
-
-size_t GOTO(Memory* memory, std::size_t location);
+size_t GOTO(Object* memory, std::size_t location);
 
 int INVOKE_METHOD(
-    Memory* memory,
-    std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<
-        std::string,
-        std::function<int(Memory*, std::vector<std::size_t>)>>&
+    Memory* memory, std::unordered_map<std::string, Class>& classes,
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions,
     std::vector<std::size_t> arguments);
 
 int InvokeClassMethod(
-    Memory* memory, Object& class_object,
-    Object& method_name_object, std::vector<std::size_t> arguments,
+    Memory* memory, std::size_t class_object, std::size_t method_name_object,
+    std::vector<std::size_t> arguments,
     std::unordered_map<std::string, Class>& classes,
-    std::unordered_map<
-        std::string,
-        std::function<int(Memory*, std::vector<std::size_t>)>>&
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
         builtin_functions);
-Function SelectBestFunction(Memory* memory,
-                            std::vector<Function>& functions,
+Function SelectBestFunction(Object* memory, std::vector<Function>& functions,
                             std::vector<std::size_t>& arguments);
-int64_t GetFunctionOverloadValue(Memory* memory,
-                                 Function& function,
+int64_t GetFunctionOverloadValue(Object* memory, Function& function,
                                  std::vector<std::size_t>& arguments);
 
-int LOAD_MEMBER(Memory* memory,
-                std::unordered_map<std::string, Class>& classes,
+int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand);
 
