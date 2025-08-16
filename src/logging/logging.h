@@ -30,7 +30,7 @@ inline void WARNING(std::string func_name, std::string message) {
 
 // Reports an informational message. Does not exit the program.
 inline void INFO(std::string func_name, std::string message) {
-  //std::cerr << "[INFO] " << func_name << ": " << message << std::endl;
+   std::cerr << "[INFO] " << func_name << ": " << message << std::endl;
 }
 }  // namespace Logging
 }  // namespace Aq

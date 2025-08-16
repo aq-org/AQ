@@ -116,9 +116,7 @@ int ARRAY(
 
 int ADD(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
 
   switch (type) {
     case 0x01:
@@ -167,9 +165,7 @@ int ADD(Object* memory, std::size_t result, std::size_t operand1,
 
 int SUB(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -209,9 +205,7 @@ int SUB(Object* memory, std::size_t result, std::size_t operand1,
 
 int MUL(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -250,9 +244,7 @@ int MUL(Object* memory, std::size_t result, std::size_t operand1,
 
 int DIV(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -291,9 +283,7 @@ int DIV(Object* memory, std::size_t result, std::size_t operand1,
 
 int REM(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -364,9 +354,7 @@ int NEG(Object* memory, std::size_t result, std::size_t operand1) {
 
 int SHL(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -404,9 +392,7 @@ int SHL(Object* memory, std::size_t result, std::size_t operand1,
 
 int SHR(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -468,9 +454,7 @@ std::size_t IF(Object* memory, std::size_t condition, std::size_t true_branche,
 
 int AND(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -511,9 +495,7 @@ int AND(Object* memory, std::size_t result, std::size_t operand1,
 
 int OR(Object* memory, std::size_t result, std::size_t operand1,
        std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -554,9 +536,7 @@ int OR(Object* memory, std::size_t result, std::size_t operand1,
 
 int XOR(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
   switch (type) {
     case 0x01:
       SetLong(memory, result,
@@ -597,9 +577,7 @@ int XOR(Object* memory, std::size_t result, std::size_t operand1,
 
 int CMP(Object* memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2) {
-  std::size_t type = memory[operand1].type > memory[operand2].type
-                         ? memory[operand1].type
-                         : memory[operand2].type;
+  std::size_t type = GetImportantType(memory, operand1, operand2);
 
   switch (opcode) {
     case 0x00:  // ==
@@ -872,7 +850,7 @@ int INVOKE_METHOD(
   arguments.erase(arguments.begin(), arguments.begin() + 2);
 
   auto invoke_function =
-      builtin_functions.find(GetString(memory_ptr, arguments[1]));
+      builtin_functions.find(GetString(memory_ptr, method_name_object));
   if (invoke_function != builtin_functions.end()) {
     LOGGING_INFO("INVOKE BUILTIN FUNCTION.");
     return invoke_function->second(memory, arguments);
@@ -1161,8 +1139,8 @@ int64_t GetFunctionOverloadValue(Object* memory, Function& function,
   }
 
   for (std::size_t i = 1; i < function.GetParameters().size(); i++) {
-    Object& argument = memory[arguments[i]];
-    Object& function_param = memory[function.GetParameters()[i]];
+    Object& argument = GetOrigin(memory[arguments[i]]);
+    Object& function_param = GetOrigin(memory[function.GetParameters()[i]]);
 
     bool is_number = argument.type >= 0x01 && argument.type <= 0x04 &&
                      function_param.type >= 0x01 && function_param.type <= 0x04;

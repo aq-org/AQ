@@ -4,6 +4,7 @@
 
 #include "interpreter/interpreter.h"
 
+#include <chrono>
 #include <cstdint>
 
 #include "ast/ast.h"
@@ -201,6 +202,9 @@ void Interpreter::Generate(Ast::Compound* statement) {
 }
 
 void Interpreter::Run() {
+  // start time
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   LOGGING_INFO("Running interpreter...");
 
   global_memory->GetMemory()[2].type = 0x09;
@@ -211,8 +215,14 @@ void Interpreter::Run() {
   std::size_t method_name_object = global_memory->AddString(".!__start");
 
   std::vector<size_t> arguments = {1};
-  InvokeClassMethod(global_memory, 2,
-                    method_name_object, arguments, classes, builtin_functions);
+  InvokeClassMethod(global_memory, 2, method_name_object, arguments, classes,
+                    builtin_functions);
+
+  // end time
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> duration = end_time - start_time;
+  LOGGING_INFO("Interpreter ran for " + std::to_string(duration.count()) +
+               " ms.");
 }
 
 }  // namespace Interpreter

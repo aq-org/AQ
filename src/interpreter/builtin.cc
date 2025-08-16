@@ -7,7 +7,7 @@
 #include <string>
 
 #include "interpreter/interpreter.h"
-#include "interpreter/operator.h"
+#include "interpreter/memory.h"
 
 namespace Aq {
 namespace Interpreter {
