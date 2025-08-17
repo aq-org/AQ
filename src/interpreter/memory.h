@@ -122,7 +122,7 @@ class ClassMemory {
 };
 
 /*inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void // RunGc(Object& object) {
   switch (object.type) {
     case 0x05:
@@ -143,7 +143,7 @@ class ClassMemory {
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  int8_t GetByte(Object& object) {
   switch (object.type) {
     case 0x01:
@@ -166,7 +166,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetByte(Object& object,
                                                    int8_t data) {
   if (object.type == 0x01) {
@@ -198,7 +198,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  int64_t GetLong(Object& object) {
   switch (object.type) {
     case 0x01:
@@ -220,7 +220,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetLong(Object& object,
                                                    int64_t data) {
   if (object.type == 0x02) {
@@ -253,7 +253,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  double GetDouble(Object& object) {
   switch (object.type) {
     case 0x01:
@@ -275,7 +275,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetDouble(Object& object,
                                                      double data) {
   if (object.type == 0x03) {
@@ -309,7 +309,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  uint64_t GetUint64(Object& object) {
   switch (object.type) {
     case 0x01:
@@ -332,7 +332,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetUint64(Object& object,
                                                      uint64_t data) {
   if (object.type == 0x04) {
@@ -366,7 +366,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  std::string GetString(Object& object) {
   switch (object.type) {
     case 0x05:
@@ -380,7 +380,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetString(Object& object,
                                                      const std::string& data) {
   if (object.type == 0x05) {
@@ -399,7 +399,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  Memory* GetArray(Object& object) {
   switch (object.type) {
     case 0x06:
@@ -413,7 +413,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetArrayContent(
     Object& object, std::vector<Object>& data) {
   if (object.type == 0x06) {
@@ -432,7 +432,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetArray(Object& object,
                                                     Memory* data) {
   RunGc(object);
@@ -446,7 +446,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  ClassMemory* GetObject(Object& object) {
   switch (object.type) {
     case 0x09:
@@ -460,7 +460,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetObject(Object& object,
                                                      ClassMemory* data) {
   RunGc(object);
@@ -474,7 +474,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  Object& GetOrigin(Object& data) {
   std::reference_wrapper<Object> object = data;
 
@@ -493,7 +493,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetReference(
     Object& object, ObjectReference reference) {
   RunGc(object);
@@ -506,7 +506,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void // RunGc(Object* memory,
                                                  std::size_t index) {
   switch (memory[index].type) {
@@ -528,7 +528,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  int8_t GetByte(Object* memory,
                                                      std::size_t index) {
   switch (memory[index].type) {
@@ -555,7 +555,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetByte(Object* memory,
                                                    std::size_t index,
                                                    int8_t data) {
@@ -594,7 +594,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  int64_t GetLong(Object* memory,
                                                       std::size_t index) {
   switch (memory[index].type) {
@@ -620,7 +620,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetLong(Object* memory,
                                                    std::size_t index,
                                                    int64_t data) {
@@ -660,7 +660,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  double GetDouble(Object* memory,
                                                        std::size_t index) {
   switch (memory[index].type) {
@@ -686,7 +686,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetDouble(Object* memory,
                                                      std::size_t index,
                                                      double data) {
@@ -727,7 +727,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  uint64_t GetUint64(Object* memory,
                                                          std::size_t index) {
   switch (memory[index].type) {
@@ -754,7 +754,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetUint64(Object* memory,
                                                      std::size_t index,
                                                      uint64_t data) {
@@ -795,7 +795,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  std::string GetString(Object* memory,
                                                             std::size_t index) {
   switch (memory[index].type) {
@@ -813,7 +813,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetString(Object* memory,
                                                      std::size_t index,
                                                      const std::string& data) {
@@ -839,7 +839,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  Memory* GetArray(Object* memory,
                                                        std::size_t index) {
   switch (memory[index].type) {
@@ -857,7 +857,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetArrayContent(
     Object* memory, std::size_t index, std::vector<Object>& data) {
   if (memory[index].type == 0x06) {
@@ -881,7 +881,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetArray(Object* memory,
                                                     std::size_t index,
                                                     Memory* data) {
@@ -902,7 +902,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  ClassMemory* GetObject(
     Object* memory, std::size_t index) {
   switch (memory[index].type) {
@@ -920,7 +920,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetObject(Object* memory,
                                                      std::size_t index,
                                                      ClassMemory* data) {
@@ -941,7 +941,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  Object& GetOrigin(Object* memory,
                                                         std::size_t index) {
   std::reference_wrapper<Object> object = memory[index];
@@ -961,7 +961,7 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  void SetReference(
     Object* memory, std::size_t index, ObjectReference reference) {
   // RunGc(memory, index);
@@ -974,14 +974,14 @@ inline
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  uint8_t
 GetImportantType(Object& operand1, Object& operand2) {
   return operand1.type > operand2.type ? operand1.type : operand2.type;
 }
 
 inline
-//__attribute__((always_inline))
+__attribute__((always_inline))
  uint8_t
 GetImportantType(Object* memory, std::size_t operand1, std::size_t operand2) {
   if (memory[operand1].type == 0x07 || memory[operand2].type == 0x07)
@@ -993,7 +993,7 @@ GetImportantType(Object* memory, std::size_t operand1, std::size_t operand2) {
 }*/
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     RunGc(Object* object) {
   switch (object->type) {
@@ -1015,7 +1015,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     int8_t
     GetByte(Object* object) {
   switch (object->type) {
@@ -1051,7 +1051,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetByte(Object* object, int8_t data) {
   if (object->constant_type) {
@@ -1094,7 +1094,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     int64_t
     GetLong(Object* object) {
   switch (object->type) {
@@ -1129,7 +1129,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetLong(Object* object, int64_t data) {
   if (object->constant_type) {
@@ -1173,7 +1173,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     double
     GetDouble(Object* object) {
   switch (object->type) {
@@ -1208,7 +1208,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetDouble(Object* object, double data) {
   if (object->constant_type) {
@@ -1253,7 +1253,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     uint64_t
     GetUint64(Object* object) {
   switch (object->type) {
@@ -1289,7 +1289,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetUint64(Object* object, uint64_t data) {
   if (object->constant_type) {
@@ -1334,7 +1334,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     std::string
     GetString(Object* object) {
   switch (object->type) {
@@ -1361,7 +1361,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetString(Object* object, const std::string& data) {
   if (object->constant_type && object->type != 0x05) {
@@ -1389,7 +1389,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     Memory*
     GetArray(Object* object) {
   switch (object->type) {
@@ -1416,7 +1416,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetArrayContent(Object* object, std::vector<Object>& data) {
   if (object->constant_type && object->type != 0x06) {
@@ -1444,7 +1444,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetArray(Object* object, Memory* data) {
   RunGc(object);
@@ -1473,7 +1473,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     ClassMemory*
     GetObject(Object* object) {
   switch (object->type) {
@@ -1500,7 +1500,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetObject(Object* object, ClassMemory* data) {
   RunGc(object);
@@ -1529,7 +1529,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     Object*
     GetOrigin(Object* object) {
   while (object->type == 0x07) {
@@ -1546,7 +1546,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetReference(Object* object, ObjectReference reference) {
   RunGc(object);
@@ -1559,7 +1559,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     uint8_t
     GetImportantType(Object* operand1, Object* operand2) {
   while (true) {
