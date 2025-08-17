@@ -6,7 +6,6 @@
 #define AQ_INTERPRETER_BUILTIN_H_
 
 #include <functional>
-#include <memory>
 #include <string>
 #include <vector>
 

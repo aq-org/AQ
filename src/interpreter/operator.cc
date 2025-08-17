@@ -1069,85 +1069,82 @@ int InvokeClassMethod(
   for (int64_t i = 0; i < instructions_size; i++) {
     const auto& instruction = instructions_ptr[i];
     const auto& arguments = instruction.arguments;
-    auto arguments_ptr = arguments.data();
     switch (instruction.oper) {
       case _AQVM_OPERATOR_NOP:
         NOP();
         break;
       case _AQVM_OPERATOR_NEW:
-        NEW(memory_ptr, classes, arguments_ptr[0], arguments_ptr[1],
-            arguments_ptr[2], builtin_functions);
+        NEW(memory_ptr, classes, arguments[0], arguments[1], arguments[2],
+            builtin_functions);
         break;
       case _AQVM_OPERATOR_ARRAY:
-        ARRAY(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2],
-              classes, builtin_functions);
+        ARRAY(memory_ptr, arguments[0], arguments[1], arguments[2], classes,
+              builtin_functions);
         break;
       case _AQVM_OPERATOR_ADD:
-        ADD(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        ADD(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_SUB:
-        SUB(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        SUB(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_MUL:
-        MUL(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        MUL(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_DIV:
-        DIV(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        DIV(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_REM:
-        REM(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        REM(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_NEG:
-        NEG(memory_ptr, arguments_ptr[0], arguments_ptr[1]);
+        NEG(memory_ptr, arguments[0], arguments[1]);
         break;
       case _AQVM_OPERATOR_SHL:
-        SHL(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        SHL(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_SHR:
-        SHR(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        SHR(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_REFER:
-        REFER(memory, arguments_ptr[0], arguments_ptr[1]);
+        REFER(memory, arguments[0], arguments[1]);
         break;
       case _AQVM_OPERATOR_IF:
-        i = IF(memory_ptr, arguments_ptr[0], arguments_ptr[1],
-               arguments_ptr[2]);
+        i = IF(memory_ptr, arguments[0], arguments[1], arguments[2]);
         i--;
         break;
       case _AQVM_OPERATOR_AND:
-        AND(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        AND(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_OR:
-        OR(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        OR(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_XOR:
-        XOR(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2]);
+        XOR(memory_ptr, arguments[0], arguments[1], arguments[2]);
         break;
       case _AQVM_OPERATOR_CMP:
-        CMP(memory_ptr, arguments_ptr[0], arguments_ptr[1], arguments_ptr[2],
-            arguments_ptr[3]);
+        CMP(memory_ptr, arguments[0], arguments[1], arguments[2], arguments[3]);
         break;
       case _AQVM_OPERATOR_EQUAL:
-        EQUAL(memory_ptr, arguments_ptr[0], arguments_ptr[1]);
+        EQUAL(memory_ptr, arguments[0], arguments[1]);
         break;
       case _AQVM_OPERATOR_GOTO:
-        i = GOTO(memory_ptr, arguments_ptr[0]);
+        i = GOTO(memory_ptr, arguments[0]);
         i--;
         break;
       case _AQVM_OPERATOR_INVOKE_METHOD: {
         auto origin_class_index = current_class_index;
-        current_class_index = arguments_ptr[0];
+        current_class_index = arguments[0];
         INVOKE_METHOD(memory, classes, builtin_functions, arguments);
         current_class_index = origin_class_index;
         break;
       }
       case _AQVM_OPERATOR_LOAD_MEMBER:
-        if (arguments_ptr[1] == 0) {
-          LOAD_MEMBER(memory, classes, arguments_ptr[0], current_class_index,
-                      arguments_ptr[2]);
+        if (arguments[1] == 0) {
+          LOAD_MEMBER(memory, classes, arguments[0], current_class_index,
+                      arguments[2]);
         } else {
-          LOAD_MEMBER(memory, classes, arguments_ptr[0], arguments_ptr[1],
-                      arguments_ptr[2]);
+          LOAD_MEMBER(memory, classes, arguments[0], arguments[1],
+                      arguments[2]);
         }
         break;
       default:
