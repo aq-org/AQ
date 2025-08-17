@@ -32,6 +32,7 @@ struct Interpreter {
   Interpreter() {
     InitBuiltInFunctionDeclaration(*this);
     global_memory = new Memory();
+    global_memory->GetMemory().reserve(1024);
   }
   virtual ~Interpreter() = default;
 

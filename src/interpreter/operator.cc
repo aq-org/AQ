@@ -21,7 +21,7 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
             builtin_functions) {
   Object type_data = memory[type];
 
-  std::size_t size_value = GetUint64(memory, size);
+  std::size_t size_value = GetUint64(memory + size);
 
   if ((type == 0 ||
        (type_data.type != 0x05 || type_data.data.string_data == nullptr)) &&
@@ -51,7 +51,7 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
         object.constant_type = true;
         data.push_back(object);
 
-        std::string class_name = GetString(memory, type);
+        std::string class_name = GetString(memory + type);
         if (classes.find(class_name) == classes.end())
           LOGGING_ERROR("class not found.");
         Class& class_data = classes[class_name];
@@ -59,7 +59,7 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
 
       } else {
         // Class array type.
-        std::string class_name = GetString(memory, type);
+        std::string class_name = GetString(memory + type);
         if (classes.find(class_name) == classes.end())
           LOGGING_ERROR("class not found.");
         Class& class_data = classes[class_name];
@@ -87,9 +87,9 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
 
   if (size_value == 0 && type_data.type == 0x05 &&
       type_data.data.string_data != nullptr) {
-    SetObject(memory, ptr, class_memory);
+    SetObject(memory + ptr, class_memory);
   } else {
-    SetArray(memory, ptr, array_memory);
+    SetArray(memory + ptr, array_memory);
   }
 
   return 0;
@@ -105,48 +105,48 @@ int ARRAY(
   auto array = array_object.data.array_data;
 
   auto index_object = memory[index];
-  index = GetUint64(memory, index);
+  index = GetUint64(memory + index);
 
   if (index >= array->GetMemory().size()) array->GetMemory().resize(index + 1);
 
-  SetReference(memory, result, ObjectReference{false, array, index});
+  SetReference(memory + result, ObjectReference{false, array, index});
 
   return 0;
 }
 
 int ADD(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
 
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) + GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) + GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) + GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) + GetLong(memory + operand2));
       break;
     case 0x03:
-      SetDouble(memory, result,
-                GetDouble(memory, operand1) + GetDouble(memory, operand2));
+      SetDouble(memory + result,
+                GetDouble(memory + operand1) + GetDouble(memory + operand2));
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) + GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) + GetUint64(memory + operand2));
       break;
     case 0x05:
-      SetString(memory, result,
-                GetString(memory, operand1) + GetString(memory, operand2));
+      SetString(memory + result,
+                GetString(memory + operand1) + GetString(memory + operand2));
       break;
     case 0x06: {
-      auto& array1 = GetArray(memory, operand1)->GetMemory();
-      auto& array2 = GetArray(memory, operand2)->GetMemory();
+      auto& array1 = GetArray(memory + operand1)->GetMemory();
+      auto& array2 = GetArray(memory + operand2)->GetMemory();
       std::vector<Object> new_array;
       new_array.reserve(array1.size() + array2.size());
       new_array.insert(new_array.end(), array1.begin(), array1.end());
       new_array.insert(new_array.end(), array2.begin(), array2.end());
-      SetArrayContent(memory, result, new_array);
+      SetArrayContent(memory + result, new_array);
       break;
     }
     case 0x09:
@@ -165,23 +165,23 @@ int ADD(Object* memory, std::size_t result, std::size_t operand1,
 
 int SUB(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) - GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) - GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) - GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) - GetLong(memory + operand2));
       break;
     case 0x03:
-      SetDouble(memory, result,
-                GetDouble(memory, operand1) - GetDouble(memory, operand2));
+      SetDouble(memory + result,
+                GetDouble(memory + operand1) - GetDouble(memory + operand2));
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) - GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) - GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot subtract strings.");
@@ -205,23 +205,23 @@ int SUB(Object* memory, std::size_t result, std::size_t operand1,
 
 int MUL(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) * GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) * GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) * GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) * GetLong(memory + operand2));
       break;
     case 0x03:
-      SetDouble(memory, result,
-                GetDouble(memory, operand1) * GetDouble(memory, operand2));
+      SetDouble(memory + result,
+                GetDouble(memory + operand1) * GetDouble(memory + operand2));
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) * GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) * GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot multiply strings.");
@@ -244,23 +244,23 @@ int MUL(Object* memory, std::size_t result, std::size_t operand1,
 
 int DIV(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) / GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) / GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) / GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) / GetLong(memory + operand2));
       break;
     case 0x03:
-      SetDouble(memory, result,
-                GetDouble(memory, operand1) / GetDouble(memory, operand2));
+      SetDouble(memory + result,
+                GetDouble(memory + operand1) / GetDouble(memory + operand2));
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) / GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) / GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot divide strings.");
@@ -283,22 +283,22 @@ int DIV(Object* memory, std::size_t result, std::size_t operand1,
 
 int REM(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) % GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) % GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) % GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) % GetLong(memory + operand2));
       break;
     case 0x03:
       LOGGING_ERROR("Cannot calculate remainder for doubles.");
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) % GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) % GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot calculate remainder for strings.");
@@ -322,16 +322,16 @@ int NEG(Object* memory, std::size_t result, std::size_t operand1) {
   std::size_t type = memory[operand1].type;
   switch (type) {
     case 0x01:
-      SetLong(memory, result, -GetByte(memory, operand1));
+      SetLong(memory + result, -GetByte(memory + operand1));
       break;
     case 0x02:
-      SetLong(memory, result, -GetLong(memory, operand1));
+      SetLong(memory + result, -GetLong(memory + operand1));
       break;
     case 0x03:
-      SetDouble(memory, result, -GetDouble(memory, operand1));
+      SetDouble(memory + result, -GetDouble(memory + operand1));
       break;
     case 0x04:
-      SetUint64(memory, result, -GetUint64(memory, operand1));
+      SetUint64(memory + result, -GetUint64(memory + operand1));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot negate strings.");
@@ -354,22 +354,22 @@ int NEG(Object* memory, std::size_t result, std::size_t operand1) {
 
 int SHL(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) << GetByte(memory, operand2));
+      SetLong(memory + result, GetByte(memory + operand1)
+                                   << GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) << GetLong(memory, operand2));
+      SetLong(memory + result, GetLong(memory + operand1)
+                                   << GetLong(memory + operand2));
       break;
     case 0x03:
       LOGGING_ERROR("Cannot shift doubles. Use multiplication for shifting.");
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) << GetUint64(memory, operand2));
+      SetUint64(memory + result, GetUint64(memory + operand1)
+                                     << GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot shift strings.");
@@ -392,22 +392,22 @@ int SHL(Object* memory, std::size_t result, std::size_t operand1,
 
 int SHR(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) >> GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) >> GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) >> GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) >> GetLong(memory + operand2));
       break;
     case 0x03:
       LOGGING_ERROR("Cannot shift doubles. Use multiplication for shifting.");
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) >> GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) >> GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot shift strings.");
@@ -438,14 +438,14 @@ int REFER(Memory* memory, std::size_t result, std::size_t operand1) {
   reference.memory.memory = memory;
   reference.index.index = operand1;
 
-  SetReference(memory->GetMemory().data(), result, reference);
+  SetReference(memory->GetMemory().data() + result, reference);
 
   return 0;
 }
 
 std::size_t IF(Object* memory, std::size_t condition, std::size_t true_branche,
                std::size_t false_branche) {
-  auto condition_data = GetByte(memory, condition);
+  auto condition_data = GetByte(memory + condition);
 
   if (condition_data != 0) return true_branche;
 
@@ -454,24 +454,24 @@ std::size_t IF(Object* memory, std::size_t condition, std::size_t true_branche,
 
 int AND(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) & GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) & GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) & GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) & GetLong(memory + operand2));
       break;
     case 0x03:
-      SetDouble(memory, result,
-                static_cast<double>(GetByte(memory, operand1) &
-                                    GetByte(memory, operand2)));
+      SetDouble(memory + result,
+                static_cast<double>(GetByte(memory + operand1) &
+                                    GetByte(memory + operand2)));
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) & GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) & GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot perform AND operation on strings.");
@@ -495,24 +495,24 @@ int AND(Object* memory, std::size_t result, std::size_t operand1,
 
 int OR(Object* memory, std::size_t result, std::size_t operand1,
        std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) | GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) | GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) | GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) | GetLong(memory + operand2));
       break;
     case 0x03:
-      SetDouble(memory, result,
-                static_cast<double>(GetByte(memory, operand1) |
-                                    GetByte(memory, operand2)));
+      SetDouble(memory + result,
+                static_cast<double>(GetByte(memory + operand1) |
+                                    GetByte(memory + operand2)));
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) | GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) | GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot perform OR operation on strings.");
@@ -536,24 +536,24 @@ int OR(Object* memory, std::size_t result, std::size_t operand1,
 
 int XOR(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
   switch (type) {
     case 0x01:
-      SetLong(memory, result,
-              GetByte(memory, operand1) ^ GetByte(memory, operand2));
+      SetLong(memory + result,
+              GetByte(memory + operand1) ^ GetByte(memory + operand2));
       break;
     case 0x02:
-      SetLong(memory, result,
-              GetLong(memory, operand1) ^ GetLong(memory, operand2));
+      SetLong(memory + result,
+              GetLong(memory + operand1) ^ GetLong(memory + operand2));
       break;
     case 0x03:
-      SetDouble(memory, result,
-                static_cast<double>(GetByte(memory, operand1) ^
-                                    GetByte(memory, operand2)));
+      SetDouble(memory + result,
+                static_cast<double>(GetByte(memory + operand1) ^
+                                    GetByte(memory + operand2)));
       break;
     case 0x04:
-      SetUint64(memory, result,
-                GetUint64(memory, operand1) ^ GetUint64(memory, operand2));
+      SetUint64(memory + result,
+                GetUint64(memory + operand1) ^ GetUint64(memory + operand2));
       break;
     case 0x05:
       LOGGING_ERROR("Cannot perform XOR operation on strings.");
@@ -577,44 +577,44 @@ int XOR(Object* memory, std::size_t result, std::size_t operand1,
 
 int CMP(Object* memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2) {
-  std::size_t type = GetImportantType(memory, operand1, operand2);
+  std::size_t type = GetImportantType(memory + operand1, memory + operand2);
 
   switch (opcode) {
     case 0x00:  // ==
       switch (type) {
         case 0x01:
-          SetByte(memory, result,
-                  GetByte(memory, operand1) == GetByte(memory, operand2));
+          SetByte(memory + result,
+                  GetByte(memory + operand1) == GetByte(memory + operand2));
           return 0;
         case 0x02:
-          SetByte(memory, result,
-                  GetLong(memory, operand1) == GetLong(memory, operand2));
+          SetByte(memory + result,
+                  GetLong(memory + operand1) == GetLong(memory + operand2));
           return 0;
         case 0x03:
-          SetByte(memory, result,
-                  GetDouble(memory, operand1) == GetDouble(memory, operand2));
+          SetByte(memory + result,
+                  GetDouble(memory + operand1) == GetDouble(memory + operand2));
           return 0;
         case 0x04:
-          SetByte(memory, result,
-                  GetUint64(memory, operand1) == GetUint64(memory, operand2));
+          SetByte(memory + result,
+                  GetUint64(memory + operand1) == GetUint64(memory + operand2));
           return 0;
         case 0x05:
           if (memory[operand1].type != memory[operand2].type)
             LOGGING_ERROR("Cannot compare strings with different types.");
-          SetByte(memory, result,
-                  GetString(memory, operand1) == GetString(memory, operand2));
+          SetByte(memory + result,
+                  GetString(memory + operand1) == GetString(memory + operand2));
           return 0;
         case 0x06:
           if (memory[operand1].type != memory[operand2].type)
             LOGGING_ERROR("Cannot compare arrays with different types.");
-          SetByte(memory, result,
-                  GetArray(memory, operand1) == GetArray(memory, operand2));
+          SetByte(memory + result,
+                  GetArray(memory + operand1) == GetArray(memory + operand2));
           return 0;
         case 0x09:
           if (memory[operand1].type != memory[operand2].type)
             LOGGING_ERROR("Cannot compare classes with different types.");
-          SetByte(memory, result,
-                  GetObject(memory, operand1) == GetObject(memory, operand2));
+          SetByte(memory + result,
+                  GetObject(memory + operand1) == GetObject(memory + operand2));
           return 0;
         default:
           LOGGING_ERROR("Unsupported data type for comparison: " +
@@ -624,38 +624,38 @@ int CMP(Object* memory, std::size_t result, std::size_t opcode,
     case 0x01:  // !=
       switch (type) {
         case 0x01:
-          SetByte(memory, result,
-                  GetByte(memory, operand1) != GetByte(memory, operand2));
+          SetByte(memory + result,
+                  GetByte(memory + operand1) != GetByte(memory + operand2));
           return 0;
         case 0x02:
-          SetByte(memory, result,
-                  GetLong(memory, operand1) != GetLong(memory, operand2));
+          SetByte(memory + result,
+                  GetLong(memory + operand1) != GetLong(memory + operand2));
           return 0;
         case 0x03:
-          SetByte(memory, result,
-                  GetDouble(memory, operand1) != GetDouble(memory, operand2));
+          SetByte(memory + result,
+                  GetDouble(memory + operand1) != GetDouble(memory + operand2));
           return 0;
         case 0x04:
-          SetByte(memory, result,
-                  GetUint64(memory, operand1) != GetUint64(memory, operand2));
+          SetByte(memory + result,
+                  GetUint64(memory + operand1) != GetUint64(memory + operand2));
           return 0;
         case 0x05:
           if (memory[operand1].type != memory[operand2].type)
             LOGGING_ERROR("Cannot compare strings with different types.");
-          SetByte(memory, result,
-                  GetString(memory, operand1) != GetString(memory, operand2));
+          SetByte(memory + result,
+                  GetString(memory + operand1) != GetString(memory + operand2));
           return 0;
         case 0x06:
           if (memory[operand1].type != memory[operand2].type)
             LOGGING_ERROR("Cannot compare arrays with different types.");
-          SetByte(memory, result,
-                  GetArray(memory, operand1) != GetArray(memory, operand2));
+          SetByte(memory + result,
+                  GetArray(memory + operand1) != GetArray(memory + operand2));
           return 0;
         case 0x09:
           if (memory[operand1].type != memory[operand2].type)
             LOGGING_ERROR("Cannot compare classes with different types.");
-          SetByte(memory, result,
-                  GetObject(memory, operand1) != GetObject(memory, operand2));
+          SetByte(memory + result,
+                  GetObject(memory + operand1) != GetObject(memory + operand2));
           return 0;
         default:
           LOGGING_ERROR("Unsupported data type for comparison: " +
@@ -665,20 +665,20 @@ int CMP(Object* memory, std::size_t result, std::size_t opcode,
     case 0x02:  // >
       switch (type) {
         case 0x01:
-          SetByte(memory, result,
-                  GetByte(memory, operand1) > GetByte(memory, operand2));
+          SetByte(memory + result,
+                  GetByte(memory + operand1) > GetByte(memory + operand2));
           return 0;
         case 0x02:
-          SetByte(memory, result,
-                  GetLong(memory, operand1) > GetLong(memory, operand2));
+          SetByte(memory + result,
+                  GetLong(memory + operand1) > GetLong(memory + operand2));
           return 0;
         case 0x03:
-          SetByte(memory, result,
-                  GetDouble(memory, operand1) > GetDouble(memory, operand2));
+          SetByte(memory + result,
+                  GetDouble(memory + operand1) > GetDouble(memory + operand2));
           return 0;
         case 0x04:
-          SetByte(memory, result,
-                  GetUint64(memory, operand1) > GetUint64(memory, operand2));
+          SetByte(memory + result,
+                  GetUint64(memory + operand1) > GetUint64(memory + operand2));
           return 0;
         case 0x05:
           LOGGING_ERROR("Cannot compare strings with > operator.");
@@ -697,20 +697,20 @@ int CMP(Object* memory, std::size_t result, std::size_t opcode,
     case 0x03:  // >=
       switch (type) {
         case 0x01:
-          SetByte(memory, result,
-                  GetByte(memory, operand1) >= GetByte(memory, operand2));
+          SetByte(memory + result,
+                  GetByte(memory + operand1) >= GetByte(memory + operand2));
           return 0;
         case 0x02:
-          SetByte(memory, result,
-                  GetLong(memory, operand1) >= GetLong(memory, operand2));
+          SetByte(memory + result,
+                  GetLong(memory + operand1) >= GetLong(memory + operand2));
           return 0;
         case 0x03:
-          SetByte(memory, result,
-                  GetDouble(memory, operand1) >= GetDouble(memory, operand2));
+          SetByte(memory + result,
+                  GetDouble(memory + operand1) >= GetDouble(memory + operand2));
           return 0;
         case 0x04:
-          SetByte(memory, result,
-                  GetUint64(memory, operand1) >= GetUint64(memory, operand2));
+          SetByte(memory + result,
+                  GetUint64(memory + operand1) >= GetUint64(memory + operand2));
           return 0;
         case 0x05:
           LOGGING_ERROR("Cannot compare strings with >= operator.");
@@ -729,20 +729,20 @@ int CMP(Object* memory, std::size_t result, std::size_t opcode,
     case 0x04:  // <
       switch (type) {
         case 0x01:
-          SetByte(memory, result,
-                  GetByte(memory, operand1) < GetByte(memory, operand2));
+          SetByte(memory + result,
+                  GetByte(memory + operand1) < GetByte(memory + operand2));
           return 0;
         case 0x02:
-          SetByte(memory, result,
-                  GetLong(memory, operand1) < GetLong(memory, operand2));
+          SetByte(memory + result,
+                  GetLong(memory + operand1) < GetLong(memory + operand2));
           return 0;
         case 0x03:
-          SetByte(memory, result,
-                  GetDouble(memory, operand1) < GetDouble(memory, operand2));
+          SetByte(memory + result,
+                  GetDouble(memory + operand1) < GetDouble(memory + operand2));
           return 0;
         case 0x04:
-          SetByte(memory, result,
-                  GetUint64(memory, operand1) < GetUint64(memory, operand2));
+          SetByte(memory + result,
+                  GetUint64(memory + operand1) < GetUint64(memory + operand2));
           return 0;
         case 0x05:
           LOGGING_ERROR("Cannot compare strings with < operator.");
@@ -761,20 +761,20 @@ int CMP(Object* memory, std::size_t result, std::size_t opcode,
     case 0x05:  // <=
       switch (type) {
         case 0x01:
-          SetByte(memory, result,
-                  GetByte(memory, operand1) <= GetByte(memory, operand2));
+          SetByte(memory + result,
+                  GetByte(memory + operand1) <= GetByte(memory + operand2));
           return 0;
         case 0x02:
-          SetByte(memory, result,
-                  GetLong(memory, operand1) <= GetLong(memory, operand2));
+          SetByte(memory + result,
+                  GetLong(memory + operand1) <= GetLong(memory + operand2));
           return 0;
         case 0x03:
-          SetByte(memory, result,
-                  GetDouble(memory, operand1) <= GetDouble(memory, operand2));
+          SetByte(memory + result,
+                  GetDouble(memory + operand1) <= GetDouble(memory + operand2));
           return 0;
         case 0x04:
-          SetByte(memory, result,
-                  GetUint64(memory, operand1) <= GetUint64(memory, operand2));
+          SetByte(memory + result,
+                  GetUint64(memory + operand1) <= GetUint64(memory + operand2));
           return 0;
         case 0x05:
           LOGGING_ERROR("Cannot compare strings with <= operator.");
@@ -801,25 +801,25 @@ int CMP(Object* memory, std::size_t result, std::size_t opcode,
 int EQUAL(Object* memory, std::size_t result, std::size_t value) {
   switch (memory[value].type) {
     case 0x01:
-      SetByte(memory, result, GetByte(memory, value));
+      SetByte(memory + result, GetByte(memory + value));
       break;
     case 0x02:
-      SetLong(memory, result, GetLong(memory, value));
+      SetLong(memory + result, GetLong(memory + value));
       break;
     case 0x03:
-      SetDouble(memory, result, GetDouble(memory, value));
+      SetDouble(memory + result, GetDouble(memory + value));
       break;
     case 0x04:
-      SetUint64(memory, result, GetUint64(memory, value));
+      SetUint64(memory + result, GetUint64(memory + value));
       break;
     case 0x05:
-      SetString(memory, result, GetString(memory, value));
+      SetString(memory + result, GetString(memory + value));
       break;
     case 0x06:
-      SetArrayContent(memory, result, GetArray(memory, value)->GetMemory());
+      SetArrayContent(memory + result, GetArray(memory + value)->GetMemory());
       break;
     case 0x09:
-      SetObject(memory, result, GetObject(memory, value));
+      SetObject(memory + result, GetObject(memory + value));
       break;
     default:
       LOGGING_ERROR("Unsupported data type for EQUAL operation: " +
@@ -831,7 +831,7 @@ int EQUAL(Object* memory, std::size_t result, std::size_t value) {
 }
 
 std::size_t GOTO(Object* memory, std::size_t location) {
-  return GetUint64(memory, location);
+  return GetUint64(memory + location);
 }
 
 int INVOKE_METHOD(
@@ -850,9 +850,8 @@ int INVOKE_METHOD(
   arguments.erase(arguments.begin(), arguments.begin() + 2);
 
   auto invoke_function =
-      builtin_functions.find(GetString(memory_ptr, method_name_object));
+      builtin_functions.find(GetString(memory_ptr + method_name_object));
   if (invoke_function != builtin_functions.end()) {
-    LOGGING_INFO("INVOKE BUILTIN FUNCTION.");
     return invoke_function->second(memory, arguments);
   }
 
@@ -869,11 +868,10 @@ int InvokeClassMethod(
         builtin_functions) {
   auto memory_ptr = memory->GetMemory().data();
 
-  std::string class_name = *GetObject(memory_ptr, class_object)
+  std::string class_name = *GetObject(memory_ptr + class_object)
                                 ->GetMembers()["@name"]
                                 .data.string_data;
-  std::string method_name = GetString(memory_ptr, method_name_object);
-  LOGGING_INFO("Invoking method: " + method_name + " on class: " + class_name);
+  std::string method_name = GetString(memory_ptr + method_name_object);
 
   auto class_it = classes.find(class_name);
   if (class_it == classes.end()) {
@@ -897,7 +895,7 @@ int InvokeClassMethod(
   reference.is_class = false;
   reference.memory.memory = memory;
   reference.index.index = arguments[0];
-  SetReference(memory_ptr, function_arguments[0], reference);
+  SetReference(memory_ptr + function_arguments[0], reference);
 
   for (std::size_t i = 1;
        i < (method.IsVariadic() ? function_arguments.size() - 1
@@ -913,38 +911,38 @@ int InvokeClassMethod(
       argument_reference.is_class = false;
       argument_reference.memory.memory = memory;
       argument_reference.index.index = arguments[i];
-      SetReference(memory_ptr, argument_object, argument_reference);
+      SetReference(memory_ptr + argument_object, argument_reference);
 
     } else {
       if (memory_ptr[argument_object].constant_type) {
         switch (memory_ptr[argument_object].type) {
           case 0x01:
-            SetByte(memory_ptr, argument_object,
-                    GetByte(memory_ptr, arguments[i]));
+            SetByte(memory_ptr + argument_object,
+                    GetByte(memory_ptr + arguments[i]));
             break;
           case 0x02:
-            SetLong(memory_ptr, argument_object,
-                    GetLong(memory_ptr, arguments[i]));
+            SetLong(memory_ptr + argument_object,
+                    GetLong(memory_ptr + arguments[i]));
             break;
           case 0x03:
-            SetDouble(memory_ptr, argument_object,
-                      GetDouble(memory_ptr, arguments[i]));
+            SetDouble(memory_ptr + argument_object,
+                      GetDouble(memory_ptr + arguments[i]));
             break;
           case 0x04:
-            SetUint64(memory_ptr, argument_object,
-                      GetUint64(memory_ptr, arguments[i]));
+            SetUint64(memory_ptr + argument_object,
+                      GetUint64(memory_ptr + arguments[i]));
             break;
           case 0x05:
-            SetString(memory_ptr, argument_object,
-                      GetString(memory_ptr, arguments[i]));
+            SetString(memory_ptr + argument_object,
+                      GetString(memory_ptr + arguments[i]));
             break;
           case 0x06:
-            SetArrayContent(memory_ptr, argument_object,
-                            GetArray(memory_ptr, arguments[i])->GetMemory());
+            SetArrayContent(memory_ptr + argument_object,
+                            GetArray(memory_ptr + arguments[i])->GetMemory());
             break;
           case 0x09:
-            SetObject(memory_ptr, argument_object,
-                      GetObject(memory_ptr, arguments[i]));
+            SetObject(memory_ptr + argument_object,
+                      GetObject(memory_ptr + arguments[i]));
             break;
           default:
             LOGGING_ERROR("Unsupported data type for function argument: " +
@@ -955,32 +953,32 @@ int InvokeClassMethod(
         auto& reference = arguments[i];
         switch (memory_ptr[reference].type) {
           case 0x01:
-            SetByte(memory_ptr, argument_object,
-                    GetByte(memory_ptr, reference));
+            SetByte(memory_ptr + argument_object,
+                    GetByte(memory_ptr + reference));
             break;
           case 0x02:
-            SetLong(memory_ptr, argument_object,
-                    GetLong(memory_ptr, reference));
+            SetLong(memory_ptr + argument_object,
+                    GetLong(memory_ptr + reference));
             break;
           case 0x03:
-            SetDouble(memory_ptr, argument_object,
-                      GetDouble(memory_ptr, reference));
+            SetDouble(memory_ptr + argument_object,
+                      GetDouble(memory_ptr + reference));
             break;
           case 0x04:
-            SetUint64(memory_ptr, argument_object,
-                      GetUint64(memory_ptr, reference));
+            SetUint64(memory_ptr + argument_object,
+                      GetUint64(memory_ptr + reference));
             break;
           case 0x05:
-            SetString(memory_ptr, argument_object,
-                      GetString(memory_ptr, reference));
+            SetString(memory_ptr + argument_object,
+                      GetString(memory_ptr + reference));
             break;
           case 0x06:
-            SetArrayContent(memory_ptr, argument_object,
-                            GetArray(memory_ptr, reference)->GetMemory());
+            SetArrayContent(memory_ptr + argument_object,
+                            GetArray(memory_ptr + reference)->GetMemory());
             break;
           case 0x09:
-            SetObject(memory_ptr, argument_object,
-                      GetObject(memory_ptr, reference));
+            SetObject(memory_ptr + argument_object,
+                      GetObject(memory_ptr + reference));
             break;
           default:
             LOGGING_ERROR("Unsupported data type for function argument: " +
@@ -997,7 +995,6 @@ int InvokeClassMethod(
     memory->GetMemory()[function_arguments.back()].constant_type = true;
     memory->GetMemory()[function_arguments.back()].data.array_data = array;
     for (std::size_t i = function_arguments.size(); i < arguments.size(); i++) {
-      LOGGING_INFO("Adding variadic argument: " + std::to_string(arguments[i]));
       array->GetMemory().push_back(memory->GetOriginData(arguments[i]));
     }
   }
@@ -1131,19 +1128,17 @@ int64_t GetFunctionOverloadValue(Object* memory, Function& function,
 
   } else {
     if (arguments.size() != function.GetParameters().size()) {
-      LOGGING_INFO("Arg size: " + std::to_string(arguments.size()) +
-                   " Func param size: " +
-                   std::to_string(function.GetParameters().size()));
       return -1;
     }
   }
 
   for (std::size_t i = 1; i < function.GetParameters().size(); i++) {
-    Object& argument = GetOrigin(memory[arguments[i]]);
-    Object& function_param = GetOrigin(memory[function.GetParameters()[i]]);
+    Object* argument = GetOrigin(memory + arguments[i]);
+    Object* function_param = GetOrigin(memory + function.GetParameters()[i]);
 
-    bool is_number = argument.type >= 0x01 && argument.type <= 0x04 &&
-                     function_param.type >= 0x01 && function_param.type <= 0x04;
+    bool is_number = argument->type >= 0x01 && argument->type <= 0x04 &&
+                     function_param->type >= 0x01 &&
+                     function_param->type <= 0x04;
 
     // Conversion rules:
     // 1. The higher the return value, the more suitable it is for the
@@ -1155,22 +1150,22 @@ int64_t GetFunctionOverloadValue(Object* memory, Function& function,
     // 4. 0x05-0x08 indicates upgrade conversion, but for converting double to
     // uint64_t, the exact value may be lost.
     // 5. 0x09 represents the original same type.
-    if (function_param.constant_type) {
-      if (function_param.type == argument.type) {
+    if (function_param->constant_type) {
+      if (function_param->type == argument->type) {
         // Array type.
-        if (function_param.type == 0x09) {
-          if (*argument.data.class_data->GetMembers()["@name"]
+        if (function_param->type == 0x09) {
+          if (*argument->data.class_data->GetMembers()["@name"]
                    .data.string_data !=
-              *function_param.data.class_data->GetMembers()["@name"]
+              *function_param->data.class_data->GetMembers()["@name"]
                    .data.string_data)
             return -1;
         }
 
         value += 0x09;
-      } else if (function_param.type > argument.type && is_number) {
-        value += 9 - (function_param.type - argument.type);
-      } else if (function_param.type < argument.type && is_number) {
-        value += 4 - (argument.type - function_param.type);
+      } else if (function_param->type > argument->type && is_number) {
+        value += 9 - (function_param->type - argument->type);
+      } else if (function_param->type < argument->type && is_number) {
+        value += 4 - (argument->type - function_param->type);
       } else {
         return -1;
       }

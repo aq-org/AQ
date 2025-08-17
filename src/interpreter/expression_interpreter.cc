@@ -265,8 +265,6 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
   if (expression->GetOperator() != Ast::Binary::Operator::kMember)
     INTERNAL_ERROR("The expression isn't a period expression.");
 
-  LOGGING_INFO("Period expression: ");
-
   // Gets the reference of context.
   auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;

@@ -59,8 +59,6 @@ void Interpreter::Generate(Ast::Compound* statement) {
   // Initialize the statements that need to be preprocessed for the parts that
   // have not been preprocessed in the preprocessor.
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
-    LOGGING_INFO("Preprocessing global statement: " + std::to_string(i) + "/" +
-                 std::to_string(statement->GetStatements().size()));
     Ast::Statement* sub_statement = statement->GetStatements()[i];
     switch (sub_statement->GetStatementType()) {
       case Ast::Statement::StatementType::kFunctionDeclaration:
@@ -194,10 +192,6 @@ void Interpreter::Generate(Ast::Compound* statement) {
   classes[".!__start"] = *start_class;
   classes[".!__start"].GetMethods() = functions;
 
-  LOGGING_INFO(
-      "Main function args size: " +
-      std::to_string(functions[".main"].back().GetParameters().size()));
-
   Run();
 }
 
@@ -205,7 +199,7 @@ void Interpreter::Run() {
   // start time
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  LOGGING_INFO("Running interpreter...");
+
 
   global_memory->GetMemory()[2].type = 0x09;
   global_memory->GetMemory()[2].constant_type = true;

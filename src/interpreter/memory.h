@@ -71,7 +71,6 @@ class Memory {
   void SetArrayData(std::size_t index, Memory* object);
 
   Object& GetOriginData(std::size_t index);
-  void GetLastReference(ObjectReference& object);
   uint64_t GetUint64tData(std::size_t index);
   std::string GetStringData(std::size_t index);
 
@@ -123,7 +122,9 @@ class ClassMemory {
   int64_t reference_count_ = 0;
 };
 
-inline __attribute__((always_inline)) void RunGc(Object& object) {
+/*inline
+//__attribute__((always_inline))
+ void // RunGc(Object& object) {
   switch (object.type) {
     case 0x05:
       delete object.data.string_data;
@@ -142,7 +143,9 @@ inline __attribute__((always_inline)) void RunGc(Object& object) {
   }
 }
 
-inline __attribute__((always_inline)) int8_t GetByte(Object& object) {
+inline
+//__attribute__((always_inline))
+ int8_t GetByte(Object& object) {
   switch (object.type) {
     case 0x01:
       return object.data.byte_data;
@@ -163,7 +166,9 @@ inline __attribute__((always_inline)) int8_t GetByte(Object& object) {
   return 0;
 }
 
-inline __attribute__((always_inline)) void SetByte(Object& object,
+inline
+//__attribute__((always_inline))
+ void SetByte(Object& object,
                                                    int8_t data) {
   if (object.type == 0x01) {
     object.data.byte_data = data;
@@ -188,12 +193,14 @@ inline __attribute__((always_inline)) void SetByte(Object& object,
     }
   }
 
-  RunGc(object);
+  // RunGc(object);
   object.type = 0x01;
   object.data.byte_data = data;
 }
 
-inline __attribute__((always_inline)) int64_t GetLong(Object& object) {
+inline
+//__attribute__((always_inline))
+ int64_t GetLong(Object& object) {
   switch (object.type) {
     case 0x01:
       return object.data.byte_data;
@@ -213,7 +220,9 @@ inline __attribute__((always_inline)) int64_t GetLong(Object& object) {
   return 0;
 }
 
-inline __attribute__((always_inline)) void SetLong(Object& object,
+inline
+//__attribute__((always_inline))
+ void SetLong(Object& object,
                                                    int64_t data) {
   if (object.type == 0x02) {
     object.data.int_data = data;
@@ -239,12 +248,14 @@ inline __attribute__((always_inline)) void SetLong(Object& object,
     }
   }
 
-  RunGc(object);
+  // RunGc(object);
   object.type = 0x02;
   object.data.int_data = data;
 }
 
-inline __attribute__((always_inline)) double GetDouble(Object& object) {
+inline
+//__attribute__((always_inline))
+ double GetDouble(Object& object) {
   switch (object.type) {
     case 0x01:
       return object.data.byte_data;
@@ -264,7 +275,9 @@ inline __attribute__((always_inline)) double GetDouble(Object& object) {
   return 0.0;
 }
 
-inline __attribute__((always_inline)) void SetDouble(Object& object,
+inline
+//__attribute__((always_inline))
+ void SetDouble(Object& object,
                                                      double data) {
   if (object.type == 0x03) {
     object.data.float_data = data;
@@ -291,12 +304,14 @@ inline __attribute__((always_inline)) void SetDouble(Object& object,
     }
   }
 
-  RunGc(object);
+  // RunGc(object);
   object.type = 0x03;
   object.data.float_data = data;
 }
 
-inline __attribute__((always_inline)) uint64_t GetUint64(Object& object) {
+inline
+//__attribute__((always_inline))
+ uint64_t GetUint64(Object& object) {
   switch (object.type) {
     case 0x01:
       // LOGGING_WARNING("Implicit conversion may changes value.");
@@ -317,7 +332,9 @@ inline __attribute__((always_inline)) uint64_t GetUint64(Object& object) {
   return 0;
 }
 
-inline __attribute__((always_inline)) void SetUint64(Object& object,
+inline
+//__attribute__((always_inline))
+ void SetUint64(Object& object,
                                                      uint64_t data) {
   if (object.type == 0x04) {
     object.data.uint64t_data = data;
@@ -344,12 +361,14 @@ inline __attribute__((always_inline)) void SetUint64(Object& object,
     }
   }
 
-  RunGc(object);
+  // RunGc(object);
   object.type = 0x04;
   object.data.uint64t_data = data;
 }
 
-inline __attribute__((always_inline)) std::string GetString(Object& object) {
+inline
+//__attribute__((always_inline))
+ std::string GetString(Object& object) {
   switch (object.type) {
     case 0x05:
       return *object.data.string_data;
@@ -361,7 +380,9 @@ inline __attribute__((always_inline)) std::string GetString(Object& object) {
   return "";
 }
 
-inline __attribute__((always_inline)) void SetString(Object& object,
+inline
+//__attribute__((always_inline))
+ void SetString(Object& object,
                                                      const std::string& data) {
   if (object.type == 0x05) {
     *object.data.string_data = data;
@@ -373,12 +394,14 @@ inline __attribute__((always_inline)) void SetString(Object& object,
     return;
   }
 
-  RunGc(object);
+  // RunGc(object);
   object.type = 0x05;
   object.data.string_data = new std::string(data);
 }
 
-inline __attribute__((always_inline)) Memory* GetArray(Object& object) {
+inline
+//__attribute__((always_inline))
+ Memory* GetArray(Object& object) {
   switch (object.type) {
     case 0x06:
       return object.data.array_data;
@@ -390,7 +413,9 @@ inline __attribute__((always_inline)) Memory* GetArray(Object& object) {
   return nullptr;
 }
 
-inline __attribute__((always_inline)) void SetArrayContent(
+inline
+//__attribute__((always_inline))
+ void SetArrayContent(
     Object& object, std::vector<Object>& data) {
   if (object.type == 0x06) {
     object.data.array_data->SetMemory(data);
@@ -401,15 +426,17 @@ inline __attribute__((always_inline)) void SetArrayContent(
     LOGGING_ERROR("Cannot set array to constant type memory.");
   }
 
-  RunGc(object);
+  // RunGc(object);
   object.type = 0x06;
   object.data.array_data = new Memory();
   object.data.array_data->SetMemory(data);
 }
 
-inline __attribute__((always_inline)) void SetArray(Object& object,
+inline
+//__attribute__((always_inline))
+ void SetArray(Object& object,
                                                     Memory* data) {
-  RunGc(object);
+  // RunGc(object);
   if (object.type == 0x06 || !object.constant_type) {
     object.type = 0x06;
     object.data.array_data = data;
@@ -419,7 +446,9 @@ inline __attribute__((always_inline)) void SetArray(Object& object,
   }
 }
 
-inline __attribute__((always_inline)) ClassMemory* GetObject(Object& object) {
+inline
+//__attribute__((always_inline))
+ ClassMemory* GetObject(Object& object) {
   switch (object.type) {
     case 0x09:
       return object.data.class_data;
@@ -431,9 +460,11 @@ inline __attribute__((always_inline)) ClassMemory* GetObject(Object& object) {
   return nullptr;
 }
 
-inline __attribute__((always_inline)) void SetObject(Object& object,
+inline
+//__attribute__((always_inline))
+ void SetObject(Object& object,
                                                      ClassMemory* data) {
-  RunGc(object);
+  // RunGc(object);
   if (object.type == 0x09 || !object.constant_type) {
     object.type = 0x09;
     object.data.class_data = data;
@@ -443,7 +474,9 @@ inline __attribute__((always_inline)) void SetObject(Object& object,
   }
 }
 
-inline __attribute__((always_inline)) Object& GetOrigin(Object& data) {
+inline
+//__attribute__((always_inline))
+ Object& GetOrigin(Object& data) {
   std::reference_wrapper<Object> object = data;
 
   while (object.get().type == 0x07) {
@@ -460,9 +493,11 @@ inline __attribute__((always_inline)) Object& GetOrigin(Object& data) {
   return object;
 }
 
-inline __attribute__((always_inline)) void SetReference(
+inline
+//__attribute__((always_inline))
+ void SetReference(
     Object& object, ObjectReference reference) {
-  RunGc(object);
+  // RunGc(object);
   if (object.type == 0x07 || !object.constant_type) {
     object.type = 0x07;
     object.data.reference_data = new ObjectReference(reference);
@@ -471,7 +506,9 @@ inline __attribute__((always_inline)) void SetReference(
   }
 }
 
-inline __attribute__((always_inline)) void RunGc(Object* memory,
+inline
+//__attribute__((always_inline))
+ void // RunGc(Object* memory,
                                                  std::size_t index) {
   switch (memory[index].type) {
     case 0x05:
@@ -491,7 +528,9 @@ inline __attribute__((always_inline)) void RunGc(Object* memory,
   }
 }
 
-inline __attribute__((always_inline)) int8_t GetByte(Object* memory,
+inline
+//__attribute__((always_inline))
+ int8_t GetByte(Object* memory,
                                                      std::size_t index) {
   switch (memory[index].type) {
     case 0x01:
@@ -516,7 +555,9 @@ inline __attribute__((always_inline)) int8_t GetByte(Object* memory,
   return 0;
 }
 
-inline __attribute__((always_inline)) void SetByte(Object* memory,
+inline
+//__attribute__((always_inline))
+ void SetByte(Object* memory,
                                                    std::size_t index,
                                                    int8_t data) {
   if (memory[index].type == 0x01) {
@@ -548,12 +589,14 @@ inline __attribute__((always_inline)) void SetByte(Object* memory,
     }
   }
 
-  RunGc(memory, index);
+  // RunGc(memory, index);
   memory[index].type = 0x01;
   memory[index].data.byte_data = data;
 }
 
-inline __attribute__((always_inline)) int64_t GetLong(Object* memory,
+inline
+//__attribute__((always_inline))
+ int64_t GetLong(Object* memory,
                                                       std::size_t index) {
   switch (memory[index].type) {
     case 0x01:
@@ -577,7 +620,9 @@ inline __attribute__((always_inline)) int64_t GetLong(Object* memory,
   return 0;
 }
 
-inline __attribute__((always_inline)) void SetLong(Object* memory,
+inline
+//__attribute__((always_inline))
+ void SetLong(Object* memory,
                                                    std::size_t index,
                                                    int64_t data) {
   if (memory[index].type == 0x02) {
@@ -610,12 +655,14 @@ inline __attribute__((always_inline)) void SetLong(Object* memory,
     }
   }
 
-  RunGc(memory, index);
+  // RunGc(memory, index);
   memory[index].type = 0x02;
   memory[index].data.int_data = data;
 }
 
-inline __attribute__((always_inline)) double GetDouble(Object* memory,
+inline
+//__attribute__((always_inline))
+ double GetDouble(Object* memory,
                                                        std::size_t index) {
   switch (memory[index].type) {
     case 0x01:
@@ -639,7 +686,9 @@ inline __attribute__((always_inline)) double GetDouble(Object* memory,
   return 0.0;
 }
 
-inline __attribute__((always_inline)) void SetDouble(Object* memory,
+inline
+//__attribute__((always_inline))
+ void SetDouble(Object* memory,
                                                      std::size_t index,
                                                      double data) {
   if (memory[index].type == 0x03) {
@@ -673,12 +722,14 @@ inline __attribute__((always_inline)) void SetDouble(Object* memory,
     }
   }
 
-  RunGc(memory, index);
+  // RunGc(memory, index);
   memory[index].type = 0x03;
   memory[index].data.float_data = data;
 }
 
-inline __attribute__((always_inline)) uint64_t GetUint64(Object* memory,
+inline
+//__attribute__((always_inline))
+ uint64_t GetUint64(Object* memory,
                                                          std::size_t index) {
   switch (memory[index].type) {
     case 0x01:
@@ -703,7 +754,9 @@ inline __attribute__((always_inline)) uint64_t GetUint64(Object* memory,
   return 0;
 }
 
-inline __attribute__((always_inline)) void SetUint64(Object* memory,
+inline
+//__attribute__((always_inline))
+ void SetUint64(Object* memory,
                                                      std::size_t index,
                                                      uint64_t data) {
   if (memory[index].type == 0x04) {
@@ -737,12 +790,14 @@ inline __attribute__((always_inline)) void SetUint64(Object* memory,
     }
   }
 
-  RunGc(memory, index);
+  // RunGc(memory, index);
   memory[index].type = 0x04;
   memory[index].data.uint64t_data = data;
 }
 
-inline __attribute__((always_inline)) std::string GetString(Object* memory,
+inline
+//__attribute__((always_inline))
+ std::string GetString(Object* memory,
                                                             std::size_t index) {
   switch (memory[index].type) {
     case 0x05:
@@ -758,7 +813,9 @@ inline __attribute__((always_inline)) std::string GetString(Object* memory,
   return "";
 }
 
-inline __attribute__((always_inline)) void SetString(Object* memory,
+inline
+//__attribute__((always_inline))
+ void SetString(Object* memory,
                                                      std::size_t index,
                                                      const std::string& data) {
   if (memory[index].type == 0x05) {
@@ -777,12 +834,14 @@ inline __attribute__((always_inline)) void SetString(Object* memory,
     return;
   }
 
-  RunGc(memory, index);
+  // RunGc(memory, index);
   memory[index].type = 0x05;
   memory[index].data.string_data = new std::string(data);
 }
 
-inline __attribute__((always_inline)) Memory* GetArray(Object* memory,
+inline
+//__attribute__((always_inline))
+ Memory* GetArray(Object* memory,
                                                        std::size_t index) {
   switch (memory[index].type) {
     case 0x06:
@@ -798,7 +857,9 @@ inline __attribute__((always_inline)) Memory* GetArray(Object* memory,
   return nullptr;
 }
 
-inline __attribute__((always_inline)) void SetArrayContent(
+inline
+//__attribute__((always_inline))
+ void SetArrayContent(
     Object* memory, std::size_t index, std::vector<Object>& data) {
   if (memory[index].type == 0x06) {
     memory[index].data.array_data->SetMemory(data);
@@ -814,16 +875,18 @@ inline __attribute__((always_inline)) void SetArrayContent(
     LOGGING_ERROR("Cannot set array to constant type memory.");
   }
 
-  RunGc(memory, index);
+  // RunGc(memory, index);
   memory[index].type = 0x06;
   memory[index].data.array_data = new Memory();
   memory[index].data.array_data->SetMemory(data);
 }
 
-inline __attribute__((always_inline)) void SetArray(Object* memory,
+inline
+//__attribute__((always_inline))
+ void SetArray(Object* memory,
                                                     std::size_t index,
                                                     Memory* data) {
-  RunGc(memory, index);
+  // RunGc(memory, index);
 
   if (memory[index].type == 0x07) {
     SetArray(GetOrigin(memory[index]), data);
@@ -839,7 +902,9 @@ inline __attribute__((always_inline)) void SetArray(Object* memory,
   }
 }
 
-inline __attribute__((always_inline)) ClassMemory* GetObject(
+inline
+//__attribute__((always_inline))
+ ClassMemory* GetObject(
     Object* memory, std::size_t index) {
   switch (memory[index].type) {
     case 0x09:
@@ -855,10 +920,12 @@ inline __attribute__((always_inline)) ClassMemory* GetObject(
   return nullptr;
 }
 
-inline __attribute__((always_inline)) void SetObject(Object* memory,
+inline
+//__attribute__((always_inline))
+ void SetObject(Object* memory,
                                                      std::size_t index,
                                                      ClassMemory* data) {
-  RunGc(memory, index);
+  // RunGc(memory, index);
 
   if (memory[index].type == 0x07) {
     SetObject(GetOrigin(memory[index]), data);
@@ -874,7 +941,9 @@ inline __attribute__((always_inline)) void SetObject(Object* memory,
   }
 }
 
-inline __attribute__((always_inline)) Object& GetOrigin(Object* memory,
+inline
+//__attribute__((always_inline))
+ Object& GetOrigin(Object* memory,
                                                         std::size_t index) {
   std::reference_wrapper<Object> object = memory[index];
 
@@ -892,9 +961,11 @@ inline __attribute__((always_inline)) Object& GetOrigin(Object* memory,
   return object;
 }
 
-inline __attribute__((always_inline)) void SetReference(
+inline
+//__attribute__((always_inline))
+ void SetReference(
     Object* memory, std::size_t index, ObjectReference reference) {
-  RunGc(memory, index);
+  // RunGc(memory, index);
   if (memory[index].type == 0x07 || !memory[index].constant_type) {
     memory[index].type = 0x07;
     memory[index].data.reference_data = new ObjectReference(reference);
@@ -903,12 +974,16 @@ inline __attribute__((always_inline)) void SetReference(
   }
 }
 
-inline __attribute__((always_inline)) uint8_t
+inline
+//__attribute__((always_inline))
+ uint8_t
 GetImportantType(Object& operand1, Object& operand2) {
   return operand1.type > operand2.type ? operand1.type : operand2.type;
 }
 
-inline __attribute__((always_inline)) uint8_t
+inline
+//__attribute__((always_inline))
+ uint8_t
 GetImportantType(Object* memory, std::size_t operand1, std::size_t operand2) {
   if (memory[operand1].type == 0x07 || memory[operand2].type == 0x07)
     return GetImportantType(GetOrigin(memory[operand1]),
@@ -916,6 +991,599 @@ GetImportantType(Object* memory, std::size_t operand1, std::size_t operand2) {
 
   return memory[operand1].type > memory[operand2].type ? memory[operand1].type
                                                        : memory[operand2].type;
+}*/
+
+inline
+    //__attribute__((always_inline))
+    void
+    RunGc(Object* object) {
+  switch (object->type) {
+    case 0x05:
+      delete object->data.string_data;
+      break;
+    case 0x06:
+      delete object->data.array_data;
+      break;
+    case 0x07:
+      delete object->data.reference_data;
+      break;
+    case 0x09:
+      object->data.class_data->RemoveReferenceCount();
+      break;
+    default:
+      break;
+  }
+}
+
+inline
+    //__attribute__((always_inline))
+    int8_t
+    GetByte(Object* object) {
+  switch (object->type) {
+    case 0x01:
+      return object->data.byte_data;
+    case 0x02:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<int8_t>(object->data.int_data);
+    case 0x03:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<int8_t>(object->data.float_data);
+    case 0x04:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<int8_t>(object->data.uint64t_data);
+    case 0x07:
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      return GetByte(object);
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return 0;
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetByte(Object* object, int8_t data) {
+  if (object->constant_type) {
+    switch (object->type) {
+      case 0x01:
+        object->data.byte_data = data;
+        return;
+      case 0x02:
+        object->data.int_data = data;
+        return;
+      case 0x03:
+        object->data.float_data = data;
+        return;
+      case 0x04:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.uint64t_data = data;
+        return;
+      case 0x07:
+        while (object->type == 0x07) {
+          auto reference = object->data.reference_data;
+          if (reference->is_class) {
+            object = &reference->memory.class_memory
+                          ->GetMembers()[*reference->index.variable_name];
+          } else {
+            object =
+                &reference->memory.memory->GetMemory()[reference->index.index];
+          }
+        }
+        SetByte(object, data);
+        return;
+      default:
+        LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+        return;
+    }
+  }
+
+  // RunGc(object);
+  object->type = 0x01;
+  object->data.byte_data = data;
+}
+
+inline
+    //__attribute__((always_inline))
+    int64_t
+    GetLong(Object* object) {
+  switch (object->type) {
+    case 0x01:
+      return object->data.byte_data;
+    case 0x02:
+      return object->data.int_data;
+    case 0x03:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<int64_t>(object->data.float_data);
+    case 0x04:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<int64_t>(object->data.uint64t_data);
+    case 0x07:
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      return GetLong(object);
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return 0;
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetLong(Object* object, int64_t data) {
+  if (object->constant_type) {
+    switch (object->type) {
+      case 0x01:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.byte_data = data;
+        return;
+      case 0x02:
+        object->data.int_data = data;
+        return;
+      case 0x03:
+        object->data.float_data = data;
+        return;
+      case 0x04:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.uint64t_data = data;
+        return;
+      case 0x07:
+        while (object->type == 0x07) {
+          auto reference = object->data.reference_data;
+          if (reference->is_class) {
+            object = &reference->memory.class_memory
+                          ->GetMembers()[*reference->index.variable_name];
+          } else {
+            object =
+                &reference->memory.memory->GetMemory()[reference->index.index];
+          }
+        }
+        SetLong(object, data);
+        return;
+      default:
+        LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+        return;
+    }
+  }
+
+  // RunGc(object);
+  object->type = 0x02;
+  object->data.int_data = data;
+}
+
+inline
+    //__attribute__((always_inline))
+    double
+    GetDouble(Object* object) {
+  switch (object->type) {
+    case 0x01:
+      return object->data.byte_data;
+    case 0x02:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<double>(object->data.int_data);
+    case 0x03:
+      return object->data.float_data;
+    case 0x04:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<double>(object->data.uint64t_data);
+    case 0x07:
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      return GetDouble(object);
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return 0.0;
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetDouble(Object* object, double data) {
+  if (object->constant_type) {
+    switch (object->type) {
+      case 0x01:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.byte_data = data;
+        return;
+      case 0x02:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.int_data = data;
+        return;
+      case 0x03:
+        object->data.float_data = data;
+        return;
+      case 0x04:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.uint64t_data = data;
+        return;
+      case 0x07:
+        while (object->type == 0x07) {
+          auto reference = object->data.reference_data;
+          if (reference->is_class) {
+            object = &reference->memory.class_memory
+                          ->GetMembers()[*reference->index.variable_name];
+          } else {
+            object =
+                &reference->memory.memory->GetMemory()[reference->index.index];
+          }
+        }
+        SetDouble(object, data);
+        return;
+      default:
+        LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+        return;
+    }
+  }
+
+  // RunGc(object);
+  object->type = 0x03;
+  object->data.float_data = data;
+}
+
+inline
+    //__attribute__((always_inline))
+    uint64_t
+    GetUint64(Object* object) {
+  switch (object->type) {
+    case 0x01:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<uint64_t>(object->data.byte_data);
+    case 0x02:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<uint64_t>(object->data.int_data);
+    case 0x03:
+      // LOGGING_WARNING("Implicit conversion may changes value.");
+      return static_cast<uint64_t>(object->data.float_data);
+    case 0x04:
+      return object->data.uint64t_data;
+    case 0x07:
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      return GetUint64(object);
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return 0;
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetUint64(Object* object, uint64_t data) {
+  if (object->constant_type) {
+    switch (object->type) {
+      case 0x01:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.byte_data = data;
+        return;
+      case 0x02:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.int_data = data;
+        return;
+      case 0x03:
+        // LOGGING_WARNING("Implicit conversion may changes value.");
+        object->data.float_data = data;
+        return;
+      case 0x04:
+        object->data.uint64t_data = data;
+        return;
+      case 0x07:
+        while (object->type == 0x07) {
+          auto reference = object->data.reference_data;
+          if (reference->is_class) {
+            object = &reference->memory.class_memory
+                          ->GetMembers()[*reference->index.variable_name];
+          } else {
+            object =
+                &reference->memory.memory->GetMemory()[reference->index.index];
+          }
+        }
+        SetUint64(object, data);
+        return;
+      default:
+        LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+        return;
+    }
+  }
+
+  // RunGc(object);
+  object->type = 0x04;
+  object->data.uint64t_data = data;
+}
+
+inline
+    //__attribute__((always_inline))
+    std::string
+    GetString(Object* object) {
+  switch (object->type) {
+    case 0x05:
+      return *object->data.string_data;
+    case 0x07:
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      return GetString(object);
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return "";
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetString(Object* object, const std::string& data) {
+  if (object->constant_type && object->type != 0x05) {
+    if (object->type == 0x07) {
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      SetString(object, data);
+      return;
+    }
+    LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+    return;
+  }
+
+  // RunGc(object);
+  object->type = 0x05;
+  object->data.string_data = new std::string(data);
+}
+
+inline
+    //__attribute__((always_inline))
+    Memory*
+    GetArray(Object* object) {
+  switch (object->type) {
+    case 0x06:
+      return object->data.array_data;
+    case 0x07:
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      return GetArray(object);
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return nullptr;
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetArrayContent(Object* object, std::vector<Object>& data) {
+  if (object->constant_type && object->type != 0x06) {
+    if (object->type == 0x07) {
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      SetArrayContent(object, data);
+      return;
+    }
+    LOGGING_ERROR("Cannot set array to constant type memory.");
+  }
+
+  // RunGc(object);
+  object->type = 0x06;
+  object->data.array_data = new Memory();
+  object->data.array_data->SetMemory(data);
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetArray(Object* object, Memory* data) {
+  // RunGc(object);
+
+  if (object->type == 0x06 || !object->constant_type) {
+    object->type = 0x06;
+    object->data.array_data = data;
+    data->AddReferenceCount();
+  } else {
+    if (object->type == 0x07) {
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      SetArray(object, data);
+      return;
+    }
+    LOGGING_ERROR("Cannot set array to constant type memory.");
+  }
+}
+
+inline
+    //__attribute__((always_inline))
+    ClassMemory*
+    GetObject(Object* object) {
+  switch (object->type) {
+    case 0x09:
+      return object->data.class_data;
+    case 0x07:
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      return GetObject(object);
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return nullptr;
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetObject(Object* object, ClassMemory* data) {
+  // RunGc(object);
+
+  if (object->type == 0x09 || !object->constant_type) {
+    object->type = 0x09;
+    object->data.class_data = data;
+    data->AddReferenceCount();
+  } else {
+    if (object->type == 0x07) {
+      while (object->type == 0x07) {
+        auto reference = object->data.reference_data;
+        if (reference->is_class) {
+          object = &reference->memory.class_memory
+                        ->GetMembers()[*reference->index.variable_name];
+        } else {
+          object =
+              &reference->memory.memory->GetMemory()[reference->index.index];
+        }
+      }
+      SetObject(object, data);
+      return;
+    }
+    LOGGING_ERROR("Cannot set class to constant type memory.");
+  }
+}
+
+inline
+    //__attribute__((always_inline))
+    Object*
+    GetOrigin(Object* object) {
+  while (object->type == 0x07) {
+    auto reference = object->data.reference_data;
+    if (reference->is_class) {
+      object = &reference->memory.class_memory
+                    ->GetMembers()[*reference->index.variable_name];
+    } else {
+      object = &reference->memory.memory->GetMemory()[reference->index.index];
+    }
+  }
+
+  return object;
+}
+
+inline
+    //__attribute__((always_inline))
+    void
+    SetReference(Object* object, ObjectReference reference) {
+  // RunGc(object);
+  if (object->type == 0x07 || !object->constant_type) {
+    object->type = 0x07;
+    object->data.reference_data = new ObjectReference(reference);
+  } else {
+    LOGGING_ERROR("Cannot set reference to constant type memory.");
+  }
+}
+
+inline
+    //__attribute__((always_inline))
+    uint8_t
+    GetImportantType(Object* operand1, Object* operand2) {
+  while (operand1->type == 0x07) {
+    auto reference = operand1->data.reference_data;
+    if (reference->is_class) {
+      operand1 = &reference->memory.class_memory
+                      ->GetMembers()[*reference->index.variable_name];
+    } else {
+      operand1 = &reference->memory.memory->GetMemory()[reference->index.index];
+    }
+  }
+
+  while (operand2->type == 0x07) {
+    auto reference = operand2->data.reference_data;
+    if (reference->is_class) {
+      operand2 = &reference->memory.class_memory
+                      ->GetMembers()[*reference->index.variable_name];
+    } else {
+      operand2 = &reference->memory.memory->GetMemory()[reference->index.index];
+    }
+  }
+
+  return operand1->type > operand2->type ? operand1->type : operand2->type;
 }
 
 }  // namespace Interpreter

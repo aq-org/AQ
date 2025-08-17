@@ -104,19 +104,19 @@ int __builtin_print(Memory* memory, std::vector<std::size_t> arguments) {
     auto& object = memory->GetOriginData(argument);
     switch (object.type) {
       case 0x01:
-        printf("%d", GetByte(memory_ptr, argument));
+        printf("%d", GetByte(memory_ptr + argument));
         break;
       case 0x02:
-        printf("%lld", GetLong(memory_ptr, argument));
+        printf("%lld", GetLong(memory_ptr + argument));
         break;
       case 0x03:
-        printf("%g", GetDouble(memory_ptr, argument));
+        printf("%g", GetDouble(memory_ptr + argument));
         break;
       case 0x04:
-        printf("%llu", GetUint64(memory_ptr, argument));
+        printf("%llu", GetUint64(memory_ptr + argument));
         break;
       case 0x05:
-        printf("%s", GetString(memory_ptr, argument).c_str());
+        printf("%s", GetString(memory_ptr + argument).c_str());
         break;
       default:
         LOGGING_ERROR("Unsupported object type in __builtin_print: " +
@@ -138,25 +138,25 @@ int __builtin_vaprint(Memory* memory, std::vector<std::size_t> arguments) {
 
   std::size_t value_index = arguments[1];
   auto& value_object = memory->GetOriginData(value_index);
-  auto array_ptr = GetArray(memory_ptr, value_index)->GetMemory().data();
+  auto array_ptr = GetArray(memory_ptr + value_index)->GetMemory().data();
 
   for (std::size_t i = 0;
-       i < GetArray(memory_ptr, value_index)->GetMemory().size(); i++) {
+       i < GetArray(memory_ptr + value_index)->GetMemory().size(); i++) {
     switch (array_ptr[i].type) {
       case 0x01:
-        printf("%d", GetByte(array_ptr, i));
+        printf("%d", GetByte(array_ptr + i));
         break;
       case 0x02:
-        printf("%lld", GetLong(array_ptr, i));
+        printf("%lld", GetLong(array_ptr + i));
         break;
       case 0x03:
-        printf("%g", GetDouble(array_ptr, i));
+        printf("%g", GetDouble(array_ptr + i));
         break;
       case 0x04:
-        printf("%llu", GetUint64(array_ptr, i));
+        printf("%llu", GetUint64(array_ptr + i));
         break;
       case 0x05:
-        printf("%s", GetString(array_ptr, i).c_str());
+        printf("%s", GetString(array_ptr + i).c_str());
         break;
       default:
         LOGGING_ERROR("Unsupported object type in __builtin_vaprint: " +

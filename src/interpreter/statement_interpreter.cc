@@ -19,9 +19,6 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
                      std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
-  LOGGING_INFO("Handling statement: " +
-               std::to_string(static_cast<int>(statement->GetStatementType())));
-
   switch (statement->GetStatementType()) {
     case Ast::Statement::StatementType::kImport:
       LOGGING_WARNING("Unexpected import statement in the code.");
@@ -32,7 +29,7 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kCompound:
-      LOGGING_INFO("Handling compound statement.");
+    
       HandleCompoundStatement(interpreter, Ast::Cast<Ast::Compound>(statement),
                               code);
       break;
@@ -259,11 +256,7 @@ void HandleCompoundStatement(Interpreter& interpreter, Ast::Compound* statement,
                              std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
-  LOGGING_INFO("message");
-
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
-    LOGGING_INFO("Handling compound statement: " + std::to_string(i) + "/" +
-                 std::to_string(statement->GetStatements().size()));
     HandleStatement(interpreter, statement->GetStatements()[i], code);
   }
 }
