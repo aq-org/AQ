@@ -26,7 +26,7 @@ void HandleLabel(Interpreter& interpreter, Ast::Label* label,
     LOGGING_WARNING("Has found same name label.");
 
   label_map[label_name] = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
 }
 
 void HandleGoto(Interpreter& interpreter, Ast::Goto* label,
@@ -48,15 +48,14 @@ void HandleGoto(Interpreter& interpreter, Ast::Goto* label,
     // If the label is found in the current scope,
     // it will be replaced with the address of the label.
     if (iterator != label_map.end()) {
-      code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1,
-                              global_memory->AddUint64t(iterator->second)));
+      code.push_back(Bytecode{_AQVM_OPERATOR_GOTO, {global_memory->AddUint64t(iterator->second)}});
       return;
     }
 
     // If the label is not found in the current scope,
     // it will be added to the goto map for later processing.
     if (i == current_scope) {
-      code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
+      code.push_back(Bytecode{_AQVM_OPERATOR_GOTO, {}});
       goto_map.push_back(
           std::pair<std::string, std::size_t>(label_name, code.size() - 1));
       return;

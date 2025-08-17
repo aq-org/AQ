@@ -4,6 +4,7 @@
 
 #include "interpreter/memory.h"
 
+#include <functional>
 #include <string>
 
 #include "logging/logging.h"
@@ -258,8 +259,6 @@ Object& ClassMemory::GetOriginData(std::string index) {
   std::reference_wrapper<Object> object = members_[index];
 
   while (object.get().type == 0x07) {
-  
-
     auto reference = object.get().data.reference_data;
     if (reference->is_class) {
       object = std::ref(reference->memory.class_memory

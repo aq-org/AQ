@@ -32,17 +32,17 @@ void Interpreter::Generate(Ast::Compound* statement) {
   // Bytecode Running class.
   global_memory->AddWithType(0x09);
   global_code.push_back(
-      Bytecode(_AQVM_OPERATOR_EQUAL, 2, 0, global_memory->AddString("(void)")));
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, 1, 0));
+      Bytecode{_AQVM_OPERATOR_EQUAL, {0, global_memory->AddString("(void)")}});
+  global_code.push_back(Bytecode{_AQVM_OPERATOR_REFER, {1, 0}});
 
   // Sets the scope information.
   context.scopes.push_back("");
   context.function_context->current_scope = context.scopes.size() - 1;
 
   // Sets the initialize function.
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, 2,
-                                 global_memory->AddString(".!__init"),
-                                 global_memory->Add(1)));
+  global_code.push_back(Bytecode{
+      _AQVM_OPERATOR_INVOKE_METHOD,
+      {2, global_memory->AddString(".!__init"), global_memory->Add(1)}});
 
   // Sets the current class.
   Class* start_class = &this->main_class;
@@ -142,8 +142,8 @@ void Interpreter::Generate(Ast::Compound* statement) {
       if (i == 0) LOGGING_ERROR("Label not found.");
     }
 
-    global_code[context.function_context->goto_map.back().second].SetArgs(
-        1, global_memory->AddUint64t(goto_location));
+    global_code[context.function_context->goto_map.back().second].arguments = {
+        1, global_memory->AddUint64t(goto_location)};
     context.function_context->goto_map.pop_back();
   }
 
@@ -159,8 +159,8 @@ void Interpreter::Generate(Ast::Compound* statement) {
   // Adds the start function name into the constructor arguments. And makes the
   // invoke for the start function.
   std::vector<std::size_t> invoke_start_arguments = {2, start_function_name, 1};
-  start_code.push_back(
-      Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_start_arguments));
+  start_code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                std::move(invoke_start_arguments)});
 
   // Makes the constructor function for the start function.
   Function constructor_func("@constructor", constructor_args, start_code);
@@ -174,7 +174,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
   std::size_t main_func = global_memory->AddString(".main");
   std::vector<std::size_t> invoke_main_arguments = {2, main_func, 1};
   global_code.push_back(
-      Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_main_arguments));
+      Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_main_arguments)});
   Function start_func(".!__start", arguments, global_code);
   functions[".!__start"].push_back(start_func);
 
@@ -198,8 +198,6 @@ void Interpreter::Generate(Ast::Compound* statement) {
 void Interpreter::Run() {
   // start time
   auto start_time = std::chrono::high_resolution_clock::now();
-
-
 
   global_memory->GetMemory()[2].type = 0x09;
   global_memory->GetMemory()[2].constant_type = true;

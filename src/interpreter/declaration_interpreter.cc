@@ -54,11 +54,12 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   std::size_t index = variables["#" + name];
 
   // Loads and initializes the import bytecode.
-  init_code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, index, 2,
-                               memory->AddString(name)));
+  init_code.push_back(Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+                               {index, 2, memory->AddString(name)}});
   init_code.push_back(
-      Bytecode(_AQVM_OPERATOR_NEW, 3, index, memory->AddUint64t(0),
-               memory->AddString("~" + location + "bc~.!__start")));
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {index, memory->AddUint64t(0),
+                memory->AddString("~" + location + "bc~.!__start")}});
 }
 
 void HandleFunctionDeclaration(Interpreter& interpreter,
@@ -281,10 +282,10 @@ std::size_t HandleVariableDeclaration(Interpreter& interpreter,
     // specially.
     if (category == Ast::Type::TypeCategory::kReference) {
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, variable_index, value_index));
+          Bytecode{_AQVM_OPERATOR_REFER, {variable_index, value_index}});
     } else {
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, variable_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {variable_index, value_index}});
     }
 
   } else if (category == Ast::Type::TypeCategory::kReference) {
@@ -346,10 +347,10 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
     // specially.
     if (category == Ast::Type::TypeCategory::kReference) {
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, value_index));
+          Bytecode{_AQVM_OPERATOR_REFER, {reference_index, value_index}});
     } else {
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, reference_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
     }
 
   } else if (category == Ast::Type::TypeCategory::kReference) {
@@ -411,10 +412,10 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
     // specially.
     if (category == Ast::Type::TypeCategory::kReference) {
       global_code.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, variable_index, value_index));
+          Bytecode{_AQVM_OPERATOR_REFER, {variable_index, value_index}});
     } else {
       global_code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, variable_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {variable_index, value_index}});
     }
 
   } else if (category == Ast::Type::TypeCategory::kReference) {
@@ -460,8 +461,9 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
   memory->AddWithType(variable_name, return_type);
 
   std::size_t reference_index = global_memory->Add(1);
-  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, reference_index, 0,
-                          global_memory->AddString(variable_name)));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+               {reference_index, 0, global_memory->AddString(variable_name)}});
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
@@ -478,10 +480,10 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
     // specially.
     if (category == Ast::Type::TypeCategory::kReference) {
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_REFER, 2, reference_index, value_index));
+          Bytecode{_AQVM_OPERATOR_REFER, {reference_index, value_index}});
     } else {
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, reference_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
     }
 
   } else if (category == Ast::Type::TypeCategory::kReference) {
@@ -541,8 +543,9 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
   // This means that regardless of the size of the array definition, it is
   // actually determined based on the actual number of initialization lists
   // given.
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                          global_memory->AddByte(1), array_type_index));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {array_index, global_memory->AddByte(1), array_type_index}});
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
@@ -550,11 +553,13 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
-                            global_memory->GetUint64tData(0)));
-    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, current_index,
-                            global_memory->AddString("@constructor"),
-                            global_memory->Add(1)));
+    code.push_back(Bytecode{
+        _AQVM_OPERATOR_ARRAY,
+        {current_index, array_index, global_memory->GetUint64tData(0)}});
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                 {current_index, global_memory->AddString("@constructor"),
+                  global_memory->Add(1)}});
   }
 
   // Handles the array initialization with the initialization lists.
@@ -562,15 +567,16 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
       std::size_t current_index = global_memory->Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
-                              array_index, global_memory->GetUint64tData(i)));
+      code.push_back(Bytecode{
+          _AQVM_OPERATOR_ARRAY,
+          {current_index, array_index, global_memory->GetUint64tData(i)}});
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
           interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {current_index, value_index}});
     }
   }
 
@@ -590,7 +596,6 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   auto& scopes = interpreter.context.scopes;
   auto memory = start_class.GetMembers();
 
-
   // Handles the array type.
   Ast::ArrayType* array_type =
       dynamic_cast<Ast::ArrayType*>(declaration->GetVariableType());
@@ -604,7 +609,6 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   memory->AddWithType(variable_name, array_type->GetVmType());
   std::size_t array_index = global_memory->AddReference(memory, variable_name);
   std::size_t array_type_index = 0;
-
 
   // Gets the sub type of the array type and its category.
   Ast::Type* sub_type = array_type->GetSubType();
@@ -629,8 +633,9 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   // This means that regardless of the size of the array definition, it is
   // actually determined based on the actual number of initialization lists
   // given.
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                          global_memory->AddByte(1), array_type_index));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {array_index, global_memory->AddByte(1), array_type_index}});
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
@@ -638,11 +643,13 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
-                            global_memory->AddUint64t(0)));
-    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, current_index,
-                            global_memory->AddString("@constructor"),
-                            global_memory->Add(1)));
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_ARRAY,
+                 {current_index, array_index, global_memory->AddUint64t(0)}});
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                 {current_index, global_memory->AddString("@constructor"),
+                  global_memory->Add(1)}});
   }
 
   // Handles the array initialization with the initialization lists.
@@ -650,15 +657,16 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
     std::size_t current_index = global_memory->Add(1);
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
-      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
-                              array_index, global_memory->AddUint64t(i)));
+      code.push_back(
+          Bytecode{_AQVM_OPERATOR_ARRAY,
+                   {current_index, array_index, global_memory->AddUint64t(i)}});
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
           interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {current_index, value_index}});
     }
   }
 
@@ -714,8 +722,9 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
   // This means that regardless of the size of the array definition, it is
   // actually determined based on the actual number of initialization lists
   // given.
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                                 global_memory->AddByte(1), array_type_index));
+  global_code.push_back(
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {array_index, global_memory->AddByte(1), array_type_index}});
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
@@ -723,11 +732,13 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    global_code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
-                                   array_index, global_memory->AddUint64t(0)));
-    global_code.push_back(Bytecode(
-        _AQVM_OPERATOR_INVOKE_METHOD, 3, current_index,
-        global_memory->AddString("@constructor"), global_memory->Add(1)));
+    global_code.push_back(
+        Bytecode{_AQVM_OPERATOR_ARRAY,
+                 {current_index, array_index, global_memory->AddUint64t(0)}});
+    global_code.push_back(
+        Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                 {current_index, global_memory->AddString("@constructor"),
+                  global_memory->Add(1)}});
   }
 
   // Handles the array initialization with the initialization lists.
@@ -735,16 +746,16 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
     std::size_t current_index = global_memory->Add(1);
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
-      global_code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
-                                     array_index,
-                                     global_memory->AddUint64t(i)));
+      global_code.push_back(
+          Bytecode{_AQVM_OPERATOR_ARRAY,
+                   {current_index, array_index, global_memory->AddUint64t(i)}});
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
           interpreter, declaration->GetVariableValue()[i], global_code);
       global_code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {current_index, value_index}});
     }
   }
 
@@ -774,8 +785,9 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // Adds the array index and the type index.
   memory->AddWithType(variable_name, array_type->GetVmType());
   std::size_t array_index = global_memory->Add(1);
-  code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, array_index, 0,
-                          global_memory->AddString(variable_name)));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+               {3, array_index, 0, global_memory->AddString(variable_name)}});
   std::size_t array_type_index = 0;
 
   // Gets the sub type of the array type and its category.
@@ -801,8 +813,9 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // This means that regardless of the size of the array definition, it is
   // actually determined based on the actual number of initialization lists
   // given.
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, array_index,
-                          global_memory->AddByte(1), array_type_index));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {3, array_index, global_memory->AddByte(1), array_type_index}});
 
   // If the sub type is a class type, it needs to be handled specially. Because
   // the default generated class index is considered an initialized value
@@ -810,11 +823,13 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index, array_index,
-                            global_memory->AddUint64t(0)));
-    code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, current_index,
-                            global_memory->AddString("@constructor"),
-                            global_memory->Add(1)));
+    code.push_back(Bytecode{
+        _AQVM_OPERATOR_ARRAY,
+        {3, current_index, array_index, global_memory->AddUint64t(0)}});
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                 {3, current_index, global_memory->AddString("@constructor"),
+                  global_memory->Add(1)}});
   }
 
   // Handles the array initialization with the initialization lists.
@@ -822,15 +837,16 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
       std::size_t current_index = global_memory->Add(1);
-      code.push_back(Bytecode(_AQVM_OPERATOR_ARRAY, 3, current_index,
-                              array_index, global_memory->AddUint64t(i)));
+      code.push_back(Bytecode{
+          _AQVM_OPERATOR_ARRAY,
+          {3, current_index, array_index, global_memory->AddUint64t(i)}});
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
           interpreter, declaration->GetVariableValue()[i], code);
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, current_index, value_index));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {2, current_index, value_index}});
     }
   }
 
@@ -908,10 +924,10 @@ void HandleReturnInHandlingFunction(Interpreter& interpreter,
   auto& exit_index = interpreter.context.function_context->exit_index;
   auto& memory = interpreter.global_memory;
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
   std::size_t return_location = code.size();
   for (std::size_t i = 0; i < exit_index.size(); i++) {
-    code[exit_index[i]].SetArgs(1, memory->AddUint64t(return_location));
+    code[exit_index[i]].arguments = {memory->AddUint64t(return_location)};
   }
 }
 
@@ -935,7 +951,8 @@ void HandleGotoInHandlingFunction(Interpreter& interpreter,
       if (i == current_scope) LOGGING_ERROR("Label not found.");
     }
 
-    code[goto_map.back().second].SetArgs(1, memory->AddUint64t(goto_location));
+    code[goto_map.back().second].arguments = {
+        memory->AddUint64t(goto_location)};
     goto_map.pop_back();
   }
 }
@@ -1025,7 +1042,6 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   // Records the creation of the function.
   functions[name].push_back(Function());
 
-
   // Handles the return value and parameters.
   std::vector<std::size_t> parameters_index;
   std::size_t return_index = memory->Add(1);
@@ -1033,18 +1049,19 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   HandleFunctionArguments(interpreter, declaration, parameters_index, code);
 
   // Builds the main part of the factory function.
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_index,
-                          memory->AddUint64t(0), memory->AddString(name)));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {return_index, memory->AddUint64t(0), memory->AddString(name)}});
   std::vector<std::size_t> method_parameters = parameters_index;
   method_parameters.erase(method_parameters.begin());
   method_parameters.insert(
       method_parameters.begin(),
       {return_index, memory->AddString("@constructor"), memory->Add(1)});
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, method_parameters));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(method_parameters)});
 
   AddFunctionIntoList(interpreter, declaration, function_name, parameters_index,
                       code);
-
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -1078,7 +1095,7 @@ void HandleConstructorFunctionInHandlingConstructor(
   // Records the creation of the function.
   current_class->GetMethods()["@constructor"].push_back(Function());
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
 
   // Handles the class init code.
   for (std::size_t i = 0; i < current_class->GetCode().size(); i++) {
@@ -1239,11 +1256,12 @@ std::vector<std::size_t> HandleVoidFactoryFunctionInHandlingClass(
 
   // Builds the main part of the factory function.
   std::vector<Bytecode> code;
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, return_index,
-                          memory->AddUint64t(0),
-                          memory->AddString(class_name)));
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, return_index,
-                          memory->AddString("@constructor"), memory->Add(1)));
+  code.push_back(Bytecode{
+      _AQVM_OPERATOR_NEW,
+      {return_index, memory->AddUint64t(0), memory->AddString(class_name)}});
+  code.push_back(Bytecode{
+      _AQVM_OPERATOR_INVOKE_METHOD,
+      {return_index, memory->AddString("@constructor"), memory->Add(1)}});
 
   // Adds the function into function list.
   Function factory(name, parameters_index, code);
@@ -1319,12 +1337,14 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
 
   // Adds the class into global memory.
   std::size_t reference_index = memory->AddReference(memory, variable_index);
-  code.push_back(Bytecode(_AQVM_OPERATOR_NEW, 3, reference_index,
-                          memory->AddByte(0), memory->AddString(name)));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {reference_index, memory->AddByte(0), memory->AddString(name)}});
 
   // Classes without initialization requires default initialization.
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, reference_index,
-                          memory->AddString("@constructor"), memory->Add(1)));
+  code.push_back(Bytecode{
+      _AQVM_OPERATOR_INVOKE_METHOD,
+      {reference_index, memory->AddString("@constructor"), memory->Add(1)}});
 }
 
 std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {

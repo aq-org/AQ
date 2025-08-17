@@ -44,28 +44,32 @@ std::size_t HandleUnaryExpression(Interpreter& interpreter,
   switch (expression->GetOperator()) {
     case Ast::Unary::Operator::kPostInc: {  // ++ (postfix)
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expression));
-      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expression,
-                              sub_expression, AddConstInt8t(interpreter, 1)));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {new_index, sub_expression}});
+      code.push_back(Bytecode{
+          _AQVM_OPERATOR_ADD,
+          {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
       return new_index;
     }
 
     case Ast::Unary::Operator::kPostDec: {  // -- (postfix)
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_EQUAL, 2, new_index, sub_expression));
-      code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expression,
-                              sub_expression, AddConstInt8t(interpreter, 1)));
+          Bytecode{_AQVM_OPERATOR_EQUAL, {new_index, sub_expression}});
+      code.push_back(
+          Bytecode{_AQVM_OPERATOR_SUB,
+                   {new_index, sub_expression, AddConstInt8t(interpreter, 1)}});
       return new_index;
     }
 
     case Ast::Unary::Operator::kPreInc:  // ++ (prefix)
-      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, sub_expression,
-                              sub_expression, AddConstInt8t(interpreter, 1)));
+      code.push_back(Bytecode{
+          _AQVM_OPERATOR_ADD,
+          {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
       return sub_expression;
 
     case Ast::Unary::Operator::kPreDec:  // -- (prefix)
-      code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, sub_expression,
-                              sub_expression, AddConstInt8t(interpreter, 1)));
+      code.push_back(Bytecode{
+          _AQVM_OPERATOR_SUB,
+          {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
       return sub_expression;
 
     case Ast::Unary::Operator::kPlus:  // + (unary plus)
@@ -75,8 +79,8 @@ std::size_t HandleUnaryExpression(Interpreter& interpreter,
 
     case Ast::Unary::Operator::kMinus:
     case Ast::Unary::Operator::kNot: {  // - (unary minus) or ! (logical NOT)
-      code.push_back(
-          Bytecode(_AQVM_OPERATOR_NEG, 2, new_index, sub_expression));
+
+      code.push_back(Bytecode{_AQVM_OPERATOR_NEG, {new_index, sub_expression}});
       return new_index;
     }
 
@@ -86,7 +90,7 @@ std::size_t HandleUnaryExpression(Interpreter& interpreter,
           code);
 
       code.push_back(
-          Bytecode(_AQVM_OPERATOR_ARRAY, 3, new_index, sub_expression, offset));
+          Bytecode{_AQVM_OPERATOR_ARRAY, {new_index, sub_expression, offset}});
       return new_index;
     }
 
@@ -114,135 +118,132 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
   std::size_t left = 0;
   std::size_t right = 0;
   if (expression->GetOperator() != Ast::Binary::Operator::kMember) {
-    // LOGGING_INFO("message");
     right = HandleExpression(interpreter, right_expression, code);
-    // LOGGING_INFO("message");
     left = HandleExpression(interpreter, left_expression, code);
-    // LOGGING_INFO("message");
   }
 
   std::size_t result = global_memory->Add(1);
   switch (expression->GetOperator()) {
     case Ast::Binary::Operator::kAdd:  // +
-      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_ADD, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kSub:  // -
-      code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_SUB, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kMul:  // *
-      code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_MUL, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kDiv:  // /
-      code.push_back(Bytecode(_AQVM_OPERATOR_DIV, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_DIV, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kRem:  // %
-      code.push_back(Bytecode(_AQVM_OPERATOR_REM, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_REM, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kAnd:  // &
-      code.push_back(Bytecode(_AQVM_OPERATOR_AND, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_AND, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kOr:  // |
-      code.push_back(Bytecode(_AQVM_OPERATOR_OR, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_OR, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kXor:  // ^
-      code.push_back(Bytecode(_AQVM_OPERATOR_XOR, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_XOR, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kShl:  // <<
-      code.push_back(Bytecode(_AQVM_OPERATOR_SHL, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_SHL, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kShr:  // >>
-      code.push_back(Bytecode(_AQVM_OPERATOR_SHR, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_SHR, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kLT:  // <
-      code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x04,
-                              left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_CMP,
+                              {result, (std::size_t)0x04, left, right}});
       return result;
 
     case Ast::Binary::Operator::kGT:  // >
-      code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x02,
-                              left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_CMP,
+                              {result, (std::size_t)0x02, left, right}});
       return result;
 
     case Ast::Binary::Operator::kLE:  // <=
-      code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x05,
-                              left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_CMP,
+                              {result, (std::size_t)0x05, left, right}});
       return result;
 
     case Ast::Binary::Operator::kGE:  // >=
-      code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x03,
-                              left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_CMP,
+                              {result, (std::size_t)0x03, left, right}});
       return result;
 
     case Ast::Binary::Operator::kEQ:  // ==
-      code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x00,
-                              left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_CMP,
+                              {result, (std::size_t)0x00, left, right}});
       return result;
 
     case Ast::Binary::Operator::kNE:  // !=
-      code.push_back(Bytecode(_AQVM_OPERATOR_CMP, 4, result, (std::size_t)0x01,
-                              left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_CMP,
+                              {result, (std::size_t)0x01, left, right}});
       return result;
 
     case Ast::Binary::Operator::kLAnd:  // &&
-      code.push_back(Bytecode(_AQVM_OPERATOR_AND, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_AND, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kLOr:  // ||
-      code.push_back(Bytecode(_AQVM_OPERATOR_OR, 3, result, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_OR, {result, left, right}});
       return result;
 
     case Ast::Binary::Operator::kAssign:  // =
-      code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_EQUAL, {left, right}});
       return left;
 
     case Ast::Binary::Operator::kAddAssign:  // +=
-      code.push_back(Bytecode(_AQVM_OPERATOR_ADD, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_ADD, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kSubAssign:  // -=
-      code.push_back(Bytecode(_AQVM_OPERATOR_SUB, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_SUB, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kMulAssign:  // *=
-      code.push_back(Bytecode(_AQVM_OPERATOR_MUL, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_MUL, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kDivAssign:  // /=
-      code.push_back(Bytecode(_AQVM_OPERATOR_DIV, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_DIV, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kRemAssign:  // %=
-      code.push_back(Bytecode(_AQVM_OPERATOR_REM, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_REM, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kAndAssign:  // &=
-      code.push_back(Bytecode(_AQVM_OPERATOR_AND, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_AND, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kOrAssign:  // |=
-      code.push_back(Bytecode(_AQVM_OPERATOR_OR, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_OR, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kXorAssign:  // ^=
-      code.push_back(Bytecode(_AQVM_OPERATOR_XOR, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_XOR, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kShlAssign:  // <<=
-      code.push_back(Bytecode(_AQVM_OPERATOR_SHL, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_SHL, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kShrAssign:  // >>=
-      code.push_back(Bytecode(_AQVM_OPERATOR_SHR, 3, left, left, right));
+      code.push_back(Bytecode{_AQVM_OPERATOR_SHR, {left, left, right}});
       return left;
 
     case Ast::Binary::Operator::kMember: {
@@ -346,8 +347,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
             invoke_arguments.push_back(
                 HandleExpression(interpreter, arguments[i], code));
 
-          code.push_back(
-              Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_arguments));
+          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                  std::move(invoke_arguments)});
           return return_value_index;
         }
       }
@@ -372,8 +373,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
   // expressions.
   Ast::Expression* right_expression = expression->GetRightExpression();
   switch (right_expression->GetStatementType()) {
-    // Handles the case where the right expression is a function.
-    // This is a function call, so we need to handle it specially.
+      // Handles the case where the right expression is a function.
+      // This is a function call, so we need to handle it specially.
     case Ast::Statement::StatementType::kFunction: {
       // Handles the class and function name.
       std::size_t class_index =
@@ -397,7 +398,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
         invoke_arguments.push_back(
             HandleExpression(interpreter, arguments[i], code));
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_arguments));
+      code.push_back(
+          Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_arguments)});
       break;
     }
 
@@ -410,8 +412,9 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       std::size_t variable_name_index = global_memory->AddString(std::string(
           *Ast::Cast<Ast::Identifier>(expression->GetRightExpression())));
 
-      code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_value_index,
-                              class_index, variable_name_index));
+      code.push_back(
+          Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+                   {return_value_index, class_index, variable_name_index}});
       return return_value_index;
     }
 
@@ -459,7 +462,8 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
   for (std::size_t i = 0; i < arguments.size(); i++)
     vm_arguments.push_back(HandleExpression(interpreter, arguments[i], code));
 
-  code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, vm_arguments));
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(vm_arguments)});
 
   return return_value_index;
 }
@@ -587,8 +591,9 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
           current_class->GetVariable(variable_name, temp)) {
         // Gets the reference of the variable index.
         std::size_t return_index = global_memory->Add(1);
-        code.push_back(Bytecode(_AQVM_OPERATOR_LOAD_MEMBER, 3, return_index, 0,
-                                global_memory->AddString(variable_name)));
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_LOAD_MEMBER,
+            {return_index, 0, global_memory->AddString(variable_name)}});
         return return_index;
       }
 
