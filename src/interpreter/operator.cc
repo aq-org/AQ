@@ -1082,22 +1082,85 @@ int InvokeClassMethod(
               builtin_functions);
         break;
       case _AQVM_OPERATOR_ADD:
-        ADD(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        if (memory_ptr[arguments[1]].type == 0x02 &&
+            memory_ptr[arguments[2]].type == 0x02) {
+          SetLong(memory_ptr + arguments[0],
+                  memory_ptr[arguments[1]].data.int_data +
+                      memory_ptr[arguments[2]].data.int_data);
+        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+                   memory_ptr[arguments[2]].type == 0x03) {
+          SetDouble(memory_ptr + arguments[0],
+                    memory_ptr[arguments[1]].data.float_data +
+                        memory_ptr[arguments[2]].data.float_data);
+        } else {
+          ADD(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        }
         break;
       case _AQVM_OPERATOR_SUB:
-        SUB(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        if (memory_ptr[arguments[1]].type == 0x02 &&
+            memory_ptr[arguments[2]].type == 0x02) {
+          SetLong(memory_ptr + arguments[0],
+                  memory_ptr[arguments[1]].data.int_data -
+                      memory_ptr[arguments[2]].data.int_data);
+        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+                   memory_ptr[arguments[2]].type == 0x03) {
+          SetDouble(memory_ptr + arguments[0],
+                    memory_ptr[arguments[1]].data.float_data -
+                        memory_ptr[arguments[2]].data.float_data);
+        } else {
+          SUB(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        }
         break;
       case _AQVM_OPERATOR_MUL:
-        MUL(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        if (memory_ptr[arguments[1]].type == 0x02 &&
+            memory_ptr[arguments[2]].type == 0x02) {
+          SetLong(memory_ptr + arguments[0],
+                  memory_ptr[arguments[1]].data.int_data *
+                      memory_ptr[arguments[2]].data.int_data);
+        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+                   memory_ptr[arguments[2]].type == 0x03) {
+          SetDouble(memory_ptr + arguments[0],
+                    memory_ptr[arguments[1]].data.float_data *
+                        memory_ptr[arguments[2]].data.float_data);
+        } else {
+          MUL(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        }
         break;
       case _AQVM_OPERATOR_DIV:
-        DIV(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        if (memory_ptr[arguments[1]].type == 0x02 &&
+            memory_ptr[arguments[2]].type == 0x02) {
+          SetLong(memory_ptr + arguments[0],
+                  memory_ptr[arguments[1]].data.int_data /
+                      memory_ptr[arguments[2]].data.int_data);
+        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+                   memory_ptr[arguments[2]].type == 0x03) {
+          SetDouble(memory_ptr + arguments[0],
+                    memory_ptr[arguments[1]].data.float_data /
+                        memory_ptr[arguments[2]].data.float_data);
+        } else {
+          DIV(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        }
         break;
       case _AQVM_OPERATOR_REM:
-        REM(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        if (memory_ptr[arguments[1]].type == 0x02 &&
+            memory_ptr[arguments[2]].type == 0x02) {
+          SetLong(memory_ptr + arguments[0],
+                  memory_ptr[arguments[1]].data.int_data %
+                      memory_ptr[arguments[2]].data.int_data);
+        } else {
+          REM(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        }
         break;
       case _AQVM_OPERATOR_NEG:
-        NEG(memory_ptr, arguments[0], arguments[1]);
+        if (memory_ptr[arguments[1]].type == 0x02) {
+          SetLong(memory_ptr + arguments[0],
+                  -memory_ptr[arguments[1]].data.int_data);
+        } else if (memory_ptr[arguments[1]].type == 0x03) {
+          SetDouble(memory_ptr + arguments[0],
+                    -memory_ptr[arguments[1]].data.float_data);
+        } else {
+          NEG(memory_ptr, arguments[0], arguments[1]);
+        }
         break;
       case _AQVM_OPERATOR_SHL:
         SHL(memory_ptr, arguments[0], arguments[1], arguments[2]);
@@ -1125,7 +1188,15 @@ int InvokeClassMethod(
         CMP(memory_ptr, arguments[0], arguments[1], arguments[2], arguments[3]);
         break;
       case _AQVM_OPERATOR_EQUAL:
-        EQUAL(memory_ptr, arguments[0], arguments[1]);
+        if (memory_ptr[arguments[1]].type == 0x02) {
+          SetLong(memory_ptr + arguments[0],
+                  memory_ptr[arguments[1]].data.int_data);
+        } else if (memory_ptr[arguments[1]].type == 0x03) {
+          SetDouble(memory_ptr + arguments[0],
+                    memory_ptr[arguments[1]].data.float_data);
+        } else {
+          EQUAL(memory_ptr, arguments[0], arguments[1]);
+        }
         break;
       case _AQVM_OPERATOR_GOTO:
         i = GOTO(memory_ptr, arguments[0]);
