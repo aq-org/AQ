@@ -54,7 +54,7 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
 int ARRAY(Object* memory, std::size_t result, std::size_t ptr,
           std::size_t index, std::unordered_map<std::string, Class>& classes);
 
-/*int ADD(Object* memory, std::size_t result, std::size_t operand1,
+int ADD(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
 int SUB(Object* memory, std::size_t result, std::size_t operand1,
@@ -67,28 +67,28 @@ int DIV(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
 int REM(Object* memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);*/
+        std::size_t operand2);
 int NEG(Object* memory, std::size_t result, std::size_t operand1);
 
-/*int SHL(Object* memory, std::size_t result, std::size_t operand1,
+int SHL(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
 int SHR(Object* memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);*/
+        std::size_t operand2);
 
 int REFER(Memory* memory, std::size_t result, std::size_t operand1);
 
 size_t IF(Object* memory, std::size_t condition, std::size_t true_branche,
           std::size_t false_branche);
 
-/*int AND(Object* memory, std::size_t result, std::size_t operand1,
+int AND(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2);
 
 int OR(Object* memory, std::size_t result, std::size_t operand1,
        std::size_t operand2);
 
 int XOR(Object* memory, std::size_t result, std::size_t operand1,
-        std::size_t operand2);*/
+        std::size_t operand2);
 
 int CMP(Object* memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2);
@@ -119,290 +119,6 @@ int64_t GetFunctionOverloadValue(Object* memory, Function& function,
 int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand);
-
-#define ADD(result, operand1, operand2)                                      \
-  {                                                                          \
-    GET_ORIGIN(result);                                                      \
-    GET_ORIGIN(operand1);                                                    \
-    GET_ORIGIN(operand2);                                                    \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {                  \
-      SET_INT(result, operand1->data.int_data + operand2->data.int_data)     \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {           \
-      SET_FLOAT(result,                                                      \
-                (operand1->type == 0x03 ? operand1->data.float_data          \
-                                        : operand1->data.int_data) +         \
-                    (operand2->type == 0x03 ? operand2->data.float_data      \
-                                            : operand2->data.int_data))      \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {           \
-      SET_UINT64T(                                                           \
-          result,                                                            \
-          (operand1->type == 0x04                                            \
-               ? operand1->data.uint64t_data                                 \
-               : (operand1->type == 0x02 ? operand1->data.int_data           \
-                                         : operand1->data.float_data)) +     \
-              (operand2->type == 0x04                                        \
-                   ? operand2->data.uint64t_data                             \
-                   : (operand2->type == 0x02 ? operand2->data.int_data       \
-                                             : operand2->data.float_data)))  \
-    } else if (operand1->type == 0x05 && operand2->type == 0x05) {           \
-      SET_STRING(result,                                                     \
-                 *operand1->data.string_data + *operand2->data.string_data); \
-    } else if (operand1->type == 0x06 && operand2->type == 0x06) {           \
-      const auto& array1 = GetArray(operand1)->GetMemory();                  \
-      const auto& array2 = GetArray(operand2)->GetMemory();                  \
-      std::vector<Object> new_array;                                         \
-      new_array.reserve(array1.size() + array2.size());                      \
-      new_array.insert(new_array.end(), array1.begin(), array1.end());       \
-      new_array.insert(new_array.end(), array2.begin(), array2.end());       \
-      SET_ARRAY_CONTENT(result, new_array);                                  \
-      break;                                                                 \
-    } else {                                                                 \
-      LOGGING_ERROR("Unsupported data type");                                \
-    }                                                                        \
-  }
-
-#define SUB(result, operand1, operand2)                                     \
-  {                                                                         \
-    GET_ORIGIN(result);                                                     \
-    GET_ORIGIN(operand1);                                                   \
-    GET_ORIGIN(operand2);                                                   \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {                 \
-      SET_INT(result, operand1->data.int_data - operand2->data.int_data)    \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {          \
-      SET_FLOAT(result,                                                     \
-                (operand1->type == 0x03 ? operand1->data.float_data         \
-                                        : operand1->data.int_data) -        \
-                    (operand2->type == 0x03 ? operand2->data.float_data     \
-                                            : operand2->data.int_data))     \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {          \
-      SET_UINT64T(                                                          \
-          result,                                                           \
-          (operand1->type == 0x04                                           \
-               ? operand1->data.uint64t_data                                \
-               : (operand1->type == 0x02 ? operand1->data.int_data          \
-                                         : operand1->data.float_data)) -    \
-              (operand2->type == 0x04                                       \
-                   ? operand2->data.uint64t_data                            \
-                   : (operand2->type == 0x02 ? operand2->data.int_data      \
-                                             : operand2->data.float_data))) \
-    } else {                                                                \
-      LOGGING_ERROR("Unsupported data type");                               \
-    }                                                                       \
-  }
-
-#define MUL(result, operand1, operand2)                                     \
-  {                                                                         \
-    GET_ORIGIN(result);                                                     \
-    GET_ORIGIN(operand1);                                                   \
-    GET_ORIGIN(operand2);                                                   \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {                 \
-      SET_INT(result, operand1->data.int_data * operand2->data.int_data)    \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {          \
-      SET_FLOAT(result,                                                     \
-                (operand1->type == 0x03 ? operand1->data.float_data         \
-                                        : operand1->data.int_data) *        \
-                    (operand2->type == 0x03 ? operand2->data.float_data     \
-                                            : operand2->data.int_data))     \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {          \
-      SET_UINT64T(                                                          \
-          result,                                                           \
-          (operand1->type == 0x04                                           \
-               ? operand1->data.uint64t_data                                \
-               : (operand1->type == 0x02 ? operand1->data.int_data          \
-                                         : operand1->data.float_data)) *    \
-              (operand2->type == 0x04                                       \
-                   ? operand2->data.uint64t_data                            \
-                   : (operand2->type == 0x02 ? operand2->data.int_data      \
-                                             : operand2->data.float_data))) \
-    } else {                                                                \
-      LOGGING_ERROR("Unsupported data type");                               \
-    }                                                                       \
-  }
-
-#define DIV(result, operand1, operand2)                                     \
-  {                                                                         \
-    GET_ORIGIN(result);                                                     \
-    GET_ORIGIN(operand1);                                                   \
-    GET_ORIGIN(operand2);                                                   \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {                 \
-      SET_INT(result, operand1->data.int_data / operand2->data.int_data)    \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {          \
-      SET_FLOAT(result,                                                     \
-                (operand1->type == 0x03 ? operand1->data.float_data         \
-                                        : operand1->data.int_data) /        \
-                    (operand2->type == 0x03 ? operand2->data.float_data     \
-                                            : operand2->data.int_data))     \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {          \
-      SET_UINT64T(                                                          \
-          result,                                                           \
-          (operand1->type == 0x04                                           \
-               ? operand1->data.uint64t_data                                \
-               : (operand1->type == 0x02 ? operand1->data.int_data          \
-                                         : operand1->data.float_data)) /    \
-              (operand2->type == 0x04                                       \
-                   ? operand2->data.uint64t_data                            \
-                   : (operand2->type == 0x02 ? operand2->data.int_data      \
-                                             : operand2->data.float_data))) \
-    } else {                                                                \
-      LOGGING_ERROR("Unsupported data type");                               \
-    }                                                                       \
-  }
-
-#define REM(result, operand1, operand2)                                   \
-  {                                                                       \
-    GET_ORIGIN(result);                                                   \
-    GET_ORIGIN(operand1);                                                 \
-    GET_ORIGIN(operand2);                                                 \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {               \
-      SET_INT(result, operand1->data.int_data % operand2->data.int_data)  \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {        \
-      LOGGING_ERROR("Cannot calculate remainder for doubles.");           \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {        \
-      SET_UINT64T(result,                                                 \
-                  (operand1->type == 0x04                                 \
-                       ? operand1->data.uint64t_data                      \
-                       : (operand1->type == 0x02                          \
-                              ? operand1->data.int_data                   \
-                              : (int64_t)operand1->data.float_data)) %    \
-                      (operand2->type == 0x04                             \
-                           ? operand2->data.uint64t_data                  \
-                           : (operand2->type == 0x02                      \
-                                  ? operand2->data.int_data               \
-                                  : (int64_t)operand2->data.float_data))) \
-    } else {                                                              \
-      LOGGING_ERROR("Unsupported data type");                             \
-    }                                                                     \
-  }
-
-#define SHL(result, operand1, operand2)                                        \
-  {                                                                            \
-    GET_ORIGIN(result);                                                        \
-    GET_ORIGIN(operand1);                                                      \
-    GET_ORIGIN(operand2);                                                      \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {                    \
-      SET_INT(result, operand1->data.int_data << operand2->data.int_data)      \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {             \
-      LOGGING_ERROR("Cannot shift doubles. Use multiplication for shifting."); \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {             \
-      SET_UINT64T(result,                                                      \
-                  (operand1->type == 0x04                                      \
-                       ? operand1->data.uint64t_data                           \
-                       : (operand1->type == 0x02                               \
-                              ? operand1->data.int_data                        \
-                              : (int64_t)operand1->data.float_data))           \
-                      << (operand2->type == 0x04                               \
-                              ? operand2->data.uint64t_data                    \
-                              : (operand2->type == 0x02                        \
-                                     ? operand2->data.int_data                 \
-                                     : (int64_t)operand2->data.float_data)))   \
-    } else {                                                                   \
-      LOGGING_ERROR("Unsupported data type");                                  \
-    }                                                                          \
-  }
-
-#define SHR(result, operand1, operand2)                                        \
-  {                                                                            \
-    GET_ORIGIN(result);                                                        \
-    GET_ORIGIN(operand1);                                                      \
-    GET_ORIGIN(operand2);                                                      \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {                    \
-      SET_INT(result, operand1->data.int_data >> operand2->data.int_data)      \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {             \
-      LOGGING_ERROR("Cannot shift doubles. Use multiplication for shifting."); \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {             \
-      SET_UINT64T(result,                                                      \
-                  (operand1->type == 0x04                                      \
-                       ? operand1->data.uint64t_data                           \
-                       : (operand1->type == 0x02                               \
-                              ? operand1->data.int_data                        \
-                              : (int64_t)operand1->data.float_data)) >>        \
-                      (operand2->type == 0x04                                  \
-                           ? operand2->data.uint64t_data                       \
-                           : (operand2->type == 0x02                           \
-                                  ? operand2->data.int_data                    \
-                                  : (int64_t)operand2->data.float_data)))      \
-    } else {                                                                   \
-      LOGGING_ERROR("Unsupported data type");                                  \
-    }                                                                          \
-  }
-
-#define AND(result, operand1, operand2)                                   \
-  {                                                                       \
-    GET_ORIGIN(result);                                                   \
-    GET_ORIGIN(operand1);                                                 \
-    GET_ORIGIN(operand2);                                                 \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {               \
-      SET_INT(result, operand1->data.int_data & operand2->data.int_data)  \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {        \
-      LOGGING_ERROR("Cannot perform AND operation on float.");            \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {        \
-      SET_UINT64T(result,                                                 \
-                  (operand1->type == 0x04                                 \
-                       ? operand1->data.uint64t_data                      \
-                       : (operand1->type == 0x02                          \
-                              ? operand1->data.int_data                   \
-                              : (int64_t)operand1->data.float_data)) &    \
-                      (operand2->type == 0x04                             \
-                           ? operand2->data.uint64t_data                  \
-                           : (operand2->type == 0x02                      \
-                                  ? operand2->data.int_data               \
-                                  : (int64_t)operand2->data.float_data))) \
-    } else {                                                              \
-      LOGGING_ERROR("Unsupported data type");                             \
-    }                                                                     \
-  }
-
-#define OR(result, operand1, operand2)                                    \
-  {                                                                       \
-    GET_ORIGIN(result);                                                   \
-    GET_ORIGIN(operand1);                                                 \
-    GET_ORIGIN(operand2);                                                 \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {               \
-      SET_INT(result, operand1->data.int_data | operand2->data.int_data)  \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {        \
-      LOGGING_ERROR("Cannot perform OR operation on float.");             \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {        \
-      SET_UINT64T(result,                                                 \
-                  (operand1->type == 0x04                                 \
-                       ? operand1->data.uint64t_data                      \
-                       : (operand1->type == 0x02                          \
-                              ? operand1->data.int_data                   \
-                              : (int64_t)operand1->data.float_data)) |    \
-                      (operand2->type == 0x04                             \
-                           ? operand2->data.uint64t_data                  \
-                           : (operand2->type == 0x02                      \
-                                  ? operand2->data.int_data               \
-                                  : (int64_t)operand2->data.float_data))) \
-    } else {                                                              \
-      LOGGING_ERROR("Unsupported data type");                             \
-    }                                                                     \
-  }
-
-#define XOR(result, operand1, operand2)                                   \
-  {                                                                       \
-    GET_ORIGIN(result);                                                   \
-    GET_ORIGIN(operand1);                                                 \
-    GET_ORIGIN(operand2);                                                 \
-    if (operand1->type == 0x02 && operand2->type == 0x02) {               \
-      SET_INT(result, operand1->data.int_data ^ operand2->data.int_data)  \
-    } else if (operand1->type <= 0x03 && operand2->type <= 0x03) {        \
-      LOGGING_ERROR("Cannot perform XOR operation on float.");            \
-    } else if (operand1->type <= 0x04 && operand2->type <= 0x04) {        \
-      SET_UINT64T(result,                                                 \
-                  (operand1->type == 0x04                                 \
-                       ? operand1->data.uint64t_data                      \
-                       : (operand1->type == 0x02                          \
-                              ? operand1->data.int_data                   \
-                              : (int64_t)operand1->data.float_data)) ^    \
-                      (operand2->type == 0x04                             \
-                           ? operand2->data.uint64t_data                  \
-                           : (operand2->type == 0x02                      \
-                                  ? operand2->data.int_data               \
-                                  : (int64_t)operand2->data.float_data))) \
-    } else {                                                              \
-      LOGGING_ERROR("Unsupported data type");                             \
-    }                                                                     \
-  }
 
 }  // namespace Interpreter
 }  // namespace Aq
