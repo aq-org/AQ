@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     // TODO(command-line arguments): Add more command-line arguments and
     // related-functions for the compiler.
     if (argc < 2) {
-      Aq::LOGGING_ERROR("Usage: " + std::string(argv[0]) + " <code>");
+      LOGGING_ERROR("Usage: " + std::string(argv[0]) + " <code>");
       return -1;
     }
 
@@ -34,17 +34,17 @@ int main(int argc, char* argv[]) {
 
     // Parses the code and generates the AST.
     Aq::Ast::Compound* ast = Aq::Parser::Parse(token);
-    if (ast == nullptr) Aq::LOGGING_ERROR("ast is nullptr.");
+    if (ast == nullptr) LOGGING_ERROR("ast is nullptr.");
 
     // Generates the bytecode from the AST.
     Aq::Interpreter::Interpreter interpreter;
     interpreter.Generate(ast);
 
-    Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
+    LOGGING_INFO("Generate Bytecode SUCCESS!");
 
     return 0;
   } catch (const std::exception& e) {
-    Aq::LOGGING_ERROR("Exception: " + std::string(e.what()));
+    LOGGING_ERROR("Exception: " + std::string(e.what()));
     return -1;
   }
 }

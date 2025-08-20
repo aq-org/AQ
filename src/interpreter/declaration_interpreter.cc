@@ -136,15 +136,8 @@ void HandleClassFunctionDeclaration(Interpreter& interpreter,
   // Handles the class constructor if this function is a constructor function.
   if (std::string(current_class->GetClassDeclaration()->GetClassName()) ==
       name) {
-    // LOGGING_INFO("Handling class constructor AAAAAAAAAAAAAAAAAAAAAAAAAAAA: "
-    // +
-    //   std::string(current_class->GetClassDeclaration()->GetClassName()));
     HandleClassConstructor(interpreter, declaration);
     return;
-  } else {
-    // LOGGING_INFO("Handling class function: " + name);
-    // LOGGING_INFO("Class: " +
-    //     std::string(current_class->GetClassDeclaration()->GetClassName()));
   }
 
   // Handles the function name with scopes.
@@ -328,9 +321,6 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
   //   vm_type.erase(vm_type.begin());
 
   std::string variable_name = declaration->GetVariableName();
-
-  Object temp;
-  std::reference_wrapper<Object> object = temp;
 
   memory->AddWithType(variable_name, return_type);
 
@@ -968,6 +958,8 @@ void AddFunctionIntoList(Interpreter& interpreter,
   Ast::Function* statement = declaration->GetFunctionStatement();
 
   Function function(name, parameters_index, code);
+  LOGGING_INFO("Adding function to list: " + name +
+               " with args size: " + std::to_string(parameters_index.size()));
   if (statement->IsVariadic()) function.EnableVariadic();
   functions[name].push_back(function);
 }
@@ -1036,8 +1028,8 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   name = scopes.back();
   scopes.push_back(name);
 
-  std::string function_name =
-      scopes[scopes.size() - 2] + "." + statement->GetFunctionName();
+  // std::string function_name =
+  //     scopes[scopes.size() - 2] + "." + statement->GetFunctionName();
 
   // Records the creation of the function.
   functions[name].push_back(Function());
@@ -1060,8 +1052,7 @@ std::vector<std::size_t> HandleFactoryFunctionInHandlingConstructor(
   code.push_back(
       Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(method_parameters)});
 
-  AddFunctionIntoList(interpreter, declaration, function_name, parameters_index,
-                      code);
+  AddFunctionIntoList(interpreter, declaration, name, parameters_index, code);
 
   // Destroys temporary context.
   scopes.pop_back();
@@ -1386,11 +1377,11 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   Aq::LexCode(code, token);
 
   Aq::Ast::Compound* ast = Aq::Parser::Parse(token);
-  if (ast == nullptr) Aq::LOGGING_ERROR("ast is nullptr.");
+  if (ast == nullptr) LOGGING_ERROR("ast is nullptr.");
 
   interpreter->Generate(ast);
 
-  Aq::LOGGING_INFO("Generate Bytecode SUCCESS!");
+  LOGGING_INFO("Generate Bytecode SUCCESS!");
 
   imports_map.insert(std::make_pair(import_location, interpreter));
 }

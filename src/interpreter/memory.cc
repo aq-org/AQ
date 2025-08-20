@@ -27,7 +27,12 @@ std::size_t Memory::AddWithType(uint8_t type) {
 }
 
 std::size_t Memory::AddByte(int8_t value) {
-  memory_.push_back({0x01, value, true});
+  Object object;
+  object.type = 0x02;
+  object.data.int_data = value;
+  object.constant_type = true;
+
+  memory_.push_back(object);
   return memory_.size() - 1;
 }
 
@@ -198,7 +203,10 @@ void ClassMemory::AddWithType(std::string name, uint8_t type) {
 }
 
 void ClassMemory::AddByte(std::string name, int8_t value) {
-  members_[name] = {0x01, value, true};
+  Object object;
+  object.type = 0x02;
+  object.data.int_data = value;
+  members_[name] = object;
 }
 
 void ClassMemory::AddLong(std::string name, int64_t value) {

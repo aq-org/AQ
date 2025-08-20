@@ -87,9 +87,9 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
 
   if (size_value == 0 && type_data.type == 0x05 &&
       type_data.data.string_data != nullptr) {
-    SetObject(memory + ptr, class_memory);
+    InitObject(GetOrigin(memory + ptr), class_memory);
   } else {
-    SetArray(memory + ptr, array_memory);
+    InitArray(GetOrigin(memory + ptr), array_memory);
   }
 
   return 0;
@@ -114,7 +114,7 @@ int ARRAY(
   return 0;
 }
 
-int ADD(Object* memory, std::size_t result, std::size_t operand1,
+/*int ADD(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
   Object* operand1_object = GetOrigin(memory + operand1);
   Object* operand2_object = GetOrigin(memory + operand2);
@@ -345,7 +345,7 @@ int REM(Object* memory, std::size_t result, std::size_t operand1,
       break;
   }
   return 0;
-}
+}*/
 int NEG(Object* memory, std::size_t result, std::size_t operand1) {
   Object* operand1_object = GetOrigin(memory + operand1);
   std::size_t type = operand1_object->type;
@@ -382,7 +382,7 @@ int NEG(Object* memory, std::size_t result, std::size_t operand1) {
   return 0;
 }
 
-int SHL(Object* memory, std::size_t result, std::size_t operand1,
+/*int SHL(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
   Object* operand1_object = GetOrigin(memory + operand1);
   Object* operand2_object = GetOrigin(memory + operand2);
@@ -468,7 +468,7 @@ int SHR(Object* memory, std::size_t result, std::size_t operand1,
       break;
   }
   return 0;
-}
+}*/
 
 int REFER(Memory* memory, std::size_t result, std::size_t operand1) {
   if (result >= memory->GetMemory().size()) INTERNAL_ERROR("Out of memory.");
@@ -494,7 +494,7 @@ std::size_t IF(Object* memory, std::size_t condition, std::size_t true_branche,
   return false_branche;
 }
 
-int AND(Object* memory, std::size_t result, std::size_t operand1,
+/*int AND(Object* memory, std::size_t result, std::size_t operand1,
         std::size_t operand2) {
   Object* operand1_object = GetOrigin(memory + operand1);
   Object* operand2_object = GetOrigin(memory + operand2);
@@ -630,7 +630,7 @@ int XOR(Object* memory, std::size_t result, std::size_t operand1,
   }
 
   return 0;
-}
+}*/
 
 int CMP(Object* memory, std::size_t result, std::size_t opcode,
         std::size_t operand1, std::size_t operand2) {
@@ -934,10 +934,13 @@ int InvokeClassMethod(
         builtin_functions) {
   auto memory_ptr = memory->GetMemory().data();
 
-  std::string class_name = *GetObject(memory_ptr + class_object)
+  std::string class_name = *GetObject(GetOrigin(memory_ptr + class_object))
                                 ->GetMembers()["@name"]
                                 .data.string_data;
-  std::string method_name = GetString(memory_ptr + method_name_object);
+  std::string method_name =
+      GetString(GetOrigin(memory_ptr + method_name_object));
+
+  LOGGING_INFO(method_name + " invoked on class " + class_name);
 
   auto class_it = classes.find(class_name);
   if (class_it == classes.end()) {
@@ -1069,6 +1072,10 @@ int InvokeClassMethod(
   for (int64_t i = 0; i < instructions_size; i++) {
     const auto& instruction = instructions_ptr[i];
     const auto& arguments = instruction.arguments;
+    const auto args_size = instruction.arguments.size();
+    Object* operand1 = args_size > 0 ? memory_ptr + arguments[0] : nullptr;
+    Object* operand2 = args_size > 1 ? memory_ptr + arguments[1] : nullptr;
+    Object* operand3 = args_size > 2 ? memory_ptr + arguments[2] : nullptr;
     switch (instruction.oper) {
       case _AQVM_OPERATOR_NOP:
         NOP();
@@ -1084,89 +1091,89 @@ int InvokeClassMethod(
       case _AQVM_OPERATOR_ADD:
         if (memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
+          SET_INT(GetOrigin(memory_ptr + arguments[0]),
                   memory_ptr[arguments[1]].data.int_data +
                       memory_ptr[arguments[2]].data.int_data);
         } else if (memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
+          SET_FLOAT(GetOrigin(memory_ptr + arguments[0]),
                     memory_ptr[arguments[1]].data.float_data +
                         memory_ptr[arguments[2]].data.float_data);
         } else {
-          ADD(memory_ptr, arguments[0], arguments[1], arguments[2]);
+          ADD(operand1, operand2, operand3)
         }
         break;
       case _AQVM_OPERATOR_SUB:
         if (memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
+          SET_INT(GetOrigin(memory_ptr + arguments[0]),
                   memory_ptr[arguments[1]].data.int_data -
                       memory_ptr[arguments[2]].data.int_data);
         } else if (memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
+          SET_FLOAT(GetOrigin(memory_ptr + arguments[0]),
                     memory_ptr[arguments[1]].data.float_data -
                         memory_ptr[arguments[2]].data.float_data);
         } else {
-          SUB(memory_ptr, arguments[0], arguments[1], arguments[2]);
+          SUB(operand1, operand2, operand3)
         }
         break;
       case _AQVM_OPERATOR_MUL:
         if (memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
+          SET_INT(GetOrigin(memory_ptr + arguments[0]),
                   memory_ptr[arguments[1]].data.int_data *
                       memory_ptr[arguments[2]].data.int_data);
         } else if (memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
+          SET_FLOAT(GetOrigin(memory_ptr + arguments[0]),
                     memory_ptr[arguments[1]].data.float_data *
                         memory_ptr[arguments[2]].data.float_data);
         } else {
-          MUL(memory_ptr, arguments[0], arguments[1], arguments[2]);
+          MUL(operand1, operand2, operand3)
         }
         break;
       case _AQVM_OPERATOR_DIV:
         if (memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
+          SET_INT(GetOrigin(memory_ptr + arguments[0]),
                   memory_ptr[arguments[1]].data.int_data /
                       memory_ptr[arguments[2]].data.int_data);
         } else if (memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
+          SET_FLOAT(GetOrigin(memory_ptr + arguments[0]),
                     memory_ptr[arguments[1]].data.float_data /
                         memory_ptr[arguments[2]].data.float_data);
         } else {
-          DIV(memory_ptr, arguments[0], arguments[1], arguments[2]);
+          DIV(operand1, operand2, operand3)
         }
         break;
       case _AQVM_OPERATOR_REM:
         if (memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
+          SET_INT(GetOrigin(memory_ptr + arguments[0]),
                   memory_ptr[arguments[1]].data.int_data %
                       memory_ptr[arguments[2]].data.int_data);
         } else {
-          REM(memory_ptr, arguments[0], arguments[1], arguments[2]);
+          REM(operand1, operand2, operand3)
         }
         break;
       case _AQVM_OPERATOR_NEG:
         if (memory_ptr[arguments[1]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
+          SET_INT(GetOrigin(memory_ptr + arguments[0]),
                   -memory_ptr[arguments[1]].data.int_data);
         } else if (memory_ptr[arguments[1]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
+          SET_FLOAT(GetOrigin(memory_ptr + arguments[0]),
                     -memory_ptr[arguments[1]].data.float_data);
         } else {
           NEG(memory_ptr, arguments[0], arguments[1]);
         }
         break;
       case _AQVM_OPERATOR_SHL:
-        SHL(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        SHL(operand1, operand2, operand3)
         break;
       case _AQVM_OPERATOR_SHR:
-        SHR(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        SHR(operand1, operand2, operand3)
         break;
       case _AQVM_OPERATOR_REFER:
         REFER(memory, arguments[0], arguments[1]);
@@ -1176,23 +1183,23 @@ int InvokeClassMethod(
         i--;
         break;
       case _AQVM_OPERATOR_AND:
-        AND(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        AND(operand1, operand2, operand3)
         break;
       case _AQVM_OPERATOR_OR:
-        OR(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        OR(operand1, operand2, operand3);
         break;
       case _AQVM_OPERATOR_XOR:
-        XOR(memory_ptr, arguments[0], arguments[1], arguments[2]);
+        XOR(operand1, operand2, operand3)
         break;
       case _AQVM_OPERATOR_CMP:
         CMP(memory_ptr, arguments[0], arguments[1], arguments[2], arguments[3]);
         break;
       case _AQVM_OPERATOR_EQUAL:
         if (memory_ptr[arguments[1]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
+          SET_INT(GetOrigin(memory_ptr + arguments[0]),
                   memory_ptr[arguments[1]].data.int_data);
         } else if (memory_ptr[arguments[1]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
+          SET_FLOAT(GetOrigin(memory_ptr + arguments[0]),
                     memory_ptr[arguments[1]].data.float_data);
         } else {
           EQUAL(memory_ptr, arguments[0], arguments[1]);
@@ -1263,6 +1270,11 @@ int64_t GetFunctionOverloadValue(Object* memory, Function& function,
 
   } else {
     if (arguments.size() != function.GetParameters().size()) {
+      LOGGING_INFO(
+          "Function overload does not match the number of parameters. "
+          "Expected: " +
+          std::to_string(function.GetParameters().size()) +
+          ", Actual: " + std::to_string(arguments.size()));
       return -1;
     }
   }
