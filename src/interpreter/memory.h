@@ -122,7 +122,7 @@ class ClassMemory {
 };
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     RunGc(Object* object) {
   switch (object->type) {
@@ -146,7 +146,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     int8_t
     GetByte(Object* object) {
   switch (object->type) {
@@ -182,7 +182,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetByte(Object* object, int8_t data) {
   /*if (object->constant_type) {
@@ -212,7 +212,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     int64_t
     GetLong(Object* object) {
   switch (object->type) {
@@ -235,7 +235,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetLong(Object* object, int64_t data) {
   /*if (object->constant_type) {
@@ -266,7 +266,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     double
     GetDouble(Object* object) {
   switch (object->type) {
@@ -301,7 +301,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetDouble(Object* object, double data) {
   /*if (object->constant_type) {
@@ -333,7 +333,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     uint64_t
     GetUint64(Object* object) {
   switch (object->type) {
@@ -357,7 +357,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetUint64(Object* object, uint64_t data) {
   /*if (object->constant_type) {
@@ -389,7 +389,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     std::string
     GetString(Object* object) {
   switch (object->type) {
@@ -416,7 +416,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetString(Object* object, const std::string& data) {
   if (object->constant_type && object->type != 0x05) {
@@ -444,7 +444,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     Memory*
     GetArray(Object* object) {
   switch (object->type) {
@@ -471,7 +471,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetArrayContent(Object* object, std::vector<Object>& data) {
   if (object->constant_type && object->type != 0x06) {
@@ -499,7 +499,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetArray(Object* object, Memory* data) {
   //RunGc(object);
@@ -528,7 +528,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     ClassMemory*
     GetObject(Object* object) {
   switch (object->type) {
@@ -555,7 +555,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetObject(Object* object, ClassMemory* data) {
   //RunGc(object);
@@ -585,7 +585,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     Object*
     GetOrigin(Object* object) {
   while (object->type == 0x07) {
@@ -602,7 +602,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     SetReference(Object* object, ObjectReference reference) {
   //RunGc(object);
@@ -615,7 +615,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     InitGc(Object* object) {
   switch (object->type) {
@@ -643,7 +643,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     InitObject(Object* object, ClassMemory* class_memory) {
   InitGc(object);
@@ -657,7 +657,7 @@ inline
 }
 
 inline
-    //__attribute__((always_inline))
+    __attribute__((always_inline))
     void
     InitArray(Object* object, Memory* array_memory) {
   InitGc(object);

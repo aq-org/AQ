@@ -1066,11 +1066,273 @@ int InvokeClassMethod(
   auto instructions_ptr = instructions.data();
   std::size_t instructions_size = instructions.size();
 
+  static const void* dispatch_table[] = {
+      // 按照操作码顺序填充
+      &&op_NOP,  &&op_NOP,           &&op_NOP,         &&op_NEW,  &&op_ARRAY,
+      &&op_NOP,  &&op_ADD,           &&op_SUB,         &&op_MUL,  &&op_DIV,
+      &&op_REM,  &&op_NEG,           &&op_SHL,         &&op_SHR,  &&op_REFER,
+      &&op_IF,   &&op_AND,           &&op_OR,          &&op_XOR,  &&op_CMP,
+      &&op_NOP,  &&op_EQUAL,         &&op_GOTO,        &&op_NOP,  &&op_NOP,
+      &&op_NOP,  &&op_INVOKE_METHOD, &&op_LOAD_MEMBER, &&op_ADDI, &&op_SUBI,
+      &&op_MULI, &&op_DIVI,          &&op_REMI,        &&op_ADDF, &&op_SUBF,
+      &&op_MULF, &&op_DIVF};
+
   for (int64_t i = 0; i < instructions_size; i++) {
     const auto& instruction = instructions_ptr[i];
     const auto& arguments = instruction.arguments;
-    // LOGGING_INFO("Executing instruction: " + std::to_string(instruction.oper));
-    switch (instruction.oper) {
+
+    goto* dispatch_table[instruction.oper];
+
+  op_NOP:
+    NOP();
+    continue;
+  op_NEW:
+    NEW(memory_ptr, classes, arguments[0], arguments[1], arguments[2],
+        builtin_functions);
+    continue;
+  op_ARRAY:
+    ARRAY(memory_ptr, arguments[0], arguments[1], arguments[2], classes,
+          builtin_functions);
+    continue;
+  op_ADD:
+    if (memory_ptr[arguments[0]].type == 0x02 &&
+        memory_ptr[arguments[1]].type == 0x02 &&
+        memory_ptr[arguments[2]].type == 0x02) {
+      memory_ptr[arguments[0]].data.int_data =
+          memory_ptr[arguments[1]].data.int_data +
+          memory_ptr[arguments[2]].data.int_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_ADDI;
+      }
+    } else if (memory_ptr[arguments[0]].type == 0x03 &&
+               memory_ptr[arguments[1]].type == 0x03 &&
+               memory_ptr[arguments[2]].type == 0x03) {
+      memory_ptr[arguments[0]].data.float_data =
+          memory_ptr[arguments[1]].data.float_data +
+          memory_ptr[arguments[2]].data.float_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_ADDF;
+      }
+    } else {
+      ADD(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    }
+    continue;
+  op_SUB:
+    if (memory_ptr[arguments[0]].type == 0x02 &&
+        memory_ptr[arguments[1]].type == 0x02 &&
+        memory_ptr[arguments[2]].type == 0x02) {
+      memory_ptr[arguments[0]].data.int_data =
+          memory_ptr[arguments[1]].data.int_data -
+          memory_ptr[arguments[2]].data.int_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_SUBI;
+      }
+    } else if (memory_ptr[arguments[0]].type == 0x03 &&
+               memory_ptr[arguments[1]].type == 0x03 &&
+               memory_ptr[arguments[2]].type == 0x03) {
+      memory_ptr[arguments[0]].data.float_data =
+          memory_ptr[arguments[1]].data.float_data -
+          memory_ptr[arguments[2]].data.float_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_SUBF;
+      }
+    } else {
+      SUB(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    }
+    continue;
+  op_MUL:
+    if (memory_ptr[arguments[0]].type == 0x02 &&
+        memory_ptr[arguments[1]].type == 0x02 &&
+        memory_ptr[arguments[2]].type == 0x02) {
+      memory_ptr[arguments[0]].data.int_data =
+          memory_ptr[arguments[1]].data.int_data *
+          memory_ptr[arguments[2]].data.int_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_MULI;
+      }
+    } else if (memory_ptr[arguments[0]].type == 0x03 &&
+               memory_ptr[arguments[1]].type == 0x03 &&
+               memory_ptr[arguments[2]].type == 0x03) {
+      memory_ptr[arguments[0]].data.float_data =
+          memory_ptr[arguments[1]].data.float_data *
+          memory_ptr[arguments[2]].data.float_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_MULF;
+      }
+    } else {
+      MUL(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    }
+    continue;
+  op_DIV:
+    if (memory_ptr[arguments[0]].type == 0x02 &&
+        memory_ptr[arguments[1]].type == 0x02 &&
+        memory_ptr[arguments[2]].type == 0x02) {
+      memory_ptr[arguments[0]].data.int_data =
+          memory_ptr[arguments[1]].data.int_data /
+          memory_ptr[arguments[2]].data.int_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_DIVI;
+      }
+    } else if (memory_ptr[arguments[0]].type == 0x03 &&
+               memory_ptr[arguments[1]].type == 0x03 &&
+               memory_ptr[arguments[2]].type == 0x03) {
+      memory_ptr[arguments[0]].data.float_data =
+          memory_ptr[arguments[1]].data.float_data /
+          memory_ptr[arguments[2]].data.float_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_DIVF;
+      }
+    } else {
+      DIV(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    }
+    continue;
+  op_REM:
+    if (memory_ptr[arguments[0]].type == 0x02 &&
+        memory_ptr[arguments[1]].type == 0x02 &&
+        memory_ptr[arguments[2]].type == 0x02) {
+      memory_ptr[arguments[0]].data.int_data =
+          memory_ptr[arguments[1]].data.int_data %
+          memory_ptr[arguments[2]].data.int_data;
+      if (memory_ptr[arguments[0]].constant_type &&
+          memory_ptr[arguments[1]].constant_type &&
+          memory_ptr[arguments[2]].constant_type) {
+        method.GetCode()[i].oper = _AQVM_OPERATOR_REMI;
+      }
+    } else {
+      REM(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    }
+    continue;
+  op_NEG:
+    if (memory_ptr[arguments[1]].type == 0x02) {
+      SetLong(memory_ptr + arguments[0],
+              -memory_ptr[arguments[1]].data.int_data);
+    } else if (memory_ptr[arguments[1]].type == 0x03) {
+      SetDouble(memory_ptr + arguments[0],
+                -memory_ptr[arguments[1]].data.float_data);
+    } else {
+      NEG(memory_ptr, arguments[0], arguments[1]);
+    }
+    continue;
+  op_SHL:
+    SHL(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    continue;
+  op_SHR:
+    SHR(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    continue;
+  op_REFER:
+    REFER(memory, arguments[0], arguments[1]);
+    continue;
+  op_IF:
+    i = IF(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    i--;
+    continue;
+  op_AND:
+    AND(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    continue;
+  op_OR:
+    OR(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    continue;
+  op_XOR:
+    XOR(memory_ptr, arguments[0], arguments[1], arguments[2]);
+    continue;
+  op_CMP:
+    CMP(memory_ptr, arguments[0], arguments[1], arguments[2], arguments[3]);
+    continue;
+  op_EQUAL:
+    if (memory_ptr[arguments[1]].type == 0x02) {
+      SetLong(memory_ptr + arguments[0],
+              memory_ptr[arguments[1]].data.int_data);
+    } else if (memory_ptr[arguments[1]].type == 0x03) {
+      SetDouble(memory_ptr + arguments[0],
+                memory_ptr[arguments[1]].data.float_data);
+    } else {
+      EQUAL(memory_ptr, arguments[0], arguments[1]);
+    }
+    continue;
+  op_GOTO:
+    i = GOTO(memory_ptr, arguments[0]);
+    i--;
+    continue;
+  op_INVOKE_METHOD: {
+    auto origin_class_index = current_class_index;
+    current_class_index = arguments[0];
+    INVOKE_METHOD(memory, classes, builtin_functions, arguments);
+    current_class_index = origin_class_index;
+    continue;
+  }
+  op_LOAD_MEMBER:
+    if (arguments[1] == 0) {
+      LOAD_MEMBER(memory, classes, arguments[0], current_class_index,
+                  arguments[2]);
+    } else {
+      LOAD_MEMBER(memory, classes, arguments[0], arguments[1], arguments[2]);
+    }
+    continue;
+
+  op_ADDI:
+    memory_ptr[arguments[0]].data.int_data =
+        memory_ptr[arguments[1]].data.int_data +
+        memory_ptr[arguments[2]].data.int_data;
+    continue;
+  op_SUBI:
+    memory_ptr[arguments[0]].data.int_data =
+        memory_ptr[arguments[1]].data.int_data -
+        memory_ptr[arguments[2]].data.int_data;
+    continue;
+  op_MULI:
+    memory_ptr[arguments[0]].data.int_data =
+        memory_ptr[arguments[1]].data.int_data *
+        memory_ptr[arguments[2]].data.int_data;
+    continue;
+  op_DIVI:
+    memory_ptr[arguments[0]].data.int_data =
+        memory_ptr[arguments[1]].data.int_data /
+        memory_ptr[arguments[2]].data.int_data;
+    continue;
+  op_REMI:
+    memory_ptr[arguments[0]].data.int_data =
+        memory_ptr[arguments[1]].data.int_data %
+        memory_ptr[arguments[2]].data.int_data;
+    continue;
+  op_ADDF:
+    memory_ptr[arguments[0]].data.float_data =
+        memory_ptr[arguments[1]].data.float_data +
+        memory_ptr[arguments[2]].data.float_data;
+    continue;
+  op_SUBF:
+    memory_ptr[arguments[0]].data.float_data =
+        memory_ptr[arguments[1]].data.float_data -
+        memory_ptr[arguments[2]].data.float_data;
+    continue;
+  op_MULF:
+    memory_ptr[arguments[0]].data.float_data =
+        memory_ptr[arguments[1]].data.float_data *
+        memory_ptr[arguments[2]].data.float_data;
+    continue;
+  op_DIVF:
+    memory_ptr[arguments[0]].data.float_data =
+        memory_ptr[arguments[1]].data.float_data /
+        memory_ptr[arguments[2]].data.float_data;
+    continue;
+    // LOGGING_INFO("Executing instruction: " +
+    // std::to_string(instruction.oper));
+    /*switch (instruction.oper) {
       case _AQVM_OPERATOR_NOP:
         NOP();
         break;
@@ -1324,7 +1586,7 @@ int InvokeClassMethod(
       default:
         LOGGING_ERROR("Unknown operator: " + std::to_string(instruction.oper));
         break;
-    }
+    }*/
   }
 
   return 0;
