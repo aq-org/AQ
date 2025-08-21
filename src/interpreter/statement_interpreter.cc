@@ -436,15 +436,10 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
   code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
   std::size_t start_location = code.size();
 
-  // LOGGING_INFO("1");
-
   // Handles the condition expression of the for statement.
   Ast::Expression* ex = statement->GetConditionExpression();
   if (ex == nullptr) LOGGING_ERROR("Condition expression is nullptr.");
-  // LOGGING_INFO("0X010110100110010101");
   std::size_t condition_index = HandleExpression(interpreter, ex, code);
-  // LOGGING_INFO("0X010110100110010101");
-  // LOGGING_INFO("1");
   //  Handles the judgment of the for statement.
   std::size_t if_location = code.size();
   code.push_back(Bytecode{_AQVM_OPERATOR_IF, {}});

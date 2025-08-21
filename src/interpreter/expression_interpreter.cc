@@ -13,16 +13,17 @@ namespace Aq {
 namespace Interpreter {
 std::size_t HandleExpression(Interpreter& interpreter,
                              Ast::Expression* expression,
-                             std::vector<Bytecode>& code) {
+                             std::vector<Bytecode>& code,
+                             std::size_t result_index) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   if (Ast::IsOfType<Ast::Unary>(expression) ||
       Ast::IsOfType<Ast::Array>(expression)) {
     return HandleUnaryExpression(interpreter, Ast::Cast<Ast::Unary>(expression),
-                                 code);
+                                 code, result_index);
   } else if (Ast::IsOfType<Ast::Binary>(expression)) {
-    return HandleBinaryExpression(interpreter,
-                                  Ast::Cast<Ast::Binary>(expression), code);
+    return HandleBinaryExpression(
+        interpreter, Ast::Cast<Ast::Binary>(expression), code, result_index);
   }
 
   return GetIndex(interpreter, expression, code);
@@ -30,16 +31,18 @@ std::size_t HandleExpression(Interpreter& interpreter,
 
 std::size_t HandleUnaryExpression(Interpreter& interpreter,
                                   Ast::Unary* expression,
-                                  std::vector<Bytecode>& code) {
+                                  std::vector<Bytecode>& code,
+                                  std::size_t result_index) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
   auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
 
-  std::size_t sub_expression =
-      HandleExpression(interpreter, expression->GetExpression(), code);
-  std::size_t new_index = global_memory->Add(1);
+  std::size_t sub_expression = HandleExpression(
+      interpreter, expression->GetExpression(), code, result_index);
+  std::size_t new_index =
+      result_index == 0 ? global_memory->Add(1) : result_index;
 
   switch (expression->GetOperator()) {
     case Ast::Unary::Operator::kPostInc: {  // ++ (postfix)
@@ -87,7 +90,7 @@ std::size_t HandleUnaryExpression(Interpreter& interpreter,
     case Ast::Unary::Operator::ARRAY: {  // []
       std::size_t offset = HandleExpression(
           interpreter, Ast::Cast<Ast::Array>(expression)->GetIndexExpression(),
-          code);
+          code, 0);
 
       code.push_back(
           Bytecode{_AQVM_OPERATOR_ARRAY, {new_index, sub_expression, offset}});
@@ -104,7 +107,8 @@ std::size_t HandleUnaryExpression(Interpreter& interpreter,
 
 std::size_t HandleBinaryExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
-                                   std::vector<Bytecode>& code) {
+                                   std::vector<Bytecode>& code,
+                                   std::size_t result_index) {
   if (expression == nullptr) INTERNAL_ERROR("expression is nullptr.");
 
   // Gets the reference of context.
@@ -117,31 +121,85 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
   // Gets the left and right expression indexes.
   std::size_t left = 0;
   std::size_t right = 0;
-  if (expression->GetOperator() != Ast::Binary::Operator::kMember) {
-    right = HandleExpression(interpreter, right_expression, code);
-    left = HandleExpression(interpreter, left_expression, code);
+  if (expression->GetOperator() != Ast::Binary::Operator::kMember &&
+      expression->GetOperator() != Ast::Binary::Operator::kAssign) {
+    right = HandleExpression(interpreter, right_expression, code, 0);
+    left = HandleExpression(interpreter, left_expression, code, 0);
   }
 
-  std::size_t result = global_memory->Add(1);
+  uint8_t type = global_memory->GetMemory()[left].type >
+                         global_memory->GetMemory()[right].type
+                     ? global_memory->GetMemory()[left].type
+                     : global_memory->GetMemory()[right].type;
+
+  std::size_t result =
+      result_index == 0 ? global_memory->AddWithType(type) : result_index;
   switch (expression->GetOperator()) {
     case Ast::Binary::Operator::kAdd:  // +
-      code.push_back(Bytecode{_AQVM_OPERATOR_ADD, {result, left, right}});
+      if (global_memory->GetMemory()[result].type == 0x02 &&
+          global_memory->GetMemory()[left].type == 0x02 &&
+          global_memory->GetMemory()[right].type == 0x02) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_ADDI, {result, left, right}});
+      } else if (global_memory->GetMemory()[result].type == 0x03 &&
+                 global_memory->GetMemory()[left].type == 0x03 &&
+                 global_memory->GetMemory()[right].type == 0x03) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_ADDF, {result, left, right}});
+      } else {
+        code.push_back(Bytecode{_AQVM_OPERATOR_ADD, {result, left, right}});
+      }
+
       return result;
 
     case Ast::Binary::Operator::kSub:  // -
-      code.push_back(Bytecode{_AQVM_OPERATOR_SUB, {result, left, right}});
+      if (global_memory->GetMemory()[result].type == 0x02 &&
+          global_memory->GetMemory()[left].type == 0x02 &&
+          global_memory->GetMemory()[right].type == 0x02) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_SUBI, {result, left, right}});
+      } else if (global_memory->GetMemory()[result].type == 0x03 &&
+                 global_memory->GetMemory()[left].type == 0x03 &&
+                 global_memory->GetMemory()[right].type == 0x03) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_SUBF, {result, left, right}});
+      } else {
+        code.push_back(Bytecode{_AQVM_OPERATOR_SUB, {result, left, right}});
+      }
       return result;
 
     case Ast::Binary::Operator::kMul:  // *
-      code.push_back(Bytecode{_AQVM_OPERATOR_MUL, {result, left, right}});
+      if (global_memory->GetMemory()[result].type == 0x02 &&
+          global_memory->GetMemory()[left].type == 0x02 &&
+          global_memory->GetMemory()[right].type == 0x02) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_MULI, {result, left, right}});
+      } else if (global_memory->GetMemory()[result].type == 0x03 &&
+                 global_memory->GetMemory()[left].type == 0x03 &&
+                 global_memory->GetMemory()[right].type == 0x03) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_MULF, {result, left, right}});
+      } else {
+        code.push_back(Bytecode{_AQVM_OPERATOR_MUL, {result, left, right}});
+      }
       return result;
 
     case Ast::Binary::Operator::kDiv:  // /
-      code.push_back(Bytecode{_AQVM_OPERATOR_DIV, {result, left, right}});
+      if (global_memory->GetMemory()[result].type == 0x02 &&
+          global_memory->GetMemory()[left].type == 0x02 &&
+          global_memory->GetMemory()[right].type == 0x02) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_DIVI, {result, left, right}});
+      } else if (global_memory->GetMemory()[result].type == 0x03 &&
+                 global_memory->GetMemory()[left].type == 0x03 &&
+                 global_memory->GetMemory()[right].type == 0x03) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_DIVF, {result, left, right}});
+      } else {
+        code.push_back(Bytecode{_AQVM_OPERATOR_DIV, {result, left, right}});
+      }
       return result;
 
     case Ast::Binary::Operator::kRem:  // %
-      code.push_back(Bytecode{_AQVM_OPERATOR_REM, {result, left, right}});
+      if (global_memory->GetMemory()[result].type == 0x02 &&
+          global_memory->GetMemory()[left].type == 0x02 &&
+          global_memory->GetMemory()[right].type == 0x02) {
+        code.push_back(Bytecode{_AQVM_OPERATOR_REMI, {result, left, right}});
+      } else {
+        code.push_back(Bytecode{_AQVM_OPERATOR_REM, {result, left, right}});
+      }
       return result;
 
     case Ast::Binary::Operator::kAnd:  // &
@@ -203,7 +261,10 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
       return result;
 
     case Ast::Binary::Operator::kAssign:  // =
-      code.push_back(Bytecode{_AQVM_OPERATOR_EQUAL, {left, right}});
+      left = HandleExpression(interpreter, left_expression, code, result);
+      right = HandleExpression(interpreter, right_expression, code, left);
+      if (right != left)
+        code.push_back(Bytecode{_AQVM_OPERATOR_EQUAL, {left, right}});
       return left;
 
     case Ast::Binary::Operator::kAddAssign:  // +=
@@ -247,7 +308,8 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
       return left;
 
     case Ast::Binary::Operator::kMember: {
-      return HandlePeriodExpression(interpreter, expression, code);
+      return HandlePeriodExpression(interpreter, expression, code,
+                                    result_index);
       break;
     }
 
@@ -262,7 +324,8 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
 
 std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
-                                   std::vector<Bytecode>& code) {
+                                   std::vector<Bytecode>& code,
+                                   std::size_t result_index) {
   if (expression->GetOperator() != Ast::Binary::Operator::kMember)
     INTERNAL_ERROR("The expression isn't a period expression.");
 
@@ -345,7 +408,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                                        return_value_index};
           for (std::size_t i = 0; i < arguments_size; i++)
             invoke_arguments.push_back(
-                HandleExpression(interpreter, arguments[i], code));
+                HandleExpression(interpreter, arguments[i], code, 0));
 
           code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
                                   std::move(invoke_arguments)});
@@ -377,8 +440,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       // This is a function call, so we need to handle it specially.
     case Ast::Statement::StatementType::kFunction: {
       // Handles the class and function name.
-      std::size_t class_index =
-          HandleExpression(interpreter, expression->GetLeftExpression(), code);
+      std::size_t class_index = HandleExpression(
+          interpreter, expression->GetLeftExpression(), code, 0);
       std::size_t function_name_index = global_memory->AddString(
           Ast::Cast<Ast::Function>(right_expression)->GetFunctionName());
 
@@ -396,7 +459,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
           class_index, function_name_index, return_value_index};
       for (std::size_t i = 0; i < arguments_size; i++)
         invoke_arguments.push_back(
-            HandleExpression(interpreter, arguments[i], code));
+            HandleExpression(interpreter, arguments[i], code, 0));
 
       code.push_back(
           Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_arguments)});
@@ -407,8 +470,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       std::size_t return_value_index = global_memory->Add(1);
 
       // Handles the class and variable name.
-      std::size_t class_index =
-          HandleExpression(interpreter, expression->GetLeftExpression(), code);
+      std::size_t class_index = HandleExpression(
+          interpreter, expression->GetLeftExpression(), code, 0);
       std::size_t variable_name_index = global_memory->AddString(std::string(
           *Ast::Cast<Ast::Identifier>(expression->GetRightExpression())));
 
@@ -427,7 +490,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
 
 std::size_t HandleFunctionInvoke(Interpreter& interpreter,
                                  Ast::Function* function,
-                                 std::vector<Bytecode>& code) {
+                                 std::vector<Bytecode>& code,
+                                 std::size_t result_index) {
   if (function == nullptr) INTERNAL_ERROR("function is nullptr.");
 
   // Gets the reference of context.
@@ -460,7 +524,8 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
   std::vector<std::size_t> vm_arguments{
       2, global_memory->AddString(function_name), return_value_index};
   for (std::size_t i = 0; i < arguments.size(); i++)
-    vm_arguments.push_back(HandleExpression(interpreter, arguments[i], code));
+    vm_arguments.push_back(
+        HandleExpression(interpreter, arguments[i], code, 0));
 
   code.push_back(
       Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(vm_arguments)});
@@ -558,8 +623,8 @@ std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
     }
 
     case Ast::Statement::StatementType::kFunction:
-      return HandleFunctionInvoke(interpreter,
-                                  Ast::Cast<Ast::Function>(expression), code);
+      return HandleFunctionInvoke(
+          interpreter, Ast::Cast<Ast::Function>(expression), code, 0);
 
     default:
       LOGGING_ERROR("Unexpected expression type.");
@@ -649,8 +714,8 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
     }
 
     case Ast::Statement::StatementType::kFunction:
-      return HandleFunctionInvoke(interpreter,
-                                  Ast::Cast<Ast::Function>(expression), code);
+      return HandleFunctionInvoke(
+          interpreter, Ast::Cast<Ast::Function>(expression), code, 0);
 
     default:
       return 0;

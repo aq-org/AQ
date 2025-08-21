@@ -1069,6 +1069,7 @@ int InvokeClassMethod(
   for (int64_t i = 0; i < instructions_size; i++) {
     const auto& instruction = instructions_ptr[i];
     const auto& arguments = instruction.arguments;
+    // LOGGING_INFO("Executing instruction: " + std::to_string(instruction.oper));
     switch (instruction.oper) {
       case _AQVM_OPERATOR_NOP:
         NOP();
@@ -1082,71 +1083,125 @@ int InvokeClassMethod(
               builtin_functions);
         break;
       case _AQVM_OPERATOR_ADD:
-        if (memory_ptr[arguments[1]].type == 0x02 &&
+        if (memory_ptr[arguments[0]].type == 0x02 &&
+            memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
-                  memory_ptr[arguments[1]].data.int_data +
-                      memory_ptr[arguments[2]].data.int_data);
-        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+          memory_ptr[arguments[0]].data.int_data =
+              memory_ptr[arguments[1]].data.int_data +
+              memory_ptr[arguments[2]].data.int_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_ADDI;
+          }
+        } else if (memory_ptr[arguments[0]].type == 0x03 &&
+                   memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
-                    memory_ptr[arguments[1]].data.float_data +
-                        memory_ptr[arguments[2]].data.float_data);
+          memory_ptr[arguments[0]].data.float_data =
+              memory_ptr[arguments[1]].data.float_data +
+              memory_ptr[arguments[2]].data.float_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_ADDF;
+          }
         } else {
           ADD(memory_ptr, arguments[0], arguments[1], arguments[2]);
         }
         break;
       case _AQVM_OPERATOR_SUB:
-        if (memory_ptr[arguments[1]].type == 0x02 &&
+        if (memory_ptr[arguments[0]].type == 0x02 &&
+            memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
-                  memory_ptr[arguments[1]].data.int_data -
-                      memory_ptr[arguments[2]].data.int_data);
-        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+          memory_ptr[arguments[0]].data.int_data =
+              memory_ptr[arguments[1]].data.int_data -
+              memory_ptr[arguments[2]].data.int_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_SUBI;
+          }
+        } else if (memory_ptr[arguments[0]].type == 0x03 &&
+                   memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
-                    memory_ptr[arguments[1]].data.float_data -
-                        memory_ptr[arguments[2]].data.float_data);
+          memory_ptr[arguments[0]].data.float_data =
+              memory_ptr[arguments[1]].data.float_data -
+              memory_ptr[arguments[2]].data.float_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_SUBF;
+          }
         } else {
           SUB(memory_ptr, arguments[0], arguments[1], arguments[2]);
         }
         break;
       case _AQVM_OPERATOR_MUL:
-        if (memory_ptr[arguments[1]].type == 0x02 &&
+        if (memory_ptr[arguments[0]].type == 0x02 &&
+            memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
-                  memory_ptr[arguments[1]].data.int_data *
-                      memory_ptr[arguments[2]].data.int_data);
-        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+          memory_ptr[arguments[0]].data.int_data =
+              memory_ptr[arguments[1]].data.int_data *
+              memory_ptr[arguments[2]].data.int_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_MULI;
+          }
+        } else if (memory_ptr[arguments[0]].type == 0x03 &&
+                   memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
-                    memory_ptr[arguments[1]].data.float_data *
-                        memory_ptr[arguments[2]].data.float_data);
+          memory_ptr[arguments[0]].data.float_data =
+              memory_ptr[arguments[1]].data.float_data *
+              memory_ptr[arguments[2]].data.float_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_MULF;
+          }
         } else {
           MUL(memory_ptr, arguments[0], arguments[1], arguments[2]);
         }
         break;
       case _AQVM_OPERATOR_DIV:
-        if (memory_ptr[arguments[1]].type == 0x02 &&
+        if (memory_ptr[arguments[0]].type == 0x02 &&
+            memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
-                  memory_ptr[arguments[1]].data.int_data /
-                      memory_ptr[arguments[2]].data.int_data);
-        } else if (memory_ptr[arguments[1]].type == 0x03 &&
+          memory_ptr[arguments[0]].data.int_data =
+              memory_ptr[arguments[1]].data.int_data /
+              memory_ptr[arguments[2]].data.int_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_DIVI;
+          }
+        } else if (memory_ptr[arguments[0]].type == 0x03 &&
+                   memory_ptr[arguments[1]].type == 0x03 &&
                    memory_ptr[arguments[2]].type == 0x03) {
-          SetDouble(memory_ptr + arguments[0],
-                    memory_ptr[arguments[1]].data.float_data /
-                        memory_ptr[arguments[2]].data.float_data);
+          memory_ptr[arguments[0]].data.float_data =
+              memory_ptr[arguments[1]].data.float_data /
+              memory_ptr[arguments[2]].data.float_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_DIVF;
+          }
         } else {
           DIV(memory_ptr, arguments[0], arguments[1], arguments[2]);
         }
         break;
       case _AQVM_OPERATOR_REM:
-        if (memory_ptr[arguments[1]].type == 0x02 &&
+        if (memory_ptr[arguments[0]].type == 0x02 &&
+            memory_ptr[arguments[1]].type == 0x02 &&
             memory_ptr[arguments[2]].type == 0x02) {
-          SetLong(memory_ptr + arguments[0],
-                  memory_ptr[arguments[1]].data.int_data %
-                      memory_ptr[arguments[2]].data.int_data);
+          memory_ptr[arguments[0]].data.int_data =
+              memory_ptr[arguments[1]].data.int_data %
+              memory_ptr[arguments[2]].data.int_data;
+          if (memory_ptr[arguments[0]].constant_type &&
+              memory_ptr[arguments[1]].constant_type &&
+              memory_ptr[arguments[2]].constant_type) {
+            method.GetCode()[i].oper = _AQVM_OPERATOR_REMI;
+          }
         } else {
           REM(memory_ptr, arguments[0], arguments[1], arguments[2]);
         }
@@ -1217,6 +1272,54 @@ int InvokeClassMethod(
           LOAD_MEMBER(memory, classes, arguments[0], arguments[1],
                       arguments[2]);
         }
+        break;
+
+      case _AQVM_OPERATOR_ADDI:
+        memory_ptr[arguments[0]].data.int_data =
+            memory_ptr[arguments[1]].data.int_data +
+            memory_ptr[arguments[2]].data.int_data;
+        break;
+      case _AQVM_OPERATOR_SUBI:
+        memory_ptr[arguments[0]].data.int_data =
+            memory_ptr[arguments[1]].data.int_data -
+            memory_ptr[arguments[2]].data.int_data;
+        break;
+      case _AQVM_OPERATOR_MULI:
+        memory_ptr[arguments[0]].data.int_data =
+            memory_ptr[arguments[1]].data.int_data *
+            memory_ptr[arguments[2]].data.int_data;
+        break;
+      case _AQVM_OPERATOR_DIVI:
+        memory_ptr[arguments[0]].data.int_data =
+            memory_ptr[arguments[1]].data.int_data /
+            memory_ptr[arguments[2]].data.int_data;
+        break;
+      case _AQVM_OPERATOR_REMI:
+        memory_ptr[arguments[0]].data.int_data =
+            memory_ptr[arguments[1]].data.int_data %
+            memory_ptr[arguments[2]].data.int_data;
+        break;
+      case _AQVM_OPERATOR_ADDF:
+        memory_ptr[arguments[0]].data.float_data =
+            memory_ptr[arguments[1]].data.float_data +
+            memory_ptr[arguments[2]].data.float_data;
+        break;
+      case _AQVM_OPERATOR_SUBF:
+        memory_ptr[arguments[0]].data.float_data =
+            memory_ptr[arguments[1]].data.float_data -
+            memory_ptr[arguments[2]].data.float_data;
+        break;
+      case _AQVM_OPERATOR_MULF:
+        memory_ptr[arguments[0]].data.float_data =
+            memory_ptr[arguments[1]].data.float_data *
+            memory_ptr[arguments[2]].data.float_data;
+        break;
+      case _AQVM_OPERATOR_DIVF:
+        memory_ptr[arguments[0]].data.float_data =
+            memory_ptr[arguments[1]].data.float_data /
+            memory_ptr[arguments[2]].data.float_data;
+        break;
+      case _AQVM_OPERATOR_WIDE:
         break;
       default:
         LOGGING_ERROR("Unknown operator: " + std::to_string(instruction.oper));

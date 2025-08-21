@@ -268,8 +268,8 @@ std::size_t HandleVariableDeclaration(Interpreter& interpreter,
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
-    std::size_t value_index =
-        HandleExpression(interpreter, declaration->GetVariableValue()[0], code);
+    std::size_t value_index = HandleExpression(
+        interpreter, declaration->GetVariableValue()[0], code, 0);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -330,8 +330,8 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
-    std::size_t value_index =
-        HandleExpression(interpreter, declaration->GetVariableValue()[0], code);
+    std::size_t value_index = HandleExpression(
+        interpreter, declaration->GetVariableValue()[0], code, 0);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -396,7 +396,7 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index = HandleExpression(
-        interpreter, declaration->GetVariableValue()[0], global_code);
+        interpreter, declaration->GetVariableValue()[0], global_code, 0);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -463,8 +463,8 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
-    std::size_t value_index =
-        HandleExpression(interpreter, declaration->GetVariableValue()[0], code);
+    std::size_t value_index = HandleExpression(
+        interpreter, declaration->GetVariableValue()[0], code, 0);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
@@ -564,7 +564,7 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
-          interpreter, declaration->GetVariableValue()[i], code);
+          interpreter, declaration->GetVariableValue()[i], code, 0);
       code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {current_index, value_index}});
     }
@@ -654,7 +654,7 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
-          interpreter, declaration->GetVariableValue()[i], code);
+          interpreter, declaration->GetVariableValue()[i], code, 0);
       code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {current_index, value_index}});
     }
@@ -743,7 +743,7 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
-          interpreter, declaration->GetVariableValue()[i], global_code);
+          interpreter, declaration->GetVariableValue()[i], global_code, 0);
       global_code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {current_index, value_index}});
     }
@@ -834,7 +834,7 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
-          interpreter, declaration->GetVariableValue()[i], code);
+          interpreter, declaration->GetVariableValue()[i], code, 0);
       code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {2, current_index, value_index}});
     }
@@ -958,8 +958,6 @@ void AddFunctionIntoList(Interpreter& interpreter,
   Ast::Function* statement = declaration->GetFunctionStatement();
 
   Function function(name, parameters_index, code);
-  LOGGING_INFO("Adding function to list: " + name +
-               " with args size: " + std::to_string(parameters_index.size()));
   if (statement->IsVariadic()) function.EnableVariadic();
   functions[name].push_back(function);
 }
