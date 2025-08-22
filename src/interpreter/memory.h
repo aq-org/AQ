@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "interpreter/inline.h"
 #include "logging/logging.h"
 
 namespace Aq {
@@ -80,7 +81,7 @@ class Memory {
 
   void RemoveReferenceCount() {
     if (reference_count_ > 0) reference_count_--;
-    if (reference_count_ == 0) delete this;
+    if (reference_count_ <= 0) delete this;
   }
 
  private:
@@ -113,7 +114,7 @@ class ClassMemory {
 
   void RemoveReferenceCount() {
     if (reference_count_ > 0) reference_count_--;
-    if (reference_count_ == 0) delete this;
+    if (reference_count_ <= 0) delete this;
   }
 
  private:
@@ -121,10 +122,7 @@ class ClassMemory {
   int64_t reference_count_ = 0;
 };
 
-inline
-    __attribute__((always_inline))
-    void
-    RunGc(Object* object) {
+FORCE_INLINE void RunGc(Object* object) {
   switch (object->type) {
     case 0x05:
       delete object->data.string_data;
@@ -145,34 +143,16 @@ inline
   }
 }
 
-inline
-    __attribute__((always_inline))
-    int8_t
-    GetByte(Object* object) {
+FORCE_INLINE int8_t GetByte(Object* object) {
   switch (object->type) {
     case 0x01:
       return object->data.byte_data;
     case 0x02:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<int8_t>(object->data.int_data);
     case 0x03:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<int8_t>(object->data.float_data);
     case 0x04:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<int8_t>(object->data.uint64t_data);
-    /*case 0x07:
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      return GetByte(object);*/
     default:
       LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
       break;
@@ -181,11 +161,8 @@ inline
   return 0;
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetByte(Object* object, int8_t data) {
-  /*if (object->constant_type) {
+FORCE_INLINE void SetByte(Object* object, int8_t data) {
+  if (object->constant_type) {
     switch (object->type) {
       case 0x01:
         object->data.byte_data = data;
@@ -197,34 +174,29 @@ inline
         object->data.float_data = data;
         return;
       case 0x04:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.uint64t_data = data;
         return;
       default:
         LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
         return;
     }
-  }*/
+  }
 
-  //RunGc(object);
+  RunGc(object);
   object->type = 0x01;
   object->data.byte_data = data;
 }
 
-inline
-    __attribute__((always_inline))
-    int64_t
-    GetLong(Object* object) {
+FORCE_INLINE int64_t GetLong(Object* object) {
   switch (object->type) {
     case 0x01:
       return object->data.byte_data;
     case 0x02:
       return object->data.int_data;
     case 0x03:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<int64_t>(object->data.float_data);
     case 0x04:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<int64_t>(object->data.uint64t_data);
     default:
       LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
@@ -234,14 +206,11 @@ inline
   return 0;
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetLong(Object* object, int64_t data) {
-  /*if (object->constant_type) {
+FORCE_INLINE void SetLong(Object* object, int64_t data) {
+  if (object->constant_type) {
     switch (object->type) {
       case 0x01:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.byte_data = data;
         return;
       case 0x02:
@@ -251,47 +220,30 @@ inline
         object->data.float_data = data;
         return;
       case 0x04:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.uint64t_data = data;
         return;
       default:
         LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
         return;
     }
-  }*/
+  }
 
-  //RunGc(object);
+  RunGc(object);
   object->type = 0x02;
   object->data.int_data = data;
 }
 
-inline
-    __attribute__((always_inline))
-    double
-    GetDouble(Object* object) {
+FORCE_INLINE double GetDouble(Object* object) {
   switch (object->type) {
     case 0x01:
       return object->data.byte_data;
     case 0x02:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<double>(object->data.int_data);
     case 0x03:
       return object->data.float_data;
     case 0x04:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<double>(object->data.uint64t_data);
-    /*case 0x07:
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      return GetDouble(object);*/
     default:
       LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
       break;
@@ -300,51 +252,42 @@ inline
   return 0.0;
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetDouble(Object* object, double data) {
-  /*if (object->constant_type) {
+FORCE_INLINE void SetDouble(Object* object, double data) {
+  if (object->constant_type) {
     switch (object->type) {
       case 0x01:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.byte_data = data;
         return;
       case 0x02:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.int_data = data;
         return;
       case 0x03:
         object->data.float_data = data;
         return;
       case 0x04:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.uint64t_data = data;
         return;
       default:
         LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
         return;
     }
-  }*/
+  }
 
-  //RunGc(object);
+  RunGc(object);
   object->type = 0x03;
   object->data.float_data = data;
 }
 
-inline
-    __attribute__((always_inline))
-    uint64_t
-    GetUint64(Object* object) {
+FORCE_INLINE uint64_t GetUint64(Object* object) {
   switch (object->type) {
     case 0x01:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<uint64_t>(object->data.byte_data);
     case 0x02:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<uint64_t>(object->data.int_data);
     case 0x03:
-      // LOGGING_WARNING("Implicit conversion may changes value.");
       return static_cast<uint64_t>(object->data.float_data);
     case 0x04:
       return object->data.uint64t_data;
@@ -356,22 +299,19 @@ inline
   return 0;
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetUint64(Object* object, uint64_t data) {
-  /*if (object->constant_type) {
+FORCE_INLINE void SetUint64(Object* object, uint64_t data) {
+  if (object->constant_type) {
     switch (object->type) {
       case 0x01:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.byte_data = data;
         return;
       case 0x02:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.int_data = data;
         return;
       case 0x03:
-        // LOGGING_WARNING("Implicit conversion may changes value.");
+        LOGGING_WARNING("Implicit conversion may changes value.");
         object->data.float_data = data;
         return;
       case 0x04:
@@ -381,32 +321,17 @@ inline
         LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
         return;
     }
-  }*/
+  }
 
-  //RunGc(object);
+  RunGc(object);
   object->type = 0x04;
   object->data.uint64t_data = data;
 }
 
-inline
-    __attribute__((always_inline))
-    std::string
-    GetString(Object* object) {
+FORCE_INLINE std::string GetString(Object* object) {
   switch (object->type) {
     case 0x05:
       return *object->data.string_data;
-    /*case 0x07:
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      return GetString(object);*/
     default:
       LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
       break;
@@ -415,53 +340,21 @@ inline
   return "";
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetString(Object* object, const std::string& data) {
+FORCE_INLINE void SetString(Object* object, const std::string& data) {
   if (object->constant_type && object->type != 0x05) {
-    /*if (object->type == 0x07) {
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      SetString(object, data);
-      return;
-    }*/
     LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
     return;
   }
 
-  //RunGc(object);
+  RunGc(object);
   object->type = 0x05;
   object->data.string_data = new std::string(data);
 }
 
-inline
-    __attribute__((always_inline))
-    Memory*
-    GetArray(Object* object) {
+FORCE_INLINE Memory* GetArray(Object* object) {
   switch (object->type) {
     case 0x06:
       return object->data.array_data;
-    /*case 0x07:
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      return GetArray(object);*/
     default:
       LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
       break;
@@ -470,82 +363,33 @@ inline
   return nullptr;
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetArrayContent(Object* object, std::vector<Object>& data) {
+FORCE_INLINE void SetArrayContent(Object* object, std::vector<Object>& data) {
   if (object->constant_type && object->type != 0x06) {
-    /*if (object->type == 0x07) {
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      SetArrayContent(object, data);
-      return;
-    }*/
     LOGGING_ERROR("Cannot set array to constant type memory.");
   }
 
-  //RunGc(object);
+  RunGc(object);
   object->type = 0x06;
   object->data.array_data = new Memory();
   object->data.array_data->SetMemory(data);
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetArray(Object* object, Memory* data) {
-  //RunGc(object);
+FORCE_INLINE void SetArray(Object* object, Memory* data) {
+  RunGc(object);
 
   if (object->type == 0x06 || !object->constant_type) {
     object->type = 0x06;
     object->data.array_data = data;
     data->AddReferenceCount();
   } else {
-    /*if (object->type == 0x07) {
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      SetArray(object, data);
-      return;
-    }*/
     LOGGING_ERROR("Cannot set array to constant type memory.");
   }
 }
 
-inline
-    __attribute__((always_inline))
-    ClassMemory*
-    GetObject(Object* object) {
+FORCE_INLINE ClassMemory* GetObject(Object* object) {
   switch (object->type) {
     case 0x09:
       return object->data.class_data;
-    /*case 0x07:
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      return GetObject(object);*/
     default:
       LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
       break;
@@ -554,40 +398,20 @@ inline
   return nullptr;
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetObject(Object* object, ClassMemory* data) {
-  //RunGc(object);
+FORCE_INLINE void SetObject(Object* object, ClassMemory* data) {
+  RunGc(object);
 
   if (object->type == 0x09 || !object->constant_type) {
     object->type = 0x09;
     object->data.class_data = data;
     data->AddReferenceCount();
   } else {
-    /*if (object->type == 0x07) {
-      while (object->type == 0x07) {
-        auto reference = object->data.reference_data;
-        if (reference->is_class) {
-          object = &reference->memory.class_memory
-                        ->GetMembers()[*reference->index.variable_name];
-        } else {
-          object =
-              &reference->memory.memory->GetMemory()[reference->index.index];
-        }
-      }
-      SetObject(object, data);
-      return;
-    }*/
     LOGGING_INFO("type: " + std::to_string(object->type));
     LOGGING_ERROR("Cannot set class to constant type memory.");
   }
 }
 
-inline
-    __attribute__((always_inline))
-    Object*
-    GetOrigin(Object* object) {
+FORCE_INLINE Object* GetOrigin(Object* object) {
   while (object->type == 0x07) {
     auto reference = object->data.reference_data;
     if (reference->is_class) {
@@ -601,11 +425,8 @@ inline
   return object;
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    SetReference(Object* object, ObjectReference reference) {
-  //RunGc(object);
+FORCE_INLINE void SetReference(Object* object, ObjectReference reference) {
+  RunGc(object);
   if (object->type == 0x07 || !object->constant_type) {
     object->type = 0x07;
     object->data.reference_data = new ObjectReference(reference);
@@ -614,10 +435,7 @@ inline
   }
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    InitGc(Object* object) {
+FORCE_INLINE void InitGc(Object* object) {
   switch (object->type) {
     case 0x05:
       if (object->data.string_data != nullptr) delete object->data.string_data;
@@ -642,10 +460,7 @@ inline
   }
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    InitObject(Object* object, ClassMemory* class_memory) {
+FORCE_INLINE void InitObject(Object* object, ClassMemory* class_memory) {
   InitGc(object);
   if (object->type == 0x09 || !object->constant_type) {
     object->type = 0x09;
@@ -656,10 +471,7 @@ inline
   }
 }
 
-inline
-    __attribute__((always_inline))
-    void
-    InitArray(Object* object, Memory* array_memory) {
+FORCE_INLINE void InitArray(Object* object, Memory* array_memory) {
   InitGc(object);
   if (object->type == 0x06 || !object->constant_type) {
     object->type = 0x06;
@@ -671,158 +483,5 @@ inline
 }
 }  // namespace Interpreter
 }  // namespace Aq
-
-#define GET_ORIGIN(object)                                               \
-  {                                                                      \
-    while (object->type == 0x07) {                                       \
-      const auto& __reference = object->data.reference_data;             \
-      if (__reference->is_class) {                                       \
-        object = &__reference->memory.class_memory                       \
-                      ->GetMembers()[*__reference->index.variable_name]; \
-      } else {                                                           \
-        object = &__reference->memory.memory                             \
-                      ->GetMemory()[__reference->index.index];           \
-      }                                                                  \
-    }                                                                    \
-  }
-
-#define RUN_GC(object)                                             \
-  {                                                                \
-    switch (object->type) {                                        \
-      case 0x05:                                                   \
-        delete object->data.string_data;                           \
-        break;                                                     \
-      case 0x06:                                                   \
-        object->data.array_data->RemoveReferenceCount();           \
-        break;                                                     \
-      case 0x07:                                                   \
-        if (object->data.reference_data->is_class)                 \
-          delete object->data.reference_data->index.variable_name; \
-        delete object->data.reference_data;                        \
-        break;                                                     \
-      case 0x09:                                                   \
-        object->data.class_data->RemoveReferenceCount();           \
-        break;                                                     \
-      default:                                                     \
-        break;                                                     \
-    }                                                              \
-  }
-
-#define SET_INT(object, value)                                       \
-  {                                                                  \
-    if (object->constant_type) {                                     \
-      switch (object->type) {                                        \
-        case 0x01:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.byte_data = value;                            \
-          break;                                                     \
-        case 0x02:                                                   \
-          object->data.int_data = value;                             \
-          break;                                                     \
-        case 0x03:                                                   \
-          object->data.float_data = value;                           \
-          break;                                                     \
-        case 0x04:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.uint64t_data = value;                         \
-          break;                                                     \
-        default:                                                     \
-          LOGGING_ERROR("Unsupported data type: " +                  \
-                        std::to_string(object->type));               \
-          break;                                                     \
-      }                                                              \
-    } else {                                                         \
-      RUN_GC(object);                                                \
-      object->type = 0x02;                                           \
-      object->data.int_data = value;                                 \
-    }                                                                \
-  }
-
-#define SET_FLOAT(object, value)                                     \
-  {                                                                  \
-    if (object->constant_type) {                                     \
-      switch (object->type) {                                        \
-        case 0x01:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.byte_data = value;                            \
-          break;                                                     \
-        case 0x02:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.int_data = value;                             \
-          break;                                                     \
-        case 0x03:                                                   \
-          object->data.float_data = value;                           \
-          break;                                                     \
-        case 0x04:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.uint64t_data = value;                         \
-          break;                                                     \
-        default:                                                     \
-          LOGGING_ERROR("Unsupported data type: " +                  \
-                        std::to_string(object->type));               \
-          break;                                                     \
-      }                                                              \
-    } else {                                                         \
-      RUN_GC(object);                                                \
-      object->type = 0x03;                                           \
-      object->data.float_data = value;                               \
-    }                                                                \
-  }
-
-#define SET_UINT64T(object, value)                                   \
-  {                                                                  \
-    if (object->constant_type) {                                     \
-      switch (object->type) {                                        \
-        case 0x01:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.byte_data = value;                            \
-          break;                                                     \
-        case 0x02:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.int_data = value;                             \
-          break;                                                     \
-        case 0x03:                                                   \
-          LOGGING_WARNING("Implicit conversion may changes value."); \
-          object->data.float_data = value;                           \
-          break;                                                     \
-        case 0x04:                                                   \
-          object->data.uint64t_data = value;                         \
-          break;                                                     \
-        default:                                                     \
-          LOGGING_ERROR("Unsupported data type: " +                  \
-                        std::to_string(object->type));               \
-          break;                                                     \
-      }                                                              \
-    } else {                                                         \
-      RUN_GC(object);                                                \
-      object->type = 0x04;                                           \
-      object->data.uint64t_data = value;                             \
-    }                                                                \
-  }
-
-#define SET_STRING(object, value)                                              \
-  {                                                                            \
-    if (!object->constant_type || object->type == 0x05) {                      \
-      RUN_GC(object);                                                          \
-      object->type = 0x05;                                                     \
-      object->data.string_data = new std::string(value);                       \
-    } else {                                                                   \
-      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type)); \
-    }                                                                          \
-  }
-
-#define SET_ARRAY_CONTENT(object, value)                          \
-  {                                                               \
-    if (object->type == 0x06) {                                   \
-      object->data.array_data->SetMemory(value);                  \
-    } else if (!object->constant_type) {                          \
-      RUN_GC(object);                                             \
-      object->type = 0x06;                                        \
-      object->data.array_data = new Memory();                     \
-      object->data.array_data->SetMemory(value);                  \
-    } else {                                                      \
-      LOGGING_ERROR("Cannot set array to constant type memory."); \
-    }                                                             \
-  }
 
 #endif

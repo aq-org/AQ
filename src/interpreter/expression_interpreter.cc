@@ -48,31 +48,71 @@ std::size_t HandleUnaryExpression(Interpreter& interpreter,
     case Ast::Unary::Operator::kPostInc: {  // ++ (postfix)
       code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {new_index, sub_expression}});
-      code.push_back(Bytecode{
-          _AQVM_OPERATOR_ADD,
-          {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
+      if (global_memory->GetMemory()[sub_expression].type == 0x02) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_ADDI,
+            {sub_expression, sub_expression, global_memory->AddLong(1)}});
+      } else if (global_memory->GetMemory()[sub_expression].type == 0x03) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_ADDF,
+            {sub_expression, sub_expression, global_memory->AddDouble(1.0)}});
+      } else {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_ADD,
+            {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
+      }
       return new_index;
     }
 
     case Ast::Unary::Operator::kPostDec: {  // -- (postfix)
       code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {new_index, sub_expression}});
-      code.push_back(
-          Bytecode{_AQVM_OPERATOR_SUB,
-                   {new_index, sub_expression, AddConstInt8t(interpreter, 1)}});
+      if (global_memory->GetMemory()[sub_expression].type == 0x02) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_SUBI,
+            {sub_expression, sub_expression, global_memory->AddLong(1)}});
+      } else if (global_memory->GetMemory()[sub_expression].type == 0x03) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_SUBF,
+            {sub_expression, sub_expression, global_memory->AddDouble(1.0)}});
+      } else {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_SUB,
+            {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
+      }
       return new_index;
     }
 
     case Ast::Unary::Operator::kPreInc:  // ++ (prefix)
-      code.push_back(Bytecode{
-          _AQVM_OPERATOR_ADD,
-          {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
+      if (global_memory->GetMemory()[sub_expression].type == 0x02) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_ADDI,
+            {sub_expression, sub_expression, global_memory->AddLong(1)}});
+      } else if (global_memory->GetMemory()[sub_expression].type == 0x03) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_ADDF,
+            {sub_expression, sub_expression, global_memory->AddDouble(1.0)}});
+      } else {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_ADD,
+            {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
+      }
       return sub_expression;
 
     case Ast::Unary::Operator::kPreDec:  // -- (prefix)
-      code.push_back(Bytecode{
-          _AQVM_OPERATOR_SUB,
-          {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
+      if (global_memory->GetMemory()[sub_expression].type == 0x02) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_SUBI,
+            {sub_expression, sub_expression, global_memory->AddLong(1)}});
+      } else if (global_memory->GetMemory()[sub_expression].type == 0x03) {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_SUBF,
+            {sub_expression, sub_expression, global_memory->AddDouble(1.0)}});
+      } else {
+        code.push_back(Bytecode{
+            _AQVM_OPERATOR_SUB,
+            {sub_expression, sub_expression, AddConstInt8t(interpreter, 1)}});
+      }
       return sub_expression;
 
     case Ast::Unary::Operator::kPlus:  // + (unary plus)
