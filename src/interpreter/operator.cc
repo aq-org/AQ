@@ -1057,7 +1057,8 @@ int InvokeClassMethod(
     memory->GetMemory()[function_arguments.back()].type = 0x06;
     memory->GetMemory()[function_arguments.back()].constant_type = true;
     memory->GetMemory()[function_arguments.back()].data.array_data = array;
-    for (std::size_t i = function_arguments.size(); i < arguments.size(); i++) {
+    for (std::size_t i = function_arguments.size() - 1; i < arguments.size();
+         i++) {
       array->GetMemory().push_back(memory->GetOriginData(arguments[i]));
     }
   }
