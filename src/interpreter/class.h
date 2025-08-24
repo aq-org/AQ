@@ -19,6 +19,7 @@ class Class {
  public:
   Class() {
     members_ = new ClassMemory();
+    members_->AddReferenceCount();
     class_ = nullptr;
   }
   ~Class() = default;

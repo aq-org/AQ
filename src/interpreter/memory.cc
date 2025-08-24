@@ -21,71 +21,7 @@ std::size_t Memory::Add(std::size_t size) {
 }
 
 std::size_t Memory::AddWithType(uint8_t type) {
-  switch (type) {
-    case 0x00:
-      memory_.push_back({0x00, 0, false});
-      break;
-    case 0x01:
-      memory_.push_back({0x01, 0, true});
-      break;
-    case 0x02: {
-      Object object;
-      object.type = 0x02;
-      object.data.int_data = 0;
-      object.constant_type = true;
-
-      memory_.push_back(object);
-      break;
-    }
-    case 0x03: {
-      Object object;
-      object.type = 0x03;
-      object.data.float_data = 0.0;
-      object.constant_type = true;
-
-      memory_.push_back(object);
-      break;
-    }
-    case 0x04: {
-      Object object;
-      object.type = 0x04;
-      object.data.uint64t_data = 0;
-      object.constant_type = true;
-
-      memory_.push_back(object);
-      break;
-    }
-    case 0x05: {
-      Object object;
-      object.type = 0x05;
-      object.data.string_data = new std::string();
-      object.constant_type = true;
-
-      memory_.push_back(object);
-      break;
-    }
-    case 0x06: {
-      Object object;
-      object.type = 0x06;
-      object.data.array_data = new Memory();
-      object.constant_type = true;
-
-      memory_.push_back(object);
-      break;
-    }
-    case 0x09: {
-      Object object;
-      object.type = 0x09;
-      object.data.class_data = new ClassMemory();
-      object.constant_type = true;
-
-      memory_.push_back(object);
-      break;
-    }
-    default:
-      LOGGING_ERROR("Unsupported data type: " + std::to_string(type));
-      break;
-  }
+  memory_.push_back({type, 0, type != 0x00});
 
   return memory_.size() - 1;
 }

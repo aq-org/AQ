@@ -84,6 +84,7 @@ void PreProcessClassDeclaration(Interpreter& interpreter,
   scopes.push_back(full_name);
 
   Class current_class;
+  current_class.GetMembers()->AddReferenceCount();
   current_class.SetName(full_name);
   current_class.SetClass(statement);
 

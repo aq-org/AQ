@@ -55,7 +55,7 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
         if (classes.find(class_name) == classes.end())
           LOGGING_ERROR("class not found.");
         Class& class_data = classes[class_name];
-        *class_memory = *class_data.GetMembers();
+        class_memory->GetMembers() = class_data.GetMembers()->GetMembers();
 
       } else {
         // Class array type.
@@ -87,9 +87,9 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
 
   if (size_value == 0 && type_data.type == 0x05 &&
       type_data.data.string_data != nullptr) {
-    SetObject(memory + ptr, class_memory);
+    InitObject(GetOrigin(memory + ptr), class_memory);
   } else {
-    SetArray(memory + ptr, array_memory);
+    InitArray(GetOrigin(memory + ptr), array_memory);
   }
 
   return 0;
@@ -1763,15 +1763,15 @@ int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
   auto& class_object = memory->GetOriginData(class_index);
 
   if (class_object.type != 0x09)
-    LOGGING_ERROR("LOAD_MEMBER: class_index is not a class object.");
+    LOGGING_ERROR("class_index is not a class object.");
 
   auto& member_name_object = memory->GetMemory()[operand];
   if (member_name_object.type != 0x05)
-    LOGGING_ERROR("LOAD_MEMBER: operand is not a string.");
+    LOGGING_ERROR("operand is not a string.");
 
   ObjectReference* reference = new ObjectReference();
   reference->is_class = true;
-  reference->memory.memory = memory;
+  reference->memory.class_memory = class_object.data.class_data;
   reference->index.variable_name =
       new std::string(*member_name_object.data.string_data);
 

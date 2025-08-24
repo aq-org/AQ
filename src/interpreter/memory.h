@@ -143,7 +143,22 @@ FORCE_INLINE void RunGc(Object* object) {
   }
 }
 
+FORCE_INLINE Object* GetOrigin(Object* object) {
+  while (object->type == 0x07) {
+    auto reference = object->data.reference_data;
+    if (reference->is_class) {
+      object = &reference->memory.class_memory
+                    ->GetMembers()[*reference->index.variable_name];
+    } else {
+      object = &reference->memory.memory->GetMemory()[reference->index.index];
+    }
+  }
+
+  return object;
+}
+
 FORCE_INLINE int8_t GetByte(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
   switch (object->type) {
     case 0x01:
       return object->data.byte_data;
@@ -162,6 +177,7 @@ FORCE_INLINE int8_t GetByte(Object* object) {
 }
 
 FORCE_INLINE void SetByte(Object* object, int8_t data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   if (object->constant_type) {
     switch (object->type) {
       case 0x01:
@@ -189,6 +205,7 @@ FORCE_INLINE void SetByte(Object* object, int8_t data) {
 }
 
 FORCE_INLINE int64_t GetLong(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
   switch (object->type) {
     case 0x01:
       return object->data.byte_data;
@@ -207,6 +224,7 @@ FORCE_INLINE int64_t GetLong(Object* object) {
 }
 
 FORCE_INLINE void SetLong(Object* object, int64_t data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   if (object->constant_type) {
     switch (object->type) {
       case 0x01:
@@ -235,6 +253,7 @@ FORCE_INLINE void SetLong(Object* object, int64_t data) {
 }
 
 FORCE_INLINE double GetDouble(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
   switch (object->type) {
     case 0x01:
       return object->data.byte_data;
@@ -253,6 +272,7 @@ FORCE_INLINE double GetDouble(Object* object) {
 }
 
 FORCE_INLINE void SetDouble(Object* object, double data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   if (object->constant_type) {
     switch (object->type) {
       case 0x01:
@@ -282,6 +302,7 @@ FORCE_INLINE void SetDouble(Object* object, double data) {
 }
 
 FORCE_INLINE uint64_t GetUint64(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
   switch (object->type) {
     case 0x01:
       return static_cast<uint64_t>(object->data.byte_data);
@@ -300,6 +321,7 @@ FORCE_INLINE uint64_t GetUint64(Object* object) {
 }
 
 FORCE_INLINE void SetUint64(Object* object, uint64_t data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   if (object->constant_type) {
     switch (object->type) {
       case 0x01:
@@ -329,6 +351,7 @@ FORCE_INLINE void SetUint64(Object* object, uint64_t data) {
 }
 
 FORCE_INLINE std::string GetString(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
   switch (object->type) {
     case 0x05:
       return *object->data.string_data;
@@ -341,6 +364,7 @@ FORCE_INLINE std::string GetString(Object* object) {
 }
 
 FORCE_INLINE void SetString(Object* object, const std::string& data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   if (object->constant_type && object->type != 0x05) {
     LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
     return;
@@ -352,6 +376,7 @@ FORCE_INLINE void SetString(Object* object, const std::string& data) {
 }
 
 FORCE_INLINE Memory* GetArray(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
   switch (object->type) {
     case 0x06:
       return object->data.array_data;
@@ -364,6 +389,7 @@ FORCE_INLINE Memory* GetArray(Object* object) {
 }
 
 FORCE_INLINE void SetArrayContent(Object* object, std::vector<Object>& data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   if (object->constant_type && object->type != 0x06) {
     LOGGING_ERROR("Cannot set array to constant type memory.");
   }
@@ -375,6 +401,7 @@ FORCE_INLINE void SetArrayContent(Object* object, std::vector<Object>& data) {
 }
 
 FORCE_INLINE void SetArray(Object* object, Memory* data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   RunGc(object);
 
   if (object->type == 0x06 || !object->constant_type) {
@@ -387,6 +414,7 @@ FORCE_INLINE void SetArray(Object* object, Memory* data) {
 }
 
 FORCE_INLINE ClassMemory* GetObject(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
   switch (object->type) {
     case 0x09:
       return object->data.class_data;
@@ -399,6 +427,7 @@ FORCE_INLINE ClassMemory* GetObject(Object* object) {
 }
 
 FORCE_INLINE void SetObject(Object* object, ClassMemory* data) {
+  if (object->type == 0x07) object = GetOrigin(object);
   RunGc(object);
 
   if (object->type == 0x09 || !object->constant_type) {
@@ -409,20 +438,6 @@ FORCE_INLINE void SetObject(Object* object, ClassMemory* data) {
     LOGGING_INFO("type: " + std::to_string(object->type));
     LOGGING_ERROR("Cannot set class to constant type memory.");
   }
-}
-
-FORCE_INLINE Object* GetOrigin(Object* object) {
-  while (object->type == 0x07) {
-    auto reference = object->data.reference_data;
-    if (reference->is_class) {
-      object = &reference->memory.class_memory
-                    ->GetMembers()[*reference->index.variable_name];
-    } else {
-      object = &reference->memory.memory->GetMemory()[reference->index.index];
-    }
-  }
-
-  return object;
 }
 
 FORCE_INLINE void SetReference(Object* object, ObjectReference reference) {

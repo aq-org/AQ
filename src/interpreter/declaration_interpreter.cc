@@ -322,26 +322,19 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
 
   std::string variable_name = declaration->GetVariableName();
 
-  memory->AddWithType(variable_name, return_type);
+  std::size_t reference_index = global_memory->AddWithType(return_type);
 
-  std::size_t reference_index =
-      global_memory->AddReference(memory, variable_name);
+  memory->AddReference(variable_name, global_memory, reference_index);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index = HandleExpression(
-        interpreter, declaration->GetVariableValue()[0], code, 0);
+        interpreter, declaration->GetVariableValue()[0], code, reference_index);
 
-    // If the variable is a reference type, it needs to be handled
-    // specially.
-    if (category == Ast::Type::TypeCategory::kReference) {
-      code.push_back(
-          Bytecode{_AQVM_OPERATOR_REFER, {reference_index, value_index}});
-    } else {
+    if (value_index != reference_index)
       code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
-    }
 
   } else if (category == Ast::Type::TypeCategory::kReference) {
     // If the variable is a reference type and not initialized, it will meet
@@ -445,15 +438,14 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
 
   std::string variable_name = declaration->GetVariableName();
 
-  Object temp;
-  std::reference_wrapper<Object> object = temp;
-
   memory->AddWithType(variable_name, return_type);
 
-  std::size_t reference_index = global_memory->Add(1);
-  code.push_back(
+  std::size_t reference_index =
+      global_memory->AddReference(memory, variable_name);
+  /*code.push_back(
       Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
-               {reference_index, 0, global_memory->AddString(variable_name)}});
+               {reference_index, 0,
+     global_memory->AddString(variable_name)}});*/
 
   // If the variable is a class type, it needs to be handled specially.
   if (category == Ast::Type::TypeCategory::kClass)
@@ -466,15 +458,8 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
     std::size_t value_index = HandleExpression(
         interpreter, declaration->GetVariableValue()[0], code, 0);
 
-    // If the variable is a reference type, it needs to be handled
-    // specially.
-    if (category == Ast::Type::TypeCategory::kReference) {
-      code.push_back(
-          Bytecode{_AQVM_OPERATOR_REFER, {reference_index, value_index}});
-    } else {
-      code.push_back(
-          Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
-    }
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
 
   } else if (category == Ast::Type::TypeCategory::kReference) {
     // If the variable is a reference type and not initialized, it will meet
@@ -596,8 +581,8 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
   std::string variable_name = declaration->GetVariableName();
 
   // Adds the array index and the type index.
-  memory->AddWithType(variable_name, array_type->GetVmType());
-  std::size_t array_index = global_memory->AddReference(memory, variable_name);
+  std::size_t array_index = global_memory->AddWithType(array_type->GetVmType());
+  memory->AddReference(variable_name, global_memory, array_index);
   std::size_t array_type_index = 0;
 
   // Gets the sub type of the array type and its category.
@@ -1325,15 +1310,14 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   }
 
   // Adds the class into global memory.
-  std::size_t reference_index = memory->AddReference(memory, variable_index);
   code.push_back(
       Bytecode{_AQVM_OPERATOR_NEW,
-               {reference_index, memory->AddByte(0), memory->AddString(name)}});
+               {variable_index, memory->AddByte(0), memory->AddString(name)}});
 
   // Classes without initialization requires default initialization.
   code.push_back(Bytecode{
       _AQVM_OPERATOR_INVOKE_METHOD,
-      {reference_index, memory->AddString("@constructor"), memory->Add(1)}});
+      {variable_index, memory->AddString("@constructor"), memory->Add(1)}});
 }
 
 std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {

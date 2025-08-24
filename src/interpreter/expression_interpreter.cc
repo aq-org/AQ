@@ -503,7 +503,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
 
       code.push_back(
           Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_arguments)});
-      break;
+      return return_value_index;
     }
 
     case Ast::Statement::StatementType::kIdentifier: {
