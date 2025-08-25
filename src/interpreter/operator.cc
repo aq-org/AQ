@@ -887,6 +887,9 @@ int EQUAL(Object* memory, std::size_t result, std::size_t value) {
     case 0x09:
       SetObject(memory + result, GetObject(value_object));
       break;
+    case 0x0A:
+      SetPtr(memory + result, GetPtr(value_object));
+      break;
     default:
       LOGGING_ERROR("Unsupported data type for EQUAL operation: " +
                     std::to_string(value_object->type));

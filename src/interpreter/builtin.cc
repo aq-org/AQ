@@ -4,6 +4,7 @@
 
 #include "interpreter/builtin.h"
 
+#include <cstdio>
 #include <string>
 
 #include "interpreter/interpreter.h"
@@ -23,11 +24,13 @@ void InitBuiltInFunctionDeclaration(Interpreter& interpreter) {
                                 __builtin_print);
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_vaprint",
                                 __builtin_vaprint);
-  AddBuiltInFunctionDeclaration(interpreter, "__builtin_abs", __builtin_void);
-  AddBuiltInFunctionDeclaration(interpreter, "__builtin_open", __builtin_void);
-  AddBuiltInFunctionDeclaration(interpreter, "__builtin_close", __builtin_void);
-  AddBuiltInFunctionDeclaration(interpreter, "__builtin_read", __builtin_void);
-  AddBuiltInFunctionDeclaration(interpreter, "__builtin_write", __builtin_void);
+  AddBuiltInFunctionDeclaration(interpreter, "__builtin_abs", __builtin_abs);
+  AddBuiltInFunctionDeclaration(interpreter, "__builtin_open", __builtin_open);
+  AddBuiltInFunctionDeclaration(interpreter, "__builtin_close",
+                                __builtin_close);
+  AddBuiltInFunctionDeclaration(interpreter, "__builtin_read", __builtin_read);
+  AddBuiltInFunctionDeclaration(interpreter, "__builtin_write",
+                                __builtin_write);
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_input", __builtin_void);
 
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_GUI_CreateWindow",
@@ -165,6 +168,201 @@ int __builtin_vaprint(Memory* memory, std::vector<std::size_t> arguments) {
     }
   }
 
+  return 0;
+}
+
+int __builtin_abs(Memory* memory, std::vector<std::size_t> arguments) {
+  if (arguments.size() != 2)
+    LOGGING_ERROR(
+        "Invalid number of arguments for __builtin_abs. Expected 2, got " +
+        std::to_string(arguments.size()));
+
+  auto memory_ptr = memory->GetMemory().data();
+
+  Object* value_object = GetOrigin(memory_ptr + arguments[1]);
+
+  switch (value_object->type) {
+    case 0x01:
+      SetByte(memory_ptr + arguments[0], abs(value_object->data.byte_data));
+      break;
+    case 0x02:
+      SetLong(memory_ptr + arguments[0], abs(value_object->data.int_data));
+      break;
+    case 0x03:
+      SetDouble(memory_ptr + arguments[0], abs(value_object->data.float_data));
+      break;
+    case 0x04:
+      SetUint64(memory_ptr + arguments[0], value_object->data.uint64t_data);
+      break;
+    default:
+      LOGGING_ERROR("Unsupported data type.");
+      break;
+  }
+
+  return 0;
+}
+
+int __builtin_open(Memory* memory, std::vector<std::size_t> arguments) {
+  if (arguments.size() < 2 || arguments.size() > 3)
+    LOGGING_ERROR("Invalid args.");
+
+  auto memory_ptr = memory->GetMemory().data();
+
+  const char* mode = "r";
+
+  if (arguments.size() == 2)
+    mode = GetString(memory_ptr + arguments[2]).c_str();
+
+  FILE* file = fopen(GetString(memory_ptr + arguments[1]).c_str(), mode);
+
+  if (file == nullptr) LOGGING_WARNING("Unexpected error.");
+
+  SetPtr(memory_ptr + arguments[0], file);
+
+  return 0;
+}
+int __builtin_close(Memory* memory, std::vector<std::size_t> arguments) {
+  if (arguments.size() != 2) LOGGING_ERROR("Invalid args.");
+
+  auto memory_ptr = memory->GetMemory().data();
+
+  SetLong(memory_ptr + arguments[0],
+          fclose((FILE*)GetPtr(memory_ptr + arguments[1])));
+
+  return 0;
+}
+int __builtin_read(Memory* memory, std::vector<std::size_t> arguments) {
+  if (arguments.size() != 3) LOGGING_ERROR("Invalid args.");
+
+  auto memory_ptr = memory->GetMemory().data();
+
+  std::size_t read_size = GetUint64(memory_ptr + arguments[1]);
+
+  char* temp_ptr = new char[read_size + 1];
+
+  fread(temp_ptr, sizeof(char), read_size,
+        (FILE*)GetPtr(memory_ptr + arguments[2]));
+
+  std::string result = temp_ptr;
+
+  SetString(memory_ptr + arguments[0], result);
+
+  delete[] temp_ptr;
+
+  return 0;
+}
+int __builtin_write(Memory* memory, std::vector<std::size_t> arguments) {
+  if (arguments.size() != 3) LOGGING_ERROR("Invalid args.");
+
+  auto memory_ptr = memory->GetMemory().data();
+
+  std::string str = GetString(memory_ptr + arguments[2]);
+
+  std::size_t count = fwrite(str.c_str(), sizeof(char), str.size(),
+                             (FILE*)GetPtr(memory_ptr + arguments[1]));
+
+  SetUint64(memory_ptr + arguments[0], count);
+
+  return 0;
+}
+int __builtin_input(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_GUI_CreateWindow(Memory* memory,
+                               std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_acos(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_asin(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_atan(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_atan2(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_ceil(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_cos(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_cosh(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_exp(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_fabs(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_floor(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_fmod(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_frexp(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_hypot(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_ldexp(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_log(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_log10(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_modf(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_pow(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_sin(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_sinh(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_sqrt(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_tan(Memory* memory, std::vector<std::size_t> arguments) {
+  return 0;
+}
+
+int __builtin_math_tanh(Memory* memory, std::vector<std::size_t> arguments) {
   return 0;
 }
 

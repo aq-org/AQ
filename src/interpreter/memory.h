@@ -43,7 +43,7 @@ struct Object {
     ObjectReference* reference_data;  // 0x07 (reference)
     // [[deprecated]] 0x08 (const)
     ClassMemory* class_data;  // 0x09 (class)
-    void* pointer_data;       // [[UNUSED]] 0x0A (pointer)
+    void* pointer_data;       // 0x0A (pointer)
   } data;
   bool constant_type = false;
 };
@@ -495,6 +495,31 @@ FORCE_INLINE void InitArray(Object* object, Memory* array_memory) {
   } else {
     LOGGING_ERROR("Cannot set array to constant type memory.");
   }
+}
+
+FORCE_INLINE void SetPtr(Object* object, void* ptr) {
+  if (object->type == 0x07) object = GetOrigin(object);
+  RunGc(object);
+
+  if (object->type == 0x0A || !object->constant_type) {
+    object->type = 0x0A;
+    object->data.pointer_data = ptr;
+  } else {
+    LOGGING_ERROR("Cannot set ptr to constant type memory.");
+  }
+}
+
+FORCE_INLINE void* GetPtr(Object* object) {
+  if (object->type == 0x07) object = GetOrigin(object);
+  switch (object->type) {
+    case 0x0A:
+      return object->data.pointer_data;
+    default:
+      LOGGING_ERROR("Unsupported data type: " + std::to_string(object->type));
+      break;
+  }
+
+  return nullptr;
 }
 }  // namespace Interpreter
 }  // namespace Aq
