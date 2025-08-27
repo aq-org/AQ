@@ -31,7 +31,8 @@ void InitBuiltInFunctionDeclaration(Interpreter& interpreter) {
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_read", __builtin_read);
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_write",
                                 __builtin_write);
-  AddBuiltInFunctionDeclaration(interpreter, "__builtin_input", __builtin_void);
+  AddBuiltInFunctionDeclaration(interpreter, "__builtin_input",
+                                __builtin_input);
 
   AddBuiltInFunctionDeclaration(interpreter, "__builtin_GUI_CreateWindow",
                                 __builtin_void);
@@ -208,12 +209,12 @@ int __builtin_open(Memory* memory, std::vector<std::size_t> arguments) {
 
   auto memory_ptr = memory->GetMemory().data();
 
-  const char* mode = "r";
+  std::string mode = "r";
 
-  if (arguments.size() == 2)
-    mode = GetString(memory_ptr + arguments[2]).c_str();
+  if (arguments.size() == 3) mode = GetString(memory_ptr + arguments[2]);
 
-  FILE* file = fopen(GetString(memory_ptr + arguments[1]).c_str(), mode);
+  FILE* file =
+      fopen(GetString(memory_ptr + arguments[1]).c_str(), mode.c_str());
 
   if (file == nullptr) LOGGING_WARNING("Unexpected error.");
 
@@ -232,21 +233,31 @@ int __builtin_close(Memory* memory, std::vector<std::size_t> arguments) {
   return 0;
 }
 int __builtin_read(Memory* memory, std::vector<std::size_t> arguments) {
-  if (arguments.size() != 3) LOGGING_ERROR("Invalid args.");
+  if (arguments.size() != 2) LOGGING_ERROR("Invalid args.");
 
   auto memory_ptr = memory->GetMemory().data();
 
-  std::size_t read_size = GetUint64(memory_ptr + arguments[1]);
+  FILE* file_ptr = (FILE*)GetPtr(memory_ptr + arguments[1]);
+  if (file_ptr == nullptr) {
+    SetString(memory_ptr + arguments[0], "");
+    return 0;
+  }
 
-  char* temp_ptr = new char[read_size + 1];
+  fpos_t original_position;
+  fgetpos(file_ptr, &original_position);
 
-  fread(temp_ptr, sizeof(char), read_size,
-        (FILE*)GetPtr(memory_ptr + arguments[2]));
+  fseek(file_ptr, 0, SEEK_END);
+  long file_size = ftell(file_ptr);
+  fseek(file_ptr, 0, SEEK_SET);
+
+  char* temp_ptr = new char[file_size + 1];
+  std::size_t actually_read = fread(temp_ptr, sizeof(char), file_size, file_ptr);
+  temp_ptr[actually_read] = '\0';
 
   std::string result = temp_ptr;
-
   SetString(memory_ptr + arguments[0], result);
 
+  fsetpos(file_ptr, &original_position);
   delete[] temp_ptr;
 
   return 0;
@@ -266,6 +277,20 @@ int __builtin_write(Memory* memory, std::vector<std::size_t> arguments) {
   return 0;
 }
 int __builtin_input(Memory* memory, std::vector<std::size_t> arguments) {
+  if (arguments.size() != 1) LOGGING_ERROR("Invalid args.");
+
+  auto memory_ptr = memory->GetMemory().data();
+
+  std::string line;
+  if (!std::getline(std::cin, line)) {
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    line.clear();
+    INTERNAL_ERROR("Unexpected input error.");
+  }
+
+  SetString(memory_ptr + arguments[0], line);
+
   return 0;
 }
 

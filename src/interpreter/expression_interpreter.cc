@@ -172,6 +172,14 @@ std::size_t HandleBinaryExpression(Interpreter& interpreter,
                      ? global_memory->GetMemory()[left].type
                      : global_memory->GetMemory()[right].type;
 
+  if (expression->GetOperator() == Ast::Binary::Operator::kLT ||
+      expression->GetOperator() == Ast::Binary::Operator::kGT ||
+      expression->GetOperator() == Ast::Binary::Operator::kLE ||
+      expression->GetOperator() == Ast::Binary::Operator::kGE ||
+      expression->GetOperator() == Ast::Binary::Operator::kEQ ||
+      expression->GetOperator() == Ast::Binary::Operator::kNE)
+    type = 0;
+
   std::size_t result =
       result_index == 0 ? global_memory->AddWithType(type) : result_index;
   switch (expression->GetOperator()) {
