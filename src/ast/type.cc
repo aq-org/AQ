@@ -171,13 +171,7 @@ Type* Type::CreateConstDerivedType(Type* sub_type, Token* token,
   // If it is not a post const type, it is a pre const type.
   if (sub_type == nullptr) sub_type = CreateType(token, length, ++index);
 
-  // ConstType* const_type = new ConstType();
-  // if (const_type == nullptr) INTERNAL_ERROR("const_type is nullptr.");
-
   if (sub_type == nullptr) INTERNAL_ERROR("type is nullptr.");
-
-  // const_type->SetSubType(sub_type);
-  // return const_type;
 
   LOGGING_WARNING("The C-style const declaration method is now deprecated.");
 
@@ -196,6 +190,18 @@ Type* Type::CreateOperatorDerivedType(Type* sub_type, Token* token,
       LOGGING_WARNING(
           "The C-style reference declaration method is now deprecated.");
       break;
+    }
+
+    case Token::OperatorType::l_square: {
+      if (token[index + 1].type != Token::Type::OPERATOR &&
+          token[index + 1].value.oper != Token::OperatorType::r_square)
+        LOGGING_WARNING("Unsupported array size yet.");
+
+      index++;
+
+      ArrayType* array_type = new ArrayType();
+      array_type->SetSubType(type);
+      type = array_type;
     }
 
     default:

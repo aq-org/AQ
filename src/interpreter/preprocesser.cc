@@ -90,6 +90,8 @@ void PreProcessClassDeclaration(Interpreter& interpreter,
 
   classes[full_name] = current_class;
 
+  LOGGING_INFO(full_name);
+
   for (std::size_t i = 0; i < statement->GetSubClasses().size(); i++) {
     if (Ast::IsOfType<Ast::Class>(statement->GetSubClasses()[i])) {
       PreProcessClassDeclaration(

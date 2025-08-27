@@ -5,13 +5,12 @@
 #ifndef AQ_AST_TYPE_H_
 #define AQ_AST_TYPE_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 #include "logging/logging.h"
 #include "token/token.h"
-
 
 namespace Aq {
 namespace Ast {
@@ -145,27 +144,16 @@ class ConstType : public Type {
 
 class ArrayType : public Type {
  public:
-  ArrayType() {
-    type_category_ = TypeCategory::kArray;
-    size_ = nullptr;
-  }
-  void SetSubType(Type* type, Expression* size) {
-    type_data_ = type;
-    size_ = size;
-  }
+  ArrayType() { type_category_ = TypeCategory::kArray; }
+  void SetSubType(Type* type) { type_data_ = type; }
   virtual ~ArrayType() = default;
 
   Type* GetSubType() { return type_data_; }
-
-  Expression* GetArraySize() { return size_; }
 
   operator std::string() override { return std::string(*type_data_) + "*"; }
 
   ArrayType(const ArrayType&) = default;
   ArrayType& operator=(const ArrayType&) = default;
-
- private:
-  Expression* size_;
 };
 
 class ReferenceType : public Type {

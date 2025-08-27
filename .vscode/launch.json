@@ -6,7 +6,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/aq",  // 替换为实际可执行文件路径
-            "args": ["${workspaceFolder}/build/test.aq"],
+            "args": ["${workspaceFolder}/build/test1.aq"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

@@ -206,7 +206,7 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
 
   // Check if there are any errors in the preprocessing.
   if (classes.find(class_name) == classes.end())
-    INTERNAL_ERROR("Not found class declaration.");
+    INTERNAL_ERROR("Not found class declaration: " + class_name);
   current_class = &classes[class_name];
 
   // Adds the special variable into class memory.
@@ -528,9 +528,9 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    code.push_back(Bytecode{
-        _AQVM_OPERATOR_ARRAY,
-        {current_index, array_index, global_memory->GetUint64tData(0)}});
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_ARRAY,
+                 {current_index, array_index, global_memory->AddUint64t(0)}});
     code.push_back(
         Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
                  {current_index, global_memory->AddString("@constructor"),
@@ -542,9 +542,9 @@ std::size_t HandleArrayDeclaration(Interpreter& interpreter,
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
       std::size_t current_index = global_memory->Add(1);
-      code.push_back(Bytecode{
-          _AQVM_OPERATOR_ARRAY,
-          {current_index, array_index, global_memory->GetUint64tData(i)}});
+      code.push_back(
+          Bytecode{_AQVM_OPERATOR_ARRAY,
+                   {current_index, array_index, global_memory->AddUint64t(i)}});
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
