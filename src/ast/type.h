@@ -64,6 +64,8 @@ class Type {
   // Type object. Only applicables for division operations.
   static Type* CreateDoubleType();
 
+  static Type* CreateAutoArrayType();
+
   // Returns the vm type of the Type object as a vector of uint8_t.
   uint8_t GetVmType();
 

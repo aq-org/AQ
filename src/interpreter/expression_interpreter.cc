@@ -5,6 +5,7 @@
 #include "interpreter/expression_interpreter.h"
 
 #include "ast/ast.h"
+#include "interpreter/declaration_interpreter.h"
 #include "interpreter/interpreter.h"
 #include "interpreter/operator.h"
 #include "logging/logging.h"
@@ -673,6 +674,10 @@ std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
     case Ast::Statement::StatementType::kFunction:
       return HandleFunctionInvoke(
           interpreter, Ast::Cast<Ast::Function>(expression), code, 0);
+
+    case Ast::Statement::StatementType::kArrayDeclaration:
+      return HandleArrayDeclaration(
+          interpreter, Ast::Cast<Ast::ArrayDeclaration>(expression), code);
 
     default:
       LOGGING_ERROR("Unexpected expression type.");

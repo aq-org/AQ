@@ -397,7 +397,6 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
       return new Ast::Statement();
 
     case Token::OperatorType::l_brace: {
-      // LOGGING_INFO("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL");
       index++;
       std::vector<Ast::Statement*> statements;
 
@@ -428,7 +427,6 @@ Ast::Statement* Parser::ParseStatementWithOperator(Token* token,
     }
 
     default:
-      // LOGGING_INFO("000000000000000000000X");
       Ast::Statement* statement =
           ExpressionParser::ParseExpression(token, length, index);
       if (token[index] == Token::OperatorType::semi) index++;

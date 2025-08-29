@@ -517,7 +517,30 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
           break;
 
         case Token::OperatorType::l_square:  // [
-          if (state == State::kPostOper) {
+          if (state == State::kPreOper) {
+            std::vector<Ast::Expression*> values;
+            while (true) {
+              // Skip the l_square or comma.
+              values.push_back(ExpressionParser::ParseExpressionWithoutComma(
+                  token, length, ++index));
+              if (token[index] == Token::OperatorType::r_square) {
+                index++;
+                break;
+              }
+              if (!(token[index] == Token::OperatorType::comma)) {
+                LOGGING_ERROR(
+                    "Expected '}' or ',' after '=' in array declaration, but "
+                    "not "
+                    "found.");
+              }
+            }
+
+            Ast::ArrayDeclaration* array = new Ast::ArrayDeclaration(
+                Ast::Type::CreateAutoArrayType(),
+                Ast::Identifier::CreateUnnamedIdentifier(), std::move(values));
+            return array;
+
+          } else if (state == State::kPostOper) {
             ParseArrayExpression(token, length, index, full_expression,
                                  main_expression, pre_operator_expression);
             break;
@@ -546,7 +569,6 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
             state = State::kPostOper;
 
           } else if (state == State::kPostOper) {
-          
             ParseFunctionCallExpression(token, length, index, full_expression,
                                         main_expression,
                                         pre_operator_expression);
@@ -631,7 +653,6 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
       if (!(token[index] == Token::OperatorType::period)) {
         state = State::kPostOper;
       } else {
-      
       }
 
     } else if (token[index] == Token::Type::NUMBER ||
@@ -751,8 +772,6 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
     Token* token, std::size_t length, std::size_t& index,
     Ast::Expression*& full_expression, Ast::Expression*& main_expression,
     Ast::Expression*& pre_operator_expression) {
-
-
   index++;
 
   std::vector<Ast::Expression*> arguments;
@@ -798,7 +817,6 @@ void Parser::ExpressionParser::ParseFunctionCallExpression(
   Ast::Function* function = nullptr;
   if (main_expression != nullptr &&
       *main_expression == Ast::Statement::StatementType::kBinary) {
-  
     // Handles the function with scopes.
     Ast::Binary* old_expression = Ast::Cast<Ast::Binary>(main_expression);
     function = new Ast::Function(old_expression->GetRightExpression(),

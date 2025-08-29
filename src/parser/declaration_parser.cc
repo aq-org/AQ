@@ -264,8 +264,9 @@ bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
   if (token[index] == Token::Type::IDENTIFIER &&
       (token[index + 1] == Token::Type::IDENTIFIER ||  // Variable or Function.
                                                        // Reference.
-       (token[index + 1] == Token::OperatorType::amp &&
-        token[index + 2] == Token::Type::IDENTIFIER))) {
+       (token[index + 1] == Token::OperatorType::l_square &&
+        token[index + 2] == Token::OperatorType::r_square &&
+        token[index + 3] == Token::Type::IDENTIFIER))) {
     return true;
   }
 

@@ -51,6 +51,14 @@ Type* Type::CreateDoubleType() {
   return type;
 }
 
+Type* Type::CreateAutoArrayType() {
+  ArrayType* type = new ArrayType();
+  Type* auto_type = new Type();
+  auto_type->SetBaseType(Type::BaseType::kAuto);
+  type->SetSubType(auto_type);
+  return type;
+}
+
 uint8_t Type::GetVmType() {
   Type* type = this;
   if (type->GetTypeCategory() == Type::TypeCategory::NONE)
