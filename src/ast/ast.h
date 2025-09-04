@@ -359,6 +359,8 @@ class Identifier : public Expression {
 
   Token& GetNameToken() { return name_; }
 
+  static Identifier* CreateUnnamedIdentifier();
+
   operator std::string() override {
     return std::string(name_.value.identifier.location,
                        name_.value.identifier.length);
@@ -420,32 +422,27 @@ class Variable : public Declaration, public Expression {
 
 class ArrayDeclaration : public Variable {
  public:
-  ArrayDeclaration(Type* type, Expression* name, Expression* size) {
+  ArrayDeclaration(Type* type, Expression* name) {
     Declaration::statement_type_ = StatementType::kArrayDeclaration;
+    Expression::statement_type_ = StatementType::kArrayDeclaration;
     variable_type_ = type;
     variable_name_ = name;
-    array_size_ = size;
     variable_value_.clear();
   }
 
-  ArrayDeclaration(Type* type, Expression* name, Expression* size,
-                   std::vector<Expression*> value) {
+  ArrayDeclaration(Type* type, Expression* name,
+                   std::vector<Expression*>&& value) {
     Declaration::statement_type_ = StatementType::kArrayDeclaration;
+    Expression::statement_type_ = StatementType::kArrayDeclaration;
     variable_type_ = type;
     variable_name_ = name;
-    array_size_ = size;
     variable_value_ = value;
   }
 
   virtual ~ArrayDeclaration() = default;
 
-  Expression* GetArraySizeExpression() { return array_size_; }
-
   ArrayDeclaration(const ArrayDeclaration&) = default;
   ArrayDeclaration& operator=(const ArrayDeclaration&) = default;
-
- private:
-  Expression* array_size_ = nullptr;
 };
 
 class FunctionDeclaration : public Declaration {

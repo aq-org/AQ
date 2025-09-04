@@ -12,15 +12,11 @@
 #include "interpreter/operator.h"
 #include "logging/logging.h"
 
-
 namespace Aq {
 namespace Interpreter {
 void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
                      std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
-
-  LOGGING_INFO("Handling statement: " +
-               std::to_string(static_cast<int>(statement->GetStatementType())));
 
   switch (statement->GetStatementType()) {
     case Ast::Statement::StatementType::kImport:
@@ -32,7 +28,7 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kCompound:
-      LOGGING_INFO("Handling compound statement.");
+
       HandleCompoundStatement(interpreter, Ast::Cast<Ast::Compound>(statement),
                               code);
       break;
@@ -118,7 +114,7 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
 void HandleBreakStatement(Interpreter& interpreter,
                           std::vector<Bytecode>& code) {
   std::size_t index = interpreter.global_memory->AddUint64t(0);
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1, index));
+  code.push_back(Bytecode{_AQVM_OPERATOR_GOTO, {index}});
 
   interpreter.context.function_context->loop_break_index.push_back(index);
 }
@@ -224,7 +220,7 @@ void HandleReturnStatement(Interpreter& interpreter, Ast::Return* statement,
   if (statement->GetExpression() == nullptr) {
     // Void return.
     exit_index.push_back(code.size());
-    code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
+    code.push_back(Bytecode{_AQVM_OPERATOR_GOTO, {}});
 
   } else {
     // Gets return value.
@@ -248,10 +244,10 @@ void HandleReturnStatement(Interpreter& interpreter, Ast::Return* statement,
     std::size_t return_reference_index = return_reference_iterator->second;
 
     // Sets the return value to the return reference.
-    code.push_back(Bytecode(_AQVM_OPERATOR_EQUAL, 2, return_reference_index,
-                            return_value));
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_EQUAL, {return_reference_index, return_value}});
     exit_index.push_back(code.size());
-    code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
+    code.push_back(Bytecode{_AQVM_OPERATOR_GOTO, {}});
   }
 }
 
@@ -259,11 +255,7 @@ void HandleCompoundStatement(Interpreter& interpreter, Ast::Compound* statement,
                              std::vector<Bytecode>& code) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
-  LOGGING_INFO("message");
-
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
-    LOGGING_INFO("Handling compound statement: " + std::to_string(i) + "/" +
-                 std::to_string(statement->GetStatements().size()));
     HandleStatement(interpreter, statement->GetStatements()[i], code);
   }
 }
@@ -282,7 +274,7 @@ void HandleIfStatement(Interpreter& interpreter, Ast::If* statement,
 
   // Handles the if operator and its statements.
   std::size_t if_operator_index = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_IF, {}});
 
   // Handles the true branch of the if statement.
   std::size_t true_operator_location = code.size();
@@ -292,7 +284,7 @@ void HandleIfStatement(Interpreter& interpreter, Ast::If* statement,
 
   // Handles the goto operator for the true branch.
   std::size_t goto_operator_location = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_GOTO, {}});
 
   // Handles the else operator and its statements if have.
   std::size_t false_operator_location = code.size();
@@ -305,7 +297,7 @@ void HandleIfStatement(Interpreter& interpreter, Ast::If* statement,
   // Handles the exit branch of the if statement.
   // If there is no else body, the exit branch is the goto operator location.
   std::size_t exit_branch = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
 
   // Sets the arguments for the if and goto operators.
   std::vector<std::size_t> if_arguments{condition_index, true_operator_location,
@@ -314,8 +306,8 @@ void HandleIfStatement(Interpreter& interpreter, Ast::If* statement,
       global_memory->AddUint64t(exit_branch)};
 
   // Updates the if and goto operators with the arguments.
-  code[if_operator_index].SetArgs(if_arguments);
-  code[goto_operator_location].SetArgs(goto_arguments);
+  code[if_operator_index].arguments = std::move(if_arguments);
+  code[goto_operator_location].arguments = std::move(goto_arguments);
 }
 
 void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
@@ -333,7 +325,7 @@ void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
   loop_break_index.push_back(-1);
 
   // Initializes the loop with a NOP operator and sets the start location.
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
   std::size_t start_location = code.size();
 
   // Handles the condition expression of the while statement.
@@ -342,7 +334,7 @@ void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
 
   // Handles the if operator for the condition and its body.
   std::size_t if_location = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_IF, {}});
   std::size_t body_location = code.size();
 
   // Handles the true branch of the while statement.
@@ -351,17 +343,17 @@ void HandleWhileStatement(Interpreter& interpreter, Ast::While* statement,
   scopes.pop_back();
 
   // Handles the goto operator to jump back to the start of the loop.
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1,
-                          global_memory->AddUint64t(start_location)));
+  code.push_back(Bytecode{_AQVM_OPERATOR_GOTO,
+                          {global_memory->AddUint64t(start_location)}});
 
   // Handles the exit branch of the while statement.
   std::size_t exit_location = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
 
   // Sets the arguments for the if and goto operators.
   std::vector<std::size_t> if_arguments{condition_index, body_location,
                                         exit_location};
-  code[if_location].SetArgs(if_arguments);
+  code[if_location].arguments = std::move(if_arguments);
 
   // Sets the exit location for the loop break statements.
   while (loop_break_index.back() != -1) {
@@ -388,7 +380,7 @@ void HandleDowhileStatement(Interpreter& interpreter, Ast::DoWhile* statement,
 
   // Initializes the loop with a NOP operator and sets the start location.
   // Because do while will loop at least once, handle the body directly.
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
   std::size_t body_location = code.size();
 
   // Handles the body of the do-while statement.
@@ -400,16 +392,16 @@ void HandleDowhileStatement(Interpreter& interpreter, Ast::DoWhile* statement,
   std::size_t condition_index =
       HandleExpression(interpreter, statement->GetConditionExpression(), code);
   std::size_t if_location = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_IF, {}});
 
   // Handles the exit branch of the do-while statement.
   std::size_t exit_location = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
 
   // Sets the arguments for the if and goto operators.
   std::vector<std::size_t> if_args{condition_index, body_location,
                                    exit_location};
-  code[if_location].SetArgs(if_args);
+  code[if_location].arguments = std::move(if_args);
 
   // Sets the exit location for the loop break statements.
   while (loop_break_index.back() != -1) {
@@ -441,21 +433,16 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
 
   // Adds a NOP operator to mark the start of the loop.
   // This is necessary to ensure the loop can be run correctly.
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
   std::size_t start_location = code.size();
-
-  // LOGGING_INFO("1");
 
   // Handles the condition expression of the for statement.
   Ast::Expression* ex = statement->GetConditionExpression();
   if (ex == nullptr) LOGGING_ERROR("Condition expression is nullptr.");
-  // LOGGING_INFO("0X010110100110010101");
   std::size_t condition_index = HandleExpression(interpreter, ex, code);
-  // LOGGING_INFO("0X010110100110010101");
-  // LOGGING_INFO("1");
   //  Handles the judgment of the for statement.
   std::size_t if_location = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_IF, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_IF, {}});
 
   // Handles the body branch and post-expression of the for statement.
   std::size_t body_location = code.size();
@@ -467,17 +454,17 @@ void HandleForStatement(Interpreter& interpreter, Ast::For* statement,
 
   // LOGGING_INFO("1");
   //  Makes the for statement loop automatically.
-  code.push_back(Bytecode(_AQVM_OPERATOR_GOTO, 1,
-                          global_memory->AddUint64t(start_location)));
+  code.push_back(Bytecode{_AQVM_OPERATOR_GOTO,
+                          {global_memory->AddUint64t(start_location)}});
 
   // Handles the exit branch of the for statement.
   std::size_t exit_location = code.size();
-  code.push_back(Bytecode(_AQVM_OPERATOR_NOP, 0));
+  code.push_back(Bytecode{_AQVM_OPERATOR_NOP, {}});
 
   // Sets the arguments for the if and goto operators.
   std::vector<std::size_t> if_args{condition_index, body_location,
                                    exit_location};
-  code[if_location].SetArgs(if_args);
+  code[if_location].arguments = std::move(if_args);
 
   // Sets the exit location for the loop break statements.
   while (loop_break_index.back() != -1) {

@@ -9,6 +9,8 @@
 #include "logging/logging.h"
 #include "token/token.h"
 
+std::size_t unnamed_identifier_count = 0;
+
 namespace Aq {
 namespace Ast {
 int8_t Value::GetByteValue() {
@@ -96,6 +98,17 @@ Expression::operator std::string() {
       "Expression does not have a valid string representation. Returning empty "
       "string.");
   return std::string();
+}
+
+Identifier* Identifier::CreateUnnamedIdentifier() {
+  Identifier* identifier = new Identifier();
+  identifier->name_.type = Token::Type::IDENTIFIER;
+  char* name = new char[10];
+
+  identifier->name_.value.identifier = Token::ValueStr{
+      name, std::size_t(snprintf(name, 8, "!%zu", unnamed_identifier_count))};
+
+  return identifier;
 }
 
 }  // namespace Ast

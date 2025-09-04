@@ -4,6 +4,7 @@
 
 #include "interpreter/interpreter.h"
 
+#include <chrono>
 #include <cstdint>
 
 #include "ast/ast.h"
@@ -29,20 +30,19 @@ void Interpreter::Generate(Ast::Compound* statement) {
   global_memory->Add(1);
 
   // Bytecode Running class.
-  std::vector<uint8_t> bytecodeclass_vm_type{0x09};
-  global_memory->AddWithType(bytecodeclass_vm_type);
+  global_memory->AddWithType(0x09);
   global_code.push_back(
-      Bytecode(_AQVM_OPERATOR_EQUAL, 2, 0, global_memory->AddString("(void)")));
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_REFER, 2, 1, 0));
+      Bytecode{_AQVM_OPERATOR_EQUAL, {0, global_memory->AddString("(void)")}});
+  global_code.push_back(Bytecode{_AQVM_OPERATOR_REFER, {1, 0}});
 
   // Sets the scope information.
   context.scopes.push_back("");
   context.function_context->current_scope = context.scopes.size() - 1;
 
   // Sets the initialize function.
-  global_code.push_back(Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, 3, 2,
-                                 global_memory->AddString(".!__init"),
-                                 global_memory->Add(1)));
+  global_code.push_back(Bytecode{
+      _AQVM_OPERATOR_INVOKE_METHOD,
+      {2, global_memory->AddString(".!__init"), global_memory->Add(1)}});
 
   // Sets the current class.
   Class* start_class = &this->main_class;
@@ -59,8 +59,6 @@ void Interpreter::Generate(Ast::Compound* statement) {
   // Initialize the statements that need to be preprocessed for the parts that
   // have not been preprocessed in the preprocessor.
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
-    LOGGING_INFO("Preprocessing global statement: " + std::to_string(i) + "/" +
-                 std::to_string(statement->GetStatements().size()));
     Ast::Statement* sub_statement = statement->GetStatements()[i];
     switch (sub_statement->GetStatementType()) {
       case Ast::Statement::StatementType::kFunctionDeclaration:
@@ -144,8 +142,8 @@ void Interpreter::Generate(Ast::Compound* statement) {
       if (i == 0) LOGGING_ERROR("Label not found.");
     }
 
-    global_code[context.function_context->goto_map.back().second].SetArgs(
-        1, global_memory->AddUint64t(goto_location));
+    global_code[context.function_context->goto_map.back().second].arguments = {
+        1, global_memory->AddUint64t(goto_location)};
     context.function_context->goto_map.pop_back();
   }
 
@@ -161,8 +159,8 @@ void Interpreter::Generate(Ast::Compound* statement) {
   // Adds the start function name into the constructor arguments. And makes the
   // invoke for the start function.
   std::vector<std::size_t> invoke_start_arguments = {2, start_function_name, 1};
-  start_code.push_back(
-      Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_start_arguments));
+  start_code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                std::move(invoke_start_arguments)});
 
   // Makes the constructor function for the start function.
   Function constructor_func("@constructor", constructor_args, start_code);
@@ -176,7 +174,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
   std::size_t main_func = global_memory->AddString(".main");
   std::vector<std::size_t> invoke_main_arguments = {2, main_func, 1};
   global_code.push_back(
-      Bytecode(_AQVM_OPERATOR_INVOKE_METHOD, invoke_main_arguments));
+      Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_main_arguments)});
   Function start_func(".!__start", arguments, global_code);
   functions[".!__start"].push_back(start_func);
 
@@ -194,25 +192,29 @@ void Interpreter::Generate(Ast::Compound* statement) {
   classes[".!__start"] = *start_class;
   classes[".!__start"].GetMethods() = functions;
 
-  LOGGING_INFO(
-      "Main function args size: " +
-      std::to_string(functions[".main"].back().GetParameters().size()));
-
   Run();
 }
 
 void Interpreter::Run() {
-  LOGGING_INFO("Running interpreter...");
+  // start time
+  auto start_time = std::chrono::high_resolution_clock::now();
 
-  global_memory->GetMemory()[2].type = {0x09};
+  global_memory->GetMemory()[2].type = 0x09;
   global_memory->GetMemory()[2].constant_type = true;
-  global_memory->GetMemory()[2].guard_tag = 0x00;
-  global_memory->GetMemory()[2].guard_ptr = nullptr;
-  global_memory->GetMemory()[2].data = context.current_class->GetMembers();
-  Object method_name_object{{0x05}, ".!__start", false, false, 0x00, nullptr};
+  global_memory->GetMemory()[2].data.class_data =
+      context.current_class->GetMembers();
+
+  std::size_t method_name_object = global_memory->AddString(".!__start");
+
   std::vector<size_t> arguments = {1};
-  InvokeClassMethod(global_memory, global_memory->GetMemory()[2],
-                    method_name_object, arguments, classes, builtin_functions);
+  InvokeClassMethod(global_memory, 2, method_name_object, arguments, classes,
+                    builtin_functions);
+
+  // end time
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> duration = end_time - start_time;
+  LOGGING_INFO("Interpreter ran for " + std::to_string(duration.count()) +
+               " ms.");
 }
 
 }  // namespace Interpreter

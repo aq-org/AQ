@@ -15,26 +15,33 @@
 namespace Aq {
 namespace Interpreter {
 // Handles the expression.
-std::size_t HandleExpression(Interpreter& interpreter, Ast::Expression* expression,
-                             std::vector<Bytecode>& code);
+std::size_t HandleExpression(Interpreter& interpreter,
+                             Ast::Expression* expression,
+                             std::vector<Bytecode>& code,
+                             std::size_t result_index = 0);
 
 // Handles the unary expression.
-std::size_t HandleUnaryExpression(Interpreter& interpreter, Ast::Unary* expression,
-                                  std::vector<Bytecode>& code);
+std::size_t HandleUnaryExpression(Interpreter& interpreter,
+                                  Ast::Unary* expression,
+                                  std::vector<Bytecode>& code,
+                                  std::size_t result_index = 0);
 
 // Handles the binary expression.
 std::size_t HandleBinaryExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
-                                   std::vector<Bytecode>& code);
+                                   std::vector<Bytecode>& code,
+                                   std::size_t result_index = 0);
 
 // Handles the period expression.
 std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                    Ast::Binary* expression,
-                                   std::vector<Bytecode>& code);
+                                   std::vector<Bytecode>& code,
+                                   std::size_t result_index = 0);
 
 // Handles the function invoke.
 std::size_t HandleFunctionInvoke(Interpreter& interpreter, Ast::Function* func,
-                                 std::vector<Bytecode>& code);
+                                 std::vector<Bytecode>& code,
+                                 std::size_t result_index = 0);
 
 // Handles the function invoke.
 std::size_t AddConstInt8t(Interpreter& interpreter, int8_t value);

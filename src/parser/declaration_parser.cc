@@ -5,7 +5,6 @@
 #include "parser/declaration_parser.h"
 
 #include <cstddef>
-#include <string>
 
 #include "ast/ast.h"
 #include "ast/type.h"
@@ -158,7 +157,7 @@ Ast::Variable* Parser::DeclarationParser::ParseVariableDeclaration(
   if (name == nullptr) INTERNAL_ERROR("name is nullptr.");
 
   // Checks if the variable is an array declaration.
-  if (*name == Ast::Statement::StatementType::kArray)
+  if (type->GetTypeCategory() == Ast::Type::TypeCategory::kArray)
     return ParseArrayDeclaration(type, name, token, length, index);
 
   // Declaration with initialization value.
@@ -265,8 +264,9 @@ bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
   if (token[index] == Token::Type::IDENTIFIER &&
       (token[index + 1] == Token::Type::IDENTIFIER ||  // Variable or Function.
                                                        // Reference.
-       (token[index + 1] == Token::OperatorType::amp &&
-        token[index + 2] == Token::Type::IDENTIFIER))) {
+       (token[index + 1] == Token::OperatorType::l_square &&
+        token[index + 2] == Token::OperatorType::r_square &&
+        token[index + 3] == Token::Type::IDENTIFIER))) {
     return true;
   }
 
@@ -276,24 +276,19 @@ bool Parser::DeclarationParser::HasCustomTypeBeforeExpression(
 Ast::ArrayDeclaration* Parser::DeclarationParser::ParseArrayDeclaration(
     Ast::Type* type, Ast::Expression* name, Token* token, std::size_t length,
     std::size_t& index) {
-  LOGGING_INFO("Parsing array declaration.");
-
   if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
   if (index >= length) INTERNAL_ERROR("index is out of range.");
-  Ast::Array* array = Ast::Cast<Ast::Array>(name);
-  if (array == nullptr) INTERNAL_ERROR("name is not an array.");
 
   if (token[index].value.oper == Token::OperatorType::equal) {
     index++;
     if (token[index].type == Token::Type::OPERATOR &&
-        token[index].value.oper == Token::OperatorType::l_brace) {
+        token[index].value.oper == Token::OperatorType::l_square) {
       std::vector<Ast::Expression*> values;
       while (true) {
-        LOGGING_INFO("Parsing array initialization list value.");
-        // Skip the l_brace or comma.
+        // Skip the l_square or comma.
         values.push_back(ExpressionParser::ParseExpressionWithoutComma(
             token, length, ++index));
-        if (token[index] == Token::OperatorType::r_brace) {
+        if (token[index] == Token::OperatorType::r_square) {
           index++;
           break;
         }
@@ -303,15 +298,13 @@ Ast::ArrayDeclaration* Parser::DeclarationParser::ParseArrayDeclaration(
               "found.");
         }
       }
-      return new Ast::ArrayDeclaration(type, array->GetExpression(),
-                                       array->GetIndexExpression(), values);
+      return new Ast::ArrayDeclaration(type, name, std::move(values));
     } else {
       LOGGING_ERROR(
           "Expected '{' or ',' after '=' in array declaration, but not found.");
     }
   }
-  return new Ast::ArrayDeclaration(type, array->GetExpression(),
-                                   array->GetIndexExpression());
+  return new Ast::ArrayDeclaration(type, name);
 }
 
 }  // namespace Aq

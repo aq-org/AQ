@@ -84,10 +84,13 @@ void PreProcessClassDeclaration(Interpreter& interpreter,
   scopes.push_back(full_name);
 
   Class current_class;
+  current_class.GetMembers()->AddReferenceCount();
   current_class.SetName(full_name);
   current_class.SetClass(statement);
 
   classes[full_name] = current_class;
+
+  LOGGING_INFO(full_name);
 
   for (std::size_t i = 0; i < statement->GetSubClasses().size(); i++) {
     if (Ast::IsOfType<Ast::Class>(statement->GetSubClasses()[i])) {

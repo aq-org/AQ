@@ -51,67 +51,56 @@ Type* Type::CreateDoubleType() {
   return type;
 }
 
-std::vector<uint8_t> Type::GetVmType() {
+Type* Type::CreateAutoArrayType() {
+  ArrayType* type = new ArrayType();
+  Type* auto_type = new Type();
+  auto_type->SetBaseType(Type::BaseType::kAuto);
+  type->SetSubType(auto_type);
+  return type;
+}
+
+uint8_t Type::GetVmType() {
   Type* type = this;
-  std::vector<uint8_t> vm_type;
   if (type->GetTypeCategory() == Type::TypeCategory::NONE)
     INTERNAL_ERROR("Unexpected code.");
 
-  bool is_end = false;
-  while (!is_end) {
-    if (type->GetTypeCategory() == Type::TypeCategory::kBase) {
-      switch (type->GetBaseType()) {
-        case Type::BaseType::kAuto:
-        case Type::BaseType::kVoid:
-          vm_type.push_back(0x00);
-          is_end = true;
-          break;
-        case Type::BaseType::kBool:
-        case Type::BaseType::kChar:
-          vm_type.push_back(0x01);
-          is_end = true;
-          break;
-        case Type::BaseType::kShort:
-        case Type::BaseType::kInt:
-        case Type::BaseType::kLong:
-          vm_type.push_back(0x02);
-          is_end = true;
-          break;
-        case Type::BaseType::kFloat:
-        case Type::BaseType::kDouble:
-          vm_type.push_back(0x03);
-          is_end = true;
-          break;
+  if (type->GetTypeCategory() == Type::TypeCategory::kBase) {
+    switch (type->GetBaseType()) {
+      case Type::BaseType::kAuto:
+      case Type::BaseType::kVoid:
+        return 0x00;
 
-          // TODO(uint64_t)
+      case Type::BaseType::kBool:
+      case Type::BaseType::kChar:
+        return 0x01;
 
-        case Type::BaseType::kString:
-          vm_type.push_back(0x05);
-          is_end = true;
-          break;
+      case Type::BaseType::kShort:
+      case Type::BaseType::kInt:
+      case Type::BaseType::kLong:
+        return 0x02;
 
-        case Type::BaseType::kFunction:
-        default:
-          INTERNAL_ERROR("This type is not currently supported.");
-          break;
-      }
-    } else if (type->GetTypeCategory() == Type::TypeCategory::kArray) {
-      vm_type.push_back(0x06);
-      type = dynamic_cast<ArrayType*>(type)->GetSubType();
-    } else if (type->GetTypeCategory() == Type::TypeCategory::kReference) {
-      vm_type.push_back(0x07);
-      type = dynamic_cast<ReferenceType*>(type)->GetSubType();
-    } /*else if (type->GetTypeCategory() == Type::TypeCategory::kConst) {
-      vm_type.push_back(0x08);
-      type = dynamic_cast<ConstType*>(type)->GetSubType();
-    }*/
-    else if (type->GetTypeCategory() == Type::TypeCategory::kClass) {
-      vm_type.push_back(0x09);
-      is_end = true;
+      case Type::BaseType::kFloat:
+      case Type::BaseType::kDouble:
+        return 0x03;
+
+        // TODO(uint64_t)
+
+      case Type::BaseType::kString:
+        return 0x05;
+
+      case Type::BaseType::kFunction:
+      default:
+        INTERNAL_ERROR("This type is not currently supported.");
+        break;
     }
+  } else if (type->GetTypeCategory() == Type::TypeCategory::kArray) {
+    return 0x06;
+  } else if (type->GetTypeCategory() == Type::TypeCategory::kClass) {
+    return 0x09;
   }
 
-  return vm_type;
+  LOGGING_ERROR("Unexpected type category.");
+  return 0x00;
 }
 
 Type* Type::CreateDerivedType(Type* sub_type, Token* token, std::size_t length,
@@ -190,13 +179,11 @@ Type* Type::CreateConstDerivedType(Type* sub_type, Token* token,
   // If it is not a post const type, it is a pre const type.
   if (sub_type == nullptr) sub_type = CreateType(token, length, ++index);
 
-  ConstType* const_type = new ConstType();
-  if (const_type == nullptr) INTERNAL_ERROR("const_type is nullptr.");
-
   if (sub_type == nullptr) INTERNAL_ERROR("type is nullptr.");
 
-  const_type->SetSubType(sub_type);
-  return const_type;
+  LOGGING_WARNING("The C-style const declaration method is now deprecated.");
+
+  return sub_type;
 }
 
 Type* Type::CreateOperatorDerivedType(Type* sub_type, Token* token,
@@ -205,10 +192,24 @@ Type* Type::CreateOperatorDerivedType(Type* sub_type, Token* token,
   Type* type = sub_type;
   switch (token[index].value.oper) {
     case Token::OperatorType::amp: {
-      ReferenceType* reference_type = new ReferenceType();
-      reference_type->SetSubType(sub_type);
-      type = reference_type;
+      // ReferenceType* reference_type = new ReferenceType();
+      // reference_type->SetSubType(sub_type);
+      // type = reference_type;
+      LOGGING_WARNING(
+          "The C-style reference declaration method is now deprecated.");
       break;
+    }
+
+    case Token::OperatorType::l_square: {
+      if (token[index + 1].type != Token::Type::OPERATOR &&
+          token[index + 1].value.oper != Token::OperatorType::r_square)
+        LOGGING_WARNING("Unsupported array size yet.");
+
+      index++;
+
+      ArrayType* array_type = new ArrayType();
+      array_type->SetSubType(type);
+      type = array_type;
     }
 
     default:
@@ -253,10 +254,11 @@ Type* Type::CreateArrayDerivedType(Type* sub_type, Token* token,
 
   // If the expression is an array, return the array type.
   if (*temp_expr == Statement::StatementType::kArray) {
-    ArrayType* array_type = new ArrayType();
-    array_type->SetSubType(
-        type, dynamic_cast<Array*>(temp_expr)->GetIndexExpression());
-    type = array_type;
+    // ArrayType* array_type = new ArrayType();
+    // array_type->SetSubType(type,
+    // dynamic_cast<Array*>(temp_expr)->GetIndexExpression()); type =
+    // array_type;
+    LOGGING_WARNING("The C-style array declaration method is now deprecated.");
   }
 
   return type;
