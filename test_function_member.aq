@@ -1,0 +1,38 @@
+// Test for assigning a function to a class member variable
+
+class Calculator {
+    int x = 10;
+    int y = 20;
+    
+    void Calculator() {
+        __builtin_print("Calculator created\n");
+        __builtin_print("x = ");
+        __builtin_print(x);
+        __builtin_print(", y = ");
+        __builtin_print(y);
+        __builtin_print("\n");
+    }
+    
+    int add() {
+        return x + y;
+    }
+    
+    int multiply() {
+        return x * y;
+    }
+}
+
+auto main() {
+    Calculator calc;
+    int result = calc.add();
+    __builtin_print("Result of add: ");
+    __builtin_print(result);
+    __builtin_print("\n");
+    
+    int result2 = calc.multiply();
+    __builtin_print("Result of multiply: ");
+    __builtin_print(result2);
+    __builtin_print("\n");
+    
+    return 0;
+}

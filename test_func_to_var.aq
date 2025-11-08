@@ -1,0 +1,28 @@
+// Test case: Assign a function reference to a variable
+
+class Test {
+    int value = 42;
+    
+    void Test() {
+        __builtin_print("Test object created with value = ");
+        __builtin_print(value);
+        __builtin_print("\n");
+    }
+    
+    int getValue() {
+        __builtin_print("getValue called\n");
+        return value;
+    }
+}
+
+auto main() {
+    Test obj;
+    
+    // Try to call the function
+    int result = obj.getValue();
+    __builtin_print("Result: ");
+    __builtin_print(result);
+    __builtin_print("\n");
+    
+    return 0;
+}

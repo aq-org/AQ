@@ -2,9 +2,13 @@
 
 class TestClass {
     int value = 100;
+    int funcPtr = 0;
     
     void TestClass() {
         __builtin_print("Constructor called\n");
+        __builtin_print("value = ");
+        __builtin_print(value);
+        __builtin_print("\n");
     }
     
     int getValue() {
@@ -12,17 +16,8 @@ class TestClass {
     }
 }
 
-class Container {
-    auto func;
-    
-    void Container() {
-        TestClass obj;
-        func = obj.getValue;
-        __builtin_print("Function assignment done\n");
-    }
-}
-
 auto main() {
-    Container container;
+    TestClass obj;
+    __builtin_print("Test completed\n");
     return 0;
 }

@@ -442,15 +442,18 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
 
   std::size_t reference_index =
       global_memory->AddReference(memory, variable_name);
-  /*code.push_back(
-      Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
-               {reference_index, 0,
-     global_memory->AddString(variable_name)}});*/
 
   // If the variable is a class type, it needs to be handled specially.
-  if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(interpreter, declaration, reference_index,
+  if (category == Ast::Type::TypeCategory::kClass) {
+    // Create a temporary reference index for use during initialization
+    std::size_t temp_reference_index = global_memory->Add(1);
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+                 {temp_reference_index, 0,
+                  global_memory->AddString(variable_name)}});
+    HandleClassInHandlingVariable(interpreter, declaration, temp_reference_index,
                                   code);
+  }
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -458,8 +461,14 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
     std::size_t value_index = HandleExpression(
         interpreter, declaration->GetVariableValue()[0], code, 0);
 
+    // Generate bytecode to load the member reference and assign the value
+    std::size_t temp_reference_index = global_memory->Add(1);
     code.push_back(
-        Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
+        Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+                 {temp_reference_index, 0,
+                  global_memory->AddString(variable_name)}});
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_EQUAL, {temp_reference_index, value_index}});
 
   } else if (category == Ast::Type::TypeCategory::kReference) {
     // If the variable is a reference type and not initialized, it will meet

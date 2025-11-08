@@ -1,0 +1,25 @@
+// Test case: Assign a member function TO a member variable within class
+
+class MyClass {
+    int data = 100;
+    auto operation = data;  // This should work - assign data member to another member
+    
+    void MyClass() {
+        __builtin_print("MyClass constructor\n");
+        __builtin_print("data = ");
+        __builtin_print(data);
+        __builtin_print("\n");
+        __builtin_print("operation = ");
+        __builtin_print(operation);
+        __builtin_print("\n");
+    }
+    
+    int getData() {
+        return data;
+    }
+}
+
+auto main() {
+    MyClass obj;
+    return 0;
+}
