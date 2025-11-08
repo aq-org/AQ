@@ -1,0 +1,29 @@
+// Test for class variable initialization and function assignment bugs
+
+class TestClass {
+    int x = 5;
+    int y = 10;
+    int z = 15;
+    
+    void TestClass() {
+        __builtin_print("Constructor called\n");
+        __builtin_print("x = ");
+        __builtin_print(x);
+        __builtin_print("\n");
+        __builtin_print("y = ");
+        __builtin_print(y);
+        __builtin_print("\n");
+        __builtin_print("z = ");
+        __builtin_print(z);
+        __builtin_print("\n");
+    }
+    
+    int getValue() {
+        return 42;
+    }
+}
+
+auto main() {
+    TestClass obj;
+    return 0;
+}

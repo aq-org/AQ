@@ -1,0 +1,28 @@
+// Test for function assignment bug
+
+class TestClass {
+    int value = 100;
+    
+    void TestClass() {
+        __builtin_print("Constructor called\n");
+    }
+    
+    int getValue() {
+        return value;
+    }
+}
+
+class Container {
+    auto func;
+    
+    void Container() {
+        TestClass obj;
+        func = obj.getValue;
+        __builtin_print("Function assignment done\n");
+    }
+}
+
+auto main() {
+    Container container;
+    return 0;
+}
