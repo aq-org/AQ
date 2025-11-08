@@ -263,7 +263,15 @@ std::size_t HandleVariableDeclaration(Interpreter& interpreter,
   std::string variable_name =
       scopes.back() + "#" + declaration->GetVariableName();
 
-  std::size_t variable_index = memory->AddWithType(vm_type);
+  // For class types with initialization, use auto type to avoid
+  // pre-allocating uninitialized class memory.
+  uint8_t alloc_type = vm_type;
+  if (category == Ast::Type::TypeCategory::kClass &&
+      declaration->GetVariableValue()[0] != nullptr) {
+    alloc_type = 0x00;  // Use auto type for class variables with initialization
+  }
+
+  std::size_t variable_index = memory->AddWithType(alloc_type);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -383,12 +391,15 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
   std::string variable_name =
       scopes.back() + "." + declaration->GetVariableName();
 
-  std::size_t variable_index = global_memory->AddWithType(vm_type);
-
-  // If the variable is a class type, it needs to be handled specially.
-  if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(interpreter, declaration, variable_index,
-                                  global_code);
+  // For class types with initialization, use auto type to avoid
+  // pre-allocating uninitialized class memory.
+  uint8_t alloc_type = vm_type;
+  if (category == Ast::Type::TypeCategory::kClass &&
+      declaration->GetVariableValue()[0] != nullptr) {
+    alloc_type = 0x00;  // Use auto type for class variables with initialization
+  }
+  
+  std::size_t variable_index = global_memory->AddWithType(alloc_type);
 
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
@@ -412,6 +423,11 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
     LOGGING_WARNING(
         "The reference variable declaration without initialization is "
         "deprecated.");
+  } else if (category == Ast::Type::TypeCategory::kClass) {
+    // If the variable is a class type without initialization, it needs to be
+    // created and default-initialized.
+    HandleClassInHandlingVariable(interpreter, declaration, variable_index,
+                                  global_code);
   }
 
   variables[variable_name] = variable_index;

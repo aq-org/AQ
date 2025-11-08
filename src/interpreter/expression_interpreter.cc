@@ -547,10 +547,55 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
   auto global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
   auto& functions = interpreter.functions;
+  auto& classes = interpreter.classes;
 
   std::string function_name = function->GetFunctionName();
   auto arguments = function->GetParameters();
 
+  // Check if this is a class instantiation (constructor call).
+  // Try to find the class name with and without scopes.
+  std::string class_name_to_check;
+  bool is_class_instantiation = false;
+  
+  for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+    std::string scoped_name = function_name;
+    if (i != -1) scoped_name = scopes[i] + "." + function_name;
+    
+    // Check if this name matches a class.
+    if (classes.find(scoped_name) != classes.end()) {
+      is_class_instantiation = true;
+      class_name_to_check = scoped_name;
+      break;
+    }
+  }
+
+  // If this is a class instantiation, handle it as such.
+  if (is_class_instantiation) {
+    // Handles the return value (the new class instance).
+    std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+
+    // Create a new instance of the class using NEW operator.
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_NEW,
+                 {return_value_index, global_memory->AddByte(0),
+                  global_memory->AddString(class_name_to_check)}});
+
+    // Call the constructor with the provided arguments.
+    // Constructors are stored with the special name "@constructor".
+    std::vector<std::size_t> constructor_arguments{
+        return_value_index, global_memory->AddString("@constructor"),
+        global_memory->Add(1)};
+    for (std::size_t i = 0; i < arguments.size(); i++)
+      constructor_arguments.push_back(
+          HandleExpression(interpreter, arguments[i], code, 0));
+
+    code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                            std::move(constructor_arguments)});
+
+    return return_value_index;
+  }
+
+  // Otherwise, handle it as a regular function call.
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     auto iterator = functions.find(function_name);
 
