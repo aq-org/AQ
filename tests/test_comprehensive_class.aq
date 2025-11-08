@@ -1,0 +1,65 @@
+// Comprehensive test for class member initialization
+
+class ComplexClass {
+    int a = 1;
+    int b = 2;
+    int c = 3;
+    int sum = a + b + c;  // Test: member referencing other members
+    int product = a * b;
+    
+    void ComplexClass() {
+        __builtin_print("=== ComplexClass Constructor ===\n");
+        __builtin_print("a = ");
+        __builtin_print(a);
+        __builtin_print("\n");
+        __builtin_print("b = ");
+        __builtin_print(b);
+        __builtin_print("\n");
+        __builtin_print("c = ");
+        __builtin_print(c);
+        __builtin_print("\n");
+        __builtin_print("sum (a+b+c) = ");
+        __builtin_print(sum);
+        __builtin_print("\n");
+        __builtin_print("product (a*b) = ");
+        __builtin_print(product);
+        __builtin_print("\n");
+    }
+    
+    void modifyValues() {
+        a = 10;
+        b = 20;
+        c = 30;
+        __builtin_print("=== After modification ===\n");
+        __builtin_print("a = ");
+        __builtin_print(a);
+        __builtin_print(", b = ");
+        __builtin_print(b);
+        __builtin_print(", c = ");
+        __builtin_print(c);
+        __builtin_print("\n");
+    }
+}
+
+class NestedTest {
+    int x = 100;
+    ComplexClass nested;
+    
+    void NestedTest() {
+        __builtin_print("\n=== NestedTest Constructor ===\n");
+        __builtin_print("x = ");
+        __builtin_print(x);
+        __builtin_print("\n");
+        __builtin_print("Nested object created\n");
+    }
+}
+
+auto main() {
+    ComplexClass obj1;
+    obj1.modifyValues();
+    
+    NestedTest obj2;
+    
+    __builtin_print("\n=== Test Complete ===\n");
+    return 0;
+}
