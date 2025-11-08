@@ -332,6 +332,11 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
     std::size_t value_index = HandleExpression(
         interpreter, declaration->GetVariableValue()[0], code, reference_index);
 
+    // Avoids the void class information.
+    if (category == Ast::Type::TypeCategory::kClass)
+      HandleClassInHandlingVariableWithValue(interpreter, declaration,
+                                             reference_index, code);
+
     if (value_index != reference_index)
       code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
@@ -448,19 +453,30 @@ std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
      global_memory->AddString(variable_name)}});*/
 
   // If the variable is a class type, it needs to be handled specially.
-  if (category == Ast::Type::TypeCategory::kClass)
-    HandleClassInHandlingVariable(interpreter, declaration, reference_index,
+  if (category == Ast::Type::TypeCategory::kClass) {
+    // Create a temporary reference index for use during initialization
+    std::size_t temp_reference_index = global_memory->Add(1);
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+                 {temp_reference_index, 0,
+                  global_memory->AddString(variable_name)}});
+    HandleClassInHandlingVariable(interpreter, declaration, temp_reference_index,
                                   code);
-
+  }
   // If the variable value isn't nullptr, it means that the variable is
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index = HandleExpression(
         interpreter, declaration->GetVariableValue()[0], code, 0);
 
+    // Generate bytecode to load the member reference and assign the value
+    std::size_t temp_reference_index = global_memory->Add(1);
     code.push_back(
-        Bytecode{_AQVM_OPERATOR_EQUAL, {reference_index, value_index}});
-
+        Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+                 {temp_reference_index, 0,
+                  global_memory->AddString(variable_name)}});
+    code.push_back(
+        Bytecode{_AQVM_OPERATOR_EQUAL, {temp_reference_index, value_index}});
   } else if (category == Ast::Type::TypeCategory::kReference) {
     // If the variable is a reference type and not initialized, it will meet
     // undefined behavior.
@@ -1318,6 +1334,48 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   code.push_back(Bytecode{
       _AQVM_OPERATOR_INVOKE_METHOD,
       {variable_index, memory->AddString("@constructor"), memory->Add(1)}});
+}
+
+void HandleClassInHandlingVariableWithValue(Interpreter& interpreter,
+                                            Ast::Variable* declaration,
+                                            std::size_t variable_index,
+                                            std::vector<Bytecode>& code) {
+  if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
+
+  // Gets the reference of context.
+  auto& memory = interpreter.global_memory;
+  // auto& global_code = interpreter.global_code;
+  auto& scopes = interpreter.context.scopes;
+  auto& functions = interpreter.functions;
+
+  // Gets the class name, which is same as the function name.
+  std::string name = std::string(
+      *dynamic_cast<Ast::ClassType*>(declaration->GetVariableType()));
+  for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+    // Searching globally first and then conducting a search with scope is to
+    // avoid the situation where the scope index is exceeded and -1 occurs.
+    auto iterator = functions.find(name);
+
+    // If the search scope is not the global scope, adds the scope name to the
+    // class name.
+    if (i != -1) iterator = functions.find(scopes[i] + "." + name);
+    if (iterator != functions.end()) {
+      // Searching globally first and then conducting a search with scope is to
+      // avoid the situation where the scope index is exceeded and -1 occurs.
+      name = name;
+
+      // If the search scope is not the global scope, adds the scope name to the
+      // class name.
+      if (i != -1) name = scopes[i] + "." + name;
+      break;
+    }
+    if (i == -1) LOGGING_ERROR("Class not found.");
+  }
+
+  // Adds the class into global memory.
+  code.push_back(
+      Bytecode{_AQVM_OPERATOR_NEW,
+               {variable_index, memory->AddByte(0), memory->AddString(name)}});
 }
 
 std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {

@@ -154,6 +154,12 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
                                    std::size_t variable_index,
                                    std::vector<Bytecode>& code);
 
+// Handles the class in handling variable with value.
+void HandleClassInHandlingVariableWithValue(Interpreter& interpreter,
+                                            Ast::Variable* declaration,
+                                            std::size_t variable_index,
+                                            std::vector<Bytecode>& code);
+
 // Handles the class in handling variable.
 std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type);
 }  // namespace Interpreter
