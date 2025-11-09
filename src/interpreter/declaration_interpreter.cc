@@ -97,13 +97,14 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   Interpreter* imported_interpreter = imports_map[resolved_location];
   interpreter.imported_interpreters[alias] = imported_interpreter;
   
-  // Copy the main class from imported interpreter so we can create an instance
-  // This allows accessing global variables via alias.variable_name
+  // Create an instance of the imported module for member access (test.variable)
+  // We use a prefixed class name to avoid conflicts
+  std::string import_class_name = "~imp~" + alias + "~" + resolved_location;
   if (imported_interpreter->classes.find(".!__start") != imported_interpreter->classes.end()) {
-    std::string import_class_name = "~import~" + alias;
+    // Copy the main class under the prefixed name
     classes[import_class_name] = imported_interpreter->classes[".!__start"];
     
-    // Create an instance of the imported module's main class
+    // Create an instance of this class for the import variable
     std::size_t import_var_index = variables["#" + alias];
     init_code.push_back(
         Bytecode{_AQVM_OPERATOR_NEW,
