@@ -610,13 +610,11 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
     auto var_iterator = variables.find(var_name);
     if (var_iterator != variables.end()) {
       function_ref_index = var_iterator->second;
-      // Check if this variable contains a string (function reference)
-      if (global_memory->GetMemory()[function_ref_index].type == 0x05) {
-        is_function_variable = true;
-        // Get the actual function name from the variable
-        function_name = *global_memory->GetMemory()[function_ref_index].data.string_data;
-        break;
-      }
+      is_function_variable = true;
+      // At bytecode generation time, we can't check the actual value yet
+      // So we'll generate bytecode to dereference the variable at runtime
+      // For now, just mark it as a function variable and continue
+      break;
     }
   }
 
@@ -639,14 +637,26 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
     if (!found) {
       LOGGING_ERROR("Function '" + function_name + "' not found.");
     }
+  } else {
+    // For function variables, we need to pass the variable index so the VM
+    // can dereference it at runtime to get the actual function name
   }
 
   // Handles the function return value.
   std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
 
   // Handles the arguments of the functions.
+  std::size_t function_name_index;
+  if (is_function_variable) {
+    // Pass the variable index so the VM can dereference it at runtime
+    function_name_index = function_ref_index;
+  } else {
+    // Pass the function name as a string
+    function_name_index = global_memory->AddString(function_name);
+  }
+  
   std::vector<std::size_t> vm_arguments{
-      2, global_memory->AddString(function_name), return_value_index};
+      2, function_name_index, return_value_index};
   for (std::size_t i = 0; i < arguments.size(); i++)
     vm_arguments.push_back(
         HandleExpression(interpreter, arguments[i], code, 0));
@@ -883,6 +893,12 @@ std::size_t HandleLambdaExpression(Interpreter& interpreter,
   std::vector<std::size_t> parameters_index;
   std::vector<Bytecode> lambda_code;
 
+  // Add return value reference as first parameter (like regular functions)
+  uint8_t return_vm_type = lambda->GetReturnType()->GetVmType();
+  variables[lambda_scope + "#!return"] = global_memory->AddWithType(return_vm_type);
+  variables[lambda_scope + "#!return_reference"] = global_memory->Add(1);
+  parameters_index.push_back(variables[lambda_scope + "#!return_reference"]);
+
   for (auto param : lambda->GetParameters()) {
     Ast::Type* param_type = param->GetVariableType();
     std::string param_name = param->GetVariableName();
@@ -909,8 +925,13 @@ std::size_t HandleLambdaExpression(Interpreter& interpreter,
     lambda_func.EnableVariadic();
   }
 
-  // Add lambda function to interpreter
+  // Add lambda function to interpreter (both in functions map and as a class method)
   interpreter.functions[lambda_name].push_back(lambda_func);
+  
+  // Also add to current class methods so it can be invoked via INVOKE_METHOD
+  if (interpreter.context.current_class != nullptr) {
+    interpreter.context.current_class->GetMethods()[lambda_name].push_back(lambda_func);
+  }
 
   // Restore context
   scopes.pop_back();

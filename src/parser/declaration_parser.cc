@@ -237,7 +237,6 @@ bool Parser::DeclarationParser::HasTypeBeforeExpression(Token* token,
       token[index] == Token::KeywordType::Signed ||
       token[index] == Token::KeywordType::Unsigned ||
       token[index] == Token::KeywordType::Var ||
-      token[index] == Token::KeywordType::Func ||
       token[index] == Token::KeywordType::Virtual ||
       token[index] == Token::KeywordType::Wchar_t) {
     return true;

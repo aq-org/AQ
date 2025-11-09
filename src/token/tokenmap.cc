@@ -33,6 +33,7 @@ TokenMap::TokenMap() {
   keyword_map.insert({"extern", Token::KeywordType::Extern});
   keyword_map.insert({"false", Token::KeywordType::False});
   keyword_map.insert({"func", Token::KeywordType::Func});
+  keyword_map.insert({"function", Token::KeywordType::Func});
   keyword_map.insert({"float", Token::KeywordType::Float});
   keyword_map.insert({"for", Token::KeywordType::For});
   keyword_map.insert({"friend", Token::KeywordType::Friend});
