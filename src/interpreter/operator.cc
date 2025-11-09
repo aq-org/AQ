@@ -32,7 +32,7 @@ int NOP() { return 0; }
 //   size: Number of elements (0 for single object, >0 for array)
 //   type: Type information (0 for auto, string for class, type code for array)
 //   builtin_functions: Map of built-in function implementations
-int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
+int NEW(Object* memory, std::unordered_map<std::string, Class>& classes,
         std::size_t ptr, std::size_t size, std::size_t type,
         std::unordered_map<
             std::string, std::function<int(Memory*, std::vector<std::size_t>)>>&
@@ -65,17 +65,26 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
     if (type_data.type == 0x05 && type_data.data.string_data != nullptr) {
       // Class only.
       if (size_value == 0) {
-        Object object;
-        object.type = 0x09;
-        object.data.class_data = new ClassMemory();
-        object.constant_type = true;
-        data.push_back(object);
-
         std::string class_name = GetString(memory + type);
         if (classes.find(class_name) == classes.end())
           LOGGING_ERROR("class not found.");
         Class& class_data = classes[class_name];
+        
         class_memory->GetMembers() = class_data.GetMembers()->GetMembers();
+        
+        // Clear constant_type for all members (except special members) to allow mutation
+        for (auto& member_pair : class_memory->GetMembers()) {
+          // Skip special members like @name
+          if (member_pair.first.length() > 0 && member_pair.first[0] != '@') {
+            member_pair.second.constant_type = false;
+          }
+        }
+        
+        Object object;
+        object.type = 0x09;
+        object.data.class_data = class_memory;
+        object.constant_type = true;
+        data.push_back(object);
 
       } else {
         // Class array type.
