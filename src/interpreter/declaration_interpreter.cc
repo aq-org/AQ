@@ -258,6 +258,41 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     // Update the @name in the class members to match the registered name
     classes[new_class_name].GetMembers()->AddString("@name", new_class_name);
     
+    // Transform method names and remap their memory indices (same as for main class)
+    auto& methods = classes[new_class_name].GetMethods();
+    std::unordered_map<std::string, std::vector<Function>> transformed_methods;
+    
+    for (auto& method_pair : methods) {
+      std::string original_name = method_pair.first;
+      std::string new_method_name = original_name;
+      
+      // Remove scope prefixes
+      // Try .!__start. prefix first
+      std::string prefix1 = ".!__start.";
+      if (original_name.find(prefix1) == 0) {
+        new_method_name = original_name.substr(prefix1.length());
+      }
+      // Try .TEST_CLASS. prefix (class-specific prefix)
+      else if (original_name.find(imported_class_name + ".") == 0) {
+        new_method_name = original_name.substr(imported_class_name.length() + 1);
+      }
+      // Try just . prefix
+      else if (original_name.length() > 0 && original_name[0] == '.' && 
+               original_name != ".!__init" && original_name != ".!__start") {
+        new_method_name = original_name.substr(1);
+      }
+      
+      // Remap all function overloads for this method
+      std::vector<Function> remapped_overloads;
+      for (auto& func : method_pair.second) {
+        remapped_overloads.push_back(remap_function(func));
+      }
+      
+      transformed_methods[new_method_name] = remapped_overloads;
+    }
+    
+    classes[new_class_name].GetMethods() = transformed_methods;
+    
     // Register in functions map so it can be found during class resolution
     functions[new_class_name].push_back(Function());
   }

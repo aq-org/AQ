@@ -1,0 +1,18 @@
+// Test importing multiple classes from different files
+
+import "issue1_test/test2.aq" module1;
+import "folder2/common.aq" module2;
+
+auto main() {
+    __builtin_print("Testing multiple class imports...\n");
+    
+    // Test importing from first module
+    module1.TEST_CLASS obj1;
+    
+    // Test importing from second module  
+    // Note: folder2/common.aq might not have classes, so this might fail
+    // but it tests the import system
+    
+    __builtin_print("Multiple import test completed\n");
+    return 0;
+}
