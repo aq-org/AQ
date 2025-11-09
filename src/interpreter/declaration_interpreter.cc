@@ -101,14 +101,97 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   Interpreter* imported_interpreter = imports_map[resolved_location];
   std::string class_name = "~" + resolved_location + "bc~.!__start";
   
-  // Copy the imported module's main class to the main interpreter
+  // Merge the imported interpreter's global memory into the main interpreter's memory
+  // and build a mapping from old indices to new indices
+  std::unordered_map<std::size_t, std::size_t> index_map;
+  auto& imported_memory = imported_interpreter->global_memory->GetMemory();
+  for (std::size_t i = 0; i < imported_memory.size(); i++) {
+    std::size_t new_index;
+    const Object& obj = imported_memory[i];
+    
+    // Create appropriate copy based on object type
+    switch (obj.type) {
+      case 0x00:  // Auto/uninitialized
+        new_index = memory->Add(1);
+        break;
+      case 0x01:  // Byte
+        new_index = memory->AddByte(obj.data.int_data);
+        break;
+      case 0x02:  // Long/Int
+        new_index = memory->AddLong(obj.data.int_data);
+        break;
+      case 0x03:  // Double/Float
+        new_index = memory->AddDouble(obj.data.float_data);
+        break;
+      case 0x04:  // Uint64
+        new_index = memory->AddUint64t(obj.data.uint64t_data);
+        break;
+      case 0x05:  // String
+        if (obj.data.string_data != nullptr) {
+          new_index = memory->AddString(*obj.data.string_data);
+        } else {
+          new_index = memory->Add(1);
+        }
+        break;
+      case 0x07:  // Reference - handle later
+      case 0x08:  // Array
+      case 0x09:  // Class
+      default:
+        // For complex types, just allocate space for now
+        new_index = memory->Add(1);
+        memory->GetMemory()[new_index] = obj;
+        break;
+    }
+    
+    index_map[i] = new_index;
+  }
+  
+  // Helper lambda to remap indices in a function
+  std::size_t imported_memory_size = imported_memory.size();
+  auto remap_function = [&index_map, imported_memory_size](Function& func) -> Function {
+    // Remap parameter indices
+    std::vector<std::size_t> new_params;
+    for (std::size_t old_idx : func.GetParameters()) {
+      auto it = index_map.find(old_idx);
+      if (it != index_map.end()) {
+        new_params.push_back(it->second);
+      } else {
+        // If index not in map, keep as is (shouldn't happen normally)
+        new_params.push_back(old_idx);
+      }
+    }
+    
+    // Remap indices in bytecode carefully - only remap if index exists in map
+    std::vector<Bytecode> new_code;
+    for (const auto& bytecode : func.GetCode()) {
+      Bytecode new_bytecode = bytecode;
+      // Remap operands if they exist in the index map
+      for (std::size_t i = 0; i < bytecode.arguments.size(); i++) {
+        std::size_t old_idx = bytecode.arguments[i];
+        // Only remap if this index was in the imported memory
+        if (old_idx < imported_memory_size) {
+          auto it = index_map.find(old_idx);
+          if (it != index_map.end()) {
+            new_bytecode.arguments[i] = it->second;
+          }
+        }
+      }
+      new_code.push_back(new_bytecode);
+    }
+    
+    Function remapped_func(func.GetName(), new_params, new_code);
+    if (func.IsVariadic()) remapped_func.EnableVariadic();
+    return remapped_func;
+  };
+  
+  // Copy the imported module's main class to the main interpreter with remapped indices
   if (imported_interpreter->classes.find(".!__start") != imported_interpreter->classes.end()) {
     classes[class_name] = imported_interpreter->classes[".!__start"];
     
     // Update the @name in the class members to match the registered name
     classes[class_name].GetMembers()->AddString("@name", class_name);
     
-    // Transform method names by removing the .!__start. prefix
+    // Transform method names and remap their memory indices
     auto& methods = classes[class_name].GetMethods();
     std::unordered_map<std::string, std::vector<Function>> transformed_methods;
     
@@ -128,7 +211,13 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
         new_name = original_name.substr(1);
       }
       
-      transformed_methods[new_name] = method_pair.second;
+      // Remap all function overloads for this method
+      std::vector<Function> remapped_overloads;
+      for (auto& func : method_pair.second) {
+        remapped_overloads.push_back(remap_function(func));
+      }
+      
+      transformed_methods[new_name] = remapped_overloads;
     }
     
     classes[class_name].GetMethods() = transformed_methods;

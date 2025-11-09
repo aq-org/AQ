@@ -1,7 +1,7 @@
 // Main test file to trigger circular import
 // This should now work - circular imports are allowed, imported only once
 
-import "tests/test_import_circular_a.aq" testCirc;
+import "test_import_circular_a.aq" testCirc;
 
 auto main() {
     __builtin_print("Circular import test - should work!\n");

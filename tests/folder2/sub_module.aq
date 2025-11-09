@@ -1,0 +1,6 @@
+// Folder2 sub-module that also imports ../common.aq (should get folder1/common.aq)
+import "../common.aq" parent_common;
+
+int get_parent_id() {
+    return parent_common.get_folder_id();  // Should return 1
+}

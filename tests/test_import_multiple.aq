@@ -1,8 +1,8 @@
 // Test multiple imports with different aliases
 // Tests: Multiple imports with unique aliases
 
-import "tests/test_import_library.aq" lib1;
-import "tests/test_import_library.aq" lib2;
+import "test_import_library.aq" lib1;
+import "test_import_library.aq" lib2;
 
 int main() {
     __builtin_print("Testing multiple imports with different aliases...\n");

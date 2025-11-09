@@ -1,0 +1,6 @@
+// Module in dir2 imports ../test.aq (should get dir1/test.aq)
+import "../test.aq" parent;
+
+int get_from_parent() {
+    return parent.value();
+}
