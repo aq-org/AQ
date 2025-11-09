@@ -72,9 +72,12 @@ int NEW(Object* memory, std::unordered_map<std::string, Class>& classes,
         
         class_memory->GetMembers() = class_data.GetMembers()->GetMembers();
         
-        // Clear constant_type for all members to allow mutation
+        // Clear constant_type for all members (except special members) to allow mutation
         for (auto& member_pair : class_memory->GetMembers()) {
-          member_pair.second.constant_type = false;
+          // Skip special members like @name
+          if (member_pair.first.length() > 0 && member_pair.first[0] != '@') {
+            member_pair.second.constant_type = false;
+          }
         }
         
         Object object;
