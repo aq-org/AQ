@@ -191,8 +191,6 @@ void Interpreter::Generate(Ast::Compound* statement) {
   // Adds the main class into the classes.
   classes[".!__start"] = *start_class;
   classes[".!__start"].GetMethods() = functions;
-
-  Run();
 }
 
 void Interpreter::Run() {

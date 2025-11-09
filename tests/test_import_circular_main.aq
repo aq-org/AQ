@@ -1,0 +1,9 @@
+// Main test file to trigger circular import
+// This should detect and report circular import error
+
+import "tests/test_import_circular_a.aq" testCirc;
+
+int main() {
+    __builtin_print("This should not execute due to circular import error\n");
+    return 0;
+}

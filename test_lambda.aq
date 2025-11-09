@@ -1,6 +1,6 @@
 // Test lambda function support and cross-file calling
 
-import "./test_lib.aq" lib
+import "./test_lib.aq" lib;
 
 // Test function that accepts a function as parameter
 void test_function(auto func_param, int value){

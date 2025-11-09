@@ -5,6 +5,7 @@
 #include "interpreter/declaration_interpreter.h"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "aq.h"
@@ -23,12 +24,10 @@
 namespace Aq {
 namespace Interpreter {
 std::unordered_map<std::string, Interpreter*> imports_map;
+std::unordered_set<std::string> currently_importing;
 
 void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
-
-  // TODO: Handles from import.
-  if (statement->IsFromImport()) INTERNAL_ERROR("Unsupported import type now.");
 
   // Gets the reference of context.
   auto& main_class = interpreter.main_class;
@@ -38,24 +37,24 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
 
   // Gets the information from the import statement.
   std::string location = statement->GetImportLocation();
-  std::string name = statement->GetName();
+  std::string alias = statement->GetAlias();
 
   // Generates bytecode if the bytecode isn't generated yet.
   if (imports_map.find(location) == imports_map.end()) {
     GenerateBytecode(location);
   }
 
-  // Checks if the import is already imported.
-  if (imports_map.find(name) != imports_map.end())
-    LOGGING_ERROR("Has same name bytecode file.");
-  imports_map[name] = imports_map[location];
+  // Checks if the alias is already used (name conflict detection).
+  if (imports_map.find(alias) != imports_map.end())
+    LOGGING_ERROR("Import alias '" + alias + "' already exists. Please use a different alias.");
+  imports_map[alias] = imports_map[location];
 
   // Gets index from import preprocessing.
-  std::size_t index = variables["#" + name];
+  std::size_t index = variables["#" + alias];
 
   // Loads and initializes the import bytecode.
   init_code.push_back(Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
-                               {index, 2, memory->AddString(name)}});
+                               {index, 2, memory->AddString(alias)}});
   init_code.push_back(
       Bytecode{_AQVM_OPERATOR_NEW,
                {index, memory->AddUint64t(0),
@@ -1425,6 +1424,15 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
 }
 
 [[deprecated]] void GenerateBytecode(std::string import_location) {
+  // Check for circular imports
+  if (currently_importing.find(import_location) != currently_importing.end()) {
+    LOGGING_ERROR("Circular import detected: '" + import_location + 
+                  "' is already being imported.");
+  }
+
+  // Add to currently importing set
+  currently_importing.insert(import_location);
+
   Interpreter* interpreter = new Interpreter();
   std::vector<char> code;
   Aq::ReadCodeFromFile(import_location.c_str(), code);
@@ -1440,6 +1448,9 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   LOGGING_INFO("Generate Bytecode SUCCESS!");
 
   imports_map.insert(std::make_pair(import_location, interpreter));
+
+  // Remove from currently importing set after successful import
+  currently_importing.erase(import_location);
 }
 
 std::string GetFunctionNameWithScope(Interpreter& interpreter,

@@ -42,6 +42,9 @@ int main(int argc, char* argv[]) {
 
     LOGGING_INFO("Generate Bytecode SUCCESS!");
 
+    // Run the interpreter
+    interpreter.Run();
+
     return 0;
   } catch (const std::exception& e) {
     LOGGING_ERROR("Exception: " + std::string(e.what()));
