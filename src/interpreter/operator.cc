@@ -9,11 +9,29 @@
 
 namespace Aq {
 namespace Interpreter {
+// Global index used for tracking class instances
 std::size_t current_class_index = 2;
+
+// Global pointer to the interpreter's memory for quick access
 Object* global_memory_ptr = nullptr;
 
+// NOP (No Operation) is a placeholder operator that does nothing.
+// Used as a default or padding in bytecode.
 int NOP() { return 0; }
 
+// NEW allocates a new object or array in memory.
+// This operator handles three cases:
+// 1. Auto/dynamic type allocation (type == 0)
+// 2. Class instantiation (type is a string naming a class)
+// 3. Array allocation (type specifies element type, size > 0)
+//
+// Parameters:
+//   memory: Pointer to the memory array
+//   classes: Map of class definitions
+//   ptr: Memory location where to store the allocated object
+//   size: Number of elements (0 for single object, >0 for array)
+//   type: Type information (0 for auto, string for class, type code for array)
+//   builtin_functions: Map of built-in function implementations
 int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
         std::size_t ptr, std::size_t size, std::size_t type,
         std::unordered_map<
@@ -23,11 +41,13 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
 
   std::size_t size_value = GetUint64(memory + size);
 
+  // If no size specified and not a class, default to allocating one element
   if ((type == 0 ||
        (type_data.type != 0x05 || type_data.data.string_data == nullptr)) &&
       size_value == 0)
     size_value = 1;
 
+  // Prepare memory structures for the new object
   Memory* array_memory = new Memory();
   ClassMemory* class_memory = new ClassMemory();
 
@@ -860,11 +880,23 @@ int CMP(Object* memory, std::size_t result, std::size_t opcode,
   return -1;
 }
 
+// EQUAL performs an assignment operation, copying a value from one memory
+// location to another. This is the implementation of the '=' operator.
+// It handles all AQ data types and performs automatic type-preserving copies.
+//
+// Parameters:
+//   memory: Pointer to the memory array
+//   result: Destination memory location for the assignment
+//   value: Source memory location containing the value to copy
+//
+// Returns: 0 on success
 int EQUAL(Object* memory, std::size_t result, std::size_t value) {
+  // Dereference the source value if it's a reference
   Object* value_object = GetOrigin(memory + value);
 
   std::size_t type = value_object->type;
 
+  // Copy the value based on its type
   switch (type) {
     case 0x00:
       // Handle uninitialized type - this can occur when a function doesn't
@@ -875,19 +907,19 @@ int EQUAL(Object* memory, std::size_t result, std::size_t value) {
           "Initializing destination as 0.");
       SetLong(memory + result, 0);
       break;
-    case 0x01:
+    case 0x01:  // Byte: copy int8_t value
       SetByte(memory + result, GetByte(value_object));
       break;
-    case 0x02:
+    case 0x02:  // Int: copy int64_t value
       SetLong(memory + result, GetLong(value_object));
       break;
-    case 0x03:
+    case 0x03:  // Float: copy double value
       SetDouble(memory + result, GetDouble(value_object));
       break;
-    case 0x04:
+    case 0x04:  // Uint64: copy uint64_t value
       SetUint64(memory + result, GetUint64(value_object));
       break;
-    case 0x05:
+    case 0x05:  // String: copy string value
       SetString(memory + result, GetString(value_object));
       break;
     case 0x06:
