@@ -1,4 +1,4 @@
-import "tests/simple_lib.aq" mylib;
+import "simple_lib.aq" mylib;
 
 auto main() {
     __builtin_print("Testing import\n");

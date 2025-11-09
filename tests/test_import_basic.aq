@@ -1,7 +1,7 @@
 // Test basic import functionality
 // Tests: import "file_path" alias
 
-import "tests/test_import_library.aq" lib;
+import "test_import_library.aq" lib;
 
 int main() {
     __builtin_print("Testing basic import...\n");

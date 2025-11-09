@@ -4,6 +4,7 @@
 
 #include "interpreter/declaration_interpreter.h"
 
+#include <filesystem>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -26,6 +27,40 @@ namespace Interpreter {
 std::unordered_map<std::string, Interpreter*> imports_map;
 std::unordered_set<std::string> currently_importing;
 
+// Helper function to resolve import path relative to source file
+std::string ResolveImportPath(const std::string& source_file_path, 
+                               const std::string& import_location) {
+  namespace fs = std::filesystem;
+  
+  try {
+    // Get the directory of the source file
+    fs::path source_path(source_file_path);
+    fs::path source_dir = source_path.parent_path();
+    
+    // If source_dir is empty, use current directory
+    if (source_dir.empty()) {
+      source_dir = fs::current_path();
+    }
+    
+    // Resolve the import path relative to source directory
+    fs::path import_path = source_dir / import_location;
+    
+    // Get canonical path (resolves .., ., and symlinks)
+    fs::path canonical = fs::canonical(import_path);
+    
+    return canonical.string();
+  } catch (const fs::filesystem_error& e) {
+    // If canonical fails (e.g., file doesn't exist), return the best we can do
+    fs::path source_path(source_file_path);
+    fs::path source_dir = source_path.parent_path();
+    if (source_dir.empty()) {
+      source_dir = fs::current_path();
+    }
+    fs::path import_path = source_dir / import_location;
+    return import_path.lexically_normal().string();
+  }
+}
+
 void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   if (statement == nullptr) INTERNAL_ERROR("statement is nullptr.");
 
@@ -39,16 +74,19 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   // Gets the information from the import statement.
   std::string location = statement->GetImportLocation();
   std::string alias = statement->GetAlias();
+  
+  // Resolve the import path relative to the source file
+  std::string resolved_location = ResolveImportPath(interpreter.source_file_path, location);
 
   // Generates bytecode if the bytecode isn't generated yet.
-  if (imports_map.find(location) == imports_map.end()) {
-    GenerateBytecode(location);
+  if (imports_map.find(resolved_location) == imports_map.end()) {
+    GenerateBytecode(resolved_location, resolved_location);
   }
   
   // If the import is still being generated (circular import), skip the rest
   // The import will be available once the initial import completes
-  if (imports_map.find(location) == imports_map.end()) {
-    LOGGING_INFO("Skipping setup for circular import: '" + location + "' is still being generated.");
+  if (imports_map.find(resolved_location) == imports_map.end()) {
+    LOGGING_INFO("Skipping setup for circular import: '" + resolved_location + "' is still being generated.");
     return;
   }
 
@@ -60,8 +98,8 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   interpreter.imported_aliases.insert(alias);
 
   // Register the imported module's classes into the main interpreter
-  Interpreter* imported_interpreter = imports_map[location];
-  std::string class_name = "~" + location + "bc~.!__start";
+  Interpreter* imported_interpreter = imports_map[resolved_location];
+  std::string class_name = "~" + resolved_location + "bc~.!__start";
   
   // Copy the imported module's main class to the main interpreter
   if (imported_interpreter->classes.find(".!__start") != imported_interpreter->classes.end()) {
@@ -99,9 +137,7 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   // Gets index from import preprocessing.
   std::size_t index = variables["#" + alias];
 
-  // Loads and initializes the import bytecode.
-  init_code.push_back(Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
-                               {index, 2, memory->AddString(alias)}});
+  // Initialize the import bytecode directly using NEW (no need for LOAD_MEMBER).
   init_code.push_back(
       Bytecode{_AQVM_OPERATOR_NEW,
                {index, memory->AddUint64t(0),
@@ -1470,21 +1506,24 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   return name;
 }
 
-[[deprecated]] void GenerateBytecode(std::string import_location) {
+[[deprecated]] void GenerateBytecode(std::string import_file_path, std::string canonical_key) {
   // Check for circular imports - if already importing, skip to avoid infinite loop
   // but don't error, just return since it will be available once the initial import completes
-  if (currently_importing.find(import_location) != currently_importing.end()) {
-    LOGGING_INFO("Skipping circular import: '" + import_location + 
+  if (currently_importing.find(canonical_key) != currently_importing.end()) {
+    LOGGING_INFO("Skipping circular import: '" + canonical_key + 
                   "' is already being imported.");
     return;
   }
 
   // Add to currently importing set
-  currently_importing.insert(import_location);
+  currently_importing.insert(canonical_key);
 
   Interpreter* interpreter = new Interpreter();
+  // Set the source file path for this interpreter so it can resolve its own imports
+  interpreter->source_file_path = import_file_path;
+  
   std::vector<char> code;
-  Aq::ReadCodeFromFile(import_location.c_str(), code);
+  Aq::ReadCodeFromFile(import_file_path.c_str(), code);
 
   std::vector<Aq::Token> token;
   Aq::LexCode(code, token);
@@ -1496,10 +1535,10 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
 
   LOGGING_INFO("Generate Bytecode SUCCESS!");
 
-  imports_map.insert(std::make_pair(import_location, interpreter));
+  imports_map.insert(std::make_pair(canonical_key, interpreter));
 
   // Remove from currently importing set after successful import
-  currently_importing.erase(import_location);
+  currently_importing.erase(canonical_key);
 }
 
 std::string GetFunctionNameWithScope(Interpreter& interpreter,

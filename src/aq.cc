@@ -4,6 +4,7 @@
 
 #include "aq.h"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -38,6 +39,9 @@ int main(int argc, char* argv[]) {
 
     // Generates the bytecode from the AST.
     Aq::Interpreter::Interpreter interpreter;
+    // Convert to absolute path for proper import resolution
+    std::filesystem::path source_path = std::filesystem::absolute(argv[1]);
+    interpreter.source_file_path = source_path.string();
     interpreter.Generate(ast);
 
     LOGGING_INFO("Generate Bytecode SUCCESS!");
