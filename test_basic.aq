@@ -1,7 +1,0 @@
-auto main() {
-    __builtin_print("Hello\n");
-    int x = 5;
-    __builtin_print(x);
-    __builtin_print("\n");
-    return 0;
-}

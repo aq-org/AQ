@@ -1,4 +1,0 @@
-// Common file in folder1
-int get_folder_id() {
-    return 1;
-}

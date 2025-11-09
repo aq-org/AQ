@@ -1,6 +1,0 @@
-auto main() {
-    __builtin_print("Start\n");
-    auto my_func = function(int x){ return x; };
-    __builtin_print("End\n");
-    return 0;
-}

@@ -1,6 +1,0 @@
-class TEST_CLASS{
-    void TEST_CLASS(){
-        __builtin_print("SUCCESS");
-    }
-}
-auto test_global_var = "SUCCESS";

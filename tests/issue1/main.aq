@@ -1,0 +1,5 @@
+import "./f1/f2/f3/test.aq" test;
+
+auto main(){
+  test.run();
+}

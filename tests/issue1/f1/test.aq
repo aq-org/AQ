@@ -1,0 +1,10 @@
+
+
+auto print(){
+    __builtin_print("F1");
+}
+
+auto print1(){
+    
+    __builtin_print("F1 ONLY");
+}

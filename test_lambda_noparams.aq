@@ -1,8 +1,0 @@
-auto main() {
-    __builtin_print("Start\n");
-    auto my_func = function(){ 
-        __builtin_print("In lambda\n");
-    };
-    __builtin_print("End\n");
-    return 0;
-}

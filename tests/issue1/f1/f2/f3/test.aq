@@ -1,6 +1,9 @@
 import "../test.aq" test;
 
 auto main(){
+
+}
+auto run(){
     test.print();
-    return 0;
+    __builtin_print("F1");
 }

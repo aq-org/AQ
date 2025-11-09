@@ -1,9 +1,0 @@
-import "test2.aq" test2;
-
-auto main() {
-    test2.TEST_CLASS test_class_var;
-    auto test_class_var2 = test2.TEST_CLASS();
-    __builtin_print("Constructor tests passed\n");
-    // TODO: test2.test_global_var not yet supported
-    return 0;
-}

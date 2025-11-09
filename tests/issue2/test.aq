@@ -1,0 +1,20 @@
+auto main(){}
+auto test_global_var = "SUCCESS";
+
+auto test_function = func(){
+    __builtin_print("lambda test OK.");
+}
+
+class test_class {
+    void test_class(){
+        __builtin_print("OK");
+    }
+
+    auto test_var = "TEST_VAR";
+
+    class TEST_CLASS_IN_CLASS{
+        void TEST_CLASS_IN_CLASS(){
+            __builtin_print("OK!!!");
+        }
+    }
+}

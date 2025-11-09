@@ -1,6 +1,0 @@
-// Test file 1 - uses alias "lib"
-import "test_import_library.aq" lib;
-
-int test1_func() {
-    return 1;
-}
