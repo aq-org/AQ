@@ -597,19 +597,45 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
   }
 
   // Otherwise, handle it as a regular function call.
+  // First, check if function_name is a variable containing a function reference
+  auto& variables = interpreter.context.variables;
+  std::size_t function_ref_index = 0;
+  bool is_function_variable = false;
+
+  // Check if the function name is actually a variable holding a function reference
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
-    auto iterator = functions.find(function_name);
+    std::string var_name = function_name;
+    if (i != -1) var_name = scopes[i] + "#" + function_name;
 
-    // Use the technique of reprocessing names to prevent scope overflow.
-    if (i != -1) iterator = functions.find(scopes[i] + "." + function_name);
-
-    if (iterator != functions.end()) {
-      // Use the technique of reprocessing names to prevent scope overflow.
-      if (i != -1) function_name = scopes[i] + "." + function_name;
-      break;
+    auto var_iterator = variables.find(var_name);
+    if (var_iterator != variables.end()) {
+      function_ref_index = var_iterator->second;
+      // Check if this variable contains a string (function reference)
+      if (global_memory->GetMemory()[function_ref_index].type == 0x05) {
+        is_function_variable = true;
+        // Get the actual function name from the variable
+        function_name = *global_memory->GetMemory()[function_ref_index].data.string_data;
+        break;
+      }
     }
+  }
 
-    if (i == -1) LOGGING_ERROR("Function not found.");
+  // If not a function variable, look for the function directly
+  if (!is_function_variable) {
+    for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+      auto iterator = functions.find(function_name);
+
+      // Use the technique of reprocessing names to prevent scope overflow.
+      if (i != -1) iterator = functions.find(scopes[i] + "." + function_name);
+
+      if (iterator != functions.end()) {
+        // Use the technique of reprocessing names to prevent scope overflow.
+        if (i != -1) function_name = scopes[i] + "." + function_name;
+        break;
+      }
+
+      if (i == -1) LOGGING_ERROR("Function not found.");
+    }
   }
 
   // Handles the function return value.
