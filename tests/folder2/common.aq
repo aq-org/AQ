@@ -1,0 +1,4 @@
+// Common file in folder2
+int get_folder_id() {
+    return 2;
+}

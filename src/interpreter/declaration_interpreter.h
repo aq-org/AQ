@@ -66,7 +66,7 @@ std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
                                         Ast::ArrayDeclaration* declaration);
 
 // Handles the class in variable declaration.
-void GenerateBytecode(std::string import_location);
+void GenerateBytecode(std::string import_file_path, std::string canonical_key);
 
 // Gets the function name with scope.
 std::string GetFunctionNameWithScope(Interpreter& interpreter,

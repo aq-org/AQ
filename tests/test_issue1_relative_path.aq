@@ -1,0 +1,9 @@
+// Test Issue #1: Import path should be relative to source file, not compiler path
+// This file is in tests/, and imports simple_lib.aq which is also in tests/
+import "simple_lib.aq" lib;
+
+int main() {
+    __builtin_print("Test Issue #1: Relative path resolution\n");
+    __builtin_print("Import from same directory works!\n");
+    return 0;
+}

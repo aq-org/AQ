@@ -1,6 +1,6 @@
 // Main test file to verify different files can use the same alias
-import "tests/test_cross_file_alias_1.aq" file1;
-import "tests/test_cross_file_alias_2.aq" file2;
+import "test_cross_file_alias_1.aq" file1;
+import "test_cross_file_alias_2.aq" file2;
 
 auto main() {
     __builtin_print("Testing cross-file alias usage...\n");

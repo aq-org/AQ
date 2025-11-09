@@ -58,6 +58,9 @@ struct Interpreter {
   
   // Track imported aliases in this interpreter to detect name conflicts within the same file
   std::unordered_set<std::string> imported_aliases;
+  
+  // The source file path of this interpreter (used for resolving relative imports)
+  std::string source_file_path;
 };
 
 }  // namespace Interpreter
