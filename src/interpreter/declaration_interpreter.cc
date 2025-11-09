@@ -417,7 +417,8 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   // Gets index from import preprocessing.
   std::size_t index = variables["#" + alias];
 
-  // Initialize the import bytecode directly using NEW (no need for LOAD_MEMBER).
+  // Initialize the import object using NEW
+  // This creates an instance of the imported class with all its members
   init_code.push_back(
       Bytecode{_AQVM_OPERATOR_NEW,
                {index, memory->AddUint64t(0),
