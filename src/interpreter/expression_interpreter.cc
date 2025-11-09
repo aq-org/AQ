@@ -485,11 +485,39 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                   std::move(constructor_arguments)});
           
           return return_value_index;
+        } else {
+          // Regular function call from imported module
+          // Check if it exists as a function (not a lambda variable)
+          std::string func_lookup = ".!__start." + func_name;
+          if (imported_interp->functions.find(func_lookup) == imported_interp->functions.end()) {
+            func_lookup = "." + func_name;
+          }
+          
+          // If the function exists in the imported interpreter, copy it and call it directly
+          if (imported_interp->functions.find(func_lookup) != imported_interp->functions.end()) {
+            // Copy the function if not already done
+            if (interpreter.functions.find(func_lookup) == interpreter.functions.end()) {
+              interpreter.functions[func_lookup] = imported_interp->functions[func_lookup];
+            }
+            
+            // Generate direct function call (not method invocation)
+            std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+            std::size_t name_index = global_memory->AddString(func_lookup);
+            
+            auto arguments = func_expr->GetParameters();
+            std::vector<std::size_t> invoke_arguments = {2, name_index, return_value_index};
+            for (std::size_t i = 0; i < arguments.size(); i++)
+              invoke_arguments.push_back(
+                  HandleExpression(interpreter, arguments[i], code, 0));
+            
+            code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                    std::move(invoke_arguments)});
+            return return_value_index;
+          }
+          // If not found as a function, it might be a lambda variable - fall through to member access
         }
-        // For regular function calls (not class constructors), fall through to normal 
-        // method invocation which will call the method on the import object instance
       }
-      // For all other cases (regular methods, variables, etc.), fall through to 
+      // For all other cases (variables, lambda function variables, etc.), fall through to 
       // normal member access handling
     }
   }
