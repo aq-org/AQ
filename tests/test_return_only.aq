@@ -1,0 +1,13 @@
+// Test return value only
+int get_value() {
+    return 42;
+}
+
+auto main() {
+    __builtin_print("Testing simple return...\n");
+    int result = get_value();
+    __builtin_print("Result: ");
+    __builtin_print(result);
+    __builtin_print("\n");
+    return 0;
+}

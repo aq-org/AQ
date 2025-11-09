@@ -13,6 +13,8 @@
 
 namespace Aq {
 
+// IsReadEnd checks if the lexer has reached the end of the input code.
+// Returns true if there are no more characters to read.
 bool Lexer::IsReadEnd() const {
   if (code_ptr_ >= code_end_) {
     return true;
@@ -21,16 +23,31 @@ bool Lexer::IsReadEnd() const {
   }
 }
 
+// LexToken performs lexical analysis on the input code, converting characters
+// into a token. This is the core of the lexer, implementing a state machine
+// that recognizes different token types using goto-based control flow.
+//
+// Parameters:
+//   last_token: The previous token, used for context-dependent lexing
+//   return_token: Output parameter that will be filled with the lexed token
+//
+// Returns: 0 on success, -1 on error
+//
+// The function uses labels and goto for efficient state transitions:
+// - LexStart: Beginning of token recognition
+// - LexEnd: Token complete, finalize and return
 int Lexer::LexToken(Token last_token, Token& return_token) {
   return_token.type = Token::Type::START;
   char* current_location = code_ptr_;
 
 LexStart:
+  // Safety check: ensure we haven't read past the end of input
   if (current_location > code_end_) {
     INTERNAL_ERROR("Memory out of bounds during lexical analysis.");
     return -1;
   }
 
+  // Main character dispatch: determine what kind of token we're looking at
   switch (*current_location) {
     case '(':
     case ')':
