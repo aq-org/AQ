@@ -1,0 +1,6 @@
+// Test file 1 - uses alias "lib"
+import "tests/test_import_library.aq" lib;
+
+int test1_func() {
+    return 1;
+}

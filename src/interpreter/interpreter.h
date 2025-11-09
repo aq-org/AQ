@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "ast/ast.h"
 #include "interpreter/builtin.h"
@@ -54,6 +55,9 @@ struct Interpreter {
       builtin_functions;
 
   std::size_t current_class_index = 0;
+  
+  // Track imported aliases in this interpreter to detect name conflicts within the same file
+  std::unordered_set<std::string> imported_aliases;
 };
 
 }  // namespace Interpreter

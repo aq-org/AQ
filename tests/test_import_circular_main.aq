@@ -1,9 +1,10 @@
 // Main test file to trigger circular import
-// This should detect and report circular import error
+// This should now work - circular imports are allowed, imported only once
 
 import "tests/test_import_circular_a.aq" testCirc;
 
-int main() {
-    __builtin_print("This should not execute due to circular import error\n");
+auto main() {
+    __builtin_print("Circular import test - should work!\n");
+    __builtin_print("Import completed successfully\n");
     return 0;
 }

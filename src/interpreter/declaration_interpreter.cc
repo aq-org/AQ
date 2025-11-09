@@ -44,11 +44,20 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   if (imports_map.find(location) == imports_map.end()) {
     GenerateBytecode(location);
   }
+  
+  // If the import is still being generated (circular import), skip the rest
+  // The import will be available once the initial import completes
+  if (imports_map.find(location) == imports_map.end()) {
+    LOGGING_INFO("Skipping setup for circular import: '" + location + "' is still being generated.");
+    return;
+  }
 
-  // Checks if the alias is already used (name conflict detection).
-  if (imports_map.find(alias) != imports_map.end())
-    LOGGING_ERROR("Import alias '" + alias + "' already exists. Please use a different alias.");
-  imports_map[alias] = imports_map[location];
+  // Checks if the alias is already used in THIS file (name conflict detection within same file only).
+  if (interpreter.imported_aliases.find(alias) != interpreter.imported_aliases.end())
+    LOGGING_ERROR("Import alias '" + alias + "' already exists in this file. Please use a different alias.");
+  
+  // Track this alias as used in the current interpreter
+  interpreter.imported_aliases.insert(alias);
 
   // Register the imported module's classes into the main interpreter
   Interpreter* imported_interpreter = imports_map[location];
@@ -1462,10 +1471,12 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
 }
 
 [[deprecated]] void GenerateBytecode(std::string import_location) {
-  // Check for circular imports
+  // Check for circular imports - if already importing, skip to avoid infinite loop
+  // but don't error, just return since it will be available once the initial import completes
   if (currently_importing.find(import_location) != currently_importing.end()) {
-    LOGGING_ERROR("Circular import detected: '" + import_location + 
+    LOGGING_INFO("Skipping circular import: '" + import_location + 
                   "' is already being imported.");
+    return;
   }
 
   // Add to currently importing set
