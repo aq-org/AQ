@@ -1,0 +1,18 @@
+// Simple lambda test
+
+auto main() {
+    __builtin_print("Testing lambda...\n");
+    
+    // Create a simple lambda
+    auto my_func = function(int x){
+        __builtin_print("Value: ");
+        __builtin_print(x);
+        __builtin_print("\n");
+    };
+    
+    // Call the lambda
+    my_func(42);
+    
+    __builtin_print("Done!\n");
+    return 0;
+}

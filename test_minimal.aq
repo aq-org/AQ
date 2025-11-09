@@ -1,0 +1,4 @@
+auto main() {
+    __builtin_print("Hello World\n");
+    return 0;
+}

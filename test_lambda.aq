@@ -1,0 +1,56 @@
+// Test lambda function support and cross-file calling
+
+import "./test_lib.aq" lib
+
+// Test function that accepts a function as parameter
+void test_function(auto func_param, int value){
+    __builtin_print("Calling passed function with value: ");
+    __builtin_print(value);
+    __builtin_print("\n");
+    func_param(value);
+}
+
+auto main() {
+    __builtin_print("=== Lambda Function Tests ===\n");
+    
+    // Test 1: Simple lambda assigned to a variable
+    __builtin_print("\nTest 1: Simple lambda\n");
+    auto test_var = function(int test_arg){
+        __builtin_print("Lambda called with: ");
+        __builtin_print(test_arg);
+        __builtin_print("\n");
+    };
+    
+    int a = 42;
+    test_var(a);
+    
+    // Test 2: Lambda with return value
+    __builtin_print("\nTest 2: Lambda with return\n");
+    auto add_lambda = function int(int x, int y){
+        return x + y;
+    };
+    
+    int result = add_lambda(10, 20);
+    __builtin_print("Addition result: ");
+    __builtin_print(result);
+    __builtin_print("\n");
+    
+    // Test 3: Cross-file function calling
+    __builtin_print("\nTest 3: Cross-file calling\n");
+    int lib_result = lib.add(5, 3);
+    __builtin_print("Library add result: ");
+    __builtin_print(lib_result);
+    __builtin_print("\n");
+    
+    // Test 4: Passing lambda as parameter
+    __builtin_print("\nTest 4: Lambda as parameter\n");
+    auto print_lambda = function(int val){
+        __builtin_print("Lambda parameter received: ");
+        __builtin_print(val);
+        __builtin_print("\n");
+    };
+    test_function(print_lambda, 100);
+    
+    __builtin_print("\n=== All Tests Completed ===\n");
+    return 0;
+}

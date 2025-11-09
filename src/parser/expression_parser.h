@@ -47,6 +47,10 @@ class Parser::ExpressionParser {
   // number, the higher the priority.
   static unsigned int GetPriority(Token token);
 
+  // Parses lambda expressions. Returns the lambda expression.
+  static Ast::Lambda* ParseLambdaExpression(Token* token, std::size_t length,
+                                            std::size_t& index);
+
  private:
   // Parses the primary general expression (plus, mimus, not, bitwise not, etc).
   static void ParsePrimaryGeneralPreExpression(

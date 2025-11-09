@@ -47,7 +47,8 @@ class Statement {
     kArrayDeclaration,
     kArray,
     kReturn,
-    kStatic
+    kStatic,
+    kLambda
   };
 
   StatementType GetStatementType() { return statement_type_; }
@@ -466,6 +467,33 @@ class FunctionDeclaration : public Declaration {
   Type* return_type_ = nullptr;
   Function* statement_ = nullptr;
   Compound* body_ = nullptr;
+};
+
+class Lambda : public Expression {
+ public:
+  Lambda(Type* return_type, std::vector<Variable*> parameters,
+         Compound* body, bool is_variadic) {
+    statement_type_ = StatementType::kLambda;
+    return_type_ = return_type;
+    parameters_ = parameters;
+    body_ = body;
+    is_variadic_ = is_variadic;
+  }
+  virtual ~Lambda() = default;
+
+  Type* GetReturnType() { return return_type_; }
+  std::vector<Variable*> GetParameters() { return parameters_; }
+  Compound* GetBody() { return body_; }
+  bool IsVariadic() { return is_variadic_; }
+
+  Lambda(const Lambda&) = default;
+  Lambda& operator=(const Lambda&) = default;
+
+ private:
+  Type* return_type_ = nullptr;
+  std::vector<Variable*> parameters_;
+  Compound* body_ = nullptr;
+  bool is_variadic_ = false;
 };
 
 class Static : public Declaration {
