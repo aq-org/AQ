@@ -905,22 +905,16 @@ Ast::Lambda* Parser::ExpressionParser::ParseLambdaExpression(
   if (!(token[index] == Token::KeywordType::Func))
     INTERNAL_ERROR("Expected 'function' keyword.");
 
-  index++;  // Skip 'function' keyword
+  index++;  // Skip 'func' keyword
 
-  // Parse return type (optional, defaults to auto)
-  Ast::Type* return_type = nullptr;
-  if (token[index] == Token::OperatorType::l_paren) {
-    // No explicit return type, use auto
-    return_type = new Ast::Type();
-    return_type->SetBaseType(Ast::Type::BaseType::kAuto);
-  } else {
-    // Parse explicit return type
-    return_type = Ast::Type::CreateType(token, length, index);
-  }
+  // For now, always use auto return type
+  // TODO: Support explicit return types like func int() { ... }
+  Ast::Type* return_type = new Ast::Type();
+  return_type->SetBaseType(Ast::Type::BaseType::kAuto);
 
   // Parse parameter list
   if (!(token[index] == Token::OperatorType::l_paren))
-    LOGGING_ERROR("Expected '(' after 'function' keyword.");
+    LOGGING_ERROR("Expected '(' after 'func' keyword.");
   index++;  // Skip '('
 
   std::vector<Ast::Variable*> parameters;

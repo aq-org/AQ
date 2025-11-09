@@ -622,19 +622,22 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter,
 
   // If not a function variable, look for the function directly
   if (!is_function_variable) {
+    bool found = false;
     for (int64_t i = scopes.size() - 1; i >= -1; i--) {
-      auto iterator = functions.find(function_name);
-
-      // Use the technique of reprocessing names to prevent scope overflow.
-      if (i != -1) iterator = functions.find(scopes[i] + "." + function_name);
+      std::string lookup_name = function_name;
+      if (i != -1) lookup_name = scopes[i] + "." + function_name;
+      
+      auto iterator = functions.find(lookup_name);
 
       if (iterator != functions.end()) {
-        // Use the technique of reprocessing names to prevent scope overflow.
-        if (i != -1) function_name = scopes[i] + "." + function_name;
+        function_name = lookup_name;
+        found = true;
         break;
       }
-
-      if (i == -1) LOGGING_ERROR("Function not found.");
+    }
+    
+    if (!found) {
+      LOGGING_ERROR("Function '" + function_name + "' not found.");
     }
   }
 
