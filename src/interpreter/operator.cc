@@ -32,7 +32,7 @@ int NOP() { return 0; }
 //   size: Number of elements (0 for single object, >0 for array)
 //   type: Type information (0 for auto, string for class, type code for array)
 //   builtin_functions: Map of built-in function implementations
-int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
+int NEW(Object* memory, std::unordered_map<std::string, Class>& classes,
         std::size_t ptr, std::size_t size, std::size_t type,
         std::unordered_map<
             std::string, std::function<int(Memory*, std::vector<std::size_t>)>>&
@@ -71,6 +71,11 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
         Class& class_data = classes[class_name];
         
         class_memory->GetMembers() = class_data.GetMembers()->GetMembers();
+        
+        // Clear constant_type for all members to allow mutation
+        for (auto& member_pair : class_memory->GetMembers()) {
+          member_pair.second.constant_type = false;
+        }
         
         Object object;
         object.type = 0x09;

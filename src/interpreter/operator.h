@@ -54,7 +54,7 @@ namespace Aq {
 namespace Interpreter {
 int NOP();
 
-int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
+int NEW(Object* memory, std::unordered_map<std::string, Class>& classes,
         std::size_t ptr, std::size_t size, std::size_t type,
         std::unordered_map<
             std::string, std::function<int(Memory*, std::vector<std::size_t>)>>&

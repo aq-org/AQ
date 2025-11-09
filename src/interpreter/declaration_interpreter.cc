@@ -211,6 +211,10 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
       
       // Deep copy the member object
       Object new_member_obj = member_obj;
+      // Clear constant_type flag to allow imported variables to be mutable
+      // This is necessary because auto variables might have constant_type=true
+      // in their original context but should be mutable when imported
+      new_member_obj.constant_type = false;
       
       // Remap any memory references in the object
       if (member_obj.type == 0x07) {  // Reference type
@@ -323,6 +327,10 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
       
       // Deep copy the member object
       Object new_member_obj = member_obj;
+      // Clear constant_type flag to allow imported variables to be mutable
+      // This is necessary because auto variables might have constant_type=true
+      // in their original context but should be mutable when imported
+      new_member_obj.constant_type = false;
       
       // Remap any memory references in the object
       if (member_obj.type == 0x07) {  // Reference type
