@@ -56,11 +56,9 @@ struct Interpreter {
 
   std::size_t current_class_index = 0;
   
-  // Track imported aliases in this interpreter to detect name conflicts within the same file
-  std::unordered_set<std::string> imported_aliases;
-  
-  // Map from import alias to the full class name of the imported module (e.g., "test2" -> "~path~.!__start")
-  std::unordered_map<std::string, std::string> import_alias_to_class_name;
+  // Map from import alias to the imported interpreter instance
+  // Each imported file gets its own interpreter that handles its code independently
+  std::unordered_map<std::string, Interpreter*> imported_interpreters;
   
   // The source file path of this interpreter (used for resolving relative imports)
   std::string source_file_path;

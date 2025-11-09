@@ -438,6 +438,99 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
     }
   }
 
+  // Check if the first identifier is an import alias
+  // If it is, we need to handle access to the imported module
+  if (expressions.size() >= 2 && Ast::IsOfType<Ast::Identifier>(expressions[0])) {
+    std::string first_part = std::string(*Ast::Cast<Ast::Identifier>(expressions[0]));
+    auto import_it = interpreter.imported_interpreters.find(first_part);
+    
+    if (import_it != interpreter.imported_interpreters.end()) {
+      // This is an imported module access (e.g., test.function() or test.CLASS())
+      Interpreter* imported_interp = import_it->second;
+      
+      if (Ast::IsOfType<Ast::Function>(expressions.back())) {
+        // Function or class constructor call
+        Ast::Function* func_expr = Ast::Cast<Ast::Function>(expressions.back());
+        std::string func_name = func_expr->GetFunctionName();
+        
+        // Check if it's a class constructor
+        std::string class_lookup = "." + func_name;
+        if (imported_interp->classes.find(class_lookup) != imported_interp->classes.end()) {
+          // This is a class constructor
+          // We need to copy the class definition to our interpreter if not already done
+          if (interpreter.classes.find(class_lookup) == interpreter.classes.end()) {
+            interpreter.classes[class_lookup] = imported_interp->classes[class_lookup];
+            // Also copy constructor if exists
+            if (imported_interp->functions.find(class_lookup) != imported_interp->functions.end()) {
+              interpreter.functions[class_lookup] = imported_interp->functions[class_lookup];
+            }
+          }
+          
+          // Create class instance
+          std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+          code.push_back(
+              Bytecode{_AQVM_OPERATOR_NEW,
+                       {return_value_index, global_memory->AddByte(0),
+                        global_memory->AddString(class_lookup)}});
+          
+          // Call constructor
+          auto arguments = func_expr->GetParameters();
+          std::vector<std::size_t> constructor_arguments{
+              return_value_index, global_memory->AddString("@constructor"),
+              global_memory->Add(1)};
+          for (std::size_t i = 0; i < arguments.size(); i++)
+            constructor_arguments.push_back(
+                HandleExpression(interpreter, arguments[i], code, 0));
+          
+          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                  std::move(constructor_arguments)});
+          
+          return return_value_index;
+        } else {
+          // This is a function call
+          // Look for function in imported interpreter's main class
+          std::string func_lookup = ".!__start." + func_name;
+          if (imported_interp->functions.find(func_lookup) == imported_interp->functions.end()) {
+            func_lookup = "." + func_name;
+          }
+          
+          // Copy the function if not already done
+          if (interpreter.functions.find(func_lookup) == interpreter.functions.end()) {
+            if (imported_interp->functions.find(func_lookup) != imported_interp->functions.end()) {
+              interpreter.functions[func_lookup] = imported_interp->functions[func_lookup];
+            }
+          }
+          
+          std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+          std::size_t name_index = global_memory->AddString(func_lookup);
+          
+          auto arguments = func_expr->GetParameters();
+          std::vector<std::size_t> invoke_arguments = {2, name_index, return_value_index};
+          for (std::size_t i = 0; i < arguments.size(); i++)
+            invoke_arguments.push_back(
+                HandleExpression(interpreter, arguments[i], code, 0));
+          
+          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                  std::move(invoke_arguments)});
+          return return_value_index;
+        }
+      } else if (Ast::IsOfType<Ast::Identifier>(expressions.back())) {
+        // Variable access from imported module
+        std::string var_name = std::string(*Ast::Cast<Ast::Identifier>(expressions.back()));
+        
+        // Look for variable in imported interpreter's global scope
+        std::string var_lookup = ".!__start#" + var_name;
+        auto var_it = imported_interp->context.variables.find(var_lookup);
+        
+        if (var_it != imported_interp->context.variables.end()) {
+          // Found the variable - but we can't directly return the index from another interpreter
+          // We need to access it through the imported object
+          // Fall through to the normal member access handling which will use LOAD_MEMBER
+        }
+      }
+    }
+  }
+  
   // is_end equals true, indicating that the front-end of the expression
   // (excluding the rightmost expression) is entirely composed of identifiers
   // and does not contain any member functions.
@@ -462,47 +555,6 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       Ast::Function* right_expression =
           Ast::Cast<Ast::Function>(expressions.back());
       full_name += right_expression->GetFunctionName();
-      
-      // Check if this is a constructor call through an import alias (e.g., "test2.TEST_CLASS()")
-      std::size_t dot_pos = full_name.find('.');
-      if (dot_pos != std::string::npos) {
-        std::string potential_alias = full_name.substr(0, dot_pos);
-        std::string class_in_module = full_name.substr(dot_pos + 1);
-        
-        // Check if potential_alias is an import alias
-        auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
-        if (alias_it != interpreter.import_alias_to_class_name.end()) {
-          // This is a constructor call for an imported class
-          std::string import_class_name = alias_it->second;
-          std::string resolved_class_name = import_class_name + "." + class_in_module;
-          
-          // Check if this class exists
-          if (functions.find(resolved_class_name) != functions.end()) {
-            // Handle as class instantiation
-            std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
-            
-            // Create new instance
-            code.push_back(
-                Bytecode{_AQVM_OPERATOR_NEW,
-                         {return_value_index, global_memory->AddByte(0),
-                          global_memory->AddString(resolved_class_name)}});
-            
-            // Call constructor
-            auto arguments = right_expression->GetParameters();
-            std::vector<std::size_t> constructor_arguments{
-                return_value_index, global_memory->AddString("@constructor"),
-                global_memory->Add(1)};
-            for (std::size_t i = 0; i < arguments.size(); i++)
-              constructor_arguments.push_back(
-                  HandleExpression(interpreter, arguments[i], code, 0));
-            
-            code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
-                                    std::move(constructor_arguments)});
-            
-            return return_value_index;
-          }
-        }
-      }
 
       for (int64_t k = scopes.size() - 1; k >= 0; k--) {
         auto iterator = functions.find(scopes[k] + "." + full_name);
