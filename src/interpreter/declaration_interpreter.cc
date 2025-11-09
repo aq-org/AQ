@@ -104,6 +104,34 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     // Copy the main class under the prefixed name
     classes[import_class_name] = imported_interpreter->classes[".!__start"];
     
+    // Update the class name and @name member
+    classes[import_class_name].SetName(import_class_name);
+    classes[import_class_name].GetMembers()->GetMembers()["@name"].type = 0x05;
+    classes[import_class_name].GetMembers()->GetMembers()["@name"].data.string_data = 
+        new std::string(import_class_name);
+    
+    // Clear constant_type flags on all members to allow mutation
+    for (auto& member_pair : classes[import_class_name].GetMembers()->GetMembers()) {
+      member_pair.second.constant_type = false;
+    }
+    
+    // Add methods without dot prefix for easier access
+    // Methods are stored with dot prefix (.run), but when called as test.run()
+    // the VM looks for "run" without the dot
+    auto& methods = classes[import_class_name].GetMethods();
+    std::vector<std::pair<std::string, std::vector<Function>>> methods_to_add;
+    for (auto& method_pair : methods) {
+      if (method_pair.first.length() > 0 && method_pair.first[0] == '.' && 
+          method_pair.first != ".!__init" && method_pair.first != ".!__start") {
+        // Add the same method without the dot prefix
+        std::string name_without_dot = method_pair.first.substr(1);
+        methods_to_add.push_back({name_without_dot, method_pair.second});
+      }
+    }
+    for (auto& pair : methods_to_add) {
+      methods[pair.first] = pair.second;
+    }
+    
     // Create an instance of this class for the import variable
     std::size_t import_var_index = variables["#" + alias];
     init_code.push_back(
@@ -112,7 +140,7 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
                   memory->AddString(import_class_name)}});
   }
   
-  LOGGING_INFO("Imported '" + location + "' as '" + alias + "'");
+  LOGGING_INFO("Imported '" + location + "' as '" + alias + "' (class registered as '" + import_class_name + "')");
 }
 
 void HandleFunctionDeclaration(Interpreter& interpreter,

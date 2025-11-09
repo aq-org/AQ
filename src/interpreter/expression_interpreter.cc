@@ -456,8 +456,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
         // Check if it's a class constructor
         std::string class_lookup = "." + func_name;
         if (imported_interp->classes.find(class_lookup) != imported_interp->classes.end()) {
-          // This is a class constructor
-          // We need to copy the class definition to our interpreter if not already done
+          // This is a class constructor - copy the class and handle it
           if (interpreter.classes.find(class_lookup) == interpreter.classes.end()) {
             interpreter.classes[class_lookup] = imported_interp->classes[class_lookup];
             // Also copy constructor if exists
@@ -486,48 +485,12 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                   std::move(constructor_arguments)});
           
           return return_value_index;
-        } else {
-          // This is a function call
-          // Look for function in imported interpreter's main class
-          std::string func_lookup = ".!__start." + func_name;
-          if (imported_interp->functions.find(func_lookup) == imported_interp->functions.end()) {
-            func_lookup = "." + func_name;
-          }
-          
-          // Copy the function if not already done
-          if (interpreter.functions.find(func_lookup) == interpreter.functions.end()) {
-            if (imported_interp->functions.find(func_lookup) != imported_interp->functions.end()) {
-              interpreter.functions[func_lookup] = imported_interp->functions[func_lookup];
-            }
-          }
-          
-          std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
-          std::size_t name_index = global_memory->AddString(func_lookup);
-          
-          auto arguments = func_expr->GetParameters();
-          std::vector<std::size_t> invoke_arguments = {2, name_index, return_value_index};
-          for (std::size_t i = 0; i < arguments.size(); i++)
-            invoke_arguments.push_back(
-                HandleExpression(interpreter, arguments[i], code, 0));
-          
-          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
-                                  std::move(invoke_arguments)});
-          return return_value_index;
         }
-      } else if (Ast::IsOfType<Ast::Identifier>(expressions.back())) {
-        // Variable access from imported module
-        std::string var_name = std::string(*Ast::Cast<Ast::Identifier>(expressions.back()));
-        
-        // Look for variable in imported interpreter's global scope
-        std::string var_lookup = ".!__start#" + var_name;
-        auto var_it = imported_interp->context.variables.find(var_lookup);
-        
-        if (var_it != imported_interp->context.variables.end()) {
-          // Found the variable - but we can't directly return the index from another interpreter
-          // We need to access it through the imported object
-          // Fall through to the normal member access handling which will use LOAD_MEMBER
-        }
+        // For regular function calls (not class constructors), fall through to normal 
+        // method invocation which will call the method on the import object instance
       }
+      // For all other cases (regular methods, variables, etc.), fall through to 
+      // normal member access handling
     }
   }
   
