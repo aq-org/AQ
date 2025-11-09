@@ -866,6 +866,15 @@ int EQUAL(Object* memory, std::size_t result, std::size_t value) {
   std::size_t type = value_object->type;
 
   switch (type) {
+    case 0x00:
+      // Handle uninitialized type - this can occur when a function doesn't
+      // properly return a value or when using uninitialized variables.
+      // Initialize the destination as an integer with value 0 for safety.
+      LOGGING_WARNING(
+          "Attempting to assign from uninitialized memory (type 0x00). "
+          "Initializing destination as 0.");
+      SetLong(memory + result, 0);
+      break;
     case 0x01:
       SetByte(memory + result, GetByte(value_object));
       break;

@@ -4,6 +4,7 @@
 
 #include "interpreter/builtin.h"
 
+#include <cinttypes>
 #include <cmath>
 #include <cstdio>
 #include <string>
@@ -112,13 +113,13 @@ int __builtin_print(Memory* memory, std::vector<std::size_t> arguments) {
         printf("%d", GetByte(memory_ptr + argument));
         break;
       case 0x02:
-        printf("%lld", GetLong(memory_ptr + argument));
+        printf("%" PRId64, GetLong(memory_ptr + argument));
         break;
       case 0x03:
         printf("%g", GetDouble(memory_ptr + argument));
         break;
       case 0x04:
-        printf("%llu", GetUint64(memory_ptr + argument));
+        printf("%" PRIu64, GetUint64(memory_ptr + argument));
         break;
       case 0x05:
         printf("%s", GetString(memory_ptr + argument).c_str());
@@ -152,13 +153,13 @@ int __builtin_vaprint(Memory* memory, std::vector<std::size_t> arguments) {
         printf("%d", GetByte(array_ptr + i));
         break;
       case 0x02:
-        printf("%lld", GetLong(array_ptr + i));
+        printf("%" PRId64, GetLong(array_ptr + i));
         break;
       case 0x03:
         printf("%g", GetDouble(array_ptr + i));
         break;
       case 0x04:
-        printf("%llu", GetUint64(array_ptr + i));
+        printf("%" PRIu64, GetUint64(array_ptr + i));
         break;
       case 0x05:
         printf("%s", GetString(array_ptr + i).c_str());

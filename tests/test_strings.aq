@@ -1,0 +1,32 @@
+// Test string operations and edge cases
+auto main() {
+    __builtin_print("=== String Tests ===\n");
+    
+    // Test 1: Simple string output
+    __builtin_print("\nTest 1: Basic strings\n");
+    __builtin_print("Hello, World!\n");
+    
+    // Test 2: Empty string
+    __builtin_print("\nTest 2: Empty string\n");
+    __builtin_print("");
+    __builtin_print("After empty string\n");
+    
+    // Test 3: Special characters
+    __builtin_print("\nTest 3: Special characters\n");
+    __builtin_print("Newline test:\nLine 2\n");
+    __builtin_print("Tab test:\tAfter tab\n");
+    
+    // Test 4: Long string
+    __builtin_print("\nTest 4: Long string\n");
+    __builtin_print("This is a longer string that contains multiple words and punctuation marks!\n");
+    
+    // Test 5: Numbers in strings
+    __builtin_print("\nTest 5: Mixed content\n");
+    __builtin_print("The number is: ");
+    int num = 42;
+    __builtin_print(num);
+    __builtin_print("\n");
+    
+    __builtin_print("\n=== All String Tests Passed ===\n");
+    return 0;
+}

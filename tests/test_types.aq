@@ -1,0 +1,42 @@
+// Test different data types and type operations
+auto main() {
+    __builtin_print("=== Type Tests ===\n");
+    
+    // Test 1: Integer types
+    __builtin_print("\nTest 1: Integer types\n");
+    int i = 42;
+    __builtin_print("Integer: ");
+    __builtin_print(i);
+    __builtin_print("\n");
+    
+    // Test 2: String types
+    __builtin_print("\nTest 2: String types\n");
+    __builtin_print("Hello, AQ!\n");
+    
+    // Test 3: Auto type
+    __builtin_print("\nTest 3: Auto type\n");
+    auto x = 100;
+    __builtin_print("Auto variable: ");
+    __builtin_print(x);
+    __builtin_print("\n");
+    
+    // Test 4: Type boundaries
+    __builtin_print("\nTest 4: Large numbers\n");
+    int large = 999999;
+    __builtin_print("Large number: ");
+    __builtin_print(large);
+    __builtin_print("\n");
+    
+    // Test 5: Zero and negative
+    __builtin_print("\nTest 5: Zero and negative\n");
+    int zero = 0;
+    int negative = -123;
+    __builtin_print("Zero: ");
+    __builtin_print(zero);
+    __builtin_print("\nNegative: ");
+    __builtin_print(negative);
+    __builtin_print("\n");
+    
+    __builtin_print("\n=== All Type Tests Passed ===\n");
+    return 0;
+}

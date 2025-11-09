@@ -1,0 +1,20 @@
+// Simple recursion test to isolate the bug
+int countdown(int n) {
+    __builtin_print("n = ");
+    __builtin_print(n);
+    __builtin_print("\n");
+    
+    if (n <= 0) {
+        return 1;
+    }
+    return countdown(n - 1);
+}
+
+auto main() {
+    __builtin_print("Testing recursion...\n");
+    int result = countdown(3);
+    __builtin_print("Result: ");
+    __builtin_print(result);
+    __builtin_print("\n");
+    return 0;
+}
