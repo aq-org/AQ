@@ -1,6 +1,0 @@
-auto main() {
-    __builtin_print("Test starting\n");
-    auto my_func = function(int x){ };
-    __builtin_print("Test complete\n");
-    return 0;
-}
