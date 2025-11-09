@@ -104,7 +104,8 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
 
   // Register the imported module's classes into the main interpreter
   Interpreter* imported_interpreter = imports_map[resolved_location];
-  std::string class_name = ".!__start";
+  // Use a unique name for the imported class to avoid conflicts with main module
+  std::string class_name = "~import~" + alias;
   
   // Store the mapping from alias to the imported module's class name
   // This allows us to resolve cross-file class references like "test2.TEST_CLASS"
@@ -132,13 +133,26 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
       member_pair.second.constant_type = false;
     }
     
-    // Debug: Check what's in the registered class
-    LOGGING_INFO("Registered class '" + class_name + "' has " + std::to_string(classes[class_name].GetMembers()->GetMembers().size()) + " members");
-    for (auto& member_pair : classes[class_name].GetMembers()->GetMembers()) {
-      if (member_pair.first[0] != '@') {
-        LOGGING_INFO("  Member '" + member_pair.first + "' has type " + std::to_string(member_pair.second.type));
+    // Transform method names to remove scope prefixes so they can be called naturally
+    // E.g., ".function_name" becomes "function_name"
+    std::unordered_map<std::string, std::vector<Function>> transformed_methods;
+    for (auto& method_pair : classes[class_name].GetMethods()) {
+      std::string original_name = method_pair.first;
+      std::string new_name = original_name;
+      
+      // Remove leading dot for global functions (but keep special methods like .!__init)
+      if (original_name.length() > 0 && original_name[0] == '.' && 
+          original_name != ".!__init" && original_name != ".!__start") {
+        new_name = original_name.substr(1);
+      }
+      
+      // Keep both the original name and the transformed name for compatibility
+      transformed_methods[original_name] = method_pair.second;
+      if (new_name != original_name) {
+        transformed_methods[new_name] = method_pair.second;
       }
     }
+    classes[class_name].GetMethods() = transformed_methods;
   }
   
   // Copy all other classes from the imported module
@@ -1691,22 +1705,6 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
     InvokeClassMethod(interpreter->global_memory, 2, init_method_name, 
                       init_arguments, interpreter->classes,
                       interpreter->builtin_functions);
-    LOGGING_INFO("Imported module initialized successfully");
-    
-    // Debug: Check what's in the class members after initialization
-    auto& members = start_class.GetMembers()->GetMembers();
-    for (auto& member_pair : members) {
-      if (member_pair.first[0] != '@') {  // Skip special members
-        LOGGING_INFO("Member '" + member_pair.first + "' has type " + std::to_string(member_pair.second.type));
-        if (member_pair.second.type == 0x07) {  // Reference
-          auto* ref = member_pair.second.data.reference_data;
-          if (!ref->is_class) {
-            auto& target = ref->memory.memory->GetMemory()[ref->index.index];
-            LOGGING_INFO("  -> References index " + std::to_string(ref->index.index) + " with type " + std::to_string(target.type));
-          }
-        }
-      }
-    }
   }
 
   LOGGING_INFO("Generate Bytecode SUCCESS!");
