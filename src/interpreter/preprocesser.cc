@@ -176,6 +176,14 @@ void PreProcessImport(Interpreter& interpreter, Ast::Import* statement) {
 
   std::size_t array_index = global_memory->Add(1);
   variables.emplace("#" + static_cast<std::string>(alias), array_index);
+  
+  // IMPORTANT: We need to process the import here during preprocessing so that
+  // imported classes are available when processing variable declarations.
+  // This is necessary because variable declarations with imported class types
+  // (e.g., "test2.TEST_CLASS var;") need to resolve the class name.
+  // We'll call HandleImport directly here, but need to forward declare it.
+  extern void HandleImport(Interpreter& interpreter, Ast::Import* statement);
+  HandleImport(interpreter, statement);
 }
 }  // namespace Interpreter
 }  // namespace Aq
