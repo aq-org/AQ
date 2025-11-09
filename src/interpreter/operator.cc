@@ -65,17 +65,18 @@ int NEW(Object* memory, std::unordered_map<std::string, Class> classes,
     if (type_data.type == 0x05 && type_data.data.string_data != nullptr) {
       // Class only.
       if (size_value == 0) {
-        Object object;
-        object.type = 0x09;
-        object.data.class_data = new ClassMemory();
-        object.constant_type = true;
-        data.push_back(object);
-
         std::string class_name = GetString(memory + type);
         if (classes.find(class_name) == classes.end())
           LOGGING_ERROR("class not found.");
         Class& class_data = classes[class_name];
+        
         class_memory->GetMembers() = class_data.GetMembers()->GetMembers();
+        
+        Object object;
+        object.type = 0x09;
+        object.data.class_data = class_memory;
+        object.constant_type = true;
+        data.push_back(object);
 
       } else {
         // Class array type.
