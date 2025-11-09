@@ -1,8 +1,0 @@
-// Module with static class members
-class MyClass {
-    static int static_value = 42;
-    
-    void MyClass() {
-        __builtin_print("MyClass constructor\n");
-    }
-}

@@ -1,4 +1,0 @@
-auto main() {
-    auto x = func(){ return 5; };
-    return 0;
-}

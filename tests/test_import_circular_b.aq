@@ -1,8 +1,0 @@
-// Test file B for circular import detection
-// This file imports A, which imports B back (circular dependency)
-
-import "test_import_circular_a.aq" circA;
-
-int funcB() {
-    return 2;
-}
