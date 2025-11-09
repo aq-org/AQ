@@ -8,6 +8,7 @@
 #include "interpreter/declaration_interpreter.h"
 #include "interpreter/interpreter.h"
 #include "interpreter/operator.h"
+#include "interpreter/statement_interpreter.h"
 #include "logging/logging.h"
 
 namespace Aq {
@@ -720,6 +721,10 @@ std::size_t GetIndex(Interpreter& interpreter, Ast::Expression* expression,
       return HandleFunctionInvoke(
           interpreter, Ast::Cast<Ast::Function>(expression), code, 0);
 
+    case Ast::Statement::StatementType::kLambda:
+      return HandleLambdaExpression(
+          interpreter, Ast::Cast<Ast::Lambda>(expression), code);
+
     case Ast::Statement::StatementType::kArrayDeclaration:
       return HandleArrayDeclaration(
           interpreter, Ast::Cast<Ast::ArrayDeclaration>(expression), code);
@@ -820,6 +825,73 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
   }
 
   return 0;
+}
+
+std::size_t HandleLambdaExpression(Interpreter& interpreter,
+                                   Ast::Lambda* lambda,
+                                   std::vector<Bytecode>& code) {
+  if (lambda == nullptr) INTERNAL_ERROR("lambda is nullptr.");
+
+  // Gets the reference of context.
+  auto global_memory = interpreter.global_memory;
+  auto& scopes = interpreter.context.scopes;
+  auto& variables = interpreter.context.variables;
+
+  // Generate a unique name for the lambda function
+  static std::size_t lambda_counter = 0;
+  std::string lambda_name = "__lambda_" + std::to_string(lambda_counter++);
+
+  // Save current function context
+  FunctionContext* saved_context = interpreter.context.function_context;
+  FunctionContext new_context;
+  interpreter.context.function_context = &new_context;
+
+  // Create a new scope for the lambda
+  std::string lambda_scope = lambda_name;
+  scopes.push_back(lambda_scope);
+
+  // Parse lambda parameters
+  std::vector<std::size_t> parameters_index;
+  std::vector<Bytecode> lambda_code;
+
+  for (auto param : lambda->GetParameters()) {
+    Ast::Type* param_type = param->GetVariableType();
+    std::string param_name = param->GetVariableName();
+    
+    // Add parameter to variables
+    std::size_t param_index = global_memory->Add(param_type->GetVmType());
+    variables[lambda_scope + "#" + param_name] = param_index;
+    parameters_index.push_back(param_index);
+  }
+
+  // Process lambda body
+  for (auto statement : lambda->GetBody()->GetStatements()) {
+    HandleStatement(interpreter, statement, lambda_code);
+  }
+
+  // Handle return if no explicit return
+  HandleReturnInHandlingFunction(interpreter, lambda_code);
+  HandleGotoInHandlingFunction(interpreter, new_context.current_scope,
+                               lambda_code);
+
+  // Create function object
+  Function lambda_func(lambda_name, parameters_index, lambda_code);
+  if (lambda->IsVariadic()) {
+    lambda_func.EnableVariadic();
+  }
+
+  // Add lambda function to interpreter
+  interpreter.functions[lambda_name].push_back(lambda_func);
+
+  // Restore context
+  scopes.pop_back();
+  interpreter.context.function_context = saved_context;
+
+  // Store function reference in memory (as a function pointer)
+  // For now, we'll store the function name as a string
+  std::size_t func_index = global_memory->AddString(lambda_name);
+  
+  return func_index;
 }
 }  // namespace Interpreter
 }  // namespace Aq

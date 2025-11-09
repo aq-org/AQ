@@ -691,6 +691,22 @@ Ast::Expression* Parser::ExpressionParser::ParsePrimaryExpression(
           break;
         }
 
+        case Token::KeywordType::Func: {
+          Ast::Lambda* lambda_node = ParseLambdaExpression(token, length, index);
+          if (lambda_node == nullptr) INTERNAL_ERROR("lambda_node is nullptr.");
+
+          if (full_expression == nullptr ||
+              pre_operator_expression == nullptr) {
+            full_expression = main_expression = lambda_node;
+          } else {
+            HandlePreOperatorExpression(pre_operator_expression, lambda_node);
+            main_expression = lambda_node;
+          }
+
+          state = State::kEnd;
+          break;
+        }
+
         default:
           LOGGING_ERROR("Unexpected keyword \"" +
                         std::string(Token::GetKeywordTypeString(
@@ -880,6 +896,82 @@ void Parser::ExpressionParser::ParseIncrementAndDecrementOperatorsExpression(
     unary = new Ast::Unary(oper, full_expression);
     full_expression = unary;
   }
+}
+
+Ast::Lambda* Parser::ExpressionParser::ParseLambdaExpression(
+    Token* token, std::size_t length, std::size_t& index) {
+  if (token == nullptr) INTERNAL_ERROR("token is nullptr.");
+  if (index >= length) INTERNAL_ERROR("index is out of range.");
+  if (!(token[index] == Token::KeywordType::Func))
+    INTERNAL_ERROR("Expected 'function' keyword.");
+
+  index++;  // Skip 'function' keyword
+
+  // Parse return type (optional, defaults to auto)
+  Ast::Type* return_type = nullptr;
+  if (token[index] == Token::OperatorType::l_paren) {
+    // No explicit return type, use auto
+    return_type = new Ast::Type();
+    return_type->SetBaseType(Ast::Type::BaseType::kAuto);
+  } else {
+    // Parse explicit return type
+    return_type = Ast::Type::CreateType(token, length, index);
+  }
+
+  // Parse parameter list
+  if (!(token[index] == Token::OperatorType::l_paren))
+    LOGGING_ERROR("Expected '(' after 'function' keyword.");
+  index++;  // Skip '('
+
+  std::vector<Ast::Variable*> parameters;
+  bool is_variadic = false;
+
+  while (index < length && !(token[index] == Token::OperatorType::r_paren)) {
+    // Check for variadic parameter (...)
+    if (token[index] == Token::OperatorType::ellipsis) {
+      is_variadic = true;
+      index++;
+      break;
+    }
+
+    // Parse parameter type
+    Ast::Type* param_type = Ast::Type::CreateType(token, length, index);
+
+    // Parse parameter name
+    Ast::Expression* param_name = nullptr;
+    if (token[index] == Token::Type::IDENTIFIER) {
+      param_name = new Ast::Identifier(token[index]);
+      index++;
+    } else {
+      // Anonymous parameter
+      param_name = Ast::Identifier::CreateUnnamedIdentifier();
+    }
+
+    // Create parameter variable
+    Ast::Variable* param = new Ast::Variable(param_type, param_name);
+    parameters.push_back(param);
+
+    // Check for comma or end of parameters
+    if (token[index] == Token::OperatorType::comma) {
+      index++;  // Skip comma
+    } else if (!(token[index] == Token::OperatorType::r_paren)) {
+      LOGGING_WARNING("Expected ',' or ')' in parameter list.");
+    }
+  }
+
+  if (!(token[index] == Token::OperatorType::r_paren))
+    LOGGING_ERROR("Expected ')' after parameter list.");
+  index++;  // Skip ')'
+
+  // Parse function body
+  if (!(token[index] == Token::OperatorType::l_brace))
+    LOGGING_ERROR("Expected '{' for lambda body.");
+
+  Ast::Compound* body =
+      Ast::Cast<Ast::Compound>(Parser::ParseStatement(token, length, index));
+  if (body == nullptr) INTERNAL_ERROR("Lambda body parsing failed.");
+
+  return new Ast::Lambda(return_type, parameters, body, is_variadic);
 }
 
 }  // namespace Aq

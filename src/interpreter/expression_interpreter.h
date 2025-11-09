@@ -43,6 +43,11 @@ std::size_t HandleFunctionInvoke(Interpreter& interpreter, Ast::Function* func,
                                  std::vector<Bytecode>& code,
                                  std::size_t result_index = 0);
 
+// Handles the lambda expression.
+std::size_t HandleLambdaExpression(Interpreter& interpreter,
+                                   Ast::Lambda* lambda,
+                                   std::vector<Bytecode>& code);
+
 // Handles the function invoke.
 std::size_t AddConstInt8t(Interpreter& interpreter, int8_t value);
 

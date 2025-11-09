@@ -1,0 +1,25 @@
+// Test lambda function support
+
+auto main() {
+    // Test 1: Simple lambda assigned to a variable
+    auto test_var = function(int test_arg){
+        __builtin_print("Lambda called with: ");
+        __builtin_print(test_arg);
+        __builtin_print("\n");
+    };
+    
+    int a = 42;
+    test_var(a);
+    
+    // Test 2: Lambda with return value
+    auto add = function int(int x, int y){
+        return x + y;
+    };
+    
+    int result = add(10, 20);
+    __builtin_print("Result: ");
+    __builtin_print(result);
+    __builtin_print("\n");
+    
+    return 0;
+}
