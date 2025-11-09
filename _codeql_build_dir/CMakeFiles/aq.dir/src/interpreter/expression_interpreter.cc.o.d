@@ -198,4 +198,5 @@ CMakeFiles/aq.dir/src/interpreter/expression_interpreter.cc.o: \
  /home/runner/work/AQ/AQ/src/interpreter/declaration_interpreter.h \
  /home/runner/work/AQ/AQ/src/interpreter/operator.h \
  /home/runner/work/AQ/AQ/src/interpreter/class.h \
- /home/runner/work/AQ/AQ/src/interpreter/memory.h
+ /home/runner/work/AQ/AQ/src/interpreter/memory.h \
+ /home/runner/work/AQ/AQ/src/interpreter/statement_interpreter.h
