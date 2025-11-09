@@ -15,28 +15,39 @@
 #include "parser/expression_parser.h"
 
 namespace Aq {
+// Parse is the main entry point for parsing a vector of tokens into an AST.
+// It processes the token stream sequentially, identifying whether each
+// statement is a declaration or a regular statement, and builds a complete
+// Abstract Syntax Tree (AST) representing the program structure.
+// Returns a Compound node containing all top-level statements.
 Ast::Compound* Parser::Parse(std::vector<Token>& token) {
-  // Gets the basic information.
+  // Initialize parsing state with token stream information
   Token* token_ptr = token.data();
   std::size_t index = 0;
   std::size_t length = token.size();
 
+  // Vector to accumulate all parsed statements
   std::vector<Ast::Statement*> stmts;
 
-  // Delete the last NONE token.
+  // Remove the trailing NONE token if present.
+  // The lexer adds a NONE token as a sentinel value, which we don't need.
   if (token_ptr[token.size() - 1].type == Token::Type::NONE) {
     token.pop_back();
     length--;
   }
 
+  // Parse all tokens into statements
   while (index < token.size()) {
+    // Check if this is a declaration (function, variable, class, etc.)
     if (DeclarationParser::IsDeclaration(token_ptr, length, index)) {
       stmts.push_back(ParseDeclaration(token_ptr, length, index));
     } else {
+      // Otherwise, it's a regular statement (expression, control flow, etc.)
       stmts.push_back(ParseStatement(token_ptr, length, index));
     }
   }
 
+  // Wrap all statements in a Compound node which represents the entire program
   Ast::Compound* ast = new Ast::Compound(stmts);
   return ast;
 }
