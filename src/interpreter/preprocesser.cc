@@ -171,15 +171,11 @@ void PreProcessImport(Interpreter& interpreter, Ast::Import* statement) {
   auto& global_memory = interpreter.global_memory;
   auto& variables = interpreter.context.variables;
 
-  if (statement->IsFromImport()) {
-    INTERNAL_ERROR("Unsupported import type now.");
-  } else {
-    std::string import_location = statement->GetImportLocation();
-    std::string name = statement->GetName();
+  std::string import_location = statement->GetImportLocation();
+  std::string alias = statement->GetAlias();
 
-    std::size_t array_index = global_memory->Add(1);
-    variables.emplace("#" + static_cast<std::string>(name), array_index);
-  }
+  std::size_t array_index = global_memory->Add(1);
+  variables.emplace("#" + static_cast<std::string>(alias), array_index);
 }
 }  // namespace Interpreter
 }  // namespace Aq

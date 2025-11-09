@@ -64,51 +64,23 @@ class Statement {
 
 class Import : public Statement {
  public:
-  // General import only.
-  Import(std::string import_location, std::string name) {
-    LOGGING_ERROR(
-        "General import is deprecated, use from import instead. "
-        "This will be removed in the future.");
+  // Only support: import "file_path" alias
+  Import(std::string import_location, std::string alias) {
     statement_type_ = StatementType::kImport;
-    is_from_import_ = false;
     import_location_ = import_location;
-    name_ = name;
-  }
-
-  // From import only.
-  Import(std::string import_location,
-         std::map<std::string, std::string> modules) {
-    LOGGING_ERROR(
-        "From import is deprecated, use import instead. "
-        "This will be removed in the future.");
-    statement_type_ = StatementType::kImport;
-    is_from_import_ = true;
-    import_location_ = import_location;
-    modules_ = modules;
+    alias_ = alias;
   }
   virtual ~Import() = default;
 
-  bool IsFromImport() { return is_from_import_; }
   std::string GetImportLocation() { return import_location_; }
-
-  // General import only.
-  std::string GetName() { return name_; }
-
-  // From import only.
-  std::map<std::string, std::string> GetModule() { return modules_; };
+  std::string GetAlias() { return alias_; }
 
   Import(const Import&) = default;
   Import& operator=(const Import&) = default;
 
  private:
-  bool is_from_import_ = false;
   std::string import_location_;
-
-  // General import only.
-  std::string name_;
-
-  // From import only.
-  std::map<std::string, std::string> modules_;
+  std::string alias_;
 };
 
 class Break : public Statement {

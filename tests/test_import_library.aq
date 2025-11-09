@@ -1,0 +1,18 @@
+// Test library file for import tests
+// Contains simple functions and variables that can be imported
+
+int add(int a, int b) {
+    return a + b;
+}
+
+int multiply(int x, int y) {
+    return x * y;
+}
+
+int subtract(int a, int b) {
+    return a - b;
+}
+
+void print_hello() {
+    __builtin_print("Hello from library!\n");
+}
