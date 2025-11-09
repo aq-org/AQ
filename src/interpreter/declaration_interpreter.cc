@@ -34,6 +34,7 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   auto& memory = interpreter.global_memory;
   auto& variables = interpreter.context.variables;
   auto& init_code = interpreter.init_code;
+  auto& classes = interpreter.classes;
 
   // Gets the information from the import statement.
   std::string location = statement->GetImportLocation();
@@ -49,6 +50,43 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     LOGGING_ERROR("Import alias '" + alias + "' already exists. Please use a different alias.");
   imports_map[alias] = imports_map[location];
 
+  // Register the imported module's classes into the main interpreter
+  Interpreter* imported_interpreter = imports_map[location];
+  std::string class_name = "~" + location + "bc~.!__start";
+  
+  // Copy the imported module's main class to the main interpreter
+  if (imported_interpreter->classes.find(".!__start") != imported_interpreter->classes.end()) {
+    classes[class_name] = imported_interpreter->classes[".!__start"];
+    
+    // Update the @name in the class members to match the registered name
+    classes[class_name].GetMembers()->AddString("@name", class_name);
+    
+    // Transform method names by removing the .!__start. prefix
+    auto& methods = classes[class_name].GetMethods();
+    std::unordered_map<std::string, std::vector<Function>> transformed_methods;
+    
+    for (auto& method_pair : methods) {
+      std::string original_name = method_pair.first;
+      std::string new_name = original_name;
+      
+      // Remove scope prefixes
+      // Try .!__start. prefix first
+      std::string prefix1 = ".!__start.";
+      if (original_name.find(prefix1) == 0) {
+        new_name = original_name.substr(prefix1.length());
+      }
+      // Try just . prefix
+      else if (original_name.length() > 0 && original_name[0] == '.' && 
+               original_name != ".!__init" && original_name != ".!__start") {
+        new_name = original_name.substr(1);
+      }
+      
+      transformed_methods[new_name] = method_pair.second;
+    }
+    
+    classes[class_name].GetMethods() = transformed_methods;
+  }
+
   // Gets index from import preprocessing.
   std::size_t index = variables["#" + alias];
 
@@ -58,7 +96,7 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   init_code.push_back(
       Bytecode{_AQVM_OPERATOR_NEW,
                {index, memory->AddUint64t(0),
-                memory->AddString("~" + location + "bc~.!__start")}});
+                memory->AddString(class_name)}});
 }
 
 void HandleFunctionDeclaration(Interpreter& interpreter,

@@ -257,7 +257,7 @@ Ast::Statement* Parser::ParseStatement(Token* token, std::size_t length,
         }
 
         case Token::KeywordType::From: {
-          LOGGING_WARNING(
+          LOGGING_ERROR(
               "The 'from' import syntax is not supported. "
               "Please use: import \"file_path\" alias");
           return nullptr;
