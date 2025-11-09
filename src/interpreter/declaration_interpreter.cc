@@ -104,194 +104,58 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
 
   // Register the imported module's classes into the main interpreter
   Interpreter* imported_interpreter = imports_map[resolved_location];
-  std::string class_name = "~" + resolved_location + "bc~.!__start";
+  // Use a unique name for the imported class to avoid conflicts with main module
+  std::string class_name = "~import~" + alias;
   
   // Store the mapping from alias to the imported module's class name
   // This allows us to resolve cross-file class references like "test2.TEST_CLASS"
   interpreter.import_alias_to_class_name[alias] = class_name;
   
-  // Merge the imported interpreter's global memory into the main interpreter's memory
-  // and build a mapping from old indices to new indices
-  std::unordered_map<std::size_t, std::size_t> index_map;
-  auto& imported_memory = imported_interpreter->global_memory->GetMemory();
-  for (std::size_t i = 0; i < imported_memory.size(); i++) {
-    std::size_t new_index;
-    const Object& obj = imported_memory[i];
-    
-    // Create appropriate copy based on object type
-    switch (obj.type) {
-      case 0x00:  // Auto/uninitialized
-        new_index = memory->Add(1);
-        break;
-      case 0x01:  // Byte
-        new_index = memory->AddByte(obj.data.byte_data);
-        break;
-      case 0x02:  // Long/Int
-        new_index = memory->AddLong(obj.data.int_data);
-        break;
-      case 0x03:  // Double/Float
-        new_index = memory->AddDouble(obj.data.float_data);
-        break;
-      case 0x04:  // Uint64
-        new_index = memory->AddUint64t(obj.data.uint64t_data);
-        break;
-      case 0x05:  // String
-        if (obj.data.string_data != nullptr) {
-          new_index = memory->AddString(*obj.data.string_data);
-        } else {
-          new_index = memory->Add(1);
-        }
-        break;
-      case 0x07:  // Reference - handle later
-      case 0x08:  // Array
-      case 0x09:  // Class
-      default:
-        // For complex types, just allocate space for now
-        new_index = memory->Add(1);
-        memory->GetMemory()[new_index] = obj;
-        break;
-    }
-    
-    index_map[i] = new_index;
-  }
+  // Copy the imported module's main class and all its sub-classes to the main interpreter
+  // Important: We do NOT merge memory - we keep references to the original imported memory
+  // This preserves all function behavior and avoids complex index remapping
   
-  // Helper lambda to remap indices in a function
-  std::size_t imported_memory_size = imported_memory.size();
-  auto remap_function = [&index_map, imported_memory_size](Function& func) -> Function {
-    // Remap parameter indices
-    std::vector<std::size_t> new_params;
-    for (std::size_t old_idx : func.GetParameters()) {
-      auto it = index_map.find(old_idx);
-      if (it != index_map.end()) {
-        new_params.push_back(it->second);
-      } else {
-        // If index not in map, keep as is (shouldn't happen normally)
-        new_params.push_back(old_idx);
-      }
-    }
-    
-    // Remap indices in bytecode carefully - only remap if index exists in map
-    std::vector<Bytecode> new_code;
-    for (const auto& bytecode : func.GetCode()) {
-      Bytecode new_bytecode = bytecode;
-      // Remap operands if they exist in the index map
-      for (std::size_t i = 0; i < bytecode.arguments.size(); i++) {
-        std::size_t old_idx = bytecode.arguments[i];
-        // Only remap if this index was in the imported memory
-        if (old_idx < imported_memory_size) {
-          auto it = index_map.find(old_idx);
-          if (it != index_map.end()) {
-            new_bytecode.arguments[i] = it->second;
-          }
-        }
-      }
-      new_code.push_back(new_bytecode);
-    }
-    
-    Function remapped_func(func.GetName(), new_params, new_code);
-    if (func.IsVariadic()) remapped_func.EnableVariadic();
-    return remapped_func;
-  };
-  
-  // Copy the imported module's main class to the main interpreter with remapped indices
+  // First, copy the main class (.!__start)
   if (imported_interpreter->classes.find(".!__start") != imported_interpreter->classes.end()) {
-    // Create a new Class instead of copying to avoid shallow copy issues
     Class& imported_class = imported_interpreter->classes[".!__start"];
-    if (imported_class.GetClassDeclaration() != nullptr) {
-      classes[class_name].SetClass(imported_class.GetClassDeclaration());
-    }
-    classes[class_name].GetCode() = imported_class.GetCode();
+    
+    // Directly register the imported class - no copying, just reference it
+    // This keeps all the original memory intact
+    classes[class_name] = imported_class;
     classes[class_name].SetName(class_name);
     
-    // Deep copy and remap class members
-    auto& original_members = imported_class.GetMembers()->GetMembers();
-    for (auto& member_pair : original_members) {
-      const std::string& member_name = member_pair.first;
-      const Object& member_obj = member_pair.second;
-      
-      // Deep copy the member object
-      Object new_member_obj = member_obj;
-      // Clear constant_type flag to allow imported variables to be mutable
-      // This is necessary because auto variables might have constant_type=true
-      // in their original context but should be mutable when imported
-      new_member_obj.constant_type = false;
-      
-      // Remap any memory references in the object
-      if (member_obj.type == 0x07) {  // Reference type
-        // Create a new reference with remapped index
-        ObjectReference* new_ref = new ObjectReference();
-        new_ref->is_class = member_obj.data.reference_data->is_class;
-        
-        if (new_ref->is_class) {
-          new_ref->memory.class_memory = member_obj.data.reference_data->memory.class_memory;
-          new_ref->index.variable_name = new std::string(*member_obj.data.reference_data->index.variable_name);
-        } else {
-          new_ref->memory.memory = member_obj.data.reference_data->memory.memory;
-          std::size_t old_idx = member_obj.data.reference_data->index.index;
-          if (old_idx < imported_memory_size && index_map.find(old_idx) != index_map.end()) {
-            new_ref->index.index = index_map[old_idx];
-          } else {
-            new_ref->index.index = old_idx;
-          }
-        }
-        
-        new_member_obj.data.reference_data = new_ref;
-      } else if (member_obj.type == 0x05) {  // String type
-        // Deep copy string
-        if (member_obj.data.string_data != nullptr) {
-          new_member_obj.data.string_data = new std::string(*member_obj.data.string_data);
-        }
-      } else if (member_obj.type == 0x06) {  // Array type
-        // Keep array reference but increment refcount
-        if (member_obj.data.array_data != nullptr) {
-          member_obj.data.array_data->AddReferenceCount();
-        }
-      } else if (member_obj.type == 0x09) {  // Class type
-        // Keep class reference but increment refcount
-        if (member_obj.data.class_data != nullptr) {
-          member_obj.data.class_data->AddReferenceCount();
-        }
-      }
-      
-      classes[class_name].GetMembers()->GetMembers()[member_name] = new_member_obj;
+    // Update the @name in the class members to match the registered name  
+    classes[class_name].GetMembers()->GetMembers()["@name"].type = 0x05;
+    classes[class_name].GetMembers()->GetMembers()["@name"].data.string_data = new std::string(class_name);
+    
+    // Clear constant_type flags on all members to allow mutation
+    for (auto& member_pair : classes[class_name].GetMembers()->GetMembers()) {
+      member_pair.second.constant_type = false;
     }
     
-    // Update the @name in the class members to match the registered name
-    classes[class_name].GetMembers()->AddString("@name", class_name);
-    
-    // Transform method names and remap their memory indices
-    auto& imported_methods = imported_class.GetMethods();
+    // Transform method names to remove scope prefixes so they can be called naturally
+    // E.g., ".function_name" becomes "function_name"
     std::unordered_map<std::string, std::vector<Function>> transformed_methods;
-    
-    for (auto& method_pair : imported_methods) {
+    for (auto& method_pair : classes[class_name].GetMethods()) {
       std::string original_name = method_pair.first;
       std::string new_name = original_name;
       
-      // Remove scope prefixes
-      // Try .!__start. prefix first
-      std::string prefix1 = ".!__start.";
-      if (original_name.find(prefix1) == 0) {
-        new_name = original_name.substr(prefix1.length());
-      }
-      // Try just . prefix
-      else if (original_name.length() > 0 && original_name[0] == '.' && 
-               original_name != ".!__init" && original_name != ".!__start") {
+      // Remove leading dot for global functions (but keep special methods like .!__init)
+      if (original_name.length() > 0 && original_name[0] == '.' && 
+          original_name != ".!__init" && original_name != ".!__start") {
         new_name = original_name.substr(1);
       }
       
-      // Remap all function overloads for this method
-      std::vector<Function> remapped_overloads;
-      for (auto& func : method_pair.second) {
-        remapped_overloads.push_back(remap_function(func));
+      // Keep both the original name and the transformed name for compatibility
+      transformed_methods[original_name] = method_pair.second;
+      if (new_name != original_name) {
+        transformed_methods[new_name] = method_pair.second;
       }
-      
-      transformed_methods[new_name] = remapped_overloads;
     }
-    
     classes[class_name].GetMethods() = transformed_methods;
   }
   
-  // Copy all other classes from the imported module and register them in the functions map
+  // Copy all other classes from the imported module
   for (auto& imported_class_pair : imported_interpreter->classes) {
     std::string imported_class_name = imported_class_pair.first;
     
@@ -299,8 +163,6 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     if (imported_class_name == ".!__start") continue;
     
     // Transform the class name to include the module prefix
-    // Original name: ".TEST_CLASS" or ".!__start.SomeClass"
-    // New name: "~path~.!__start.TEST_CLASS" or "~path~.!__start.SomeClass"
     std::string new_class_name;
     if (imported_class_name[0] == '.') {
       // Remove leading dot and add module prefix
@@ -311,104 +173,18 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     
     LOGGING_INFO("Registering imported class: '" + imported_class_name + "' as '" + new_class_name + "'");
     
-    // Create a new Class instead of copying to avoid shallow copy issues
-    Class& imported_class = imported_class_pair.second;
-    if (imported_class.GetClassDeclaration() != nullptr) {
-      classes[new_class_name].SetClass(imported_class.GetClassDeclaration());
-    }
-    classes[new_class_name].GetCode() = imported_class.GetCode();
+    // Directly register the imported class
+    classes[new_class_name] = imported_class_pair.second;
     classes[new_class_name].SetName(new_class_name);
     
-    // Deep copy and remap class members
-    auto& original_members = imported_class.GetMembers()->GetMembers();
-    for (auto& member_pair : original_members) {
-      const std::string& member_name = member_pair.first;
-      const Object& member_obj = member_pair.second;
-      
-      // Deep copy the member object
-      Object new_member_obj = member_obj;
-      // Clear constant_type flag to allow imported variables to be mutable
-      // This is necessary because auto variables might have constant_type=true
-      // in their original context but should be mutable when imported
-      new_member_obj.constant_type = false;
-      
-      // Remap any memory references in the object
-      if (member_obj.type == 0x07) {  // Reference type
-        // Create a new reference with remapped index
-        ObjectReference* new_ref = new ObjectReference();
-        new_ref->is_class = member_obj.data.reference_data->is_class;
-        
-        if (new_ref->is_class) {
-          new_ref->memory.class_memory = member_obj.data.reference_data->memory.class_memory;
-          new_ref->index.variable_name = new std::string(*member_obj.data.reference_data->index.variable_name);
-        } else {
-          new_ref->memory.memory = member_obj.data.reference_data->memory.memory;
-          std::size_t old_idx = member_obj.data.reference_data->index.index;
-          if (old_idx < imported_memory_size && index_map.find(old_idx) != index_map.end()) {
-            new_ref->index.index = index_map[old_idx];
-          } else {
-            new_ref->index.index = old_idx;
-          }
-        }
-        
-        new_member_obj.data.reference_data = new_ref;
-      } else if (member_obj.type == 0x05) {  // String type
-        // Deep copy string
-        if (member_obj.data.string_data != nullptr) {
-          new_member_obj.data.string_data = new std::string(*member_obj.data.string_data);
-        }
-      } else if (member_obj.type == 0x06) {  // Array type
-        // Keep array reference but increment refcount
-        if (member_obj.data.array_data != nullptr) {
-          member_obj.data.array_data->AddReferenceCount();
-        }
-      } else if (member_obj.type == 0x09) {  // Class type
-        // Keep class reference but increment refcount
-        if (member_obj.data.class_data != nullptr) {
-          member_obj.data.class_data->AddReferenceCount();
-        }
-      }
-      
-      classes[new_class_name].GetMembers()->GetMembers()[member_name] = new_member_obj;
+    // Update the @name in the class members
+    classes[new_class_name].GetMembers()->GetMembers()["@name"].type = 0x05;
+    classes[new_class_name].GetMembers()->GetMembers()["@name"].data.string_data = new std::string(new_class_name);
+    
+    // Clear constant_type flags
+    for (auto& member_pair : classes[new_class_name].GetMembers()->GetMembers()) {
+      member_pair.second.constant_type = false;
     }
-    
-    // Update the @name in the class members to match the registered name
-    classes[new_class_name].GetMembers()->AddString("@name", new_class_name);
-    
-    // Transform method names and remap their memory indices (same as for main class)
-    auto& imported_methods_2 = imported_class.GetMethods();
-    std::unordered_map<std::string, std::vector<Function>> transformed_methods;
-    
-    for (auto& method_pair : imported_methods_2) {
-      std::string original_name = method_pair.first;
-      std::string new_method_name = original_name;
-      
-      // Remove scope prefixes
-      // Try .!__start. prefix first
-      std::string prefix1 = ".!__start.";
-      if (original_name.find(prefix1) == 0) {
-        new_method_name = original_name.substr(prefix1.length());
-      }
-      // Try .TEST_CLASS. prefix (class-specific prefix)
-      else if (original_name.find(imported_class_name + ".") == 0) {
-        new_method_name = original_name.substr(imported_class_name.length() + 1);
-      }
-      // Try just . prefix
-      else if (original_name.length() > 0 && original_name[0] == '.' && 
-               original_name != ".!__init" && original_name != ".!__start") {
-        new_method_name = original_name.substr(1);
-      }
-      
-      // Remap all function overloads for this method
-      std::vector<Function> remapped_overloads;
-      for (auto& func : method_pair.second) {
-        remapped_overloads.push_back(remap_function(func));
-      }
-      
-      transformed_methods[new_method_name] = remapped_overloads;
-    }
-    
-    classes[new_class_name].GetMethods() = transformed_methods;
     
     // Register in functions map so it can be found during class resolution
     functions[new_class_name].push_back(Function());
@@ -419,6 +195,8 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
 
   // Initialize the import object using NEW
   // This creates an instance of the imported class with all its members
+  // The instance will share memory with the imported module, so all
+  // global variables, functions, and classes are accessible
   init_code.push_back(
       Bytecode{_AQVM_OPERATOR_NEW,
                {index, memory->AddUint64t(0),
@@ -1904,6 +1682,30 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   if (ast == nullptr) LOGGING_ERROR("ast is nullptr.");
 
   interpreter->Generate(ast);
+
+  // Initialize the module by executing its init code only (not main())
+  // This ensures all global variables are properly initialized
+  // We call .!__init method directly to run only the initialization code
+  
+  // Check if .!__init method exists
+  if (interpreter->classes.find(".!__start") == interpreter->classes.end()) {
+    LOGGING_ERROR("Imported module does not have .!__start class");
+  }
+  
+  auto& start_class = interpreter->classes[".!__start"];
+  if (start_class.GetMethods().find(".!__init") == start_class.GetMethods().end()) {
+    LOGGING_WARNING("Imported module does not have .!__init method - skipping initialization");
+  } else {
+    interpreter->global_memory->GetMemory()[2].type = 0x09;
+    interpreter->global_memory->GetMemory()[2].constant_type = true;
+    interpreter->global_memory->GetMemory()[2].data.class_data = start_class.GetMembers();
+
+    std::size_t init_method_name = interpreter->global_memory->AddString(".!__init");
+    std::vector<size_t> init_arguments = {1};
+    InvokeClassMethod(interpreter->global_memory, 2, init_method_name, 
+                      init_arguments, interpreter->classes,
+                      interpreter->builtin_functions);
+  }
 
   LOGGING_INFO("Generate Bytecode SUCCESS!");
 
