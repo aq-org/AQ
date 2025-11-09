@@ -70,6 +70,7 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   auto& variables = interpreter.context.variables;
   auto& init_code = interpreter.init_code;
   auto& classes = interpreter.classes;
+  auto& functions = interpreter.functions;
 
   // Gets the information from the import statement.
   std::string location = statement->GetImportLocation();
@@ -90,9 +91,13 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     return;
   }
 
-  // Checks if the alias is already used in THIS file (name conflict detection within same file only).
-  if (interpreter.imported_aliases.find(alias) != interpreter.imported_aliases.end())
-    LOGGING_ERROR("Import alias '" + alias + "' already exists in this file. Please use a different alias.");
+  // Check if this import has already been processed in this interpreter
+  if (interpreter.imported_aliases.find(alias) != interpreter.imported_aliases.end()) {
+    // Already processed, skip (this can happen because we call HandleImport from
+    // both PreProcessImport and the main loop in interpreter.cc)
+    LOGGING_INFO("Import '" + alias + "' already processed, skipping.");
+    return;
+  }
   
   // Track this alias as used in the current interpreter
   interpreter.imported_aliases.insert(alias);
@@ -100,6 +105,10 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   // Register the imported module's classes into the main interpreter
   Interpreter* imported_interpreter = imports_map[resolved_location];
   std::string class_name = "~" + resolved_location + "bc~.!__start";
+  
+  // Store the mapping from alias to the imported module's class name
+  // This allows us to resolve cross-file class references like "test2.TEST_CLASS"
+  interpreter.import_alias_to_class_name[alias] = class_name;
   
   // Merge the imported interpreter's global memory into the main interpreter's memory
   // and build a mapping from old indices to new indices
@@ -221,6 +230,71 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     }
     
     classes[class_name].GetMethods() = transformed_methods;
+  }
+  
+  // Copy all other classes from the imported module and register them in the functions map
+  for (auto& imported_class_pair : imported_interpreter->classes) {
+    std::string imported_class_name = imported_class_pair.first;
+    
+    // Skip the main class as it's already handled above
+    if (imported_class_name == ".!__start") continue;
+    
+    // Transform the class name to include the module prefix
+    // Original name: ".TEST_CLASS" or ".!__start.SomeClass"
+    // New name: "~path~.!__start.TEST_CLASS" or "~path~.!__start.SomeClass"
+    std::string new_class_name;
+    if (imported_class_name[0] == '.') {
+      // Remove leading dot and add module prefix
+      new_class_name = class_name + imported_class_name;
+    } else {
+      new_class_name = class_name + "." + imported_class_name;
+    }
+    
+    LOGGING_INFO("Registering imported class: '" + imported_class_name + "' as '" + new_class_name + "'");
+    
+    // Copy the class
+    classes[new_class_name] = imported_class_pair.second;
+    
+    // Update the @name in the class members to match the registered name
+    classes[new_class_name].GetMembers()->AddString("@name", new_class_name);
+    
+    // Transform method names and remap their memory indices (same as for main class)
+    auto& methods = classes[new_class_name].GetMethods();
+    std::unordered_map<std::string, std::vector<Function>> transformed_methods;
+    
+    for (auto& method_pair : methods) {
+      std::string original_name = method_pair.first;
+      std::string new_method_name = original_name;
+      
+      // Remove scope prefixes
+      // Try .!__start. prefix first
+      std::string prefix1 = ".!__start.";
+      if (original_name.find(prefix1) == 0) {
+        new_method_name = original_name.substr(prefix1.length());
+      }
+      // Try .TEST_CLASS. prefix (class-specific prefix)
+      else if (original_name.find(imported_class_name + ".") == 0) {
+        new_method_name = original_name.substr(imported_class_name.length() + 1);
+      }
+      // Try just . prefix
+      else if (original_name.length() > 0 && original_name[0] == '.' && 
+               original_name != ".!__init" && original_name != ".!__start") {
+        new_method_name = original_name.substr(1);
+      }
+      
+      // Remap all function overloads for this method
+      std::vector<Function> remapped_overloads;
+      for (auto& func : method_pair.second) {
+        remapped_overloads.push_back(remap_function(func));
+      }
+      
+      transformed_methods[new_method_name] = remapped_overloads;
+    }
+    
+    classes[new_class_name].GetMethods() = transformed_methods;
+    
+    // Register in functions map so it can be found during class resolution
+    functions[new_class_name].push_back(Function());
   }
 
   // Gets index from import preprocessing.
@@ -1487,10 +1561,39 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   // auto& global_code = interpreter.global_code;
   auto& scopes = interpreter.context.scopes;
   auto& functions = interpreter.functions;
+  auto& variables = interpreter.context.variables;
 
   // Gets the class name, which is same as the function name.
   std::string name = std::string(
       *dynamic_cast<Ast::ClassType*>(declaration->GetVariableType()));
+  
+  // Check if the class name refers to an imported module (e.g., "test2.TEST_CLASS")
+  std::size_t dot_pos = name.find('.');
+  if (dot_pos != std::string::npos) {
+    std::string potential_alias = name.substr(0, dot_pos);
+    std::string class_in_module = name.substr(dot_pos + 1);
+    
+    // Check if potential_alias is an import alias by looking in the import map
+    auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
+    if (alias_it != interpreter.import_alias_to_class_name.end()) {
+      // This is an imported module access
+      std::string import_class_name = alias_it->second;
+      
+      // The imported class name would be like "~path~.!__start"
+      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
+      name = import_class_name + "." + class_in_module;
+      
+      // Verify this class exists
+      if (functions.find(name) == functions.end()) {
+        LOGGING_ERROR("Class '" + class_in_module + "' not found in imported module '" + potential_alias + "'.");
+      }
+      
+      // Successfully resolved imported class name
+      goto class_found;
+    }
+  }
+  
+  // Original class resolution logic for non-imported classes
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     // Searching globally first and then conducting a search with scope is to
     // avoid the situation where the scope index is exceeded and -1 occurs.
@@ -1511,6 +1614,8 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
     }
     if (i == -1) LOGGING_ERROR("Class not found.");
   }
+  
+class_found:
 
   // Adds the class into global memory.
   code.push_back(
@@ -1534,10 +1639,39 @@ void HandleClassInHandlingVariableWithValue(Interpreter& interpreter,
   // auto& global_code = interpreter.global_code;
   auto& scopes = interpreter.context.scopes;
   auto& functions = interpreter.functions;
+  auto& variables = interpreter.context.variables;
 
   // Gets the class name, which is same as the function name.
   std::string name = std::string(
       *dynamic_cast<Ast::ClassType*>(declaration->GetVariableType()));
+  
+  // Check if the class name refers to an imported module (e.g., "test2.TEST_CLASS")
+  std::size_t dot_pos = name.find('.');
+  if (dot_pos != std::string::npos) {
+    std::string potential_alias = name.substr(0, dot_pos);
+    std::string class_in_module = name.substr(dot_pos + 1);
+    
+    // Check if potential_alias is an import alias by looking in the import map
+    auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
+    if (alias_it != interpreter.import_alias_to_class_name.end()) {
+      // This is an imported module access
+      std::string import_class_name = alias_it->second;
+      
+      // The imported class name would be like "~path~.!__start"
+      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
+      name = import_class_name + "." + class_in_module;
+      
+      // Verify this class exists
+      if (functions.find(name) == functions.end()) {
+        LOGGING_ERROR("Class '" + class_in_module + "' not found in imported module '" + potential_alias + "'.");
+      }
+      
+      // Successfully resolved imported class name
+      goto class_found;
+    }
+  }
+  
+  // Original class resolution logic for non-imported classes
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     // Searching globally first and then conducting a search with scope is to
     // avoid the situation where the scope index is exceeded and -1 occurs.
@@ -1558,6 +1692,8 @@ void HandleClassInHandlingVariableWithValue(Interpreter& interpreter,
     }
     if (i == -1) LOGGING_ERROR("Class not found.");
   }
+  
+class_found:
 
   // Adds the class into global memory.
   code.push_back(
@@ -1569,8 +1705,37 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
   auto& functions = interpreter.functions;
+  auto& variables = interpreter.context.variables;
+  auto& memory = interpreter.global_memory;
 
   std::string name = type->GetClassName();
+  
+  // Check if the class name refers to an imported module (e.g., "test2.TEST_CLASS")
+  std::size_t dot_pos = name.find('.');
+  if (dot_pos != std::string::npos) {
+    std::string potential_alias = name.substr(0, dot_pos);
+    std::string class_in_module = name.substr(dot_pos + 1);
+    
+    // Check if potential_alias is an import alias by looking in the import map
+    auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
+    if (alias_it != interpreter.import_alias_to_class_name.end()) {
+      // This is an imported module access
+      std::string import_class_name = alias_it->second;
+      
+      // The imported class name would be like "~path~.!__start"
+      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
+      name = import_class_name + "." + class_in_module;
+      
+      // Verify this class exists
+      if (functions.find(name) == functions.end()) {
+        LOGGING_ERROR("Class '" + class_in_module + "' not found in imported module '" + potential_alias + "'.");
+      }
+      
+      return name;
+    }
+  }
+  
+  // Original class resolution logic for non-imported classes
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     // Searching globally first and then conducting a search with scope is to
     // avoid the situation where the scope index is exceeded and -1 occurs.

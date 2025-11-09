@@ -1,0 +1,13 @@
+// Test accessing global variables from imported modules
+import "issue1_test/test2.aq" mymod;
+
+auto main() {
+    __builtin_print("Testing global variable access...\n");
+    
+    // Try to access global variable from imported module
+    __builtin_print(mymod.test_global_var);
+    __builtin_print("\n");
+    
+    __builtin_print("Global variable access test completed\n");
+    return 0;
+}

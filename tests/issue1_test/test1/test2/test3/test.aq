@@ -1,0 +1,6 @@
+import "../test.aq" test;
+
+auto main(){
+    test.print();
+    return 0;
+}

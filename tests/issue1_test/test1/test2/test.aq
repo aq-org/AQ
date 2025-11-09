@@ -1,0 +1,11 @@
+import "../test.aq" test;
+
+auto main(){
+    test.print();
+}
+
+auto print(){
+    test.print();
+    test.print1();
+    __builtin_print("SUCCESS F T2");
+}
