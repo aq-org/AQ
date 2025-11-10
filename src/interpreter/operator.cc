@@ -1427,10 +1427,10 @@ int InvokeClassMethod(
   }
   op_LOAD_MEMBER:
     if (arguments.operand2 == 0) {
-      LOAD_MEMBER(memory, classes, arguments.operand1, current_class_index,
+      LOAD_MEMBER(execution_memory, classes, arguments.operand1, current_class_index,
                   arguments.operand3);
     } else {
-      LOAD_MEMBER(memory, classes, arguments.operand1, arguments.operand2,
+      LOAD_MEMBER(execution_memory, classes, arguments.operand1, arguments.operand2,
                   arguments.operand3);
     }
     continue;
