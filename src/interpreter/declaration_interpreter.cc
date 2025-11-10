@@ -159,6 +159,41 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
         transformed_methods[new_name] = method_pair.second;
       }
     }
+    
+    // Also register lambdas under their variable names for easy invocation
+    // Check each member variable to see if it contains a lambda function reference
+    auto& members = classes[class_name].GetMembers()->GetMembers();
+    for (auto& member_pair : members) {
+      // Skip special members like @name
+      if (member_pair.first[0] == '@') continue;
+      
+      // Check if this member is a string (type 0x05) or reference (type 0x07) to a string
+      if (member_pair.second.type == 0x05) {
+        std::string value = *member_pair.second.data.string_data;
+        // Check if this is a lambda function name
+        if (value.find("__lambda_") == 0 && transformed_methods.find(value) != transformed_methods.end()) {
+          // Register this lambda under the variable name as well
+          transformed_methods[member_pair.first] = transformed_methods[value];
+          LOGGING_INFO("Registered lambda '" + value + "' as method '" + member_pair.first + "'");
+        }
+      } else if (member_pair.second.type == 0x07) {
+        // It's a reference - need to dereference it
+        auto ref_data = member_pair.second.data.reference_data;
+        if (!ref_data->is_class) {
+          auto* target_mem = ref_data->memory.memory->GetMemory().data() + ref_data->index.index;
+          if (target_mem->type == 0x05) {
+            std::string value = *target_mem->data.string_data;
+            // Check if this is a lambda function name
+            if (value.find("__lambda_") == 0 && transformed_methods.find(value) != transformed_methods.end()) {
+              // Register this lambda under the variable name as well
+              transformed_methods[member_pair.first] = transformed_methods[value];
+              LOGGING_INFO("Registered lambda '" + value + "' as method '" + member_pair.first + "'");
+            }
+          }
+        }
+      }
+    }
+    
     classes[class_name].GetMethods() = transformed_methods;
   }
   

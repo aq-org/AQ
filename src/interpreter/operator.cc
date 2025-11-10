@@ -1000,8 +1000,49 @@ int InvokeClassMethod(
 
   auto method_it = class_it->second.GetMethods().find(method_name);
   if (method_it == class_it->second.GetMethods().end()) {
-    LOGGING_ERROR("Method not found: " + method_name);
-    return -1;
+    // Method not found - check if it's a member variable containing a function reference
+    auto object = GetObject(memory_ptr + class_object);
+    auto& members = object->GetMembers();
+    auto member_it = members.find(method_name);
+    
+    if (member_it != members.end()) {
+      // Found a member - check if it's a reference (0x07) or string (0x05)
+      Object* target_object = nullptr;
+      
+      if (member_it->second.type == 0x07) {
+        // It's a reference - dereference it
+        auto ref_data = member_it->second.data.reference_data;
+        if (!ref_data->is_class) {
+          target_object = ref_data->memory.memory->GetMemory().data() + ref_data->index.index;
+        } else {
+          // It's a reference to a class member, skip for now
+          LOGGING_ERROR("Method not found: " + method_name + " (member is a class reference)");
+          return -1;
+        }
+      } else if (member_it->second.type == 0x05) {
+        // It's already a string
+        target_object = &member_it->second;
+      }
+      
+      if (target_object && target_object->type == 0x05) {
+        // Found a string - it might be a lambda function name
+        std::string lambda_name = *target_object->data.string_data;
+        
+        // Try to find the lambda function in the methods
+        method_it = class_it->second.GetMethods().find(lambda_name);
+        if (method_it == class_it->second.GetMethods().end()) {
+          LOGGING_ERROR("Method not found: " + method_name + " (lambda: " + lambda_name + ")");
+          return -1;
+        }
+        // Found the lambda function - continue with invocation
+      } else {
+        LOGGING_ERROR("Method not found: " + method_name);
+        return -1;
+      }
+    } else {
+      LOGGING_ERROR("Method not found: " + method_name);
+      return -1;
+    }
   }
 
   Function method =
