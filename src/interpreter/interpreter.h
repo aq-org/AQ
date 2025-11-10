@@ -62,6 +62,9 @@ struct Interpreter {
   // Map from import alias to the full class name of the imported module (e.g., "test2" -> "~import~test2")
   std::unordered_map<std::string, std::string> import_alias_to_class_name;
   
+  // Map from imported class name to the source interpreter's memory (for cross-module function calls)
+  std::unordered_map<std::string, Memory*> imported_class_memory;
+  
   // The source file path of this interpreter (used for resolving relative imports)
   std::string source_file_path;
 };

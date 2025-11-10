@@ -114,6 +114,10 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     // Store the mapping from alias to the imported module's class name
     // This allows us to resolve cross-file class references like "test2.TEST_CLASS"
     interpreter.import_alias_to_class_name[alias] = class_name;
+    
+    // Store the mapping from class name to the imported module's memory
+    // This allows cross-module function calls to use the correct memory context
+    interpreter.imported_class_memory[class_name] = imported_interpreter->global_memory;
   }
   
   // Only register classes if this is the first time processing this import
@@ -130,6 +134,7 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     // This keeps all the original memory intact
     classes[class_name] = imported_class;
     classes[class_name].SetName(class_name);
+    classes[class_name].SetSourceMemory(imported_interpreter->global_memory);
     
     // Update the @name in the class members to match the registered name  
     classes[class_name].GetMembers()->GetMembers()["@name"].type = 0x05;

@@ -51,6 +51,10 @@ class Class {
   void SetName(std::string name) { name_ = name; }
 
   std::string GetName() { return name_; }
+  
+  void SetSourceMemory(Memory* memory) { source_memory_ = memory; }
+  
+  Memory* GetSourceMemory() { return source_memory_; }
 
  private:
   std::string name_;
@@ -59,6 +63,7 @@ class Class {
   ClassMemory* members_;
   std::vector<Bytecode> code_;
   std::size_t name_index_ = 0;
+  Memory* source_memory_ = nullptr;  // Memory context for this class's methods
 };
 }  // namespace Interpreter
 }  // namespace Aq

@@ -997,6 +997,15 @@ int InvokeClassMethod(
     LOGGING_ERROR("Class not found: " + class_name);
     return -1;
   }
+  
+  // Check if this class has a source memory (i.e., it's an imported class)
+  // If so, use that memory for method execution instead of the current memory
+  Memory* execution_memory = memory;
+  Object* execution_memory_ptr = memory_ptr;
+  if (class_it->second.GetSourceMemory() != nullptr) {
+    execution_memory = class_it->second.GetSourceMemory();
+    execution_memory_ptr = execution_memory->GetMemory().data();
+  }
 
   auto method_it = class_it->second.GetMethods().find(method_name);
   if (method_it == class_it->second.GetMethods().end()) {
@@ -1053,9 +1062,9 @@ int InvokeClassMethod(
   // Return value.
   ObjectReference reference;
   reference.is_class = false;
-  reference.memory.memory = memory;
+  reference.memory.memory = memory;  // Keep using caller's memory for return value
   reference.index.index = arguments[0];
-  SetReference(memory_ptr + function_arguments[0], reference);
+  SetReference(execution_memory_ptr + function_arguments[0], reference);
 
   for (std::size_t i = 1;
        i < (method.IsVariadic() ? function_arguments.size() - 1
@@ -1063,22 +1072,22 @@ int InvokeClassMethod(
        i++) {
     auto argument_object = function_arguments[i];
 
-    if (memory_ptr[function_arguments[i]].type == 0x07) {
+    if (execution_memory_ptr[function_arguments[i]].type == 0x07) {
       ObjectReference argument_reference;
       argument_reference.is_class = false;
-      argument_reference.memory.memory = memory;
+      argument_reference.memory.memory = memory;  // Source from caller's memory
       argument_reference.index.index = arguments[i];
-      SetReference(memory_ptr + argument_object, argument_reference);
+      SetReference(execution_memory_ptr + argument_object, argument_reference);
 
     } else {
-      if (memory_ptr[argument_object].constant_type) {
-        switch (memory_ptr[argument_object].type) {
+      if (execution_memory_ptr[argument_object].constant_type) {
+        switch (execution_memory_ptr[argument_object].type) {
           case 0x01:
-            SetByte(memory_ptr + argument_object,
+            SetByte(execution_memory_ptr + argument_object,
                     GetByte(memory_ptr + arguments[i]));
             break;
           case 0x02:
-            SetLong(memory_ptr + argument_object,
+            SetLong(execution_memory_ptr + argument_object,
                     GetLong(memory_ptr + arguments[i]));
             break;
           case 0x03:
