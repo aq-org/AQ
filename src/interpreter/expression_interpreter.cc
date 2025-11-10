@@ -864,7 +864,7 @@ std::size_t GetClassIndex(Interpreter& interpreter, Ast::Expression* expression,
       Object temp;
 
       // Check if the current class has the variable.
-      if (current_class != nullptr && current_class->GetName() != ".!__start" &&
+      if (current_class != nullptr && current_class->GetName() != "@constructor" &&
           current_class->GetVariable(variable_name, temp)) {
         // Gets the reference of the variable index.
         std::size_t return_index = global_memory->Add(1);

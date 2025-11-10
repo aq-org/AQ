@@ -91,33 +91,40 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     return;
   }
 
-  // Check if this import has already been processed in this interpreter
-  if (interpreter.imported_aliases.find(alias) != interpreter.imported_aliases.end()) {
-    // Already processed, skip (this can happen because we call HandleImport from
-    // both PreProcessImport and the main loop in interpreter.cc)
-    LOGGING_INFO("Import '" + alias + "' already processed, skipping.");
-    return;
-  }
-  
-  // Track this alias as used in the current interpreter
-  interpreter.imported_aliases.insert(alias);
-
   // Register the imported module's classes into the main interpreter
   Interpreter* imported_interpreter = imports_map[resolved_location];
-  // Use a unique name for the imported class to avoid conflicts with main module
-  std::string class_name = "~import~" + alias;
   
-  // Store the mapping from alias to the imported module's class name
-  // This allows us to resolve cross-file class references like "test2.TEST_CLASS"
-  interpreter.import_alias_to_class_name[alias] = class_name;
+  // Check if this import has already been processed in this interpreter
+  bool already_processed = interpreter.imported_aliases.find(alias) != interpreter.imported_aliases.end();
   
-  // Copy the imported module's main class and all its sub-classes to the main interpreter
-  // Important: We do NOT merge memory - we keep references to the original imported memory
-  // This preserves all function behavior and avoids complex index remapping
+  // Get or create the class name for this import
+  std::string class_name;
+  if (already_processed) {
+    // Already processed, just get the class name from the map
+    class_name = interpreter.import_alias_to_class_name[alias];
+    LOGGING_INFO("Import '" + alias + "' already processed, skipping class registration.");
+  } else {
+    // First time processing this import
+    // Use a unique name for the imported class to avoid conflicts with main module
+    class_name = "~import~" + alias;
+    
+    // Track this alias as used in the current interpreter
+    interpreter.imported_aliases.insert(alias);
+    
+    // Store the mapping from alias to the imported module's class name
+    // This allows us to resolve cross-file class references like "test2.TEST_CLASS"
+    interpreter.import_alias_to_class_name[alias] = class_name;
+  }
   
-  // First, copy the main class (.!__start)
-  if (imported_interpreter->classes.find(".!__start") != imported_interpreter->classes.end()) {
-    Class& imported_class = imported_interpreter->classes[".!__start"];
+  // Only register classes if this is the first time processing this import
+  if (!already_processed) {
+    // Copy the imported module's main class and all its sub-classes to the main interpreter
+    // Important: We do NOT merge memory - we keep references to the original imported memory
+    // This preserves all function behavior and avoids complex index remapping
+    
+    // First, copy the main class (@constructor)
+    if (imported_interpreter->classes.find("@constructor") != imported_interpreter->classes.end()) {
+    Class& imported_class = imported_interpreter->classes["@constructor"];
     
     // Directly register the imported class - no copying, just reference it
     // This keeps all the original memory intact
@@ -140,9 +147,9 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
       std::string original_name = method_pair.first;
       std::string new_name = original_name;
       
-      // Remove leading dot for global functions (but keep special methods like .!__init)
+      // Remove leading dot for global functions (but keep special methods like .!__init and @constructor)
       if (original_name.length() > 0 && original_name[0] == '.' && 
-          original_name != ".!__init" && original_name != ".!__start") {
+          original_name != ".!__init" && original_name != "@constructor") {
         new_name = original_name.substr(1);
       }
       
@@ -160,7 +167,14 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     std::string imported_class_name = imported_class_pair.first;
     
     // Skip the main class as it's already handled above
-    if (imported_class_name == ".!__start") continue;
+    if (imported_class_name == "@constructor") continue;
+    
+    // Skip classes that are themselves imported modules (start with "~import~")
+    // These should be accessed through the original import, not nested
+    if (imported_class_name.find("~import~") == 0) {
+      LOGGING_INFO("Skipping nested import: '" + imported_class_name + "'");
+      continue;
+    }
     
     // Transform the class name to include the module prefix
     std::string new_class_name;
@@ -189,6 +203,7 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     // Register in functions map so it can be found during class resolution
     functions[new_class_name].push_back(Function());
   }
+  } // End of !already_processed block
 
   // Gets index from import preprocessing.
   std::size_t index = variables["#" + alias];
@@ -1475,8 +1490,8 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
       // This is an imported module access
       std::string import_class_name = alias_it->second;
       
-      // The imported class name would be like "~path~.!__start"
-      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
+      // The imported class name would be like "~import~alias"
+      // We need to construct the full class name as "~import~alias.CLASS_NAME"
       name = import_class_name + "." + class_in_module;
       
       // Verify this class exists
@@ -1553,8 +1568,8 @@ void HandleClassInHandlingVariableWithValue(Interpreter& interpreter,
       // This is an imported module access
       std::string import_class_name = alias_it->second;
       
-      // The imported class name would be like "~path~.!__start"
-      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
+      // The imported class name would be like "~import~alias"
+      // We need to construct the full class name as "~import~alias.CLASS_NAME"
       name = import_class_name + "." + class_in_module;
       
       // Verify this class exists
@@ -1618,8 +1633,8 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
       // This is an imported module access
       std::string import_class_name = alias_it->second;
       
-      // The imported class name would be like "~path~.!__start"
-      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
+      // The imported class name would be like "~import~alias"
+      // We need to construct the full class name as "~import~alias.CLASS_NAME"
       name = import_class_name + "." + class_in_module;
       
       // Verify this class exists
@@ -1688,11 +1703,11 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
   // We call .!__init method directly to run only the initialization code
   
   // Check if .!__init method exists
-  if (interpreter->classes.find(".!__start") == interpreter->classes.end()) {
-    LOGGING_ERROR("Imported module does not have .!__start class");
+  if (interpreter->classes.find("@constructor") == interpreter->classes.end()) {
+    LOGGING_ERROR("Imported module does not have @constructor class");
   }
   
-  auto& start_class = interpreter->classes[".!__start"];
+  auto& start_class = interpreter->classes["@constructor"];
   if (start_class.GetMethods().find(".!__init") == start_class.GetMethods().end()) {
     LOGGING_WARNING("Imported module does not have .!__init method - skipping initialization");
   } else {
