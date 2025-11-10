@@ -1427,10 +1427,10 @@ int InvokeClassMethod(
   }
   op_LOAD_MEMBER:
     if (arguments.operand2 == 0) {
-      LOAD_MEMBER(execution_memory, classes, arguments.operand1, current_class_index,
+      LOAD_MEMBER(memory, classes, arguments.operand1, current_class_index,
                   arguments.operand3);
     } else {
-      LOAD_MEMBER(execution_memory, classes, arguments.operand1, arguments.operand2,
+      LOAD_MEMBER(memory, classes, arguments.operand1, arguments.operand2,
                   arguments.operand3);
     }
     continue;
@@ -1872,9 +1872,10 @@ int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
   if (class_object.type != 0x09)
     LOGGING_ERROR("class_index is not a class object.");
 
-  auto& member_name_object = memory->GetMemory()[operand];
-  if (member_name_object.type != 0x05)
-    LOGGING_ERROR("operand is not a string.");
+  auto& member_name_object = memory->GetOriginData(operand);
+  if (member_name_object.type != 0x05) {
+    LOGGING_ERROR("operand is not a string. Type: " + std::to_string(member_name_object.type) + ", operand index: " + std::to_string(operand));
+  }
 
   ObjectReference* reference = new ObjectReference();
   reference->is_class = true;
