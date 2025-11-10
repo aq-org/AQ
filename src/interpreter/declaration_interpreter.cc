@@ -4,6 +4,7 @@
 
 #include "interpreter/declaration_interpreter.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <unordered_map>
 #include <unordered_set>
@@ -94,20 +95,20 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   // Register the imported module's classes into the main interpreter
   Interpreter* imported_interpreter = imports_map[resolved_location];
   
+  // Generate a unique class name based on the file path (not the alias)
+  // This ensures that the same file always gets the same class name regardless of alias
+  // Replace filesystem characters with safe characters for class names
+  std::string class_name = "~file~" + resolved_location;
+  std::replace(class_name.begin(), class_name.end(), '/', '_');
+  std::replace(class_name.begin(), class_name.end(), '.', '_');
+  std::replace(class_name.begin(), class_name.end(), '-', '_');
+  
   // Check if this import has already been processed in this interpreter
   bool already_processed = interpreter.imported_aliases.find(alias) != interpreter.imported_aliases.end();
   
-  // Get or create the class name for this import
-  std::string class_name;
   if (already_processed) {
-    // Already processed, just get the class name from the map
-    class_name = interpreter.import_alias_to_class_name[alias];
     LOGGING_INFO("Import '" + alias + "' already processed, skipping class registration.");
   } else {
-    // First time processing this import
-    // Use a unique name for the imported class to avoid conflicts with main module
-    class_name = "~import~" + alias;
-    
     // Track this alias as used in the current interpreter
     interpreter.imported_aliases.insert(alias);
     
@@ -209,23 +210,30 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     // Skip the main class as it's already handled above
     if (imported_class_name == "@constructor") continue;
     
-    // Skip classes that are themselves imported modules (start with "~import~")
-    // These should be accessed through the original import, not nested
-    if (imported_class_name.find("~import~") == 0) {
-      LOGGING_INFO("Skipping nested import: '" + imported_class_name + "'");
-      continue;
-    }
-    
-    // Transform the class name to include the module prefix
+    // Handle imported modules specially to avoid nesting
     std::string new_class_name;
-    if (imported_class_name[0] == '.') {
-      // Remove leading dot and add module prefix
-      new_class_name = class_name + imported_class_name;
-    } else {
-      new_class_name = class_name + "." + imported_class_name;
-    }
     
-    LOGGING_INFO("Registering imported class: '" + imported_class_name + "' as '" + new_class_name + "'");
+    if (imported_class_name.find("~file~") == 0) {
+      // This is a nested import - register it globally without nesting
+      // Check if it's already registered in the main interpreter
+      if (classes.find(imported_class_name) != classes.end()) {
+        // Already registered globally, skip
+        LOGGING_INFO("Nested import '" + imported_class_name + "' already registered globally, skipping");
+        continue;
+      }
+      // Register with original name (no nesting)
+      new_class_name = imported_class_name;
+      LOGGING_INFO("Registering nested import: '" + imported_class_name + "' globally");
+    } else {
+      // Regular class - add module prefix
+      if (imported_class_name[0] == '.') {
+        // Remove leading dot and add module prefix
+        new_class_name = class_name + imported_class_name;
+      } else {
+        new_class_name = class_name + "." + imported_class_name;
+      }
+      LOGGING_INFO("Registering imported class: '" + imported_class_name + "' as '" + new_class_name + "'");
+    }
     
     // Directly register the imported class
     classes[new_class_name] = imported_class_pair.second;

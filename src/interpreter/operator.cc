@@ -990,6 +990,7 @@ int InvokeClassMethod(
   std::string class_name = *GetObject(memory_ptr + class_object)
                                 ->GetMembers()["@name"]
                                 .data.string_data;
+  
   std::string method_name = GetString(memory_ptr + method_name_object);
 
   auto class_it = classes.find(class_name);
@@ -1009,6 +1010,7 @@ int InvokeClassMethod(
 
   auto method_it = class_it->second.GetMethods().find(method_name);
   if (method_it == class_it->second.GetMethods().end()) {
+    LOGGING_ERROR("Method '" + method_name + "' not found in class '" + class_name + "'");
     // Method not found - check if it's a member variable containing a function reference
     auto object = GetObject(memory_ptr + class_object);
     auto& members = object->GetMembers();
@@ -1417,17 +1419,18 @@ int InvokeClassMethod(
   op_INVOKE_METHOD: {
     auto origin_class_index = current_class_index;
     current_class_index = arguments.operand1;
-    INVOKE_METHOD(memory, classes, builtin_functions,
+    // Use execution_memory for nested calls when we're in an imported module context
+    INVOKE_METHOD(execution_memory, classes, builtin_functions,
                   instructions_ptr[i].arguments);
     current_class_index = origin_class_index;
     continue;
   }
   op_LOAD_MEMBER:
     if (arguments.operand2 == 0) {
-      LOAD_MEMBER(memory, classes, arguments.operand1, current_class_index,
+      LOAD_MEMBER(execution_memory, classes, arguments.operand1, current_class_index,
                   arguments.operand3);
     } else {
-      LOAD_MEMBER(memory, classes, arguments.operand1, arguments.operand2,
+      LOAD_MEMBER(execution_memory, classes, arguments.operand1, arguments.operand2,
                   arguments.operand3);
     }
     continue;

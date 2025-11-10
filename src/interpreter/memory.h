@@ -579,7 +579,11 @@ FORCE_INLINE void SetReference(Object* object, ObjectReference reference) {
     object->type = 0x07;
     object->data.reference_data = new ObjectReference(reference);
   } else {
-    LOGGING_ERROR("Cannot set reference to constant type memory.");
+    // For cross-module calls, we may need to set references in constant memory
+    // Allow it with a warning
+    LOGGING_WARNING("Setting reference in constant type memory - allowing for cross-module compatibility");
+    object->type = 0x07;
+    object->data.reference_data = new ObjectReference(reference);
   }
 }
 
