@@ -1091,59 +1091,59 @@ int InvokeClassMethod(
                     GetLong(memory_ptr + arguments[i]));
             break;
           case 0x03:
-            SetDouble(memory_ptr + argument_object,
+            SetDouble(execution_memory_ptr + argument_object,
                       GetDouble(memory_ptr + arguments[i]));
             break;
           case 0x04:
-            SetUint64(memory_ptr + argument_object,
+            SetUint64(execution_memory_ptr + argument_object,
                       GetUint64(memory_ptr + arguments[i]));
             break;
           case 0x05:
-            SetString(memory_ptr + argument_object,
+            SetString(execution_memory_ptr + argument_object,
                       GetString(memory_ptr + arguments[i]));
             break;
           case 0x06:
-            SetArrayContent(memory_ptr + argument_object,
+            SetArrayContent(execution_memory_ptr + argument_object,
                             GetArray(memory_ptr + arguments[i])->GetMemory());
             break;
           case 0x09:
-            SetObject(memory_ptr + argument_object,
+            SetObject(execution_memory_ptr + argument_object,
                       GetObject(memory_ptr + arguments[i]));
             break;
           default:
             LOGGING_ERROR("Unsupported data type for function argument: " +
-                          std::to_string(memory_ptr[argument_object].type));
+                          std::to_string(execution_memory_ptr[argument_object].type));
             return -1;
         }
       } else {
         auto& reference = arguments[i];
         switch (memory_ptr[reference].type) {
           case 0x01:
-            SetByte(memory_ptr + argument_object,
+            SetByte(execution_memory_ptr + argument_object,
                     GetByte(memory_ptr + reference));
             break;
           case 0x02:
-            SetLong(memory_ptr + argument_object,
+            SetLong(execution_memory_ptr + argument_object,
                     GetLong(memory_ptr + reference));
             break;
           case 0x03:
-            SetDouble(memory_ptr + argument_object,
+            SetDouble(execution_memory_ptr + argument_object,
                       GetDouble(memory_ptr + reference));
             break;
           case 0x04:
-            SetUint64(memory_ptr + argument_object,
+            SetUint64(execution_memory_ptr + argument_object,
                       GetUint64(memory_ptr + reference));
             break;
           case 0x05:
-            SetString(memory_ptr + argument_object,
+            SetString(execution_memory_ptr + argument_object,
                       GetString(memory_ptr + reference));
             break;
           case 0x06:
-            SetArrayContent(memory_ptr + argument_object,
+            SetArrayContent(execution_memory_ptr + argument_object,
                             GetArray(memory_ptr + reference)->GetMemory());
             break;
           case 0x09:
-            SetObject(memory_ptr + argument_object,
+            SetObject(execution_memory_ptr + argument_object,
                       GetObject(memory_ptr + reference));
             break;
           default:
@@ -1157,9 +1157,9 @@ int InvokeClassMethod(
 
   if (method.IsVariadic()) {
     auto array = new Memory();
-    memory->GetMemory()[function_arguments.back()].type = 0x06;
-    memory->GetMemory()[function_arguments.back()].constant_type = true;
-    memory->GetMemory()[function_arguments.back()].data.array_data = array;
+    execution_memory->GetMemory()[function_arguments.back()].type = 0x06;
+    execution_memory->GetMemory()[function_arguments.back()].constant_type = true;
+    execution_memory->GetMemory()[function_arguments.back()].data.array_data = array;
     for (std::size_t i = function_arguments.size() - 1; i < arguments.size();
          i++) {
       array->GetMemory().push_back(memory->GetOriginData(arguments[i]));
@@ -1216,202 +1216,202 @@ int InvokeClassMethod(
     NOP();
     continue;
   op_NEW:
-    NEW(memory_ptr, classes, arguments.operand1, arguments.operand2,
+    NEW(execution_memory_ptr, classes, arguments.operand1, arguments.operand2,
         arguments.operand3, builtin_functions);
     continue;
   op_ARRAY:
-    ARRAY(memory_ptr, arguments.operand1, arguments.operand2,
+    ARRAY(execution_memory_ptr, arguments.operand1, arguments.operand2,
           arguments.operand3, classes, builtin_functions);
     continue;
   op_ADD:
-    if (memory_ptr[arguments.operand1].type == 0x02 &&
-        memory_ptr[arguments.operand2].type == 0x02 &&
-        memory_ptr[arguments.operand3].type == 0x02) {
-      int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-      const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-      const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+        execution_memory_ptr[arguments.operand2].type == 0x02 &&
+        execution_memory_ptr[arguments.operand3].type == 0x02) {
+      int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+      const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+      const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
       *result = op1 + op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_ADDI;
       }
-    } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-               memory_ptr[arguments.operand2].type == 0x03 &&
-               memory_ptr[arguments.operand3].type == 0x03) {
-      double* result = &memory_ptr[arguments.operand1].data.float_data;
-      const double op1 = memory_ptr[arguments.operand2].data.float_data;
-      const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+               execution_memory_ptr[arguments.operand2].type == 0x03 &&
+               execution_memory_ptr[arguments.operand3].type == 0x03) {
+      double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+      const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+      const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
       *result = op1 + op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_ADDF;
       }
     } else {
-      ADD(memory_ptr, arguments.operand1, arguments.operand2,
+      ADD(execution_memory_ptr, arguments.operand1, arguments.operand2,
           arguments.operand3);
     }
     continue;
   op_SUB:
-    if (memory_ptr[arguments.operand1].type == 0x02 &&
-        memory_ptr[arguments.operand2].type == 0x02 &&
-        memory_ptr[arguments.operand3].type == 0x02) {
-      int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-      const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-      const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+        execution_memory_ptr[arguments.operand2].type == 0x02 &&
+        execution_memory_ptr[arguments.operand3].type == 0x02) {
+      int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+      const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+      const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
       *result = op1 - op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_SUBI;
       }
-    } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-               memory_ptr[arguments.operand2].type == 0x03 &&
-               memory_ptr[arguments.operand3].type == 0x03) {
-      double* result = &memory_ptr[arguments.operand1].data.float_data;
-      const double op1 = memory_ptr[arguments.operand2].data.float_data;
-      const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+               execution_memory_ptr[arguments.operand2].type == 0x03 &&
+               execution_memory_ptr[arguments.operand3].type == 0x03) {
+      double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+      const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+      const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
       *result = op1 - op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_SUBF;
       }
     } else {
-      SUB(memory_ptr, arguments.operand1, arguments.operand2,
+      SUB(execution_memory_ptr, arguments.operand1, arguments.operand2,
           arguments.operand3);
     }
     continue;
   op_MUL:
-    if (memory_ptr[arguments.operand1].type == 0x02 &&
-        memory_ptr[arguments.operand2].type == 0x02 &&
-        memory_ptr[arguments.operand3].type == 0x02) {
-      int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-      const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-      const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+        execution_memory_ptr[arguments.operand2].type == 0x02 &&
+        execution_memory_ptr[arguments.operand3].type == 0x02) {
+      int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+      const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+      const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
       *result = op1 * op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_MULI;
       }
-    } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-               memory_ptr[arguments.operand2].type == 0x03 &&
-               memory_ptr[arguments.operand3].type == 0x03) {
-      double* result = &memory_ptr[arguments.operand1].data.float_data;
-      const double op1 = memory_ptr[arguments.operand2].data.float_data;
-      const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+               execution_memory_ptr[arguments.operand2].type == 0x03 &&
+               execution_memory_ptr[arguments.operand3].type == 0x03) {
+      double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+      const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+      const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
       *result = op1 * op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_MULF;
       }
     } else {
-      MUL(memory_ptr, arguments.operand1, arguments.operand2,
+      MUL(execution_memory_ptr, arguments.operand1, arguments.operand2,
           arguments.operand3);
     }
     continue;
   op_DIV:
-    if (memory_ptr[arguments.operand1].type == 0x02 &&
-        memory_ptr[arguments.operand2].type == 0x02 &&
-        memory_ptr[arguments.operand3].type == 0x02) {
-      int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-      const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-      const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+        execution_memory_ptr[arguments.operand2].type == 0x02 &&
+        execution_memory_ptr[arguments.operand3].type == 0x02) {
+      int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+      const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+      const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
       *result = op1 / op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_DIVI;
       }
-    } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-               memory_ptr[arguments.operand2].type == 0x03 &&
-               memory_ptr[arguments.operand3].type == 0x03) {
-      double* result = &memory_ptr[arguments.operand1].data.float_data;
-      const double op1 = memory_ptr[arguments.operand2].data.float_data;
-      const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+               execution_memory_ptr[arguments.operand2].type == 0x03 &&
+               execution_memory_ptr[arguments.operand3].type == 0x03) {
+      double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+      const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+      const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
       *result = op1 / op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_DIVF;
       }
     } else {
-      DIV(memory_ptr, arguments.operand1, arguments.operand2,
+      DIV(execution_memory_ptr, arguments.operand1, arguments.operand2,
           arguments.operand3);
     }
     continue;
   op_REM:
-    if (memory_ptr[arguments.operand1].type == 0x02 &&
-        memory_ptr[arguments.operand2].type == 0x02 &&
-        memory_ptr[arguments.operand3].type == 0x02) {
-      int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-      const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-      const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+        execution_memory_ptr[arguments.operand2].type == 0x02 &&
+        execution_memory_ptr[arguments.operand3].type == 0x02) {
+      int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+      const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+      const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
       *result = op1 % op2;
-      if (memory_ptr[arguments.operand1].constant_type &&
-          memory_ptr[arguments.operand2].constant_type &&
-          memory_ptr[arguments.operand3].constant_type) {
+      if (execution_memory_ptr[arguments.operand1].constant_type &&
+          execution_memory_ptr[arguments.operand2].constant_type &&
+          execution_memory_ptr[arguments.operand3].constant_type) {
         method.GetCode()[i].oper = _AQVM_OPERATOR_REMI;
       }
     } else {
-      REM(memory_ptr, arguments.operand1, arguments.operand2,
+      REM(execution_memory_ptr, arguments.operand1, arguments.operand2,
           arguments.operand3);
     }
     continue;
   op_NEG:
-    if (memory_ptr[arguments.operand2].type == 0x02) {
-      SetLong(memory_ptr + arguments.operand1,
-              -memory_ptr[arguments.operand2].data.int_data);
-    } else if (memory_ptr[arguments.operand2].type == 0x03) {
-      SetDouble(memory_ptr + arguments.operand1,
-                -memory_ptr[arguments.operand2].data.float_data);
+    if (execution_memory_ptr[arguments.operand2].type == 0x02) {
+      SetLong(execution_memory_ptr + arguments.operand1,
+              -execution_memory_ptr[arguments.operand2].data.int_data);
+    } else if (execution_memory_ptr[arguments.operand2].type == 0x03) {
+      SetDouble(execution_memory_ptr + arguments.operand1,
+                -execution_memory_ptr[arguments.operand2].data.float_data);
     } else {
-      NEG(memory_ptr, arguments.operand1, arguments.operand2);
+      NEG(execution_memory_ptr, arguments.operand1, arguments.operand2);
     }
     continue;
   op_SHL:
-    SHL(memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
+    SHL(execution_memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
     continue;
   op_SHR:
-    SHR(memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
+    SHR(execution_memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
     continue;
   op_REFER:
     REFER(memory, arguments.operand1, arguments.operand2);
     continue;
   op_IF:
-    i = IF(memory_ptr, arguments.operand1, arguments.operand2,
+    i = IF(execution_memory_ptr, arguments.operand1, arguments.operand2,
            arguments.operand3);
     i--;
     continue;
   op_AND:
-    AND(memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
+    AND(execution_memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
     continue;
   op_OR:
-    OR(memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
+    OR(execution_memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
     continue;
   op_XOR:
-    XOR(memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
+    XOR(execution_memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3);
     continue;
   op_CMP:
-    CMP(memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3,
+    CMP(execution_memory_ptr, arguments.operand1, arguments.operand2, arguments.operand3,
         arguments.operand4);
     continue;
   op_EQUAL:
-    if (memory_ptr[arguments.operand2].type == 0x02) {
-      SetLong(memory_ptr + arguments.operand1,
-              memory_ptr[arguments.operand2].data.int_data);
-    } else if (memory_ptr[arguments.operand2].type == 0x03) {
-      SetDouble(memory_ptr + arguments.operand1,
-                memory_ptr[arguments.operand2].data.float_data);
+    if (execution_memory_ptr[arguments.operand2].type == 0x02) {
+      SetLong(execution_memory_ptr + arguments.operand1,
+              execution_memory_ptr[arguments.operand2].data.int_data);
+    } else if (execution_memory_ptr[arguments.operand2].type == 0x03) {
+      SetDouble(execution_memory_ptr + arguments.operand1,
+                execution_memory_ptr[arguments.operand2].data.float_data);
     } else {
-      EQUAL(memory_ptr, arguments.operand1, arguments.operand2);
+      EQUAL(execution_memory_ptr, arguments.operand1, arguments.operand2);
     }
     continue;
   op_GOTO:
-    i = GOTO(memory_ptr, arguments.operand1);
+    i = GOTO(execution_memory_ptr, arguments.operand1);
     i--;
     continue;
   op_INVOKE_METHOD: {
@@ -1433,65 +1433,65 @@ int InvokeClassMethod(
     continue;
 
   op_ADDI: {
-    int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-    const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-    const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+    const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+    const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
     *result = op1 + op2;
     continue;
   }
   op_SUBI: {
-    int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-    const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-    const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+    const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+    const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
     *result = op1 - op2;
     continue;
   }
   op_MULI: {
-    int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-    const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-    const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+    const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+    const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
     *result = op1 * op2;
     continue;
   }
   op_DIVI: {
-    int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-    const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-    const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+    const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+    const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
     *result = op1 / op2;
     continue;
   }
   op_REMI: {
-    int64_t* result = &memory_ptr[arguments.operand1].data.int_data;
-    const int64_t op1 = memory_ptr[arguments.operand2].data.int_data;
-    const int64_t op2 = memory_ptr[arguments.operand3].data.int_data;
+    int64_t* result = &execution_memory_ptr[arguments.operand1].data.int_data;
+    const int64_t op1 = execution_memory_ptr[arguments.operand2].data.int_data;
+    const int64_t op2 = execution_memory_ptr[arguments.operand3].data.int_data;
     *result = op1 % op2;
     continue;
   }
   op_ADDF: {
-    double* result = &memory_ptr[arguments.operand1].data.float_data;
-    const double op1 = memory_ptr[arguments.operand2].data.float_data;
-    const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+    const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+    const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
     *result = op1 + op2;
     continue;
   }
   op_SUBF: {
-    double* result = &memory_ptr[arguments.operand1].data.float_data;
-    const double op1 = memory_ptr[arguments.operand2].data.float_data;
-    const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+    const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+    const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
     *result = op1 - op2;
     continue;
   }
   op_MULF: {
-    double* result = &memory_ptr[arguments.operand1].data.float_data;
-    const double op1 = memory_ptr[arguments.operand2].data.float_data;
-    const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+    const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+    const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
     *result = op1 * op2;
     continue;
   }
   op_DIVF: {
-    double* result = &memory_ptr[arguments.operand1].data.float_data;
-    const double op1 = memory_ptr[arguments.operand2].data.float_data;
-    const double op2 = memory_ptr[arguments.operand3].data.float_data;
+    double* result = &execution_memory_ptr[arguments.operand1].data.float_data;
+    const double op1 = execution_memory_ptr[arguments.operand2].data.float_data;
+    const double op2 = execution_memory_ptr[arguments.operand3].data.float_data;
     *result = op1 / op2;
     continue;
   }
@@ -1503,198 +1503,198 @@ int InvokeClassMethod(
         NOP();
         break;
       case _AQVM_OPERATOR_NEW:
-        NEW(memory_ptr, classes, arguments.operand1, arguments.operand2,
+        NEW(execution_memory_ptr, classes, arguments.operand1, arguments.operand2,
             arguments.operand3, builtin_functions);
         break;
       case _AQVM_OPERATOR_ARRAY:
-        ARRAY(memory_ptr, arguments.operand1, arguments.operand2,
+        ARRAY(execution_memory_ptr, arguments.operand1, arguments.operand2,
               arguments.operand3, classes, builtin_functions);
         break;
       case _AQVM_OPERATOR_ADD:
-        if (memory_ptr[arguments.operand1].type == 0x02 &&
-            memory_ptr[arguments.operand2].type == 0x02 &&
-            memory_ptr[arguments.operand3].type == 0x02) {
-          memory_ptr[arguments.operand1].data.int_data =
-              memory_ptr[arguments.operand2].data.int_data +
-              memory_ptr[arguments.operand3].data.int_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+            execution_memory_ptr[arguments.operand2].type == 0x02 &&
+            execution_memory_ptr[arguments.operand3].type == 0x02) {
+          execution_memory_ptr[arguments.operand1].data.int_data =
+              execution_memory_ptr[arguments.operand2].data.int_data +
+              execution_memory_ptr[arguments.operand3].data.int_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_ADDI;
           }
-        } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-                   memory_ptr[arguments.operand2].type == 0x03 &&
-                   memory_ptr[arguments.operand3].type == 0x03) {
-          memory_ptr[arguments.operand1].data.float_data =
-              memory_ptr[arguments.operand2].data.float_data +
-              memory_ptr[arguments.operand3].data.float_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand2].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand3].type == 0x03) {
+          execution_memory_ptr[arguments.operand1].data.float_data =
+              execution_memory_ptr[arguments.operand2].data.float_data +
+              execution_memory_ptr[arguments.operand3].data.float_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_ADDF;
           }
         } else {
-          ADD(memory_ptr, arguments.operand1, arguments.operand2,
+          ADD(execution_memory_ptr, arguments.operand1, arguments.operand2,
               arguments.operand3);
         }
         break;
       case _AQVM_OPERATOR_SUB:
-        if (memory_ptr[arguments.operand1].type == 0x02 &&
-            memory_ptr[arguments.operand2].type == 0x02 &&
-            memory_ptr[arguments.operand3].type == 0x02) {
-          memory_ptr[arguments.operand1].data.int_data =
-              memory_ptr[arguments.operand2].data.int_data -
-              memory_ptr[arguments.operand3].data.int_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+            execution_memory_ptr[arguments.operand2].type == 0x02 &&
+            execution_memory_ptr[arguments.operand3].type == 0x02) {
+          execution_memory_ptr[arguments.operand1].data.int_data =
+              execution_memory_ptr[arguments.operand2].data.int_data -
+              execution_memory_ptr[arguments.operand3].data.int_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_SUBI;
           }
-        } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-                   memory_ptr[arguments.operand2].type == 0x03 &&
-                   memory_ptr[arguments.operand3].type == 0x03) {
-          memory_ptr[arguments.operand1].data.float_data =
-              memory_ptr[arguments.operand2].data.float_data -
-              memory_ptr[arguments.operand3].data.float_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand2].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand3].type == 0x03) {
+          execution_memory_ptr[arguments.operand1].data.float_data =
+              execution_memory_ptr[arguments.operand2].data.float_data -
+              execution_memory_ptr[arguments.operand3].data.float_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_SUBF;
           }
         } else {
-          SUB(memory_ptr, arguments.operand1, arguments.operand2,
+          SUB(execution_memory_ptr, arguments.operand1, arguments.operand2,
               arguments.operand3);
         }
         break;
       case _AQVM_OPERATOR_MUL:
-        if (memory_ptr[arguments.operand1].type == 0x02 &&
-            memory_ptr[arguments.operand2].type == 0x02 &&
-            memory_ptr[arguments.operand3].type == 0x02) {
-          memory_ptr[arguments.operand1].data.int_data =
-              memory_ptr[arguments.operand2].data.int_data *
-              memory_ptr[arguments.operand3].data.int_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+            execution_memory_ptr[arguments.operand2].type == 0x02 &&
+            execution_memory_ptr[arguments.operand3].type == 0x02) {
+          execution_memory_ptr[arguments.operand1].data.int_data =
+              execution_memory_ptr[arguments.operand2].data.int_data *
+              execution_memory_ptr[arguments.operand3].data.int_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_MULI;
           }
-        } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-                   memory_ptr[arguments.operand2].type == 0x03 &&
-                   memory_ptr[arguments.operand3].type == 0x03) {
-          memory_ptr[arguments.operand1].data.float_data =
-              memory_ptr[arguments.operand2].data.float_data *
-              memory_ptr[arguments.operand3].data.float_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand2].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand3].type == 0x03) {
+          execution_memory_ptr[arguments.operand1].data.float_data =
+              execution_memory_ptr[arguments.operand2].data.float_data *
+              execution_memory_ptr[arguments.operand3].data.float_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_MULF;
           }
         } else {
-          MUL(memory_ptr, arguments.operand1, arguments.operand2,
+          MUL(execution_memory_ptr, arguments.operand1, arguments.operand2,
               arguments.operand3);
         }
         break;
       case _AQVM_OPERATOR_DIV:
-        if (memory_ptr[arguments.operand1].type == 0x02 &&
-            memory_ptr[arguments.operand2].type == 0x02 &&
-            memory_ptr[arguments.operand3].type == 0x02) {
-          memory_ptr[arguments.operand1].data.int_data =
-              memory_ptr[arguments.operand2].data.int_data /
-              memory_ptr[arguments.operand3].data.int_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+            execution_memory_ptr[arguments.operand2].type == 0x02 &&
+            execution_memory_ptr[arguments.operand3].type == 0x02) {
+          execution_memory_ptr[arguments.operand1].data.int_data =
+              execution_memory_ptr[arguments.operand2].data.int_data /
+              execution_memory_ptr[arguments.operand3].data.int_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_DIVI;
           }
-        } else if (memory_ptr[arguments.operand1].type == 0x03 &&
-                   memory_ptr[arguments.operand2].type == 0x03 &&
-                   memory_ptr[arguments.operand3].type == 0x03) {
-          memory_ptr[arguments.operand1].data.float_data =
-              memory_ptr[arguments.operand2].data.float_data /
-              memory_ptr[arguments.operand3].data.float_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        } else if (execution_memory_ptr[arguments.operand1].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand2].type == 0x03 &&
+                   execution_memory_ptr[arguments.operand3].type == 0x03) {
+          execution_memory_ptr[arguments.operand1].data.float_data =
+              execution_memory_ptr[arguments.operand2].data.float_data /
+              execution_memory_ptr[arguments.operand3].data.float_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_DIVF;
           }
         } else {
-          DIV(memory_ptr, arguments.operand1, arguments.operand2,
+          DIV(execution_memory_ptr, arguments.operand1, arguments.operand2,
               arguments.operand3);
         }
         break;
       case _AQVM_OPERATOR_REM:
-        if (memory_ptr[arguments.operand1].type == 0x02 &&
-            memory_ptr[arguments.operand2].type == 0x02 &&
-            memory_ptr[arguments.operand3].type == 0x02) {
-          memory_ptr[arguments.operand1].data.int_data =
-              memory_ptr[arguments.operand2].data.int_data %
-              memory_ptr[arguments.operand3].data.int_data;
-          if (memory_ptr[arguments.operand1].constant_type &&
-              memory_ptr[arguments.operand2].constant_type &&
-              memory_ptr[arguments.operand3].constant_type) {
+        if (execution_memory_ptr[arguments.operand1].type == 0x02 &&
+            execution_memory_ptr[arguments.operand2].type == 0x02 &&
+            execution_memory_ptr[arguments.operand3].type == 0x02) {
+          execution_memory_ptr[arguments.operand1].data.int_data =
+              execution_memory_ptr[arguments.operand2].data.int_data %
+              execution_memory_ptr[arguments.operand3].data.int_data;
+          if (execution_memory_ptr[arguments.operand1].constant_type &&
+              execution_memory_ptr[arguments.operand2].constant_type &&
+              execution_memory_ptr[arguments.operand3].constant_type) {
             method.GetCode()[i].oper = _AQVM_OPERATOR_REMI;
           }
         } else {
-          REM(memory_ptr, arguments.operand1, arguments.operand2,
+          REM(execution_memory_ptr, arguments.operand1, arguments.operand2,
               arguments.operand3);
         }
         break;
       case _AQVM_OPERATOR_NEG:
-        if (memory_ptr[arguments.operand2].type == 0x02) {
-          SetLong(memory_ptr + arguments.operand1,
-                  -memory_ptr[arguments.operand2].data.int_data);
-        } else if (memory_ptr[arguments.operand2].type == 0x03) {
-          SetDouble(memory_ptr + arguments.operand1,
-                    -memory_ptr[arguments.operand2].data.float_data);
+        if (execution_memory_ptr[arguments.operand2].type == 0x02) {
+          SetLong(execution_memory_ptr + arguments.operand1,
+                  -execution_memory_ptr[arguments.operand2].data.int_data);
+        } else if (execution_memory_ptr[arguments.operand2].type == 0x03) {
+          SetDouble(execution_memory_ptr + arguments.operand1,
+                    -execution_memory_ptr[arguments.operand2].data.float_data);
         } else {
-          NEG(memory_ptr, arguments.operand1, arguments.operand2);
+          NEG(execution_memory_ptr, arguments.operand1, arguments.operand2);
         }
         break;
       case _AQVM_OPERATOR_SHL:
-        SHL(memory_ptr, arguments.operand1, arguments.operand2,
+        SHL(execution_memory_ptr, arguments.operand1, arguments.operand2,
             arguments.operand3);
         break;
       case _AQVM_OPERATOR_SHR:
-        SHR(memory_ptr, arguments.operand1, arguments.operand2,
+        SHR(execution_memory_ptr, arguments.operand1, arguments.operand2,
             arguments.operand3);
         break;
       case _AQVM_OPERATOR_REFER:
         REFER(memory, arguments.operand1, arguments.operand2);
         break;
       case _AQVM_OPERATOR_IF:
-        i = IF(memory_ptr, arguments.operand1, arguments.operand2,
+        i = IF(execution_memory_ptr, arguments.operand1, arguments.operand2,
                arguments.operand3);
         i--;
         break;
       case _AQVM_OPERATOR_AND:
-        AND(memory_ptr, arguments.operand1, arguments.operand2,
+        AND(execution_memory_ptr, arguments.operand1, arguments.operand2,
             arguments.operand3);
         break;
       case _AQVM_OPERATOR_OR:
-        OR(memory_ptr, arguments.operand1, arguments.operand2,
+        OR(execution_memory_ptr, arguments.operand1, arguments.operand2,
            arguments.operand3);
         break;
       case _AQVM_OPERATOR_XOR:
-        XOR(memory_ptr, arguments.operand1, arguments.operand2,
+        XOR(execution_memory_ptr, arguments.operand1, arguments.operand2,
             arguments.operand3);
         break;
       case _AQVM_OPERATOR_CMP:
-        CMP(memory_ptr, arguments.operand1, arguments.operand2,
+        CMP(execution_memory_ptr, arguments.operand1, arguments.operand2,
             arguments.operand3, arguments.operand4);
         break;
       case _AQVM_OPERATOR_EQUAL:
-        if (memory_ptr[arguments.operand2].type == 0x02) {
-          SetLong(memory_ptr + arguments.operand1,
-                  memory_ptr[arguments.operand2].data.int_data);
-        } else if (memory_ptr[arguments.operand2].type == 0x03) {
-          SetDouble(memory_ptr + arguments.operand1,
-                    memory_ptr[arguments.operand2].data.float_data);
+        if (execution_memory_ptr[arguments.operand2].type == 0x02) {
+          SetLong(execution_memory_ptr + arguments.operand1,
+                  execution_memory_ptr[arguments.operand2].data.int_data);
+        } else if (execution_memory_ptr[arguments.operand2].type == 0x03) {
+          SetDouble(execution_memory_ptr + arguments.operand1,
+                    execution_memory_ptr[arguments.operand2].data.float_data);
         } else {
-          EQUAL(memory_ptr, arguments.operand1, arguments.operand2);
+          EQUAL(execution_memory_ptr, arguments.operand1, arguments.operand2);
         }
         break;
       case _AQVM_OPERATOR_GOTO:
-        i = GOTO(memory_ptr, arguments.operand1);
+        i = GOTO(execution_memory_ptr, arguments.operand1);
         i--;
         break;
       case _AQVM_OPERATOR_INVOKE_METHOD: {
@@ -1716,49 +1716,49 @@ int InvokeClassMethod(
         break;
 
       case _AQVM_OPERATOR_ADDI:
-        memory_ptr[arguments.operand1].data.int_data =
-            memory_ptr[arguments.operand2].data.int_data +
-            memory_ptr[arguments.operand3].data.int_data;
+        execution_memory_ptr[arguments.operand1].data.int_data =
+            execution_memory_ptr[arguments.operand2].data.int_data +
+            execution_memory_ptr[arguments.operand3].data.int_data;
         break;
       case _AQVM_OPERATOR_SUBI:
-        memory_ptr[arguments.operand1].data.int_data =
-            memory_ptr[arguments.operand2].data.int_data -
-            memory_ptr[arguments.operand3].data.int_data;
+        execution_memory_ptr[arguments.operand1].data.int_data =
+            execution_memory_ptr[arguments.operand2].data.int_data -
+            execution_memory_ptr[arguments.operand3].data.int_data;
         break;
       case _AQVM_OPERATOR_MULI:
-        memory_ptr[arguments.operand1].data.int_data =
-            memory_ptr[arguments.operand2].data.int_data *
-            memory_ptr[arguments.operand3].data.int_data;
+        execution_memory_ptr[arguments.operand1].data.int_data =
+            execution_memory_ptr[arguments.operand2].data.int_data *
+            execution_memory_ptr[arguments.operand3].data.int_data;
         break;
       case _AQVM_OPERATOR_DIVI:
-        memory_ptr[arguments.operand1].data.int_data =
-            memory_ptr[arguments.operand2].data.int_data /
-            memory_ptr[arguments.operand3].data.int_data;
+        execution_memory_ptr[arguments.operand1].data.int_data =
+            execution_memory_ptr[arguments.operand2].data.int_data /
+            execution_memory_ptr[arguments.operand3].data.int_data;
         break;
       case _AQVM_OPERATOR_REMI:
-        memory_ptr[arguments.operand1].data.int_data =
-            memory_ptr[arguments.operand2].data.int_data %
-            memory_ptr[arguments.operand3].data.int_data;
+        execution_memory_ptr[arguments.operand1].data.int_data =
+            execution_memory_ptr[arguments.operand2].data.int_data %
+            execution_memory_ptr[arguments.operand3].data.int_data;
         break;
       case _AQVM_OPERATOR_ADDF:
-        memory_ptr[arguments.operand1].data.float_data =
-            memory_ptr[arguments.operand2].data.float_data +
-            memory_ptr[arguments.operand3].data.float_data;
+        execution_memory_ptr[arguments.operand1].data.float_data =
+            execution_memory_ptr[arguments.operand2].data.float_data +
+            execution_memory_ptr[arguments.operand3].data.float_data;
         break;
       case _AQVM_OPERATOR_SUBF:
-        memory_ptr[arguments.operand1].data.float_data =
-            memory_ptr[arguments.operand2].data.float_data -
-            memory_ptr[arguments.operand3].data.float_data;
+        execution_memory_ptr[arguments.operand1].data.float_data =
+            execution_memory_ptr[arguments.operand2].data.float_data -
+            execution_memory_ptr[arguments.operand3].data.float_data;
         break;
       case _AQVM_OPERATOR_MULF:
-        memory_ptr[arguments.operand1].data.float_data =
-            memory_ptr[arguments.operand2].data.float_data *
-            memory_ptr[arguments.operand3].data.float_data;
+        execution_memory_ptr[arguments.operand1].data.float_data =
+            execution_memory_ptr[arguments.operand2].data.float_data *
+            execution_memory_ptr[arguments.operand3].data.float_data;
         break;
       case _AQVM_OPERATOR_DIVF:
-        memory_ptr[arguments.operand1].data.float_data =
-            memory_ptr[arguments.operand2].data.float_data /
-            memory_ptr[arguments.operand3].data.float_data;
+        execution_memory_ptr[arguments.operand1].data.float_data =
+            execution_memory_ptr[arguments.operand2].data.float_data /
+            execution_memory_ptr[arguments.operand3].data.float_data;
         break;
       case _AQVM_OPERATOR_WIDE:
         break;
