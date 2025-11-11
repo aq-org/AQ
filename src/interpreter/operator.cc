@@ -996,20 +996,19 @@ int InvokeClassMethod(
   auto source_interp_it = class_members.find("@source_interpreter");
   if (source_interp_it != class_members.end() && source_interp_it->second.type == 0x0A) {
     // This is an imported module! We need to execute in the source interpreter
-    // But first check if we're ALREADY in a cross-interpreter call to prevent infinite recursion
-    static thread_local bool in_cross_interpreter_call = false;
-    if (in_cross_interpreter_call) {
-      // Already in cross-interpreter call, don't recurse
-      LOGGING_ERROR("Recursive cross-interpreter call detected, aborting to prevent infinite loop");
-      return -1;
-    }
-    
-    in_cross_interpreter_call = true;
-    LOGGING_INFO("Cross-interpreter invocation for method: " + method_name);
-    
     Interpreter* source_interpreter = static_cast<Interpreter*>(source_interp_it->second.data.pointer_data);
     
     if (source_interpreter != nullptr) {
+      // Check if we're ALREADY executing in the source interpreter
+      // If so, don't do cross-interpreter invocation (we're already there!)
+      if (memory == source_interpreter->global_memory) {
+        LOGGING_INFO("Already in source interpreter, executing normally for method: " + method_name);
+        // We're already in source - use the original class name and fall through
+        class_name = ".!__start";
+        // Don't return here, let it fall through to normal execution after this if block
+      } else {
+        // We're in a different interpreter, need cross-interpreter invocation
+        LOGGING_INFO("Cross-interpreter invocation for method: " + method_name);
       // Get the source class name (without the ~import~ prefix)
       std::string source_class_name = ".!__start";  // Imported modules always use .!__start
       
@@ -1053,17 +1052,16 @@ int InvokeClassMethod(
                                         source_arguments, source_interpreter->classes,
                                         source_interpreter->builtin_functions);
           
-          in_cross_interpreter_call = false;
           return result;
         }
       }
-    }
-    
-    // If we get here, something went wrong with cross-interpreter invocation
-    in_cross_interpreter_call = false;
-    LOGGING_ERROR("Failed to invoke method '" + method_name + "' in source interpreter for class '" + class_name + "'");
-    return -1;
-  }
+        
+        // If we get here, something went wrong with cross-interpreter invocation
+        LOGGING_ERROR("Failed to invoke method '" + method_name + "' in source interpreter for class '" + class_name + "'");
+        return -1;
+      }  // End of else (cross-interpreter invocation)
+    }  // End of if (source_interpreter != nullptr)
+  }  // End of if (@source_interpreter exists)
 
   // Normal (non-imported) method invocation
   auto class_it = classes.find(class_name);
@@ -1074,8 +1072,12 @@ int InvokeClassMethod(
 
   auto method_it = class_it->second.GetMethods().find(method_name);
   if (method_it == class_it->second.GetMethods().end()) {
-    LOGGING_ERROR("Method not found: " + method_name);
-    return -1;
+    // Try with dot prefix (global functions in AQ have a leading dot)
+    method_it = class_it->second.GetMethods().find("." + method_name);
+    if (method_it == class_it->second.GetMethods().end()) {
+      LOGGING_ERROR("Method not found: " + method_name);
+      return -1;
+    }
   }
 
   Function method =
