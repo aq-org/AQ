@@ -992,78 +992,7 @@ int InvokeClassMethod(
   std::string class_name = *class_members["@name"].data.string_data;
   std::string method_name = GetString(memory_ptr + method_name_object);
 
-  // Check if this is an imported module class (has @source_interpreter member)
-  auto source_interp_it = class_members.find("@source_interpreter");
-  if (source_interp_it != class_members.end() && source_interp_it->second.type == 0x0A) {
-    // This is an imported module! We need to execute in the source interpreter
-    Interpreter* source_interpreter = static_cast<Interpreter*>(source_interp_it->second.data.pointer_data);
-    
-    if (source_interpreter != nullptr) {
-      // Check if we're ALREADY executing in the source interpreter
-      // If so, don't do cross-interpreter invocation (we're already there!)
-      if (memory == source_interpreter->global_memory) {
-        LOGGING_INFO("Already in source interpreter, executing normally for method: " + method_name);
-        // We're already in source - use the original class name and fall through
-        class_name = ".!__start";
-        // Don't return here, let it fall through to normal execution after this if block
-      } else {
-        // We're in a different interpreter, need cross-interpreter invocation
-        LOGGING_INFO("Cross-interpreter invocation for method: " + method_name);
-      // Get the source class name (without the ~import~ prefix)
-      std::string source_class_name = ".!__start";  // Imported modules always use .!__start
-      
-      LOGGING_INFO("Source interpreter found, looking for class: " + source_class_name);
-      
-      // Find the method in the source interpreter's classes
-      auto& source_classes = source_interpreter->classes;
-      auto source_class_it = source_classes.find(source_class_name);
-      if (source_class_it != source_classes.end()) {
-        // Try to find the method with various naming conventions
-        auto& methods = source_class_it->second.GetMethods();
-        auto source_method_it = methods.find("." + method_name);
-        if (source_method_it == methods.end()) {
-          source_method_it = methods.find(method_name);
-        }
-        if (source_method_it == methods.end()) {
-          // Try with .!__start prefix
-          source_method_it = methods.find(".!__start." + method_name);
-        }
-        
-        if (source_method_it != methods.end()) {
-          // Found the method in source interpreter! Execute it there by calling InvokeClassMethod
-          // recursively with the source interpreter's context
-          
-          auto source_memory = source_interpreter->global_memory;
-          std::size_t source_method_name_idx = source_memory->AddString(method_name);
-          
-          // Build arguments for source: [return_ref, arg1, arg2, ...]
-          // Create references in source memory pointing to local memory
-          std::vector<std::size_t> source_arguments;
-          std::size_t return_ref_idx = source_memory->AddReference(memory, arguments[0]);
-          source_arguments.push_back(return_ref_idx);
-          
-          for (std::size_t i = 1; i < arguments.size(); i++) {
-            std::size_t arg_ref_idx = source_memory->AddReference(memory, arguments[i]);
-            source_arguments.push_back(arg_ref_idx);
-          }
-          
-          // Call in source interpreter context (class index 2 is the main class)
-          int result = InvokeClassMethod(source_memory, 2, source_method_name_idx,
-                                        source_arguments, source_interpreter->classes,
-                                        source_interpreter->builtin_functions);
-          
-          return result;
-        }
-      }
-        
-        // If we get here, something went wrong with cross-interpreter invocation
-        LOGGING_ERROR("Failed to invoke method '" + method_name + "' in source interpreter for class '" + class_name + "'");
-        return -1;
-      }  // End of else (cross-interpreter invocation)
-    }  // End of if (source_interpreter != nullptr)
-  }  // End of if (@source_interpreter exists)
-
-  // Normal (non-imported) method invocation
+  // Normal method invocation (no cross-interpreter logic here - that's handled by INVOKE_MODULE_METHOD)
   auto class_it = classes.find(class_name);
   if (class_it == classes.end()) {
     LOGGING_ERROR("Class not found: " + class_name);
@@ -1205,7 +1134,7 @@ int InvokeClassMethod(
       &&op_NOP,  &&op_EQUAL,         &&op_GOTO,        &&op_NOP,  &&op_NOP,
       &&op_NOP,  &&op_INVOKE_METHOD, &&op_LOAD_MEMBER, &&op_ADDI, &&op_SUBI,
       &&op_MULI, &&op_DIVI,          &&op_REMI,        &&op_ADDF, &&op_SUBF,
-      &&op_MULF, &&op_DIVF};
+      &&op_MULF, &&op_DIVF,          &&op_LOAD_MODULE_MEMBER, &&op_INVOKE_MODULE_METHOD, &&op_NEW_MODULE};
 #endif
 
   struct Argument {
@@ -1521,6 +1450,96 @@ int InvokeClassMethod(
     *result = op1 / op2;
     continue;
   }
+  op_LOAD_MODULE_MEMBER: {
+    // operand1: result index in local memory
+    // operand2: module pointer index in local memory
+    // operand3: member name index in local memory
+    if (memory_ptr[arguments.operand2].type != 0x0A) {
+      LOGGING_ERROR("LOAD_MODULE_MEMBER: Module pointer expected at operand2");
+      continue;
+    }
+    Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[arguments.operand2].data.pointer_data);
+    if (module_interp == nullptr) {
+      LOGGING_ERROR("LOAD_MODULE_MEMBER: Null module interpreter");
+      continue;
+    }
+    
+    std::string member_name = GetString(memory_ptr + arguments.operand3);
+    auto& module_vars = module_interp->context.variables;
+    auto var_it = module_vars.find("#" + member_name);
+    if (var_it == module_vars.end()) {
+      LOGGING_ERROR("LOAD_MODULE_MEMBER: Variable '" + member_name + "' not found in module");
+      continue;
+    }
+    
+    // Create reference to module variable
+    ObjectReference* ref = new ObjectReference();
+    ref->is_class = false;
+    ref->memory.memory = module_interp->global_memory;
+    ref->index.index = var_it->second;
+    
+    memory_ptr[arguments.operand1].type = 0x07;
+    memory_ptr[arguments.operand1].constant_type = false;
+    memory_ptr[arguments.operand1].data.reference_data = ref;
+    continue;
+  }
+  op_INVOKE_MODULE_METHOD: {
+    // Arguments in instruction.arguments vector:
+    // [0]: module pointer index
+    // [1]: method name index  
+    // [2]: return value index
+    // [3+]: method arguments
+    auto& args = instructions_ptr[i].arguments;
+    if (args.size() < 3) {
+      LOGGING_ERROR("INVOKE_MODULE_METHOD: Insufficient arguments");
+      continue;
+    }
+    
+    if (memory_ptr[args[0]].type != 0x0A) {
+      LOGGING_ERROR("INVOKE_MODULE_METHOD: Module pointer expected");
+      continue;
+    }
+    Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[args[0]].data.pointer_data);
+    if (module_interp == nullptr) {
+      LOGGING_ERROR("INVOKE_MODULE_METHOD: Null module interpreter");
+      continue;
+    }
+    
+    std::string method_name = GetString(memory_ptr + args[1]);
+    
+    // Create references in module memory for all arguments
+    auto module_memory = module_interp->global_memory;
+    auto module_ptr = module_memory->GetMemory().data();
+    
+    std::vector<std::size_t> module_args;
+    // Return value reference
+    std::size_t return_ref_idx = module_memory->AddReference(memory, args[2]);
+    module_args.push_back(return_ref_idx);
+    
+    // Method arguments
+    for (std::size_t j = 3; j < args.size(); j++) {
+      std::size_t arg_ref_idx = module_memory->AddReference(memory, args[j]);
+      module_args.push_back(arg_ref_idx);
+    }
+    
+    // Check if it's a lambda (variable holding function name)
+    auto& module_vars = module_interp->context.variables;
+    auto var_it = module_vars.find("#" + method_name);
+    if (var_it != module_vars.end() && module_ptr[var_it->second].type == 0x05) {
+      // It's a lambda stored as a variable - get the actual function name
+      method_name = *module_ptr[var_it->second].data.string_data;
+    }
+    
+    // Invoke in module interpreter's context
+    std::size_t method_name_idx = module_memory->AddString(method_name);
+    InvokeClassMethod(module_memory, 2, method_name_idx, module_args,
+                     module_interp->classes, module_interp->builtin_functions);
+    continue;
+  }
+  op_NEW_MODULE: {
+    LOGGING_ERROR("NEW_MODULE not yet implemented in goto dispatch");
+    continue;
+  }
 #else
     // LOGGING_INFO("Executing instruction: " +
     // std::to_string(instruction.oper));
@@ -1786,16 +1805,92 @@ int InvokeClassMethod(
             memory_ptr[arguments.operand2].data.float_data /
             memory_ptr[arguments.operand3].data.float_data;
         break;
-      case _AQVM_OPERATOR_LOAD_MODULE_MEMBER:
-        // Note: This requires special handling as it needs module interpreter pointers
-        // which need to be passed through the execution context
-        LOGGING_ERROR("LOAD_MODULE_MEMBER not yet implemented in bytecode execution loop");
+      case _AQVM_OPERATOR_LOAD_MODULE_MEMBER: {
+        // operand1: result index in local memory
+        // operand2: module pointer index in local memory
+        // operand3: member name index in local memory
+        if (memory_ptr[arguments.operand2].type != 0x0A) {
+          LOGGING_ERROR("LOAD_MODULE_MEMBER: Module pointer expected at operand2");
+          break;
+        }
+        Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[arguments.operand2].data.pointer_data);
+        if (module_interp == nullptr) {
+          LOGGING_ERROR("LOAD_MODULE_MEMBER: Null module interpreter");
+          break;
+        }
+        
+        std::string member_name = GetString(memory_ptr + arguments.operand3);
+        auto& module_vars = module_interp->context.variables;
+        auto var_it = module_vars.find("#" + member_name);
+        if (var_it == module_vars.end()) {
+          LOGGING_ERROR("LOAD_MODULE_MEMBER: Variable '" + member_name + "' not found in module");
+          break;
+        }
+        
+        // Create reference to module variable
+        ObjectReference* ref = new ObjectReference();
+        ref->is_class = false;
+        ref->memory.memory = module_interp->global_memory;
+        ref->index.index = var_it->second;
+        
+        memory_ptr[arguments.operand1].type = 0x07;
+        memory_ptr[arguments.operand1].constant_type = false;
+        memory_ptr[arguments.operand1].data.reference_data = ref;
         break;
-      case _AQVM_OPERATOR_INVOKE_MODULE_METHOD:
-        // Note: This requires special handling as it needs module interpreter pointers
-        // which need to be passed through the execution context
-        LOGGING_ERROR("INVOKE_MODULE_METHOD not yet implemented in bytecode execution loop");
+      }
+      case _AQVM_OPERATOR_INVOKE_MODULE_METHOD: {
+        // Arguments in instruction.arguments vector:
+        // [0]: module pointer index
+        // [1]: method name index  
+        // [2]: return value index
+        // [3+]: method arguments
+        auto& args = instructions_ptr[i].arguments;
+        if (args.size() < 3) {
+          LOGGING_ERROR("INVOKE_MODULE_METHOD: Insufficient arguments");
+          break;
+        }
+        
+        if (memory_ptr[args[0]].type != 0x0A) {
+          LOGGING_ERROR("INVOKE_MODULE_METHOD: Module pointer expected");
+          break;
+        }
+        Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[args[0]].data.pointer_data);
+        if (module_interp == nullptr) {
+          LOGGING_ERROR("INVOKE_MODULE_METHOD: Null module interpreter");
+          break;
+        }
+        
+        std::string method_name = GetString(memory_ptr + args[1]);
+        
+        // Create references in module memory for all arguments
+        auto module_memory = module_interp->global_memory;
+        auto module_ptr = module_memory->GetMemory().data();
+        
+        std::vector<std::size_t> module_args;
+        // Return value reference
+        std::size_t return_ref_idx = module_memory->AddReference(memory, args[2]);
+        module_args.push_back(return_ref_idx);
+        
+        // Method arguments
+        for (std::size_t j = 3; j < args.size(); j++) {
+          std::size_t arg_ref_idx = module_memory->AddReference(memory, args[j]);
+          module_args.push_back(arg_ref_idx);
+        }
+        
+        // Check if it's a lambda (variable holding function name)
+        auto& module_vars = module_interp->context.variables;
+        auto var_it = module_vars.find("#" + method_name);
+        if (var_it != module_vars.end() && module_ptr[var_it->second].type == 0x05) {
+          // It's a lambda stored as a variable - get the actual function name
+          method_name = *module_ptr[var_it->second].data.string_data;
+        }
+        
+        // Invoke in module interpreter's context
+        std::size_t method_name_idx = module_memory->AddString(method_name);
+        InvokeClassMethod(module_memory, 2, method_name_idx, module_args,
+                         module_interp->classes, module_interp->builtin_functions);
         break;
+      }
       case _AQVM_OPERATOR_NEW_MODULE:
         // Note: This requires special handling as it needs module interpreter pointers
         // which need to be passed through the execution context
