@@ -59,7 +59,10 @@ struct Interpreter {
   // Track imported aliases in this interpreter to detect name conflicts within the same file
   std::unordered_set<std::string> imported_aliases;
   
-  // Map from import alias to the module interpreter pointer
+  // Map from import alias to the full class name of the imported module (e.g., "test2" -> "~import~test2")
+  std::unordered_map<std::string, std::string> import_alias_to_class_name;
+  
+  // Map from import alias to the module interpreter pointer (for advanced features)
   std::unordered_map<std::string, Interpreter*> module_interpreters;
   
   // The source file path of this interpreter (used for resolving relative imports)

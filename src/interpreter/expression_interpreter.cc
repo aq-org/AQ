@@ -440,81 +440,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
     }
   }
 
-  // Check if the first expression is an imported module alias
-  // If so, handle it as a module access using the new bytecodes
-  if (expressions.size() >= 2 && Ast::IsOfType<Ast::Identifier>(expressions[0])) {
-    std::string first_name = std::string(*Ast::Cast<Ast::Identifier>(expressions[0]));
-    
-    // Check if this is an imported module
-    if (imported_aliases.find(first_name) != imported_aliases.end()) {
-      // This is a module access! Get the module variable index
-      std::size_t module_var_index = variables["#" + first_name];
-      
-      // Get the module interpreter pointer
-      auto module_it = module_interpreters.find(first_name);
-      if (module_it == module_interpreters.end()) {
-        LOGGING_ERROR("Module interpreter not found for alias: " + first_name);
-      }
-      Interpreter* module_interpreter = module_it->second;
-      
-      // Handle different types of module access based on the second expression
-      if (expressions.size() == 2) {
-        if (Ast::IsOfType<Ast::Function>(expressions[1])) {
-          // Module function call: module.function()
-          Ast::Function* func_expr = Ast::Cast<Ast::Function>(expressions[1]);
-          std::string func_name = func_expr->GetFunctionName();
-          
-          // Create return value index
-          std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
-          
-          // Get function name index in module memory
-          std::size_t module_func_name_idx = module_interpreter->global_memory->AddString(func_name);
-          
-          // Prepare arguments
-          std::vector<std::size_t> invoke_args;
-          invoke_args.push_back(2);  // class object index in module (usually 2 for main class)
-          invoke_args.push_back(module_func_name_idx);
-          invoke_args.push_back(return_value_index);
-          
-          auto arguments = func_expr->GetParameters();
-          for (std::size_t i = 0; i < arguments.size(); i++) {
-            invoke_args.push_back(HandleExpression(interpreter, arguments[i], code, 0));
-          }
-          
-          // Note: INVOKE_MODULE_METHOD requires special handling at runtime
-          // For now, use regular INVOKE_METHOD and store module info in pointer
-          // This is a simplified implementation - full implementation would require
-          // runtime module resolution
-          LOGGING_WARNING("Module function calls not fully implemented yet");
-          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_args)});
-          
-          return return_value_index;
-        }
-        else if (Ast::IsOfType<Ast::Identifier>(expressions[1])) {
-          // Module variable access: module.variable
-          std::string var_name = std::string(*Ast::Cast<Ast::Identifier>(expressions[1]));
-          
-          // Find the variable in the module's variables
-          auto& module_vars = module_interpreter->context.variables;
-          auto var_it = module_vars.find("#" + var_name);
-          if (var_it == module_vars.end()) {
-            LOGGING_ERROR("Variable '" + var_name + "' not found in module '" + first_name + "'");
-          }
-          
-          std::size_t module_var_idx = var_it->second;
-          std::size_t result_idx = global_memory->Add(1);
-          
-          // Note: LOAD_MODULE_MEMBER requires special handling at runtime
-          // For now, this is a placeholder
-          LOGGING_WARNING("Module variable access not fully implemented yet");
-          
-          return result_idx;
-        }
-      }
-      
-      // Fall through to normal handling if not a simple module access
-    }
-  }
+  // Module access is now handled via class-copying in HandleImport
+  // The normal period expression handling below will work correctly
 
   // is_end equals true, indicating that the front-end of the expression
   // (excluding the rightmost expression) is entirely composed of identifiers
@@ -541,8 +468,46 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
           Ast::Cast<Ast::Function>(expressions.back());
       full_name += right_expression->GetFunctionName();
       
-      // TODO: Module class constructor calls need to be redesigned with NEW_MODULE bytecode
-      // For now, imported module class constructors are temporarily disabled during transition
+      // Check if this is a constructor call through an import alias (e.g., "test2.TEST_CLASS()")
+      std::size_t dot_pos = full_name.find('.');
+      if (dot_pos != std::string::npos) {
+        std::string potential_alias = full_name.substr(0, dot_pos);
+        std::string class_in_module = full_name.substr(dot_pos + 1);
+        
+        // Check if potential_alias is an import alias
+        auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
+        if (alias_it != interpreter.import_alias_to_class_name.end()) {
+          // This is a constructor call for an imported class
+          std::string import_class_name = alias_it->second;
+          std::string resolved_class_name = import_class_name + "." + class_in_module;
+          
+          // Check if this class exists
+          if (functions.find(resolved_class_name) != functions.end()) {
+            // Handle as class instantiation
+            std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+            
+            // Create new instance
+            code.push_back(
+                Bytecode{_AQVM_OPERATOR_NEW,
+                         {return_value_index, global_memory->AddByte(0),
+                          global_memory->AddString(resolved_class_name)}});
+            
+            // Call constructor
+            auto arguments = right_expression->GetParameters();
+            std::vector<std::size_t> constructor_arguments{
+                return_value_index, global_memory->AddString("@constructor"),
+                global_memory->Add(1)};
+            for (std::size_t i = 0; i < arguments.size(); i++)
+              constructor_arguments.push_back(
+                  HandleExpression(interpreter, arguments[i], code, 0));
+            
+            code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                    std::move(constructor_arguments)});
+            
+            return return_value_index;
+          }
+        }
+      }
 
       for (int64_t k = scopes.size() - 1; k >= 0; k--) {
         auto iterator = functions.find(scopes[k] + "." + full_name);
