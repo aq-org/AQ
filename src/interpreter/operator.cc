@@ -1836,5 +1836,131 @@ int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
   return 0;
 }
 
+// LOAD_MODULE_MEMBER loads a variable from another interpreter's memory by creating a reference
+// This allows cross-module variable access without copying data
+int LOAD_MODULE_MEMBER(Memory* local_memory, Memory* module_memory,
+                       std::size_t result, std::size_t module_var_index) {
+  if (local_memory == nullptr || module_memory == nullptr) {
+    LOGGING_ERROR("Memory pointer is null.");
+    return -1;
+  }
+
+  auto& result_object = local_memory->GetMemory()[result];
+  
+  // Create a reference to the module's variable
+  ObjectReference* reference = new ObjectReference();
+  reference->is_class = false;
+  reference->memory.memory = module_memory;
+  reference->index.index = module_var_index;
+
+  result_object.type = 0x07;
+  result_object.constant_type = false;
+  result_object.data.reference_data = reference;
+
+  return 0;
+}
+
+// INVOKE_MODULE_METHOD invokes a method from an imported module's interpreter
+// All data is passed by reference to avoid errors when crossing interpreter boundaries
+int INVOKE_MODULE_METHOD(
+    Memory* local_memory, Memory* module_memory,
+    std::unordered_map<std::string, Class>& module_classes,
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
+        module_builtin_functions,
+    std::vector<size_t> arguments) {
+  if (arguments.size() < 3) {
+    LOGGING_ERROR("Invalid arguments for INVOKE_MODULE_METHOD.");
+    return -1;
+  }
+
+  // First argument is the class object in module memory
+  std::size_t class_object_index = arguments[0];
+  // Second argument is the method name in module memory
+  std::size_t method_name_index = arguments[1];
+
+  // Remove the first two arguments, keeping only the method parameters
+  arguments.erase(arguments.begin(), arguments.begin() + 2);
+
+  // Get the method name from module memory
+  auto module_ptr = module_memory->GetMemory().data();
+  std::string method_name = GetString(module_ptr + method_name_index);
+
+  // Check if it's a builtin function
+  auto builtin_it = module_builtin_functions.find(method_name);
+  if (builtin_it != module_builtin_functions.end()) {
+    // For builtin functions, arguments need to be in module memory
+    // We need to create references in module memory to local memory
+    std::vector<std::size_t> module_args;
+    for (auto arg : arguments) {
+      std::size_t ref_index = module_memory->AddReference(local_memory, arg);
+      module_args.push_back(ref_index);
+    }
+    return builtin_it->second(module_memory, module_args);
+  }
+
+  // For class methods, invoke using the module's classes and memory
+  return InvokeClassMethod(module_memory, class_object_index, method_name_index,
+                          arguments, module_classes, module_builtin_functions);
+}
+
+// NEW_MODULE creates a new instance of a class from an imported module
+// The instance is created in the module's memory space
+int NEW_MODULE(Memory* local_memory, Memory* module_memory,
+               std::unordered_map<std::string, Class>& module_classes,
+               std::size_t result, std::size_t size, std::size_t type,
+               std::unordered_map<
+                   std::string,
+                   std::function<int(Memory*, std::vector<std::size_t>)>>&
+                   module_builtin_functions) {
+  if (local_memory == nullptr || module_memory == nullptr) {
+    LOGGING_ERROR("Memory pointer is null.");
+    return -1;
+  }
+
+  // Get the type information from local memory
+  auto local_ptr = local_memory->GetMemory().data();
+  Object type_data = local_ptr[type];
+
+  // The type should be a string naming the class
+  if (type_data.type != 0x05 || type_data.data.string_data == nullptr) {
+    LOGGING_ERROR("NEW_MODULE requires a string type parameter.");
+    return -1;
+  }
+
+  std::string class_name = *type_data.data.string_data;
+  
+  // Get the size value
+  std::size_t size_value = GetUint64(local_ptr + size);
+
+  // Create the object in module memory
+  std::size_t module_obj_index = module_memory->Add(1);
+  
+  // Use the module's NEW operator to create the instance
+  std::size_t module_type_index = module_memory->AddString(class_name);
+  std::size_t module_size_index = module_memory->AddUint64t(size_value);
+  
+  int result_code = NEW(module_memory->GetMemory().data(), module_classes,
+                       module_obj_index, module_size_index, module_type_index,
+                       module_builtin_functions);
+  
+  if (result_code != 0) {
+    return result_code;
+  }
+
+  // Create a reference in local memory to the module object
+  ObjectReference* reference = new ObjectReference();
+  reference->is_class = false;
+  reference->memory.memory = module_memory;
+  reference->index.index = module_obj_index;
+
+  auto& result_object = local_memory->GetMemory()[result];
+  result_object.type = 0x07;
+  result_object.constant_type = false;
+  result_object.data.reference_data = reference;
+
+  return 0;
+}
+
 }  // namespace Interpreter
 }  // namespace Aq

@@ -463,46 +463,8 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
           Ast::Cast<Ast::Function>(expressions.back());
       full_name += right_expression->GetFunctionName();
       
-      // Check if this is a constructor call through an import alias (e.g., "test2.TEST_CLASS()")
-      std::size_t dot_pos = full_name.find('.');
-      if (dot_pos != std::string::npos) {
-        std::string potential_alias = full_name.substr(0, dot_pos);
-        std::string class_in_module = full_name.substr(dot_pos + 1);
-        
-        // Check if potential_alias is an import alias
-        auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
-        if (alias_it != interpreter.import_alias_to_class_name.end()) {
-          // This is a constructor call for an imported class
-          std::string import_class_name = alias_it->second;
-          std::string resolved_class_name = import_class_name + "." + class_in_module;
-          
-          // Check if this class exists
-          if (functions.find(resolved_class_name) != functions.end()) {
-            // Handle as class instantiation
-            std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
-            
-            // Create new instance
-            code.push_back(
-                Bytecode{_AQVM_OPERATOR_NEW,
-                         {return_value_index, global_memory->AddByte(0),
-                          global_memory->AddString(resolved_class_name)}});
-            
-            // Call constructor
-            auto arguments = right_expression->GetParameters();
-            std::vector<std::size_t> constructor_arguments{
-                return_value_index, global_memory->AddString("@constructor"),
-                global_memory->Add(1)};
-            for (std::size_t i = 0; i < arguments.size(); i++)
-              constructor_arguments.push_back(
-                  HandleExpression(interpreter, arguments[i], code, 0));
-            
-            code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
-                                    std::move(constructor_arguments)});
-            
-            return return_value_index;
-          }
-        }
-      }
+      // TODO: Module class constructor calls need to be redesigned with NEW_MODULE bytecode
+      // For now, imported module class constructors are temporarily disabled during transition
 
       for (int64_t k = scopes.size() - 1; k >= 0; k--) {
         auto iterator = functions.find(scopes[k] + "." + full_name);
@@ -989,26 +951,26 @@ std::size_t HandleLambdaExpression(Interpreter& interpreter,
   HandleGotoInHandlingFunction(interpreter, new_context.current_scope,
                                lambda_code);
 
-  // Create function object
+  // Create function object - store it in current class methods
   Function lambda_func(lambda_name, parameters_index, lambda_code);
   if (lambda->IsVariadic()) {
     lambda_func.EnableVariadic();
   }
 
-  // Add lambda function to interpreter (both in functions map and as a class method)
-  interpreter.functions[lambda_name].push_back(lambda_func);
-  
-  // Also add to current class methods so it can be invoked via INVOKE_METHOD
+  // Add lambda as a method to the current class so it can be invoked via INVOKE_METHOD
   if (interpreter.context.current_class != nullptr) {
     interpreter.context.current_class->GetMethods()[lambda_name].push_back(lambda_func);
+  } else {
+    // If not in a class, add to the main class
+    interpreter.main_class.GetMethods()[lambda_name].push_back(lambda_func);
   }
 
   // Restore context
   scopes.pop_back();
   interpreter.context.function_context = saved_context;
 
-  // Store function reference in memory (as a function pointer)
-  // For now, we'll store the function name as a string
+  // Store function reference as a string (function name) in memory
+  // The variable holding this will be used with INVOKE_METHOD directly
   std::size_t func_index = global_memory->AddString(lambda_name);
   
   return func_index;
