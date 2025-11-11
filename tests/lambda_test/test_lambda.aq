@@ -1,0 +1,14 @@
+// Test lambda expressions with function references
+
+auto main() {
+    // Define a lambda function
+    auto add = [](int a, int b) -> int {
+        return a + b;
+    };
+    
+    // Call the lambda through variable reference
+    int result = add(5, 3);
+    
+    __builtin_print("Lambda test result:");
+    __builtin_print(result);
+}
