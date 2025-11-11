@@ -1,0 +1,10 @@
+import "./test_module.aq" mod;
+
+auto main(){
+    __builtin_print("=== Test 1: Read module global variable ===");
+    __builtin_print(mod.global_var);
+    __builtin_print(mod.global_int);
+    
+    __builtin_print("=== Test 2: Call module function ===");
+    mod.test_function();
+}

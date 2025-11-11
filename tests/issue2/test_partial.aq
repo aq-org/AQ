@@ -1,0 +1,8 @@
+import "./test.aq" test;
+
+auto main(){
+    __builtin_print("=== Testing module global variable ===");
+    __builtin_print(test.test_global_var);
+    __builtin_print("=== Calling test_function lambda ===");
+    test.test_function();
+}

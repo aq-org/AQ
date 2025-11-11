@@ -1,0 +1,8 @@
+auto main(){}
+
+auto global_var = "INITIAL_VALUE";
+auto global_int = 42;
+
+auto test_function(){
+    __builtin_print("test_function called");
+}
