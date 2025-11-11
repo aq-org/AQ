@@ -1017,12 +1017,9 @@ std::size_t HandleLambdaExpression(Interpreter& interpreter,
   }
 
   // Add lambda as a method to the current class so it can be invoked via INVOKE_METHOD
-  if (interpreter.context.current_class != nullptr) {
-    interpreter.context.current_class->GetMethods()[lambda_name].push_back(lambda_func);
-  } else {
-    // If not in a class, add to the functions map which will be copied to .!__start
-    interpreter.functions[lambda_name].push_back(lambda_func);
-  }
+  // Always add to functions map - it will be copied to .!__start at the end of Generate()
+  // This ensures lambdas are available in the main class methods
+  interpreter.functions[lambda_name].push_back(lambda_func);
 
   // Restore context
   scopes.pop_back();
