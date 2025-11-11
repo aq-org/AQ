@@ -1710,6 +1710,21 @@ int InvokeClassMethod(
             memory_ptr[arguments.operand2].data.float_data /
             memory_ptr[arguments.operand3].data.float_data;
         break;
+      case _AQVM_OPERATOR_LOAD_MODULE_MEMBER:
+        // Note: This requires special handling as it needs module interpreter pointers
+        // which need to be passed through the execution context
+        LOGGING_ERROR("LOAD_MODULE_MEMBER not yet implemented in bytecode execution loop");
+        break;
+      case _AQVM_OPERATOR_INVOKE_MODULE_METHOD:
+        // Note: This requires special handling as it needs module interpreter pointers
+        // which need to be passed through the execution context
+        LOGGING_ERROR("INVOKE_MODULE_METHOD not yet implemented in bytecode execution loop");
+        break;
+      case _AQVM_OPERATOR_NEW_MODULE:
+        // Note: This requires special handling as it needs module interpreter pointers
+        // which need to be passed through the execution context
+        LOGGING_ERROR("NEW_MODULE not yet implemented in bytecode execution loop");
+        break;
       case _AQVM_OPERATOR_WIDE:
         break;
       default:
