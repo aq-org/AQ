@@ -132,9 +132,17 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
     classes[class_name].GetMembers()->GetMembers()["@name"].type = 0x05;
     classes[class_name].GetMembers()->GetMembers()["@name"].data.string_data = new std::string(class_name);
     
-    // Clear constant_type flags on all members to allow mutation
+    // CRITICAL: Store the source interpreter pointer as a special member
+    // This allows runtime detection and cross-interpreter invocation
+    classes[class_name].GetMembers()->GetMembers()["@source_interpreter"].type = 0x0A;  // pointer type
+    classes[class_name].GetMembers()->GetMembers()["@source_interpreter"].data.pointer_data = static_cast<void*>(imported_interpreter);
+    classes[class_name].GetMembers()->GetMembers()["@source_interpreter"].constant_type = true;
+    
+    // Clear constant_type flags on all members to allow mutation (except special members)
     for (auto& member_pair : classes[class_name].GetMembers()->GetMembers()) {
-      member_pair.second.constant_type = false;
+      if (member_pair.first[0] != '@') {  // Keep @ members as constant
+        member_pair.second.constant_type = false;
+      }
     }
     
     // Transform method names to remove scope prefixes so they can be called naturally

@@ -4,6 +4,7 @@
 
 #include "interpreter/operator.h"
 
+#include "interpreter/interpreter.h"
 #include "logging/logging.h"
 #include "memory.h"
 
@@ -987,11 +988,84 @@ int InvokeClassMethod(
         builtin_functions) {
   auto memory_ptr = memory->GetMemory().data();
 
-  std::string class_name = *GetObject(memory_ptr + class_object)
-                                ->GetMembers()["@name"]
-                                .data.string_data;
+  auto class_members = GetObject(memory_ptr + class_object)->GetMembers();
+  std::string class_name = *class_members["@name"].data.string_data;
   std::string method_name = GetString(memory_ptr + method_name_object);
 
+  // Check if this is an imported module class (has @source_interpreter member)
+  auto source_interp_it = class_members.find("@source_interpreter");
+  if (source_interp_it != class_members.end() && source_interp_it->second.type == 0x0A) {
+    // This is an imported module! We need to execute in the source interpreter
+    // But first check if we're ALREADY in a cross-interpreter call to prevent infinite recursion
+    static thread_local bool in_cross_interpreter_call = false;
+    if (in_cross_interpreter_call) {
+      // Already in cross-interpreter call, don't recurse
+      LOGGING_ERROR("Recursive cross-interpreter call detected, aborting to prevent infinite loop");
+      return -1;
+    }
+    
+    in_cross_interpreter_call = true;
+    LOGGING_INFO("Cross-interpreter invocation for method: " + method_name);
+    
+    Interpreter* source_interpreter = static_cast<Interpreter*>(source_interp_it->second.data.pointer_data);
+    
+    if (source_interpreter != nullptr) {
+      // Get the source class name (without the ~import~ prefix)
+      std::string source_class_name = ".!__start";  // Imported modules always use .!__start
+      
+      LOGGING_INFO("Source interpreter found, looking for class: " + source_class_name);
+      
+      // Find the method in the source interpreter's classes
+      auto& source_classes = source_interpreter->classes;
+      auto source_class_it = source_classes.find(source_class_name);
+      if (source_class_it != source_classes.end()) {
+        // Try to find the method with various naming conventions
+        auto& methods = source_class_it->second.GetMethods();
+        auto source_method_it = methods.find("." + method_name);
+        if (source_method_it == methods.end()) {
+          source_method_it = methods.find(method_name);
+        }
+        if (source_method_it == methods.end()) {
+          // Try with .!__start prefix
+          source_method_it = methods.find(".!__start." + method_name);
+        }
+        
+        if (source_method_it != methods.end()) {
+          // Found the method in source interpreter! Execute it there by calling InvokeClassMethod
+          // recursively with the source interpreter's context
+          
+          auto source_memory = source_interpreter->global_memory;
+          std::size_t source_method_name_idx = source_memory->AddString(method_name);
+          
+          // Build arguments for source: [return_ref, arg1, arg2, ...]
+          // Create references in source memory pointing to local memory
+          std::vector<std::size_t> source_arguments;
+          std::size_t return_ref_idx = source_memory->AddReference(memory, arguments[0]);
+          source_arguments.push_back(return_ref_idx);
+          
+          for (std::size_t i = 1; i < arguments.size(); i++) {
+            std::size_t arg_ref_idx = source_memory->AddReference(memory, arguments[i]);
+            source_arguments.push_back(arg_ref_idx);
+          }
+          
+          // Call in source interpreter context (class index 2 is the main class)
+          int result = InvokeClassMethod(source_memory, 2, source_method_name_idx,
+                                        source_arguments, source_interpreter->classes,
+                                        source_interpreter->builtin_functions);
+          
+          in_cross_interpreter_call = false;
+          return result;
+        }
+      }
+    }
+    
+    // If we get here, something went wrong with cross-interpreter invocation
+    in_cross_interpreter_call = false;
+    LOGGING_ERROR("Failed to invoke method '" + method_name + "' in source interpreter for class '" + class_name + "'");
+    return -1;
+  }
+
+  // Normal (non-imported) method invocation
   auto class_it = classes.find(class_name);
   if (class_it == classes.end()) {
     LOGGING_ERROR("Class not found: " + class_name);

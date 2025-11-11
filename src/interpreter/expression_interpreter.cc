@@ -415,6 +415,7 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
   auto& variables = interpreter.context.variables;
   auto& imported_aliases = interpreter.imported_aliases;
   auto& module_interpreters = interpreter.module_interpreters;
+  auto& import_alias_to_class_name = interpreter.import_alias_to_class_name;
 
   Ast::Expression* handle_expr = expression;
   std::vector<Ast::Expression*> expressions;
@@ -440,8 +441,61 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
     }
   }
 
-  // Module access is now handled via class-copying in HandleImport
-  // The normal period expression handling below will work correctly
+  // Check if this is a module access (module.function() or module.variable)
+  // If so, we need special handling because the function bytecode must execute in the module's interpreter
+  if (expressions.size() >= 2 && Ast::IsOfType<Ast::Identifier>(expressions[0])) {
+    std::string first_ident = std::string(*Ast::Cast<Ast::Identifier>(expressions[0]));
+    
+    // Check if this is an imported module alias
+    if (imported_aliases.find(first_ident) != imported_aliases.end()) {
+      // Get the module variable that holds the class instance
+      std::size_t module_var_index = variables["#" + first_ident];
+      
+      // Get the actual class index at runtime (it's created during init)
+      std::size_t class_index = HandleExpression(interpreter, expressions[0], code, 0);
+      
+      if (expressions.size() == 2 && Ast::IsOfType<Ast::Function>(expressions[1])) {
+        // This is a module function call: module.function()
+        Ast::Function* func_expr = Ast::Cast<Ast::Function>(expressions[1]);
+        std::string method_name = func_expr->GetFunctionName();
+        
+        // Create return value
+        std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+        
+        // Build arguments
+        std::vector<std::size_t> invoke_args;
+        invoke_args.push_back(class_index);
+        invoke_args.push_back(global_memory->AddString(method_name));
+        invoke_args.push_back(return_value_index);
+        
+        auto arguments = func_expr->GetParameters();
+        for (std::size_t i = 0; i < arguments.size(); i++) {
+          invoke_args.push_back(HandleExpression(interpreter, arguments[i], code, 0));
+        }
+        
+        // Use regular INVOKE_METHOD - but the class will have methods that reference the imported memory
+        // This will work because the imported class's methods contain Function objects with the right bytecode
+        code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_args)});
+        
+        return return_value_index;
+      }
+      else if (expressions.size() == 2 && Ast::IsOfType<Ast::Identifier>(expressions[1])) {
+        // This is a module variable access: module.variable
+        std::string member_name = std::string(*Ast::Cast<Ast::Identifier>(expressions[1]));
+        
+        std::size_t return_value_index = global_memory->Add(1);
+        std::size_t member_name_index = global_memory->AddString(member_name);
+        
+        // Use LOAD_MEMBER to get the variable from the class
+        code.push_back(Bytecode{_AQVM_OPERATOR_LOAD_MEMBER,
+                               {return_value_index, class_index, member_name_index}});
+        
+        return return_value_index;
+      }
+      
+      // For more complex cases, fall through to normal handling
+    }
+  }
 
   // is_end equals true, indicating that the front-end of the expression
   // (excluding the rightmost expression) is entirely composed of identifiers
