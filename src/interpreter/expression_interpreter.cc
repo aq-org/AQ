@@ -1020,14 +1020,8 @@ std::size_t HandleLambdaExpression(Interpreter& interpreter,
   if (interpreter.context.current_class != nullptr) {
     interpreter.context.current_class->GetMethods()[lambda_name].push_back(lambda_func);
   } else {
-    // If not in a class, add to the main class
-    interpreter.main_class.GetMethods()[lambda_name].push_back(lambda_func);
-    
-    // Also add to the classes map if .!__start exists (needed for runtime lookup)
-    auto main_class_it = interpreter.classes.find(".!__start");
-    if (main_class_it != interpreter.classes.end()) {
-      main_class_it->second.GetMethods()[lambda_name].push_back(lambda_func);
-    }
+    // If not in a class, add to the functions map which will be copied to .!__start
+    interpreter.functions[lambda_name].push_back(lambda_func);
   }
 
   // Restore context
