@@ -1,0 +1,13 @@
+import "./test.aq" test;
+
+auto main(){
+    __builtin_print("=== Test global variable read ===");
+    __builtin_print(test.test_global_var);
+    
+    __builtin_print("=== Test global variable assignment ===");
+    test.test_global_var = "MODIFIED";
+    __builtin_print(test.test_global_var);
+    
+    __builtin_print("=== Test function (lambda) call ===");
+    test.test_function();
+}
