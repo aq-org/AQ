@@ -1376,13 +1376,41 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   auto& scopes = interpreter.context.scopes;
   auto& functions = interpreter.functions;
   auto& variables = interpreter.context.variables;
+  auto& imported_aliases = interpreter.imported_aliases;
+  auto& module_interpreters = interpreter.module_interpreters;
 
   // Gets the class name, which is same as the function name.
   std::string name = std::string(
       *dynamic_cast<Ast::ClassType*>(declaration->GetVariableType()));
   
-  // Module classes are not copied, so can't be instantiated directly
-  // Would require NEW_MODULE bytecode implementation
+  // Check if this is a module class (format: module_alias.ClassName)
+  size_t dot_pos = name.find('.');
+  if (dot_pos != std::string::npos) {
+    std::string module_alias = name.substr(0, dot_pos);
+    std::string class_name = name.substr(dot_pos + 1);
+    
+    // Check if the prefix is an imported module alias
+    if (imported_aliases.find(module_alias) != imported_aliases.end()) {
+      // This is a module class! Use NEW_MODULE bytecode
+      std::size_t module_var_index = variables["#" + module_alias];
+      
+      // Format for NEW_MODULE: [result, size, type, module_ptr]
+      // We'll store module_ptr in the bytecode for runtime access
+      std::size_t type_index = memory->AddString(class_name);
+      std::size_t size_index = memory->AddByte(0);
+      
+      // Generate NEW_MODULE bytecode
+      // The bytecode will create an object in the module interpreter,
+      // call its constructor, and return a reference to it in local memory
+      code.push_back(
+          Bytecode{_AQVM_OPERATOR_NEW_MODULE,
+                   {variable_index, size_index, type_index, module_var_index}});
+      
+      // Constructor is called inside NEW_MODULE, no separate call needed
+      
+      return;  // Done with module class instantiation
+    }
+  }
   
   // Original class resolution logic for local classes
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {

@@ -1537,7 +1537,38 @@ int InvokeClassMethod(
     continue;
   }
   op_NEW_MODULE: {
-    LOGGING_ERROR("NEW_MODULE not yet implemented in goto dispatch");
+    // Format: [result, size, type, module_ptr]
+    auto& args = instructions_ptr[i].arguments;
+    if (args.size() < 4) {
+      LOGGING_ERROR("NEW_MODULE: Insufficient arguments");
+      continue;
+    }
+    
+    std::size_t result_idx = args[0];
+    std::size_t size_idx = args[1];
+    std::size_t type_idx = args[2];
+    std::size_t module_ptr_idx = args[3];
+    
+    // Get the module interpreter pointer
+    if (memory_ptr[module_ptr_idx].type != 0x0A) {
+      LOGGING_ERROR("NEW_MODULE: Module pointer expected");
+      continue;
+    }
+    
+    Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[module_ptr_idx].data.pointer_data);
+    if (module_interp == nullptr) {
+      LOGGING_ERROR("NEW_MODULE: Null module interpreter");
+      continue;
+    }
+    
+    // Call the NEW_MODULE function
+    int result = NEW_MODULE(memory, module_interp->global_memory,
+                           module_interp->classes, result_idx, size_idx, 
+                           type_idx, module_interp->builtin_functions);
+    
+    if (result != 0) {
+      LOGGING_ERROR("NEW_MODULE: Failed to create module class instance");
+    }
     continue;
   }
 #else
@@ -1891,11 +1922,45 @@ int InvokeClassMethod(
                          module_interp->classes, module_interp->builtin_functions);
         break;
       }
-      case _AQVM_OPERATOR_NEW_MODULE:
-        // Note: This requires special handling as it needs module interpreter pointers
-        // which need to be passed through the execution context
-        LOGGING_ERROR("NEW_MODULE not yet implemented in bytecode execution loop");
+      case _AQVM_OPERATOR_NEW_MODULE: {
+        // Format: [result, size, type, module_ptr]
+        // operand1: result index in local memory (where reference will be stored)
+        // operand2: size index (typically 0)
+        // operand3: class name index (string)
+        // operand4: module interpreter pointer index
+        
+        if (arguments.size() < 4) {
+          LOGGING_ERROR("NEW_MODULE: Insufficient arguments");
+          break;
+        }
+        
+        std::size_t result_idx = arguments.operand1;
+        std::size_t size_idx = arguments.operand2;
+        std::size_t type_idx = arguments.operand3;
+        std::size_t module_ptr_idx = arguments[3];
+        
+        // Get the module interpreter pointer
+        if (memory_ptr[module_ptr_idx].type != 0x0A) {
+          LOGGING_ERROR("NEW_MODULE: Module pointer expected");
+          break;
+        }
+        
+        Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[module_ptr_idx].data.pointer_data);
+        if (module_interp == nullptr) {
+          LOGGING_ERROR("NEW_MODULE: Null module interpreter");
+          break;
+        }
+        
+        // Call the NEW_MODULE function
+        int result = NEW_MODULE(memory, module_interp->global_memory,
+                               module_interp->classes, result_idx, size_idx, 
+                               type_idx, module_interp->builtin_functions);
+        
+        if (result != 0) {
+          LOGGING_ERROR("NEW_MODULE: Failed to create module class instance");
+        }
         break;
+      }
       case _AQVM_OPERATOR_WIDE:
         break;
       default:
@@ -2116,6 +2181,12 @@ int NEW_MODULE(Memory* local_memory, Memory* module_memory,
 
   std::string class_name = *type_data.data.string_data;
   
+  // Classes in modules are stored with a leading dot (e.g., ".test_class")
+  // Prepend a dot if not already present
+  if (!class_name.empty() && class_name[0] != '.') {
+    class_name = "." + class_name;
+  }
+  
   // Get the size value
   std::size_t size_value = GetUint64(local_ptr + size);
 
@@ -2133,6 +2204,13 @@ int NEW_MODULE(Memory* local_memory, Memory* module_memory,
   if (result_code != 0) {
     return result_code;
   }
+
+  // Call the constructor on the newly created object in module memory
+  std::size_t constructor_name_idx = module_memory->AddString("@constructor");
+  std::size_t return_val_idx = module_memory->Add(1);
+  std::vector<std::size_t> constructor_args = {return_val_idx};
+  InvokeClassMethod(module_memory, module_obj_index, constructor_name_idx,
+                   constructor_args, module_classes, module_builtin_functions);
 
   // Create a reference in local memory to the module object
   ObjectReference* reference = new ObjectReference();

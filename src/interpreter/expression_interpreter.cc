@@ -454,10 +454,46 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       std::size_t class_index = HandleExpression(interpreter, expressions[0], code, 0);
       
       if (expressions.size() == 2 && Ast::IsOfType<Ast::Function>(expressions[1])) {
-        // This is a module function call: module.function()
+        // This could be a module function call: module.function()
+        // OR a module class constructor: module.ClassName()
         Ast::Function* func_expr = Ast::Cast<Ast::Function>(expressions[1]);
         std::string method_name = func_expr->GetFunctionName();
         
+        // Check if this is a class constructor by checking if it exists in module's classes
+        // Get the module interpreter to check its classes
+        Interpreter* module_interp = interpreter.module_interpreters[first_ident];
+        bool is_constructor = false;
+        if (module_interp != nullptr) {
+          std::string class_name_with_dot = "." + method_name;
+          is_constructor = (module_interp->classes.find(class_name_with_dot) != 
+                           module_interp->classes.end());
+        }
+        
+        if (is_constructor && func_expr->GetParameters().empty()) {
+          // This is a module class constructor call: module.ClassName()
+          // Use NEW_MODULE bytecode
+          std::size_t return_value_index = global_memory->Add(1);
+          std::size_t type_index = global_memory->AddString(method_name);
+          std::size_t size_index = global_memory->AddByte(0);
+          
+          // Generate NEW_MODULE bytecode
+          code.push_back(
+              Bytecode{_AQVM_OPERATOR_NEW_MODULE,
+                       {return_value_index, size_index, type_index, module_var_index}});
+          
+          // Call the constructor
+          std::vector<std::size_t> invoke_args;
+          invoke_args.push_back(module_var_index);  // Module interpreter pointer
+          invoke_args.push_back(global_memory->AddString("@constructor"));
+          invoke_args.push_back(global_memory->Add(1));  // Return value (not used)
+          invoke_args.push_back(return_value_index);  // The object reference
+          
+          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_MODULE_METHOD, std::move(invoke_args)});
+          
+          return return_value_index;
+        }
+        
+        // Regular module function call
         // Create return value
         std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
         
