@@ -471,24 +471,16 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
         
         if (is_constructor && func_expr->GetParameters().empty()) {
           // This is a module class constructor call: module.ClassName()
-          // Use NEW_MODULE bytecode
+          // Use NEW_MODULE bytecode (which also calls the constructor internally)
           std::size_t return_value_index = global_memory->Add(1);
           std::size_t type_index = global_memory->AddString(method_name);
           std::size_t size_index = global_memory->AddByte(0);
           
           // Generate NEW_MODULE bytecode
+          // Constructor is called automatically inside NEW_MODULE
           code.push_back(
               Bytecode{_AQVM_OPERATOR_NEW_MODULE,
                        {return_value_index, size_index, type_index, module_var_index}});
-          
-          // Call the constructor
-          std::vector<std::size_t> invoke_args;
-          invoke_args.push_back(module_var_index);  // Module interpreter pointer
-          invoke_args.push_back(global_memory->AddString("@constructor"));
-          invoke_args.push_back(global_memory->Add(1));  // Return value (not used)
-          invoke_args.push_back(return_value_index);  // The object reference
-          
-          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_MODULE_METHOD, std::move(invoke_args)});
           
           return return_value_index;
         }
