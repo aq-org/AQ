@@ -1125,6 +1125,13 @@ int InvokeClassMethod(
   auto instructions_ptr = instructions.data();
   std::size_t instructions_size = instructions.size();
 
+  // Save and set current_class_index for proper member access during method execution
+  // This is critical for module class member initialization: when LOAD_MEMBER bytecode
+  // in constructors uses operand2=0, it references current_class_index to access the
+  // instance being constructed. Without this, module class members remain uninitialized.
+  auto saved_current_class_index = current_class_index;
+  current_class_index = class_object;
+
 #if defined(__GNUC__) || defined(__clang__)
   static const void* dispatch_table[] = {
       &&op_NOP,  &&op_NOP,           &&op_NOP,         &&op_NEW,  &&op_ARRAY,
@@ -1969,6 +1976,9 @@ int InvokeClassMethod(
     }
 #endif
   }
+
+  // Restore the previous current_class_index
+  current_class_index = saved_current_class_index;
 
   return 0;
 }

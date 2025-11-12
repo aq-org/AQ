@@ -1,0 +1,28 @@
+import "./issue2/test.aq" test;
+
+auto main(){
+    __builtin_print("=== Module Class Comprehensive Test ===");
+    
+    // Test 1: Module class instantiation via declaration
+    __builtin_print("1. Declaration syntax:");
+    test.test_class obj1;
+    
+    // Test 2: Module class instantiation via constructor call
+    __builtin_print("2. Constructor call syntax:");
+    auto obj2 = test.test_class();
+    
+    // Test 3: Module class member access
+    __builtin_print("3. Member access:");
+    __builtin_print(obj1.test_var);
+    __builtin_print(obj2.test_var);
+    
+    // Test 4: Module global variable access
+    __builtin_print("4. Global variable:");
+    __builtin_print(test.test_global_var);
+    
+    // Test 5: Module function call
+    __builtin_print("5. Function call:");
+    test.test_function();
+    
+    __builtin_print("=== ALL TESTS PASSED ===");
+}
