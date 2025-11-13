@@ -1,0 +1,6 @@
+auto main(){}
+auto test_var = "TEST";
+
+auto test_lambda = func(){
+    __builtin_print("Lambda works");
+}

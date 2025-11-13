@@ -102,105 +102,23 @@ void HandleImport(Interpreter& interpreter, Ast::Import* statement) {
   // Track this alias as used in the current interpreter
   interpreter.imported_aliases.insert(alias);
 
-  // Register the imported module's classes into the main interpreter
+  // Get the imported module's interpreter
   Interpreter* imported_interpreter = imports_map[resolved_location];
-  // Use a unique name for the imported class to avoid conflicts with main module
-  std::string class_name = "~import~" + alias;
   
-  // Store the mapping from alias to the imported module's class name
-  // This allows us to resolve cross-file class references like "test2.TEST_CLASS"
-  interpreter.import_alias_to_class_name[alias] = class_name;
+  // Store ONLY the module interpreter pointer - NO class copying!
+  // This ensures complete separation between interpreters
+  interpreter.module_interpreters[alias] = imported_interpreter;
   
-  // Copy the imported module's main class and all its sub-classes to the main interpreter
-  // Important: We do NOT merge memory - we keep references to the original imported memory
-  // This preserves all function behavior and avoids complex index remapping
-  
-  // First, copy the main class (.!__start)
-  if (imported_interpreter->classes.find(".!__start") != imported_interpreter->classes.end()) {
-    Class& imported_class = imported_interpreter->classes[".!__start"];
-    
-    // Directly register the imported class - no copying, just reference it
-    // This keeps all the original memory intact
-    classes[class_name] = imported_class;
-    classes[class_name].SetName(class_name);
-    
-    // Update the @name in the class members to match the registered name  
-    classes[class_name].GetMembers()->GetMembers()["@name"].type = 0x05;
-    classes[class_name].GetMembers()->GetMembers()["@name"].data.string_data = new std::string(class_name);
-    
-    // Clear constant_type flags on all members to allow mutation
-    for (auto& member_pair : classes[class_name].GetMembers()->GetMembers()) {
-      member_pair.second.constant_type = false;
-    }
-    
-    // Transform method names to remove scope prefixes so they can be called naturally
-    // E.g., ".function_name" becomes "function_name"
-    std::unordered_map<std::string, std::vector<Function>> transformed_methods;
-    for (auto& method_pair : classes[class_name].GetMethods()) {
-      std::string original_name = method_pair.first;
-      std::string new_name = original_name;
-      
-      // Remove leading dot for global functions (but keep special methods like .!__init)
-      if (original_name.length() > 0 && original_name[0] == '.' && 
-          original_name != ".!__init" && original_name != ".!__start") {
-        new_name = original_name.substr(1);
-      }
-      
-      // Keep both the original name and the transformed name for compatibility
-      transformed_methods[original_name] = method_pair.second;
-      if (new_name != original_name) {
-        transformed_methods[new_name] = method_pair.second;
-      }
-    }
-    classes[class_name].GetMethods() = transformed_methods;
-  }
-  
-  // Copy all other classes from the imported module
-  for (auto& imported_class_pair : imported_interpreter->classes) {
-    std::string imported_class_name = imported_class_pair.first;
-    
-    // Skip the main class as it's already handled above
-    if (imported_class_name == ".!__start") continue;
-    
-    // Transform the class name to include the module prefix
-    std::string new_class_name;
-    if (imported_class_name[0] == '.') {
-      // Remove leading dot and add module prefix
-      new_class_name = class_name + imported_class_name;
-    } else {
-      new_class_name = class_name + "." + imported_class_name;
-    }
-    
-    LOGGING_INFO("Registering imported class: '" + imported_class_name + "' as '" + new_class_name + "'");
-    
-    // Directly register the imported class
-    classes[new_class_name] = imported_class_pair.second;
-    classes[new_class_name].SetName(new_class_name);
-    
-    // Update the @name in the class members
-    classes[new_class_name].GetMembers()->GetMembers()["@name"].type = 0x05;
-    classes[new_class_name].GetMembers()->GetMembers()["@name"].data.string_data = new std::string(new_class_name);
-    
-    // Clear constant_type flags
-    for (auto& member_pair : classes[new_class_name].GetMembers()->GetMembers()) {
-      member_pair.second.constant_type = false;
-    }
-    
-    // Register in functions map so it can be found during class resolution
-    functions[new_class_name].push_back(Function());
-  }
-
-  // Gets index from import preprocessing.
+  // Gets index from import preprocessing
   std::size_t index = variables["#" + alias];
 
-  // Initialize the import object using NEW
-  // This creates an instance of the imported class with all its members
-  // The instance will share memory with the imported module, so all
-  // global variables, functions, and classes are accessible
-  init_code.push_back(
-      Bytecode{_AQVM_OPERATOR_NEW,
-               {index, memory->AddUint64t(0),
-                memory->AddString(class_name)}});
+  // Store the module interpreter pointer directly in memory as a pointer type
+  // This allows runtime access via the new bytecode operators
+  memory->GetMemory()[index].type = 0x0A;  // pointer type
+  memory->GetMemory()[index].data.pointer_data = static_cast<void*>(imported_interpreter);
+  memory->GetMemory()[index].constant_type = true;
+  
+  LOGGING_INFO("Import '" + alias + "' completed - module interpreter stored at index " + std::to_string(index));
 }
 
 void HandleFunctionDeclaration(Interpreter& interpreter,
@@ -1458,38 +1376,43 @@ void HandleClassInHandlingVariable(Interpreter& interpreter,
   auto& scopes = interpreter.context.scopes;
   auto& functions = interpreter.functions;
   auto& variables = interpreter.context.variables;
+  auto& imported_aliases = interpreter.imported_aliases;
+  auto& module_interpreters = interpreter.module_interpreters;
 
   // Gets the class name, which is same as the function name.
   std::string name = std::string(
       *dynamic_cast<Ast::ClassType*>(declaration->GetVariableType()));
   
-  // Check if the class name refers to an imported module (e.g., "test2.TEST_CLASS")
-  std::size_t dot_pos = name.find('.');
+  // Check if this is a module class (format: module_alias.ClassName)
+  size_t dot_pos = name.find('.');
   if (dot_pos != std::string::npos) {
-    std::string potential_alias = name.substr(0, dot_pos);
-    std::string class_in_module = name.substr(dot_pos + 1);
+    std::string module_alias = name.substr(0, dot_pos);
+    std::string class_name = name.substr(dot_pos + 1);
     
-    // Check if potential_alias is an import alias by looking in the import map
-    auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
-    if (alias_it != interpreter.import_alias_to_class_name.end()) {
-      // This is an imported module access
-      std::string import_class_name = alias_it->second;
+    // Check if the prefix is an imported module alias
+    if (imported_aliases.find(module_alias) != imported_aliases.end()) {
+      // This is a module class! Use NEW_MODULE bytecode
+      std::size_t module_var_index = variables["#" + module_alias];
       
-      // The imported class name would be like "~path~.!__start"
-      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
-      name = import_class_name + "." + class_in_module;
+      // Format for NEW_MODULE: [result, size, type, module_ptr]
+      // We'll store module_ptr in the bytecode for runtime access
+      std::size_t type_index = memory->AddString(class_name);
+      std::size_t size_index = memory->AddByte(0);
       
-      // Verify this class exists
-      if (functions.find(name) == functions.end()) {
-        LOGGING_ERROR("Class '" + class_in_module + "' not found in imported module '" + potential_alias + "'.");
-      }
+      // Generate NEW_MODULE bytecode
+      // The bytecode will create an object in the module interpreter,
+      // call its constructor, and return a reference to it in local memory
+      code.push_back(
+          Bytecode{_AQVM_OPERATOR_NEW_MODULE,
+                   {variable_index, size_index, type_index, module_var_index}});
       
-      // Successfully resolved imported class name
-      goto class_found;
+      // Constructor is called inside NEW_MODULE, no separate call needed
+      
+      return;  // Done with module class instantiation
     }
   }
   
-  // Original class resolution logic for non-imported classes
+  // Original class resolution logic for local classes
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     // Searching globally first and then conducting a search with scope is to
     // avoid the situation where the scope index is exceeded and -1 occurs.
@@ -1541,33 +1464,10 @@ void HandleClassInHandlingVariableWithValue(Interpreter& interpreter,
   std::string name = std::string(
       *dynamic_cast<Ast::ClassType*>(declaration->GetVariableType()));
   
-  // Check if the class name refers to an imported module (e.g., "test2.TEST_CLASS")
-  std::size_t dot_pos = name.find('.');
-  if (dot_pos != std::string::npos) {
-    std::string potential_alias = name.substr(0, dot_pos);
-    std::string class_in_module = name.substr(dot_pos + 1);
-    
-    // Check if potential_alias is an import alias by looking in the import map
-    auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
-    if (alias_it != interpreter.import_alias_to_class_name.end()) {
-      // This is an imported module access
-      std::string import_class_name = alias_it->second;
-      
-      // The imported class name would be like "~path~.!__start"
-      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
-      name = import_class_name + "." + class_in_module;
-      
-      // Verify this class exists
-      if (functions.find(name) == functions.end()) {
-        LOGGING_ERROR("Class '" + class_in_module + "' not found in imported module '" + potential_alias + "'.");
-      }
-      
-      // Successfully resolved imported class name
-      goto class_found;
-    }
-  }
+  // Module classes are not copied, so can't be instantiated directly
+  // Would require NEW_MODULE bytecode implementation
   
-  // Original class resolution logic for non-imported classes
+  // Original class resolution logic for local classes
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     // Searching globally first and then conducting a search with scope is to
     // avoid the situation where the scope index is exceeded and -1 occurs.
@@ -1606,32 +1506,10 @@ std::string GetClassNameString(Interpreter& interpreter, Ast::ClassType* type) {
 
   std::string name = type->GetClassName();
   
-  // Check if the class name refers to an imported module (e.g., "test2.TEST_CLASS")
-  std::size_t dot_pos = name.find('.');
-  if (dot_pos != std::string::npos) {
-    std::string potential_alias = name.substr(0, dot_pos);
-    std::string class_in_module = name.substr(dot_pos + 1);
-    
-    // Check if potential_alias is an import alias by looking in the import map
-    auto alias_it = interpreter.import_alias_to_class_name.find(potential_alias);
-    if (alias_it != interpreter.import_alias_to_class_name.end()) {
-      // This is an imported module access
-      std::string import_class_name = alias_it->second;
-      
-      // The imported class name would be like "~path~.!__start"
-      // We need to construct the full class name as "~path~.!__start.CLASS_NAME"
-      name = import_class_name + "." + class_in_module;
-      
-      // Verify this class exists
-      if (functions.find(name) == functions.end()) {
-        LOGGING_ERROR("Class '" + class_in_module + "' not found in imported module '" + potential_alias + "'.");
-      }
-      
-      return name;
-    }
-  }
+  // Module classes are not copied, so can't be resolved directly
+  // Would require NEW_MODULE bytecode implementation
   
-  // Original class resolution logic for non-imported classes
+  // Original class resolution logic for local classes
   for (int64_t i = scopes.size() - 1; i >= -1; i--) {
     // Searching globally first and then conducting a search with scope is to
     // avoid the situation where the scope index is exceeded and -1 occurs.

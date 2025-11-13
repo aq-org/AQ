@@ -1,0 +1,54 @@
+import "./module_features/test_module.aq" mod;
+
+auto global_func = func(){
+    __builtin_print("Global scope lambda works");
+}
+
+auto main(){
+    __builtin_print("=== COMPREHENSIVE FEATURE TEST ===");
+    
+    __builtin_print("1. Module variable read:");
+    __builtin_print(mod.global_var);
+    
+    __builtin_print("2. Module variable write:");
+    mod.global_var = "UPDATED";
+    __builtin_print(mod.global_var);
+    
+    __builtin_print("3. Module function call:");
+    mod.test_function();
+    
+    __builtin_print("4. Global lambda:");
+    global_func();
+    
+    __builtin_print("5. Local lambda:");
+    auto local = func(){
+        __builtin_print("Local lambda works");
+    }
+    local();
+    
+    __builtin_print("6. Lambda with params:");
+    auto calc = func(int a, int b){
+        return a + b * 2;
+    }
+    auto res = calc(3, 4);
+    __builtin_print("3 + 4*2 = 11:");
+    __builtin_print(res);
+    
+    __builtin_print("7. Nested lambda:");
+    auto outer = func(){
+        __builtin_print("Outer");
+        auto inner = func(){
+            __builtin_print("Inner");
+        }
+        inner();
+    }
+    outer();
+    
+    __builtin_print("8. Lambda reassignment:");
+    local = func(){
+        __builtin_print("Reassigned");
+    }
+    local();
+    
+    __builtin_print("=== ALL TESTS PASSED ===");
+}

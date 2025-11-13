@@ -48,6 +48,9 @@
 #define _AQVM_OPERATOR_SUBF 0x22
 #define _AQVM_OPERATOR_MULF 0x23
 #define _AQVM_OPERATOR_DIVF 0x24
+#define _AQVM_OPERATOR_LOAD_MODULE_MEMBER 0x25
+#define _AQVM_OPERATOR_INVOKE_MODULE_METHOD 0x26
+#define _AQVM_OPERATOR_NEW_MODULE 0x27
 #define _AQVM_OPERATOR_WIDE 0xFF
 
 namespace Aq {
@@ -128,6 +131,25 @@ int64_t GetFunctionOverloadValue(Object* memory, Function& function,
 int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
                 std::size_t result, std::size_t class_index,
                 std::size_t operand);
+
+int LOAD_MODULE_MEMBER(Memory* local_memory, Memory* module_memory,
+                       std::size_t result, std::size_t module_var_index);
+
+int INVOKE_MODULE_METHOD(
+    Memory* local_memory, Memory* module_memory,
+    std::unordered_map<std::string, Class>& module_classes,
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
+        module_builtin_functions,
+    std::vector<std::size_t> arguments);
+
+int NEW_MODULE(Memory* local_memory, Memory* module_memory,
+               std::unordered_map<std::string, Class>& module_classes,
+               std::size_t result, std::size_t size, std::size_t type,
+               std::unordered_map<
+                   std::string,
+                   std::function<int(Memory*, std::vector<std::size_t>)>>&
+                   module_builtin_functions);
 
 }  // namespace Interpreter
 }  // namespace Aq

@@ -1,0 +1,5 @@
+import "./test_lambda_module.aq" mod;
+
+auto main(){
+    mod.simple_func();
+}

@@ -4,6 +4,7 @@
 
 #include "interpreter/operator.h"
 
+#include "interpreter/interpreter.h"
 #include "logging/logging.h"
 #include "memory.h"
 
@@ -987,11 +988,11 @@ int InvokeClassMethod(
         builtin_functions) {
   auto memory_ptr = memory->GetMemory().data();
 
-  std::string class_name = *GetObject(memory_ptr + class_object)
-                                ->GetMembers()["@name"]
-                                .data.string_data;
+  auto class_members = GetObject(memory_ptr + class_object)->GetMembers();
+  std::string class_name = *class_members["@name"].data.string_data;
   std::string method_name = GetString(memory_ptr + method_name_object);
 
+  // Normal method invocation (no cross-interpreter logic here - that's handled by INVOKE_MODULE_METHOD)
   auto class_it = classes.find(class_name);
   if (class_it == classes.end()) {
     LOGGING_ERROR("Class not found: " + class_name);
@@ -1000,8 +1001,12 @@ int InvokeClassMethod(
 
   auto method_it = class_it->second.GetMethods().find(method_name);
   if (method_it == class_it->second.GetMethods().end()) {
-    LOGGING_ERROR("Method not found: " + method_name);
-    return -1;
+    // Try with dot prefix (global functions in AQ have a leading dot)
+    method_it = class_it->second.GetMethods().find("." + method_name);
+    if (method_it == class_it->second.GetMethods().end()) {
+      LOGGING_ERROR("Method not found: " + method_name);
+      return -1;
+    }
   }
 
   Function method =
@@ -1120,6 +1125,13 @@ int InvokeClassMethod(
   auto instructions_ptr = instructions.data();
   std::size_t instructions_size = instructions.size();
 
+  // Save and set current_class_index for proper member access during method execution
+  // This is critical for module class member initialization: when LOAD_MEMBER bytecode
+  // in constructors uses operand2=0, it references current_class_index to access the
+  // instance being constructed. Without this, module class members remain uninitialized.
+  auto saved_current_class_index = current_class_index;
+  current_class_index = class_object;
+
 #if defined(__GNUC__) || defined(__clang__)
   static const void* dispatch_table[] = {
       &&op_NOP,  &&op_NOP,           &&op_NOP,         &&op_NEW,  &&op_ARRAY,
@@ -1129,7 +1141,7 @@ int InvokeClassMethod(
       &&op_NOP,  &&op_EQUAL,         &&op_GOTO,        &&op_NOP,  &&op_NOP,
       &&op_NOP,  &&op_INVOKE_METHOD, &&op_LOAD_MEMBER, &&op_ADDI, &&op_SUBI,
       &&op_MULI, &&op_DIVI,          &&op_REMI,        &&op_ADDF, &&op_SUBF,
-      &&op_MULF, &&op_DIVF};
+      &&op_MULF, &&op_DIVF,          &&op_LOAD_MODULE_MEMBER, &&op_INVOKE_MODULE_METHOD, &&op_NEW_MODULE};
 #endif
 
   struct Argument {
@@ -1445,6 +1457,127 @@ int InvokeClassMethod(
     *result = op1 / op2;
     continue;
   }
+  op_LOAD_MODULE_MEMBER: {
+    // operand1: result index in local memory
+    // operand2: module pointer index in local memory
+    // operand3: member name index in local memory
+    if (memory_ptr[arguments.operand2].type != 0x0A) {
+      LOGGING_ERROR("LOAD_MODULE_MEMBER: Module pointer expected at operand2");
+      continue;
+    }
+    Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[arguments.operand2].data.pointer_data);
+    if (module_interp == nullptr) {
+      LOGGING_ERROR("LOAD_MODULE_MEMBER: Null module interpreter");
+      continue;
+    }
+    
+    std::string member_name = GetString(memory_ptr + arguments.operand3);
+    auto& module_vars = module_interp->context.variables;
+    auto var_it = module_vars.find("#" + member_name);
+    if (var_it == module_vars.end()) {
+      LOGGING_ERROR("LOAD_MODULE_MEMBER: Variable '" + member_name + "' not found in module");
+      continue;
+    }
+    
+    // Create reference to module variable
+    ObjectReference* ref = new ObjectReference();
+    ref->is_class = false;
+    ref->memory.memory = module_interp->global_memory;
+    ref->index.index = var_it->second;
+    
+    memory_ptr[arguments.operand1].type = 0x07;
+    memory_ptr[arguments.operand1].constant_type = false;
+    memory_ptr[arguments.operand1].data.reference_data = ref;
+    continue;
+  }
+  op_INVOKE_MODULE_METHOD: {
+    // Arguments in instruction.arguments vector:
+    // [0]: module pointer index
+    // [1]: method name index  
+    // [2]: return value index
+    // [3+]: method arguments
+    auto& args = instructions_ptr[i].arguments;
+    if (args.size() < 3) {
+      LOGGING_ERROR("INVOKE_MODULE_METHOD: Insufficient arguments");
+      continue;
+    }
+    
+    if (memory_ptr[args[0]].type != 0x0A) {
+      LOGGING_ERROR("INVOKE_MODULE_METHOD: Module pointer expected");
+      continue;
+    }
+    Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[args[0]].data.pointer_data);
+    if (module_interp == nullptr) {
+      LOGGING_ERROR("INVOKE_MODULE_METHOD: Null module interpreter");
+      continue;
+    }
+    
+    std::string method_name = GetString(memory_ptr + args[1]);
+    
+    // Create references in module memory for all arguments
+    auto module_memory = module_interp->global_memory;
+    auto module_ptr = module_memory->GetMemory().data();
+    
+    std::vector<std::size_t> module_args;
+    // Return value reference
+    std::size_t return_ref_idx = module_memory->AddReference(memory, args[2]);
+    module_args.push_back(return_ref_idx);
+    
+    // Method arguments
+    for (std::size_t j = 3; j < args.size(); j++) {
+      std::size_t arg_ref_idx = module_memory->AddReference(memory, args[j]);
+      module_args.push_back(arg_ref_idx);
+    }
+    
+    // Check if it's a lambda (variable holding function name)
+    auto& module_vars = module_interp->context.variables;
+    auto var_it = module_vars.find("#" + method_name);
+    if (var_it != module_vars.end() && module_ptr[var_it->second].type == 0x05) {
+      // It's a lambda stored as a variable - get the actual function name
+      method_name = *module_ptr[var_it->second].data.string_data;
+    }
+    
+    // Invoke in module interpreter's context
+    std::size_t method_name_idx = module_memory->AddString(method_name);
+    InvokeClassMethod(module_memory, 2, method_name_idx, module_args,
+                     module_interp->classes, module_interp->builtin_functions);
+    continue;
+  }
+  op_NEW_MODULE: {
+    // Format: [result, size, type, module_ptr]
+    auto& args = instructions_ptr[i].arguments;
+    if (args.size() < 4) {
+      LOGGING_ERROR("NEW_MODULE: Insufficient arguments");
+      continue;
+    }
+    
+    std::size_t result_idx = args[0];
+    std::size_t size_idx = args[1];
+    std::size_t type_idx = args[2];
+    std::size_t module_ptr_idx = args[3];
+    
+    // Get the module interpreter pointer
+    if (memory_ptr[module_ptr_idx].type != 0x0A) {
+      LOGGING_ERROR("NEW_MODULE: Module pointer expected");
+      continue;
+    }
+    
+    Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[module_ptr_idx].data.pointer_data);
+    if (module_interp == nullptr) {
+      LOGGING_ERROR("NEW_MODULE: Null module interpreter");
+      continue;
+    }
+    
+    // Call the NEW_MODULE function
+    int result = NEW_MODULE(memory, module_interp->global_memory,
+                           module_interp->classes, result_idx, size_idx, 
+                           type_idx, module_interp->builtin_functions);
+    
+    if (result != 0) {
+      LOGGING_ERROR("NEW_MODULE: Failed to create module class instance");
+    }
+    continue;
+  }
 #else
     // LOGGING_INFO("Executing instruction: " +
     // std::to_string(instruction.oper));
@@ -1710,6 +1843,131 @@ int InvokeClassMethod(
             memory_ptr[arguments.operand2].data.float_data /
             memory_ptr[arguments.operand3].data.float_data;
         break;
+      case _AQVM_OPERATOR_LOAD_MODULE_MEMBER: {
+        // operand1: result index in local memory
+        // operand2: module pointer index in local memory
+        // operand3: member name index in local memory
+        if (memory_ptr[arguments.operand2].type != 0x0A) {
+          LOGGING_ERROR("LOAD_MODULE_MEMBER: Module pointer expected at operand2");
+          break;
+        }
+        Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[arguments.operand2].data.pointer_data);
+        if (module_interp == nullptr) {
+          LOGGING_ERROR("LOAD_MODULE_MEMBER: Null module interpreter");
+          break;
+        }
+        
+        std::string member_name = GetString(memory_ptr + arguments.operand3);
+        auto& module_vars = module_interp->context.variables;
+        auto var_it = module_vars.find("#" + member_name);
+        if (var_it == module_vars.end()) {
+          LOGGING_ERROR("LOAD_MODULE_MEMBER: Variable '" + member_name + "' not found in module");
+          break;
+        }
+        
+        // Create reference to module variable
+        ObjectReference* ref = new ObjectReference();
+        ref->is_class = false;
+        ref->memory.memory = module_interp->global_memory;
+        ref->index.index = var_it->second;
+        
+        memory_ptr[arguments.operand1].type = 0x07;
+        memory_ptr[arguments.operand1].constant_type = false;
+        memory_ptr[arguments.operand1].data.reference_data = ref;
+        break;
+      }
+      case _AQVM_OPERATOR_INVOKE_MODULE_METHOD: {
+        // Arguments in instruction.arguments vector:
+        // [0]: module pointer index
+        // [1]: method name index  
+        // [2]: return value index
+        // [3+]: method arguments
+        auto& args = instructions_ptr[i].arguments;
+        if (args.size() < 3) {
+          LOGGING_ERROR("INVOKE_MODULE_METHOD: Insufficient arguments");
+          break;
+        }
+        
+        if (memory_ptr[args[0]].type != 0x0A) {
+          LOGGING_ERROR("INVOKE_MODULE_METHOD: Module pointer expected");
+          break;
+        }
+        Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[args[0]].data.pointer_data);
+        if (module_interp == nullptr) {
+          LOGGING_ERROR("INVOKE_MODULE_METHOD: Null module interpreter");
+          break;
+        }
+        
+        std::string method_name = GetString(memory_ptr + args[1]);
+        
+        // Create references in module memory for all arguments
+        auto module_memory = module_interp->global_memory;
+        auto module_ptr = module_memory->GetMemory().data();
+        
+        std::vector<std::size_t> module_args;
+        // Return value reference
+        std::size_t return_ref_idx = module_memory->AddReference(memory, args[2]);
+        module_args.push_back(return_ref_idx);
+        
+        // Method arguments
+        for (std::size_t j = 3; j < args.size(); j++) {
+          std::size_t arg_ref_idx = module_memory->AddReference(memory, args[j]);
+          module_args.push_back(arg_ref_idx);
+        }
+        
+        // Check if it's a lambda (variable holding function name)
+        auto& module_vars = module_interp->context.variables;
+        auto var_it = module_vars.find("#" + method_name);
+        if (var_it != module_vars.end() && module_ptr[var_it->second].type == 0x05) {
+          // It's a lambda stored as a variable - get the actual function name
+          method_name = *module_ptr[var_it->second].data.string_data;
+        }
+        
+        // Invoke in module interpreter's context
+        std::size_t method_name_idx = module_memory->AddString(method_name);
+        InvokeClassMethod(module_memory, 2, method_name_idx, module_args,
+                         module_interp->classes, module_interp->builtin_functions);
+        break;
+      }
+      case _AQVM_OPERATOR_NEW_MODULE: {
+        // Format: [result, size, type, module_ptr]
+        // operand1: result index in local memory (where reference will be stored)
+        // operand2: size index (typically 0)
+        // operand3: class name index (string)
+        // operand4: module interpreter pointer index
+        
+        if (arguments.size() < 4) {
+          LOGGING_ERROR("NEW_MODULE: Insufficient arguments");
+          break;
+        }
+        
+        std::size_t result_idx = arguments.operand1;
+        std::size_t size_idx = arguments.operand2;
+        std::size_t type_idx = arguments.operand3;
+        std::size_t module_ptr_idx = arguments[3];
+        
+        // Get the module interpreter pointer
+        if (memory_ptr[module_ptr_idx].type != 0x0A) {
+          LOGGING_ERROR("NEW_MODULE: Module pointer expected");
+          break;
+        }
+        
+        Interpreter* module_interp = static_cast<Interpreter*>(memory_ptr[module_ptr_idx].data.pointer_data);
+        if (module_interp == nullptr) {
+          LOGGING_ERROR("NEW_MODULE: Null module interpreter");
+          break;
+        }
+        
+        // Call the NEW_MODULE function
+        int result = NEW_MODULE(memory, module_interp->global_memory,
+                               module_interp->classes, result_idx, size_idx, 
+                               type_idx, module_interp->builtin_functions);
+        
+        if (result != 0) {
+          LOGGING_ERROR("NEW_MODULE: Failed to create module class instance");
+        }
+        break;
+      }
       case _AQVM_OPERATOR_WIDE:
         break;
       default:
@@ -1718,6 +1976,9 @@ int InvokeClassMethod(
     }
 #endif
   }
+
+  // Restore the previous current_class_index
+  current_class_index = saved_current_class_index;
 
   return 0;
 }
@@ -1832,6 +2093,145 @@ int LOAD_MEMBER(Memory* memory, std::unordered_map<std::string, Class>& classes,
   result_reference.type = 0x07;
   result_reference.constant_type = true;
   result_reference.data.reference_data = reference;
+
+  return 0;
+}
+
+// LOAD_MODULE_MEMBER loads a variable from another interpreter's memory by creating a reference
+// This allows cross-module variable access without copying data
+int LOAD_MODULE_MEMBER(Memory* local_memory, Memory* module_memory,
+                       std::size_t result, std::size_t module_var_index) {
+  if (local_memory == nullptr || module_memory == nullptr) {
+    LOGGING_ERROR("Memory pointer is null.");
+    return -1;
+  }
+
+  auto& result_object = local_memory->GetMemory()[result];
+  
+  // Create a reference to the module's variable
+  ObjectReference* reference = new ObjectReference();
+  reference->is_class = false;
+  reference->memory.memory = module_memory;
+  reference->index.index = module_var_index;
+
+  result_object.type = 0x07;
+  result_object.constant_type = false;
+  result_object.data.reference_data = reference;
+
+  return 0;
+}
+
+// INVOKE_MODULE_METHOD invokes a method from an imported module's interpreter
+// All data is passed by reference to avoid errors when crossing interpreter boundaries
+int INVOKE_MODULE_METHOD(
+    Memory* local_memory, Memory* module_memory,
+    std::unordered_map<std::string, Class>& module_classes,
+    std::unordered_map<std::string,
+                       std::function<int(Memory*, std::vector<std::size_t>)>>&
+        module_builtin_functions,
+    std::vector<size_t> arguments) {
+  if (arguments.size() < 3) {
+    LOGGING_ERROR("Invalid arguments for INVOKE_MODULE_METHOD.");
+    return -1;
+  }
+
+  // First argument is the class object in module memory
+  std::size_t class_object_index = arguments[0];
+  // Second argument is the method name in module memory
+  std::size_t method_name_index = arguments[1];
+
+  // Remove the first two arguments, keeping only the method parameters
+  arguments.erase(arguments.begin(), arguments.begin() + 2);
+
+  // Get the method name from module memory
+  auto module_ptr = module_memory->GetMemory().data();
+  std::string method_name = GetString(module_ptr + method_name_index);
+
+  // Check if it's a builtin function
+  auto builtin_it = module_builtin_functions.find(method_name);
+  if (builtin_it != module_builtin_functions.end()) {
+    // For builtin functions, arguments need to be in module memory
+    // We need to create references in module memory to local memory
+    std::vector<std::size_t> module_args;
+    for (auto arg : arguments) {
+      std::size_t ref_index = module_memory->AddReference(local_memory, arg);
+      module_args.push_back(ref_index);
+    }
+    return builtin_it->second(module_memory, module_args);
+  }
+
+  // For class methods, invoke using the module's classes and memory
+  return InvokeClassMethod(module_memory, class_object_index, method_name_index,
+                          arguments, module_classes, module_builtin_functions);
+}
+
+// NEW_MODULE creates a new instance of a class from an imported module
+// The instance is created in the module's memory space
+int NEW_MODULE(Memory* local_memory, Memory* module_memory,
+               std::unordered_map<std::string, Class>& module_classes,
+               std::size_t result, std::size_t size, std::size_t type,
+               std::unordered_map<
+                   std::string,
+                   std::function<int(Memory*, std::vector<std::size_t>)>>&
+                   module_builtin_functions) {
+  if (local_memory == nullptr || module_memory == nullptr) {
+    LOGGING_ERROR("Memory pointer is null.");
+    return -1;
+  }
+
+  // Get the type information from local memory
+  auto local_ptr = local_memory->GetMemory().data();
+  Object type_data = local_ptr[type];
+
+  // The type should be a string naming the class
+  if (type_data.type != 0x05 || type_data.data.string_data == nullptr) {
+    LOGGING_ERROR("NEW_MODULE requires a string type parameter.");
+    return -1;
+  }
+
+  std::string class_name = *type_data.data.string_data;
+  
+  // Classes in modules are stored with a leading dot (e.g., ".test_class")
+  // Prepend a dot if not already present
+  if (!class_name.empty() && class_name[0] != '.') {
+    class_name = "." + class_name;
+  }
+  
+  // Get the size value
+  std::size_t size_value = GetUint64(local_ptr + size);
+
+  // Create the object in module memory
+  std::size_t module_obj_index = module_memory->Add(1);
+  
+  // Use the module's NEW operator to create the instance
+  std::size_t module_type_index = module_memory->AddString(class_name);
+  std::size_t module_size_index = module_memory->AddUint64t(size_value);
+  
+  int result_code = NEW(module_memory->GetMemory().data(), module_classes,
+                       module_obj_index, module_size_index, module_type_index,
+                       module_builtin_functions);
+  
+  if (result_code != 0) {
+    return result_code;
+  }
+
+  // Call the constructor on the newly created object in module memory
+  std::size_t constructor_name_idx = module_memory->AddString("@constructor");
+  std::size_t return_val_idx = module_memory->Add(1);
+  std::vector<std::size_t> constructor_args = {return_val_idx};
+  InvokeClassMethod(module_memory, module_obj_index, constructor_name_idx,
+                   constructor_args, module_classes, module_builtin_functions);
+
+  // Create a reference in local memory to the module object
+  ObjectReference* reference = new ObjectReference();
+  reference->is_class = false;
+  reference->memory.memory = module_memory;
+  reference->index.index = module_obj_index;
+
+  auto& result_object = local_memory->GetMemory()[result];
+  result_object.type = 0x07;
+  result_object.constant_type = false;
+  result_object.data.reference_data = reference;
 
   return 0;
 }

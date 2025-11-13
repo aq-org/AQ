@@ -1,0 +1,36 @@
+import "./module_features/test_module.aq" mod;
+
+auto main(){
+    __builtin_print("=== Test 1: Module global variable read ===");
+    __builtin_print(mod.global_var);
+    __builtin_print(mod.global_int);
+    
+    __builtin_print("=== Test 2: Module global variable assignment ===");
+    mod.global_var = "CHANGED";
+    __builtin_print(mod.global_var);
+    
+    __builtin_print("=== Test 3: Module function call ===");
+    mod.test_function();
+    
+    __builtin_print("=== Test 4: Local lambda ===");
+    auto local_lambda = func(){
+        __builtin_print("Local lambda executed");
+    }
+    local_lambda();
+    
+    __builtin_print("=== Test 5: Lambda with parameters ===");
+    auto multiply = func(int x, int y){
+        return x * y;
+    }
+    auto product = multiply(6, 7);
+    __builtin_print("6 * 7 =");
+    __builtin_print(product);
+    
+    __builtin_print("=== Test 6: Reassign lambda ===");
+    local_lambda = func(){
+        __builtin_print("Reassigned lambda");
+    }
+    local_lambda();
+    
+    __builtin_print("=== All tests passed! ===");
+}

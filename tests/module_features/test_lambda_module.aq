@@ -1,0 +1,5 @@
+auto main(){}
+
+auto simple_func(){
+    __builtin_print("Simple function in module");
+}
