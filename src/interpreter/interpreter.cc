@@ -61,6 +61,11 @@ void Interpreter::Generate(Ast::Compound* statement) {
   for (std::size_t i = 0; i < statement->GetStatements().size(); i++) {
     Ast::Statement* sub_statement = statement->GetStatements()[i];
     switch (sub_statement->GetStatementType()) {
+      case Ast::Statement::StatementType::kClass:
+        // Handle class declarations to initialize static members
+        HandleClassDeclaration(*this, Ast::Cast<Ast::Class>(sub_statement));
+        break;
+        
       case Ast::Statement::StatementType::kFunctionDeclaration:
         HandleFunctionDeclaration(
             *this, Ast::Cast<Ast::FunctionDeclaration>(sub_statement));
