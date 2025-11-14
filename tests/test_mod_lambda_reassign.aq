@@ -1,0 +1,6 @@
+import "./module_features/test_module.aq" mod;
+
+auto main(){
+    __builtin_print("Before reassignment:");
+    mod.test_function();
+}
