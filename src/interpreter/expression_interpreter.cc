@@ -633,6 +633,32 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
                                       std::move(invoke_arguments)});
               return return_value_index;
             }
+            
+            // Check if this is a nested class (for constructor calls like OuterClass.InnerClass())
+            if (classes.find(static_method_name) != classes.end()) {
+              // This is a nested class constructor call
+              std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+              
+              // Create new instance using NEW operator
+              code.push_back(
+                  Bytecode{_AQVM_OPERATOR_NEW,
+                           {return_value_index, global_memory->AddByte(0),
+                            global_memory->AddString(static_method_name)}});
+              
+              // Call the constructor
+              auto arguments = right_expression->GetParameters();
+              std::vector<std::size_t> constructor_arguments{
+                  return_value_index, global_memory->AddString("@constructor"),
+                  global_memory->Add(1)};
+              for (std::size_t i = 0; i < arguments.size(); i++)
+                constructor_arguments.push_back(
+                    HandleExpression(interpreter, arguments[i], code, 0));
+              
+              code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                      std::move(constructor_arguments)});
+              
+              return return_value_index;
+            }
           }
         }
       }
@@ -749,6 +775,32 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
                     HandleExpression(interpreter, arguments[j], code, 0));
 
               code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_arguments)});
+              return return_value_index;
+            }
+            
+            // Check if this is a nested class (for constructor calls like OuterClass.InnerClass())
+            if (classes.find(static_method_name) != classes.end()) {
+              // This is a nested class constructor call
+              std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+              
+              // Create new instance using NEW operator
+              code.push_back(
+                  Bytecode{_AQVM_OPERATOR_NEW,
+                           {return_value_index, global_memory->AddByte(0),
+                            global_memory->AddString(static_method_name)}});
+              
+              // Call the constructor
+              auto arguments = Ast::Cast<Ast::Function>(right_expression)->GetParameters();
+              std::vector<std::size_t> constructor_arguments{
+                  return_value_index, global_memory->AddString("@constructor"),
+                  global_memory->Add(1)};
+              for (std::size_t j = 0; j < arguments.size(); j++)
+                constructor_arguments.push_back(
+                    HandleExpression(interpreter, arguments[j], code, 0));
+              
+              code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                      std::move(constructor_arguments)});
+              
               return return_value_index;
             }
             
