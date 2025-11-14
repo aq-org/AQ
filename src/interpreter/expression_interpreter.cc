@@ -583,6 +583,59 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
           return return_value_index;
         }
       }
+      
+      // Check if this is a class static method call (e.g., ClassName.static_func())
+      // If the first identifier is a class name, look for the function with class prefix
+      auto& classes = interpreter.classes;
+      if (expressions.size() >= 2 && Ast::IsOfType<Ast::Identifier>(expressions[0])) {
+        std::string first_ident = std::string(*Ast::Cast<Ast::Identifier>(expressions[0]));
+        
+        // Try to find the class with different scope prefixes
+        for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+          std::string class_name = first_ident;
+          if (i != -1) {
+            class_name = scopes[i] + "." + first_ident;
+          } else {
+            class_name = "." + first_ident;
+          }
+          
+          if (classes.find(class_name) != classes.end()) {
+            // Found the class! Now construct the full static method name
+            std::string static_method_name = class_name;
+            for (std::size_t j = 1; j < expressions.size() - 1; j++) {
+              if (Ast::IsOfType<Ast::Identifier>(expressions[j])) {
+                static_method_name += "." + std::string(*Ast::Cast<Ast::Identifier>(expressions[j]));
+              }
+            }
+            static_method_name += "." + right_expression->GetFunctionName();
+            
+            // Look up the static method
+            auto iterator = functions.find(static_method_name);
+            if (iterator != functions.end()) {
+              // Adds the function name, return value and its reference into the
+              // global memory.
+              std::size_t name_index = global_memory->AddString(static_method_name);
+              std::size_t return_value_index =
+                  HandleFunctionReturnValue(interpreter, code);
+
+              // Handles the function arguments.
+              auto arguments = right_expression->GetParameters();
+              std::size_t arguments_size = arguments.size();
+
+              // Handles the invocation of the function.
+              std::vector<std::size_t> invoke_arguments = {2, name_index,
+                                                           return_value_index};
+              for (std::size_t i = 0; i < arguments_size; i++)
+                invoke_arguments.push_back(
+                    HandleExpression(interpreter, arguments[i], code, 0));
+
+              code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
+                                      std::move(invoke_arguments)});
+              return return_value_index;
+            }
+          }
+        }
+      }
 
     } else if (Ast::Cast<Ast::Identifier>(expressions.back())) {
       // The last expression is an identifier, so we try to find the variable
@@ -593,6 +646,39 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       for (int64_t i = scopes.size() - 1; i >= 0; i--) {
         auto iterator = variables.find(scopes[i] + "." + full_name);
         if (iterator != variables.end()) return iterator->second;
+      }
+      
+      // Check if this is a class static member access (e.g., ClassName.static_var)
+      // If the first identifier is a class name, look for the variable with class prefix
+      auto& classes = interpreter.classes;
+      if (expressions.size() >= 2 && Ast::IsOfType<Ast::Identifier>(expressions[0])) {
+        std::string first_ident = std::string(*Ast::Cast<Ast::Identifier>(expressions[0]));
+        
+        // Try to find the class with different scope prefixes
+        for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+          std::string class_name = first_ident;
+          if (i != -1) {
+            class_name = scopes[i] + "." + first_ident;
+          } else {
+            class_name = "." + first_ident;
+          }
+          
+          if (classes.find(class_name) != classes.end()) {
+            // Found the class! Now construct the full static member name
+            std::string static_member_name = class_name;
+            for (std::size_t j = 1; j < expressions.size(); j++) {
+              if (Ast::IsOfType<Ast::Identifier>(expressions[j])) {
+                static_member_name += "." + std::string(*Ast::Cast<Ast::Identifier>(expressions[j]));
+              }
+            }
+            
+            // Look up the static member variable
+            auto iterator = variables.find(static_member_name);
+            if (iterator != variables.end()) {
+              return iterator->second;
+            }
+          }
+        }
       }
 
     } else {
@@ -607,6 +693,55 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
       // Handles the case where the right expression is a function.
       // This is a function call, so we need to handle it specially.
     case Ast::Statement::StatementType::kFunction: {
+      // Check if the left expression is an identifier that's a class name
+      // If so, this is a static method call
+      if (Ast::IsOfType<Ast::Identifier>(expression->GetLeftExpression())) {
+        std::string left_ident = std::string(*Ast::Cast<Ast::Identifier>(expression->GetLeftExpression()));
+        auto& classes = interpreter.classes;
+        
+        // Try to find if this identifier is a class name
+        for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+          std::string class_name = left_ident;
+          if (i != -1) {
+            class_name = scopes[i] + "." + left_ident;
+          } else {
+            class_name = "." + left_ident;
+          }
+          
+          if (classes.find(class_name) != classes.end()) {
+            // This is a class static method call
+            std::string method_name = Ast::Cast<Ast::Function>(right_expression)->GetFunctionName();
+            std::string static_method_name = class_name + "." + method_name;
+            
+            // Look up the static method
+            auto iterator = functions.find(static_method_name);
+            if (iterator != functions.end()) {
+              // Handles the function return value.
+              std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+              
+              // Use regular method invocation bytecode with mode 2 for static functions
+              std::size_t method_name_index = global_memory->AddString(static_method_name);
+              
+              // Handles the function arguments.
+              auto arguments = Ast::Cast<Ast::Function>(right_expression)->GetParameters();
+              std::size_t arguments_size = arguments.size();
+
+              // Handles the invocation of the function.
+              std::vector<std::size_t> invoke_arguments = {2, method_name_index, return_value_index};
+              for (std::size_t j = 0; j < arguments_size; j++)
+                invoke_arguments.push_back(
+                    HandleExpression(interpreter, arguments[j], code, 0));
+
+              code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_arguments)});
+              return return_value_index;
+            }
+            
+            // If not found, fall through to normal handling for error reporting
+            break;
+          }
+        }
+      }
+      
       // Handles the class and function name.
       std::size_t class_index = HandleExpression(
           interpreter, expression->GetLeftExpression(), code, 0);
@@ -635,6 +770,38 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
     }
 
     case Ast::Statement::StatementType::kIdentifier: {
+      // Check if the left expression is an identifier that's a class name
+      // If so, this is a static member access
+      if (Ast::IsOfType<Ast::Identifier>(expression->GetLeftExpression())) {
+        std::string left_ident = std::string(*Ast::Cast<Ast::Identifier>(expression->GetLeftExpression()));
+        auto& classes = interpreter.classes;
+        
+        // Try to find if this identifier is a class name
+        for (int64_t i = scopes.size() - 1; i >= -1; i--) {
+          std::string class_name = left_ident;
+          if (i != -1) {
+            class_name = scopes[i] + "." + left_ident;
+          } else {
+            class_name = "." + left_ident;
+          }
+          
+          if (classes.find(class_name) != classes.end()) {
+            // This is a class static member access
+            std::string member_name = std::string(*Ast::Cast<Ast::Identifier>(expression->GetRightExpression()));
+            std::string static_member_name = class_name + "." + member_name;
+            
+            // Look up the static member variable
+            auto iterator = variables.find(static_member_name);
+            if (iterator != variables.end()) {
+              return iterator->second;
+            }
+            
+            // If not found, fall through to normal handling for error reporting
+            break;
+          }
+        }
+      }
+      
       std::size_t return_value_index = global_memory->Add(1);
 
       // Handles the class and variable name.
