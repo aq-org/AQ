@@ -2,7 +2,7 @@ auto main(){}
 auto test_global_var = "SUCCESS";
 
 auto test_function = func(){
-    __builtin_print("lambda test OK.");
+    __builtin_print("lambda test OK.\n\n\n");
 }
 
 class test_class {
@@ -17,4 +17,10 @@ class test_class {
             __builtin_print("OK!!!");
         }
     }
+
+    static auto test_static_func(){
+        __builtin_print("test_static_func");
+    }
+
+    static auto test_static_var  = "SUCCESS TEST STATIC VAR;";
 }

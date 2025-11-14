@@ -1,5 +1,51 @@
-import "./f1/f2/f3/test.aq" test;
+class test{
+static auto test_global_var = "SUCCESS";
+
+static auto test_function = func(){
+    __builtin_print("lambda test OK.\n\n\n");
+}
+
+class test_class {
+    void test_class(){
+        __builtin_print("OK");
+    }
+
+    auto test_var = "TEST_VAR";
+
+    class TEST_CLASS_IN_CLASS{
+        void TEST_CLASS_IN_CLASS(){
+            __builtin_print("OK!!!");
+        }
+    }
+
+    static auto test_static_func(){
+        __builtin_print("test_static_func");
+    }
+
+    static auto test_static_var  = "SUCCESS TEST STATIC VAR;";
+}
+
+}
 
 auto main(){
-  test.run();
+    __builtin_print(test.test_global_var);
+    test.test_global_var = 100;
+    __builtin_print(test.test_global_var);
+    test.test_function();
+
+    test.test_function = func(){
+        __builtin_print("ABC\n\n\n");
+    };
+    test.test_function();
+
+    test.test_class test_var1;
+    auto test_var2 = test.test_class();
+    __builtin_print(test_var1.test_var);
+    __builtin_print(test_var2.test_var);
+    
+    test.test_class.test_static_func();
+    __builtin_print(test.test_class.test_static_var);
+    test.test_class.test_static_var = 100;
+    
+    __builtin_print(test.test_class.test_static_var);
 }
