@@ -709,25 +709,41 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
           }
           
           if (classes.find(class_name) != classes.end()) {
-            // This is a class static method call
-            std::string method_name = Ast::Cast<Ast::Function>(right_expression)->GetFunctionName();
-            std::string static_method_name = class_name + "." + method_name;
+            // This is a class static method call or variable access
+            std::string member_name = Ast::Cast<Ast::Function>(right_expression)->GetFunctionName();
+            std::string static_method_name = class_name + "." + member_name;
             
-            // Look up the static method
-            auto iterator = functions.find(static_method_name);
-            if (iterator != functions.end()) {
-              // Handles the function return value.
+            // First, check if this is a static method
+            auto func_iterator = functions.find(static_method_name);
+            if (func_iterator != functions.end()) {
+              // This is a static method - handle it normally
               std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
-              
-              // Use regular method invocation bytecode with mode 2 for static functions
               std::size_t method_name_index = global_memory->AddString(static_method_name);
               
-              // Handles the function arguments.
               auto arguments = Ast::Cast<Ast::Function>(right_expression)->GetParameters();
               std::size_t arguments_size = arguments.size();
 
-              // Handles the invocation of the function.
               std::vector<std::size_t> invoke_arguments = {2, method_name_index, return_value_index};
+              for (std::size_t j = 0; j < arguments_size; j++)
+                invoke_arguments.push_back(
+                    HandleExpression(interpreter, arguments[j], code, 0));
+
+              code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_METHOD, std::move(invoke_arguments)});
+              return return_value_index;
+            }
+            
+            // Check if this is a static variable (e.g., a lambda stored in a variable)
+            auto var_iterator = variables.find(static_method_name);
+            if (var_iterator != variables.end()) {
+              // This is a variable holding a function reference - invoke it
+              std::size_t function_ref_index = var_iterator->second;
+              std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+              
+              auto arguments = Ast::Cast<Ast::Function>(right_expression)->GetParameters();
+              std::size_t arguments_size = arguments.size();
+
+              // Use mode 2 with the variable index (like HandleFunctionInvoke does for function variables)
+              std::vector<std::size_t> invoke_arguments = {2, function_ref_index, return_value_index};
               for (std::size_t j = 0; j < arguments_size; j++)
                 invoke_arguments.push_back(
                     HandleExpression(interpreter, arguments[j], code, 0));
