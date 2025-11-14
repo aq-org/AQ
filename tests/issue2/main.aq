@@ -6,8 +6,19 @@ auto main(){
     __builtin_print(test.test_global_var);
     test.test_function();
 
+    test.test_function = func(){
+        __builtin_print("ABC\n\n\n");
+    };
+    test.test_function();
+
     test.test_class test_var1;
     auto test_var2 = test.test_class();
     __builtin_print(test_var1.test_var);
     __builtin_print(test_var2.test_var);
+    
+    test.test_class.test_static_func();
+    __builtin_print(test.test_class.test_static_var);
+    test.test_class.test_static_var = 100;
+    
+    __builtin_print(test.test_class.test_static_var);
 }
