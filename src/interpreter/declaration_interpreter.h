@@ -27,7 +27,8 @@ void HandleClassConstructor(Interpreter& interpreter,
                             Ast::FunctionDeclaration* declaration);
 
 // Handles the class declaration.
-void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration);
+void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration,
+                           std::vector<Bytecode>& code);
 
 // Handles the variable declaration.
 std::size_t HandleVariableDeclaration(Interpreter& interpreter,
@@ -41,7 +42,8 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
 
 // Handles the static variable declaration.
 std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
-                                            Ast::Variable* declaration);
+                                            Ast::Variable* declaration,
+                                            std::vector<Bytecode>& code);
 
 // Handles the variable declaration.
 std::size_t HandleClassVariableDeclaration(Interpreter& interpreter,
@@ -59,7 +61,8 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
 
 // Handles the static array declaration.
 std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
-                                         Ast::ArrayDeclaration* declaration);
+                                         Ast::ArrayDeclaration* declaration,
+                                         std::vector<Bytecode>& code);
 
 // Handles the class array declaration.
 std::size_t HandleClassArrayDeclaration(Interpreter& interpreter,
@@ -121,11 +124,13 @@ void HandleConstructorFunctionInHandlingConstructor(
 
 // Handles the class statement.
 void HandleSubClassesInHandlingClass(Interpreter& interpreter,
-                                     Ast::Class* declaration);
+                                     Ast::Class* declaration,
+                                     std::vector<Bytecode>& code);
 
 // Handles the static members in handling class.
 void HandleStaticMembersInHandlingClass(Interpreter& interpreter,
-                                        Ast::Class* declaration);
+                                        Ast::Class* declaration,
+                                        std::vector<Bytecode>& code);
 
 // Handles the class members in handling class.
 void HandleClassMembersInHandlingClass(Interpreter& interpreter,
