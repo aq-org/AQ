@@ -485,24 +485,65 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
           return return_value_index;
         }
         
-        // Regular module function call
+        // Check if this is a variable (e.g., a lambda stored in a variable)
+        // Look up the full qualified name in the module's variables
+        // Global variables in modules are stored as ".scope#varname" (e.g., ".main#test_function")
+        bool is_variable = false;
+        if (module_interp != nullptr) {
+          // Check common scope variations
+          std::string var_name_main = ".main#" + method_name;
+          std::string var_name_dot = "." + method_name;
+          
+          is_variable = (module_interp->context.variables.find(var_name_main) != 
+                        module_interp->context.variables.end()) ||
+                       (module_interp->context.variables.find(var_name_dot) != 
+                        module_interp->context.variables.end());
+        }
+        
+        // Regular module function call or variable function call
         // Create return value
         std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
         
-        // Build arguments for INVOKE_MODULE_METHOD
-        // Format: [module_ptr_index, method_name_index, return_index, arg1, arg2, ...]
-        std::vector<std::size_t> invoke_args;
-        invoke_args.push_back(module_var_index);  // Module interpreter pointer
-        invoke_args.push_back(global_memory->AddString(method_name));
-        invoke_args.push_back(return_value_index);
-        
-        auto arguments = func_expr->GetParameters();
-        for (std::size_t i = 0; i < arguments.size(); i++) {
-          invoke_args.push_back(HandleExpression(interpreter, arguments[i], code, 0));
+        if (is_variable) {
+          // This is a variable holding a function - we need to load it first, then invoke
+          // First load the module variable to get the function reference
+          std::size_t func_ref_index = global_memory->Add(1);
+          std::size_t member_name_index = global_memory->AddString(method_name);
+          
+          code.push_back(Bytecode{_AQVM_OPERATOR_LOAD_MODULE_MEMBER,
+                                 {func_ref_index, module_var_index, member_name_index}});
+          
+          // Now invoke the function using the reference
+          // The function reference contains the function name, which could be in either module
+          // We use mode 2 invocation which handles function variables
+          std::vector<std::size_t> invoke_args;
+          invoke_args.push_back(module_var_index);  // Module interpreter pointer  
+          invoke_args.push_back(func_ref_index);     // Function reference (contains function name)
+          invoke_args.push_back(return_value_index);
+          
+          auto arguments = func_expr->GetParameters();
+          for (std::size_t i = 0; i < arguments.size(); i++) {
+            invoke_args.push_back(HandleExpression(interpreter, arguments[i], code, 0));
+          }
+          
+          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_MODULE_METHOD, std::move(invoke_args)});
+        } else {
+          // Regular function/method call
+          // Build arguments for INVOKE_MODULE_METHOD
+          // Format: [module_ptr_index, method_name_index, return_index, arg1, arg2, ...]
+          std::vector<std::size_t> invoke_args;
+          invoke_args.push_back(module_var_index);  // Module interpreter pointer
+          invoke_args.push_back(global_memory->AddString(method_name));
+          invoke_args.push_back(return_value_index);
+          
+          auto arguments = func_expr->GetParameters();
+          for (std::size_t i = 0; i < arguments.size(); i++) {
+            invoke_args.push_back(HandleExpression(interpreter, arguments[i], code, 0));
+          }
+          
+          // Use INVOKE_MODULE_METHOD for cross-module function calls
+          code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_MODULE_METHOD, std::move(invoke_args)});
         }
-        
-        // Use INVOKE_MODULE_METHOD for cross-module function calls
-        code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_MODULE_METHOD, std::move(invoke_args)});
         
         return return_value_index;
       }

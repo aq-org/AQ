@@ -1530,17 +1530,70 @@ int InvokeClassMethod(
     }
     
     // Check if it's a lambda (variable holding function name)
+    // Variables can be stored with different scope prefixes
     auto& module_vars = module_interp->context.variables;
-    auto var_it = module_vars.find("#" + method_name);
+    auto var_it = module_vars.find(".main#" + method_name);
+    if (var_it == module_vars.end()) {
+      var_it = module_vars.find("." + method_name);
+    }
+    if (var_it == module_vars.end()) {
+      var_it = module_vars.find("#" + method_name);
+    }
+    
+    bool is_lambda_variable = false;
     if (var_it != module_vars.end() && module_ptr[var_it->second].type == 0x05) {
       // It's a lambda stored as a variable - get the actual function name
       method_name = *module_ptr[var_it->second].data.string_data;
+      is_lambda_variable = true;
     }
     
-    // Invoke in module interpreter's context
-    std::size_t method_name_idx = module_memory->AddString(method_name);
-    InvokeClassMethod(module_memory, 2, method_name_idx, module_args,
-                     module_interp->classes, module_interp->builtin_functions);
+    // If this is a lambda variable, check where the function is defined
+    // before calling InvokeClassMethod (which will exit on error)
+    bool found_in_module = false;
+    bool found_in_current = false;
+    
+    if (is_lambda_variable) {
+      // Check if the function exists in the module's classes
+      // Global functions are stored in the .!__start class
+      auto main_class_it = module_interp->classes.find(".!__start");
+      if (main_class_it != module_interp->classes.end()) {
+        auto& methods = main_class_it->second.GetMethods();
+        found_in_module = (methods.find(method_name) != methods.end()) ||
+                         (methods.find("." + method_name) != methods.end());
+      }
+      
+      // Check if the function exists in the current classes
+      if (!found_in_module) {
+        auto curr_main_class_it = classes.find(".!__start");
+        if (curr_main_class_it != classes.end()) {
+          auto& curr_methods = curr_main_class_it->second.GetMethods();
+          found_in_current = (curr_methods.find(method_name) != curr_methods.end()) ||
+                            (curr_methods.find("." + method_name) != curr_methods.end());
+        }
+      }
+    }
+    
+    // Invoke the function in the appropriate context
+    if (found_in_current && is_lambda_variable) {
+      // The lambda is in the current module - invoke it there
+      // but pass the return value reference to module memory
+      std::size_t return_ref_in_local = memory->AddReference(module_memory, module_args[0]);
+      
+      std::vector<std::size_t> local_args;
+      local_args.push_back(return_ref_in_local);
+      for (std::size_t j = 1; j < module_args.size(); j++) {
+        local_args.push_back(module_args[j]);
+      }
+      
+      std::size_t local_method_name_idx = memory->AddString(method_name);
+      InvokeClassMethod(memory, 2, local_method_name_idx, local_args,
+                       classes, builtin_functions);
+    } else {
+      // Invoke in module interpreter's context (default behavior)
+      std::size_t method_name_idx = module_memory->AddString(method_name);
+      InvokeClassMethod(module_memory, 2, method_name_idx, module_args,
+                       module_interp->classes, module_interp->builtin_functions);
+    }
     continue;
   }
   op_NEW_MODULE: {
