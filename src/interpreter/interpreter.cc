@@ -63,7 +63,7 @@ void Interpreter::Generate(Ast::Compound* statement) {
     switch (sub_statement->GetStatementType()) {
       case Ast::Statement::StatementType::kClass:
         // Handle class declarations to initialize static members
-        HandleClassDeclaration(*this, Ast::Cast<Ast::Class>(sub_statement));
+        HandleClassDeclaration(*this, Ast::Cast<Ast::Class>(sub_statement), init_code);
         break;
         
       case Ast::Statement::StatementType::kFunctionDeclaration:

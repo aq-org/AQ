@@ -81,7 +81,7 @@ void HandleStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kClass:
-      HandleClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement));
+      HandleClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kFunction:
@@ -177,7 +177,7 @@ void HandleClassStatement(Interpreter& interpreter, Ast::Statement* statement,
       break;
 
     case Ast::Statement::StatementType::kClass:
-      HandleClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement));
+      HandleClassDeclaration(interpreter, Ast::Cast<Ast::Class>(statement), code);
       break;
 
     case Ast::Statement::StatementType::kFunction:

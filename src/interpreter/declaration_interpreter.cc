@@ -248,7 +248,8 @@ void HandleClassConstructor(Interpreter& interpreter,
                                                  parameters_index);
 }
 
-void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
+void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration,
+                           std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
@@ -271,12 +272,12 @@ void HandleClassDeclaration(Interpreter& interpreter, Ast::Class* declaration) {
   // Adds the special variable into class memory.
   current_class->GetMembers()->AddString("@name", class_name);
 
-  HandleSubClassesInHandlingClass(interpreter, declaration);
+  HandleSubClassesInHandlingClass(interpreter, declaration, code);
 
   // Restores function context null caused by possible sub classes generation.
   current_class = &classes[class_name];
 
-  HandleStaticMembersInHandlingClass(interpreter, declaration);
+  HandleStaticMembersInHandlingClass(interpreter, declaration, code);
 
   HandleClassMembersInHandlingClass(interpreter, declaration);
 
@@ -426,13 +427,13 @@ std::size_t HandleGlobalVariableDeclaration(Interpreter& interpreter,
 }
 
 std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
-                                            Ast::Variable* declaration) {
+                                            Ast::Variable* declaration,
+                                            std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
   auto& global_memory = interpreter.global_memory;
   auto& scopes = interpreter.context.scopes;
-  auto& global_code = interpreter.global_code;
   auto& variables = interpreter.context.variables;
 
   // For non const types, |return_type| is equivalent to |vm_type|, but for
@@ -464,15 +465,15 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
   // initialized.
   if (declaration->GetVariableValue()[0] != nullptr) {
     std::size_t value_index = HandleExpression(
-        interpreter, declaration->GetVariableValue()[0], global_code, 0);
+        interpreter, declaration->GetVariableValue()[0], code, 0);
 
     // If the variable is a reference type, it needs to be handled
     // specially.
     if (category == Ast::Type::TypeCategory::kReference) {
-      global_code.push_back(
+      code.push_back(
           Bytecode{_AQVM_OPERATOR_REFER, {variable_index, value_index}});
     } else {
-      global_code.push_back(
+      code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {variable_index, value_index}});
     }
 
@@ -486,7 +487,7 @@ std::size_t HandleStaticVariableDeclaration(Interpreter& interpreter,
     // If the variable is a class type without initialization, it needs to be
     // created and default-initialized.
     HandleClassInHandlingVariable(interpreter, declaration, variable_index,
-                                  global_code);
+                                  code);
   }
 
   variables[variable_name] = variable_index;
@@ -742,14 +743,14 @@ std::size_t HandleGlobalArrayDeclaration(Interpreter& interpreter,
 }
 
 std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
-                                         Ast::ArrayDeclaration* declaration) {
+                                         Ast::ArrayDeclaration* declaration,
+                                         std::vector<Bytecode>& code) {
   if (declaration == nullptr) INTERNAL_ERROR("declaration is nullptr.");
 
   // Gets the reference of context.
   auto& global_memory = interpreter.global_memory;
   auto& variables = interpreter.context.variables;
   auto& scopes = interpreter.context.scopes;
-  auto& global_code = interpreter.global_code;
 
   // Handles the array type.
   Ast::ArrayType* array_type =
@@ -788,7 +789,7 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
   // This means that regardless of the size of the array definition, it is
   // actually determined based on the actual number of initialization lists
   // given.
-  global_code.push_back(
+  code.push_back(
       Bytecode{_AQVM_OPERATOR_NEW,
                {array_index, global_memory->AddByte(1), array_type_index}});
 
@@ -798,10 +799,10 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
   // initialized when the ARRAY operator is called.
   if (sub_type_category == Ast::Type::TypeCategory::kClass) {
     std::size_t current_index = global_memory->Add(1);
-    global_code.push_back(
+    code.push_back(
         Bytecode{_AQVM_OPERATOR_ARRAY,
                  {current_index, array_index, global_memory->AddUint64t(0)}});
-    global_code.push_back(
+    code.push_back(
         Bytecode{_AQVM_OPERATOR_INVOKE_METHOD,
                  {current_index, global_memory->AddString("@constructor"),
                   global_memory->Add(1)}});
@@ -812,15 +813,15 @@ std::size_t HandleStaticArrayDeclaration(Interpreter& interpreter,
     std::size_t current_index = global_memory->Add(1);
     for (std::size_t i = 0; i < declaration->GetVariableValue().size(); i++) {
       // Gets the corresponding array index reference.
-      global_code.push_back(
+      code.push_back(
           Bytecode{_AQVM_OPERATOR_ARRAY,
                    {current_index, array_index, global_memory->AddUint64t(i)}});
 
       // Gets the value of the initialization list and assigns value to
       // corresponding index.
       std::size_t value_index = HandleExpression(
-          interpreter, declaration->GetVariableValue()[i], global_code, 0);
-      global_code.push_back(
+          interpreter, declaration->GetVariableValue()[i], code, 0);
+      code.push_back(
           Bytecode{_AQVM_OPERATOR_EQUAL, {current_index, value_index}});
     }
   }
@@ -1192,7 +1193,8 @@ void HandleConstructorFunctionInHandlingConstructor(
 }
 
 void HandleSubClassesInHandlingClass(Interpreter& interpreter,
-                                     Ast::Class* declaration) {
+                                     Ast::Class* declaration,
+                                     std::vector<Bytecode>& code) {
   // Gets the reference of context.
   auto& scopes = interpreter.context.scopes;
   auto& classes = interpreter.classes;
@@ -1201,7 +1203,7 @@ void HandleSubClassesInHandlingClass(Interpreter& interpreter,
     if (Ast::IsOfType<Ast::Class>(declaration->GetSubClasses()[i])) {
       // Handles the sub class declaration.
       auto sub_class = Ast::Cast<Ast::Class>(declaration->GetSubClasses()[i]);
-      HandleClassDeclaration(interpreter, sub_class);
+      HandleClassDeclaration(interpreter, sub_class, code);
 
     } else {
       INTERNAL_ERROR("Unexpected code.");
@@ -1216,18 +1218,19 @@ void HandleSubClassesInHandlingClass(Interpreter& interpreter,
 }
 
 void HandleStaticMembersInHandlingClass(Interpreter& interpreter,
-                                        Ast::Class* declaration) {
+                                        Ast::Class* declaration,
+                                        std::vector<Bytecode>& code) {
   for (std::size_t i = 0; i < declaration->GetStaticMembers().size(); i++) {
     auto member = declaration->GetStaticMembers()[i]->GetStaticDeclaration();
     if (Ast::IsOfType<Ast::Variable>(member)) {
       // Handles the static variable declaration.
       auto variable = Ast::Cast<Ast::Variable>(member);
-      HandleStaticVariableDeclaration(interpreter, variable);
+      HandleStaticVariableDeclaration(interpreter, variable, code);
 
     } else if (Ast::IsOfType<Ast::ArrayDeclaration>(member)) {
       // Handles the static array declaration.
       auto array = Ast::Cast<Ast::ArrayDeclaration>(member);
-      HandleStaticArrayDeclaration(interpreter, array);
+      HandleStaticArrayDeclaration(interpreter, array, code);
 
     } else if (Ast::IsOfType<Ast::FunctionDeclaration>(member)) {
       // Handles the static function declaration.
