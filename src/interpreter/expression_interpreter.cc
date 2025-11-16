@@ -560,6 +560,92 @@ std::size_t HandlePeriodExpression(Interpreter& interpreter,
         
         return return_value_index;
       }
+      else if (expressions.size() >= 3 && Ast::IsOfType<Ast::Function>(expressions.back())) {
+        // This could be a cross-module static function call: module.Class.static_func()
+        // Build the qualified name by joining all intermediate identifiers
+        std::string qualified_name;
+        for (std::size_t i = 1; i < expressions.size() - 1; i++) {
+          if (Ast::IsOfType<Ast::Identifier>(expressions[i])) {
+            if (!qualified_name.empty()) {
+              qualified_name += ".";
+            }
+            qualified_name += std::string(*Ast::Cast<Ast::Identifier>(expressions[i]));
+          } else {
+            // If there's a non-identifier in the middle, can't be a static function call
+            // Fall through to normal handling
+            break;
+          }
+        }
+        
+        if (!qualified_name.empty()) {
+          Ast::Function* func_expr = Ast::Cast<Ast::Function>(expressions.back());
+          std::string func_name = func_expr->GetFunctionName();
+          
+          // Full name is .qualified_name.func_name (e.g., .test_class.test_static_func)
+          std::string full_func_name = "." + qualified_name + "." + func_name;
+          
+          // Get the module interpreter
+          Interpreter* mod_interp = interpreter.module_interpreters[first_ident];
+          
+          // Check if this function exists in the module
+          if (mod_interp != nullptr) {
+            auto func_it = mod_interp->functions.find(full_func_name);
+            if (func_it != mod_interp->functions.end()) {
+              // Found it! Generate bytecode to invoke the module function
+              std::size_t return_value_index = HandleFunctionReturnValue(interpreter, code);
+              
+              std::vector<std::size_t> invoke_args;
+              invoke_args.push_back(module_var_index);  // Module interpreter pointer
+              invoke_args.push_back(global_memory->AddString(full_func_name));
+              invoke_args.push_back(return_value_index);
+              
+              auto arguments = func_expr->GetParameters();
+              for (std::size_t i = 0; i < arguments.size(); i++) {
+                invoke_args.push_back(HandleExpression(interpreter, arguments[i], code, 0));
+              }
+              
+              code.push_back(Bytecode{_AQVM_OPERATOR_INVOKE_MODULE_METHOD, std::move(invoke_args)});
+              return return_value_index;
+            }
+          }
+        }
+      }
+      else if (expressions.size() >= 3 && Ast::IsOfType<Ast::Identifier>(expressions.back())) {
+        // This could be a cross-module static variable access: module.Class.static_var
+        std::string qualified_name;
+        for (std::size_t i = 1; i < expressions.size(); i++) {
+          if (Ast::IsOfType<Ast::Identifier>(expressions[i])) {
+            if (!qualified_name.empty()) {
+              qualified_name += ".";
+            }
+            qualified_name += std::string(*Ast::Cast<Ast::Identifier>(expressions[i]));
+          } else {
+            break;
+          }
+        }
+        
+        if (!qualified_name.empty()) {
+          // Full name is .qualified_name (e.g., .test_class.test_static_var)
+          std::string full_var_name = "." + qualified_name;
+          
+          // Get the module interpreter
+          Interpreter* mod_interp = interpreter.module_interpreters[first_ident];
+          
+          // Check if this variable exists in the module
+          if (mod_interp != nullptr) {
+            auto var_it = mod_interp->context.variables.find(full_var_name);
+            if (var_it != mod_interp->context.variables.end()) {
+              // Found it! Load the variable from the module
+              std::size_t return_value_index = global_memory->Add(1);
+              std::size_t var_name_index = global_memory->AddString(qualified_name);
+              
+              code.push_back(Bytecode{_AQVM_OPERATOR_LOAD_MODULE_MEMBER,
+                                     {return_value_index, module_var_index, var_name_index}});
+              return return_value_index;
+            }
+          }
+        }
+      }
       
       // For more complex cases, fall through to normal handling
     }

@@ -1473,7 +1473,33 @@ int InvokeClassMethod(
     
     std::string member_name = GetString(memory_ptr + arguments.operand3);
     auto& module_vars = module_interp->context.variables;
-    auto var_it = module_vars.find("#" + member_name);
+    
+    // Try different name formats in order of priority:
+    // 1. Full qualified name (e.g., .test_class.test_static_var)
+    // 2. Global variable with scope (e.g., .main#test_function)
+    // 3. Simple name with hash prefix (e.g., #test_var)
+    auto var_it = module_vars.end();
+    std::string found_name;
+    
+    if (member_name.find('.') != std::string::npos) {
+      // Has dots - try as full qualified name
+      std::string try_name = "." + member_name;
+      var_it = module_vars.find(try_name);
+      if (var_it != module_vars.end()) found_name = try_name;
+    }
+    
+    if (var_it == module_vars.end()) {
+      std::string try_name = ".main#" + member_name;
+      var_it = module_vars.find(try_name);
+      if (var_it != module_vars.end()) found_name = try_name;
+    }
+    
+    if (var_it == module_vars.end()) {
+      std::string try_name = "#" + member_name;
+      var_it = module_vars.find(try_name);
+      if (var_it != module_vars.end()) found_name = try_name;
+    }
+    
     if (var_it == module_vars.end()) {
       LOGGING_ERROR("LOAD_MODULE_MEMBER: Variable '" + member_name + "' not found in module");
       continue;
